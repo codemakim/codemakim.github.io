@@ -47,11 +47,11 @@ export default function Home() {
                   </time>
                   
                   {post.tags && (
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       {post.tags.map((tag) => (
                         <span
                           key={tag}
-                          className="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded"
+                          className="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded whitespace-nowrap"
                         >
                           {tag}
                         </span>
