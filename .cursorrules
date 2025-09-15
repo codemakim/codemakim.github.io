@@ -1,44 +1,50 @@
 # Next.js 블로그 프로젝트 AI 지침
 
 ## 프로젝트 개요
-- Next.js 15 + Contentlayer2를 사용한 기술 블로그
-- MDX 파일로 블로그 포스트 관리
-- Tailwind CSS로 스타일링
-- GitHub Pages에 배포
+- Next.js 15 + Contentlayer2 + MDX 블로그
+- Tailwind CSS 4 + Typography, Geist 폰트
+- GitHub Pages 정적 배포 (`output: 'export'`)
+- TypeScript 엄격 모드, 다크모드 지원
 
-## 코딩 스타일
-- TypeScript 사용 (엄격한 타입 체크)
-- 함수형 컴포넌트 + Hooks 패턴
-- 더블 쿼트("") 사용
-- 세미콜론 사용
-- 2스페이스 들여쓰기
+## 핵심 규칙
+- 서버 컴포넌트 기본, 클라이언트는 필요시만 `"use client"`
+- MDX frontmatter: `title`(필수), `date`(필수), `description`, `tags`
+- 다크모드 필수: 모든 색상에 `dark:` 클래스 추가
+- 모바일 우선 반응형, `max-w-4xl mx-auto px-4` 레이아웃
 
-## 파일 구조
-- `/src/app/`: Next.js App Router 페이지
-- `/content/`: MDX 블로그 포스트
-- `/public/`: 정적 파일 (이미지 등)
+## 주요 패턴
+### Contentlayer 데이터
+```typescript
+import { allPosts } from "contentlayer/generated";
+const posts = allPosts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+const post = allPosts.find((post) => post.slug === slug);
+```
 
-## 주의사항
-- 서버 컴포넌트와 클라이언트 컴포넌트 구분 명확히
-- MDX 파일의 frontmatter 형식 유지
-- 반응형 디자인 고려
-- 접근성(a11y) 고려
+### MDX Frontmatter 예시
+```yaml
+---
+title: "포스트 제목"          # 필수
+date: "2025-09-15"           # 필수
+description: "포스트 설명"    # 선택
+tags: ["Next.js", "블로그"]  # 선택
+---
+```
 
-## 모바일 최적화
-- 태그는 whitespace-nowrap으로 텍스트 줄바꿈 방지
-- 태그 컨테이너는 flex-wrap으로 전체 태그 줄바꿈 허용
-- 터치 친화적인 버튼 크기 (최소 2.75rem / 44px)
-- 가로 스크롤 방지
-- 텍스트 가독성 확보 (최소 1rem / 16px)
-- CSS 단위는 rem 우선 사용 (접근성 고려)
+### 스타일링 패턴
+- 제목: `text-3xl font-bold` (홈), `text-4xl font-bold` (포스트)
+- 본문: `prose` 클래스 (@tailwindcss/typography)
+- 태그: `text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200`
+- 색상: `bg-white dark:bg-gray-900`, `text-gray-900 dark:text-white`
 
-## 블로그 포스트 작성시
-- 한국어로 작성
-- 실용적인 예제 포함
-- 코드 블록에 언어 명시
-- 적절한 헤딩 구조 사용
+## 빌드 & 배포
+```bash
+npm run dev    # 개발 서버 (Turbopack)
+npm run build  # 정적 빌드 (GitHub Pages용)
+```
+- `output: 'export'`, `trailingSlash: true` 설정 필수
+- `out/` 디렉토리에 정적 파일 생성
 
-## 절대 하지 말 것
-- 수정된 내용을 블로그 포스트 본문에 포함하지 않기
-- "완벽 가이드" 같은 과장된 표현 지양
-- 외부 이미지 호스팅 사용 지양 (로컬 이미지 선호)
+## 금지사항
+- frontmatter에서 title, date 누락
+- 다크모드 클래스 (`dark:`) 생략
+- 클라이언트 컴포넌트 남용
