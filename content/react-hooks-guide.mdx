@@ -1,0 +1,468 @@
+---
+title: "React Hooks 완벽 가이드"
+description: "React 함수형 컴포넌트에서 사용하는 주요 Hook들의 특징과 사용법을 정리했습니다."
+date: "2020-01-23"
+tags: ["React", "Hooks", "JavaScript", "프론트엔드"]
+---
+
+# React Hooks 완벽 가이드
+
+React 16.8에서 도입된 Hooks는 함수형 컴포넌트에서 상태 관리와 생명주기 기능을 사용할 수 있게 해주는 강력한 기능입니다. 주요 Hook들의 특징과 실제 사용법을 정리했습니다.
+
+## useState
+
+**함수형 컴포넌트에서 상태를 관리할 수 있게 해주는 가장 기본적인 Hook입니다.**
+
+### 기본 사용법
+
+```javascript
+import React, { useState } from "react";
+
+const Counter = () => {
+  // [현재 상태값, 상태 변경 함수] = useState(초기값)
+  const [count, setCount] = useState(0);
+
+  const increment = () => setCount(count + 1);
+  const decrement = () => setCount(count - 1);
+
+  return (
+    <div>
+      <p>현재 카운트: {count}</p>
+      <button onClick={increment}>+1</button>
+      <button onClick={decrement}>-1</button>
+    </div>
+  );
+};
+```
+
+### 여러 상태 관리하기
+
+하나의 `useState`는 하나의 상태값만 관리할 수 있으므로, 여러 상태가 필요하다면 여러 번 사용해야 합니다.
+
+```javascript
+const UserForm = () => {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [age, setAge] = useState(0);
+
+  const handleNameChange = (e) => setName(e.target.value);
+  const handleEmailChange = (e) => setEmail(e.target.value);
+  const handleAgeChange = (e) => setAge(parseInt(e.target.value));
+
+  return (
+    <form>
+      <input
+        type="text"
+        placeholder="이름"
+        value={name}
+        onChange={handleNameChange}
+      />
+      <input
+        type="email"
+        placeholder="이메일"
+        value={email}
+        onChange={handleEmailChange}
+      />
+      <input
+        type="number"
+        placeholder="나이"
+        value={age}
+        onChange={handleAgeChange}
+      />
+    </form>
+  );
+};
+```
+
+### 함수형 업데이트
+
+상태 업데이트가 이전 상태에 의존할 때는 함수형 업데이트를 사용하는 것이 좋습니다.
+
+```javascript
+const [count, setCount] = useState(0);
+
+// 좋지 않은 방법 (클로저 문제 발생 가능)
+const increment = () => setCount(count + 1);
+
+// 권장하는 방법 (함수형 업데이트)
+const increment = () => setCount((prevCount) => prevCount + 1);
+```
+
+## useEffect
+
+**컴포넌트가 렌더링될 때마다 특정 작업을 수행하도록 설정할 수 있는 Hook입니다.**
+
+클래스형 컴포넌트의 `componentDidMount`, `componentDidUpdate`, `componentWillUnmount`를 합친 형태입니다.
+
+### 기본 사용법
+
+```javascript
+import React, { useState, useEffect } from "react";
+
+const Timer = () => {
+  const [seconds, setSeconds] = useState(0);
+
+  // 매 렌더링마다 실행
+  useEffect(() => {
+    console.log("컴포넌트가 렌더링되었습니다!");
+  });
+
+  return <div>타이머: {seconds}초</div>;
+};
+```
+
+### 마운트시에만 실행
+
+두 번째 파라미터로 빈 배열 `[]`을 전달하면 컴포넌트가 마운트될 때만 실행됩니다.
+
+```javascript
+useEffect(() => {
+  console.log("컴포넌트가 마운트되었습니다!");
+
+  // API 호출 등의 초기화 작업
+  fetchUserData();
+}, []); // 빈 의존성 배열
+```
+
+### 특정 값이 변경될 때만 실행
+
+의존성 배열에 특정 값을 넣으면 해당 값이 변경될 때만 실행됩니다.
+
+```javascript
+const [name, setName] = useState("");
+const [email, setEmail] = useState("");
+
+useEffect(() => {
+  console.log("name이 변경되었습니다:", name);
+  // name이 변경될 때만 실행되는 로직
+}, [name]); // name이 변경될 때만 실행
+```
+
+### 정리(Cleanup) 함수
+
+컴포넌트가 언마운트되거나 의존성이 변경되기 전에 정리 작업을 수행해야 할 때 사용합니다.
+
+```javascript
+useEffect(() => {
+  const timer = setInterval(() => {
+    setSeconds((prev) => prev + 1);
+  }, 1000);
+
+  // 정리 함수: 컴포넌트 언마운트시 타이머 정리
+  return () => {
+    clearInterval(timer);
+  };
+}, []); // 마운트시에만 실행, 언마운트시 정리
+```
+
+## useReducer
+
+**복잡한 상태 로직을 관리할 때 `useState`보다 더 적합한 Hook입니다.**
+
+### 기본 개념
+
+```javascript
+import React, { useReducer } from "react";
+
+// 리듀서 함수: (현재 상태, 액션) => 새로운 상태
+function counterReducer(state, action) {
+  switch (action.type) {
+    case "INCREMENT":
+      return { ...state, count: state.count + 1 };
+    case "DECREMENT":
+      return { ...state, count: state.count - 1 };
+    case "RESET":
+      return { ...state, count: 0 };
+    default:
+      throw new Error(`Unknown action type: ${action.type}`);
+  }
+}
+
+const Counter = () => {
+  // [현재 상태, dispatch 함수] = useReducer(리듀서 함수, 초기 상태)
+  const [state, dispatch] = useReducer(counterReducer, { count: 0 });
+
+  return (
+    <div>
+      <p>
+        현재 카운터 값: <b>{state.count}</b>
+      </p>
+      <button onClick={() => dispatch({ type: "INCREMENT" })}>+1</button>
+      <button onClick={() => dispatch({ type: "DECREMENT" })}>-1</button>
+      <button onClick={() => dispatch({ type: "RESET" })}>리셋</button>
+    </div>
+  );
+};
+```
+
+### 폼 상태 관리하기
+
+```javascript
+function formReducer(state, action) {
+  return {
+    ...state,
+    [action.name]: action.value,
+  };
+}
+
+const UserForm = () => {
+  const [state, dispatch] = useReducer(formReducer, {
+    name: "",
+    email: "",
+  });
+
+  const { name, email } = state;
+
+  const handleChange = (e) => {
+    dispatch({
+      name: e.target.name,
+      value: e.target.value,
+    });
+  };
+
+  return (
+    <div>
+      <input
+        name="name"
+        value={name}
+        onChange={handleChange}
+        placeholder="이름"
+      />
+      <input
+        name="email"
+        value={email}
+        onChange={handleChange}
+        placeholder="이메일"
+      />
+      <div>
+        <b>이름:</b> {name}
+      </div>
+      <div>
+        <b>이메일:</b> {email}
+      </div>
+    </div>
+  );
+};
+```
+
+### useReducer의 장점
+
+- 컴포넌트 업데이트 로직을 컴포넌트 외부로 분리할 수 있음
+- 복잡한 상태 로직을 더 명확하게 관리할 수 있음
+- 테스트하기 쉬움
+
+## useMemo
+
+**연산 결과를 메모이제이션하여 성능을 최적화하는 Hook입니다.**
+
+특정 값이 변경되었을 때만 연산을 다시 실행하고, 그렇지 않으면 이전 결과를 재사용합니다.
+
+### 기본 사용법
+
+```javascript
+import React, { useState, useMemo } from "react";
+
+const ExpensiveCalculation = () => {
+  const [numbers, setNumbers] = useState([]);
+  const [text, setText] = useState("");
+
+  // 무거운 연산 함수
+  const calculateSum = (nums) => {
+    console.log("합계 계산 중...");
+    return nums.reduce((sum, num) => sum + num, 0);
+  };
+
+  // useMemo를 사용하여 numbers가 변경될 때만 계산
+  const sum = useMemo(() => {
+    return calculateSum(numbers);
+  }, [numbers]); // numbers가 변경될 때만 재계산
+
+  const addNumber = () => {
+    const newNumber = Math.floor(Math.random() * 100);
+    setNumbers((prev) => [...prev, newNumber]);
+  };
+
+  return (
+    <div>
+      <input
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="텍스트 입력 (합계에 영향 없음)"
+      />
+      <button onClick={addNumber}>숫자 추가</button>
+      <p>숫자들: {numbers.join(", ")}</p>
+      <p>합계: {sum}</p>
+    </div>
+  );
+};
+```
+
+### 언제 사용해야 할까?
+
+- 복잡한 계산이 필요한 경우
+- 렌더링마다 동일한 결과를 반환하는 무거운 연산
+- 자식 컴포넌트에 전달하는 객체나 배열의 참조 동일성을 유지해야 할 때
+
+## useCallback
+
+**함수를 메모이제이션하여 불필요한 재생성을 방지하는 Hook입니다.**
+
+### 기본 사용법
+
+```javascript
+import React, { useState, useCallback, memo } from "react";
+
+// 메모이제이션된 자식 컴포넌트
+const Button = memo(({ onClick, children }) => {
+  console.log(`${children} 버튼 렌더링`);
+  return <button onClick={onClick}>{children}</button>;
+});
+
+const Parent = () => {
+  const [count, setCount] = useState(0);
+  const [text, setText] = useState("");
+
+  // useCallback 없이 함수 정의 (매번 새로운 함수 생성)
+  const handleIncrement = () => {
+    setCount((prev) => prev + 1);
+  };
+
+  // useCallback으로 함수 메모이제이션
+  const handleDecrement = useCallback(() => {
+    setCount((prev) => prev - 1);
+  }, []); // 의존성이 없으므로 한 번만 생성
+
+  const handleReset = useCallback(() => {
+    setCount(0);
+  }, []); // 의존성이 없으므로 한 번만 생성
+
+  return (
+    <div>
+      <input
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="텍스트 입력"
+      />
+      <p>카운트: {count}</p>
+
+      {/* 매번 새로운 함수가 전달되어 Button이 리렌더링됨 */}
+      <Button onClick={handleIncrement}>증가</Button>
+
+      {/* 메모이제이션된 함수가 전달되어 불필요한 리렌더링 방지 */}
+      <Button onClick={handleDecrement}>감소</Button>
+      <Button onClick={handleReset}>리셋</Button>
+    </div>
+  );
+};
+```
+
+### useCallback vs useMemo
+
+```javascript
+// useCallback - 함수를 메모이제이션
+const memoizedCallback = useCallback(() => {
+  console.log("hello world");
+}, []);
+
+// useMemo로 함수를 반환 (동일한 결과)
+const memoizedCallback2 = useMemo(() => {
+  return () => {
+    console.log("hello world");
+  };
+}, []);
+```
+
+**사용 구분:**
+
+- **useMemo**: 값을 메모이제이션 (숫자, 문자열, 객체, 배열 등)
+- **useCallback**: 함수를 메모이제이션
+
+## useRef
+
+**DOM 요소에 직접 접근하거나 렌더링과 관계없는 값을 저장할 때 사용하는 Hook입니다.**
+
+### DOM 요소 참조
+
+```javascript
+import React, { useRef, useCallback } from "react";
+
+const FocusInput = () => {
+  const inputRef = useRef(null);
+
+  const handleFocus = useCallback(() => {
+    // input 요소에 포커스
+    inputRef.current.focus();
+  }, []);
+
+  const handleClear = useCallback(() => {
+    // input 값 초기화
+    inputRef.current.value = "";
+    inputRef.current.focus();
+  }, []);
+
+  return (
+    <div>
+      <input ref={inputRef} type="text" placeholder="텍스트를 입력하세요" />
+      <button onClick={handleFocus}>포커스</button>
+      <button onClick={handleClear}>초기화</button>
+    </div>
+  );
+};
+```
+
+### 로컬 변수로 사용하기
+
+`useRef`는 렌더링과 관계없이 값을 저장하고 싶을 때도 사용할 수 있습니다.
+
+```javascript
+const Timer = () => {
+  const [seconds, setSeconds] = useState(0);
+  const [isRunning, setIsRunning] = useState(false);
+  const intervalRef = useRef(null);
+
+  const startTimer = useCallback(() => {
+    if (!isRunning) {
+      intervalRef.current = setInterval(() => {
+        setSeconds((prev) => prev + 1);
+      }, 1000);
+      setIsRunning(true);
+    }
+  }, [isRunning]);
+
+  const stopTimer = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+      setIsRunning(false);
+    }
+  }, []);
+
+  const resetTimer = useCallback(() => {
+    stopTimer();
+    setSeconds(0);
+  }, [stopTimer]);
+
+  return (
+    <div>
+      <h2>타이머: {seconds}초</h2>
+      <button onClick={startTimer} disabled={isRunning}>
+        시작
+      </button>
+      <button onClick={stopTimer} disabled={!isRunning}>
+        정지
+      </button>
+      <button onClick={resetTimer}>리셋</button>
+    </div>
+  );
+};
+```
+
+### useRef vs useState
+
+```javascript
+// useState: 값이 변경되면 컴포넌트 리렌더링
+const [count, setCount] = useState(0);
+
+// useRef: 값이 변경되어도 컴포넌트 리렌더링되지 않음
+const countRef = useRef(0);
+```

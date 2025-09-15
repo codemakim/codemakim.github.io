@@ -1,0 +1,515 @@
+---
+title: "Spring MVC 컨트롤러 파라미터 완벽 가이드"
+description: "Spring Framework에서 컨트롤러 메서드 파라미터를 활용하는 다양한 방법과 애노테이션들을 정리했습니다."
+date: "2018-09-12"
+tags: ["Spring", "SpringBoot", "Java", "백엔드"]
+---
+
+# Spring MVC 컨트롤러 파라미터 완벽 가이드
+
+Spring MVC에서 컨트롤러 메서드의 파라미터를 다루는 다양한 방법과 애노테이션들을 정리했습니다. 각 애노테이션의 특징과 올바른 사용법, 주의사항을 포함하고 있습니다.
+
+## @PathVariable
+
+**URL 경로의 변수를 메서드 파라미터로 받는 애노테이션입니다.**
+
+### 기본 사용법
+
+```java
+@RestController
+public class UserController {
+
+    @GetMapping("/users/{id}")
+    public User getUser(@PathVariable("id") Long id) {
+        return userService.findById(id);
+    }
+
+    // 변수명이 같으면 이름 생략 가능
+    @GetMapping("/users/{userId}/posts/{postId}")
+    public Post getUserPost(
+        @PathVariable Long userId,
+        @PathVariable Long postId
+    ) {
+        return postService.findByUserIdAndPostId(userId, postId);
+    }
+}
+```
+
+### 여러 경로 변수 처리
+
+```java
+@GetMapping("/users/{userId}/orders/{orderId}/items/{itemId}")
+public OrderItem getOrderItem(
+    @PathVariable Long userId,
+    @PathVariable Long orderId,
+    @PathVariable Long itemId
+) {
+    return orderService.findOrderItem(userId, orderId, itemId);
+}
+```
+
+### 타입 변환 오류
+
+URL에 일치하지 않는 타입의 값이 들어오면 **HTTP 400 Bad Request**가 발생합니다.
+
+```java
+// /users/abc 요청시 -> 400 Bad Request (String을 Long으로 변환 불가)
+@GetMapping("/users/{id}")
+public User getUser(@PathVariable Long id) { ... }
+```
+
+## @RequestParam
+
+**HTTP 요청 파라미터(쿼리 스트링, 폼 데이터)를 메서드 파라미터로 받는 애노테이션입니다.**
+
+### 기본 사용법
+
+```java
+@GetMapping("/users")
+public List<User> getUsers(@RequestParam("page") int page) {
+    return userService.findUsers(page);
+}
+
+// 파라미터명이 같으면 이름 생략 가능
+@GetMapping("/search")
+public List<User> searchUsers(@RequestParam String keyword) {
+    return userService.search(keyword);
+}
+```
+
+### 필수/선택 파라미터 설정
+
+```java
+@GetMapping("/users")
+public List<User> getUsers(
+    @RequestParam(value = "page", required = false, defaultValue = "0") int page,
+    @RequestParam(value = "size", required = false, defaultValue = "10") int size,
+    @RequestParam(required = false) String keyword
+) {
+    return userService.findUsers(page, size, keyword);
+}
+```
+
+### 파일 업로드 처리
+
+```java
+@PostMapping("/upload")
+public String uploadFile(
+    @RequestParam("file") MultipartFile file,
+    @RequestParam("description") String description
+) {
+    fileService.save(file, description);
+    return "success";
+}
+```
+
+### Map으로 모든 파라미터 받기
+
+```java
+@GetMapping("/search")
+public List<User> searchUsers(@RequestParam Map<String, String> params) {
+    // params에는 모든 요청 파라미터가 담겨있음
+    String keyword = params.get("keyword");
+    String category = params.get("category");
+    return userService.search(params);
+}
+```
+
+## @CookieValue
+
+**HTTP 요청과 함께 전달된 쿠키 값을 받는 애노테이션입니다.**
+
+### 기본 사용법
+
+```java
+@GetMapping("/dashboard")
+public String dashboard(
+    @CookieValue("sessionId") String sessionId,
+    @CookieValue(value = "theme", required = false, defaultValue = "light") String theme
+) {
+    return userService.getDashboard(sessionId, theme);
+}
+```
+
+### UUID 등 복잡한 타입 처리
+
+```java
+@GetMapping("/profile")
+public UserProfile getProfile(
+    @CookieValue("userId") UUID userId,
+    @CookieValue(value = "language", defaultValue = "ko") String language
+) {
+    return userService.getProfile(userId, language);
+}
+```
+
+## @RequestHeader
+
+**HTTP 요청 헤더 정보를 메서드 파라미터로 받는 애노테이션입니다.**
+
+### 기본 사용법
+
+```java
+@GetMapping("/api/data")
+public ResponseEntity<String> getData(
+    @RequestHeader("Authorization") String authorization,
+    @RequestHeader(value = "User-Agent", required = false) String userAgent,
+    @RequestHeader(value = "Accept-Language", defaultValue = "en") String language
+) {
+    // API 처리 로직
+    return ResponseEntity.ok("data");
+}
+```
+
+### 헤더를 Map으로 받기
+
+```java
+@GetMapping("/debug")
+public Map<String, String> debugHeaders(@RequestHeader Map<String, String> headers) {
+    return headers; // 모든 헤더 정보 반환
+}
+```
+
+## Model, ModelMap, ModelAndView
+
+**뷰에 전달할 데이터를 담는 객체들입니다.**
+
+### Model 사용법
+
+```java
+@Controller
+public class HomeController {
+
+    @GetMapping("/home")
+    public String home(Model model) {
+        List<Post> posts = postService.getRecentPosts();
+        model.addAttribute("posts", posts);
+        model.addAttribute("title", "홈페이지");
+        return "home"; // view name
+    }
+}
+```
+
+### ModelMap 사용법
+
+```java
+@GetMapping("/users/{id}")
+public String userDetail(@PathVariable Long id, ModelMap model) {
+    User user = userService.findById(id);
+    model.addAttribute("user", user);
+
+    // 타입 기반 자동 이름 생성 (User -> "user")
+    model.addAttribute(user);
+
+    return "user-detail";
+}
+```
+
+### ModelAndView 사용법
+
+```java
+@GetMapping("/report")
+public ModelAndView generateReport() {
+    ModelAndView mav = new ModelAndView();
+    mav.setViewName("report");
+    mav.addObject("data", reportService.generateData());
+    mav.addObject("timestamp", LocalDateTime.now());
+    return mav;
+}
+```
+
+## @ModelAttribute
+
+**요청 파라미터를 객체에 바인딩하여 받는 애노테이션입니다.**
+
+### 기본 사용법
+
+```java
+@PostMapping("/users")
+public String createUser(@ModelAttribute UserCreateRequest request, Model model) {
+    User user = userService.create(request);
+    model.addAttribute("user", user);
+    return "user-created";
+}
+
+// 클래스 정의
+public class UserCreateRequest {
+    private String name;
+    private String email;
+    private Integer age;
+
+    // getters and setters...
+}
+```
+
+### 검색 파라미터 바인딩
+
+```java
+@GetMapping("/users/search")
+public String searchUsers(@ModelAttribute UserSearchCriteria criteria, Model model) {
+    List<User> users = userService.search(criteria);
+    model.addAttribute("users", users);
+    model.addAttribute("criteria", criteria); // 검색 조건 유지
+    return "user-search";
+}
+
+public class UserSearchCriteria {
+    private String keyword;
+    private String category;
+    private Integer minAge;
+    private Integer maxAge;
+    private String orderBy;
+
+    // getters and setters...
+}
+```
+
+### @ModelAttribute vs @RequestParam 구분
+
+Spring은 다음 규칙으로 자동 구분합니다:
+
+```java
+// 단순 타입 -> @RequestParam으로 처리
+public String method(String name, int age) { ... }
+
+// 복잡한 객체 타입 -> @ModelAttribute로 처리
+public String method(User user, SearchCriteria criteria) { ... }
+
+// 명시적 지정 (권장)
+public String method(
+    @RequestParam String name,
+    @ModelAttribute User user
+) { ... }
+```
+
+## Errors와 BindingResult
+
+**@ModelAttribute와 함께 사용하여 바인딩 오류를 처리합니다.**
+
+### 기본 사용법
+
+```java
+@PostMapping("/users")
+public String createUser(
+    @ModelAttribute UserCreateRequest request,
+    BindingResult bindingResult,
+    Model model
+) {
+    if (bindingResult.hasErrors()) {
+        model.addAttribute("errors", bindingResult.getAllErrors());
+        return "user-form"; // 폼으로 다시 이동
+    }
+
+    User user = userService.create(request);
+    return "redirect:/users/" + user.getId();
+}
+```
+
+### @ModelAttribute vs @RequestParam 오류 처리 차이
+
+```java
+// @RequestParam: 타입 변환 실패시 즉시 400 Bad Request
+@GetMapping("/test1")
+public String test1(@RequestParam int number) {
+    // "/test1?number=abc" -> 즉시 400 오류
+}
+
+// @ModelAttribute: 타입 변환 실패해도 계속 진행, BindingResult에 오류 정보 저장
+@PostMapping("/test2")
+public String test2(@ModelAttribute User user, BindingResult result) {
+    if (result.hasErrors()) {
+        // 타입 변환 오류 등을 처리할 수 있음
+        return "error-page";
+    }
+    return "success";
+}
+```
+
+## @RequestBody
+
+**HTTP 요청 본문을 객체로 변환하여 받는 애노테이션입니다.**
+
+### JSON 데이터 처리
+
+```java
+@PostMapping("/api/users")
+public ResponseEntity<User> createUser(@RequestBody UserCreateRequest request) {
+    User user = userService.create(request);
+    return ResponseEntity.status(HttpStatus.CREATED).body(user);
+}
+
+@PutMapping("/api/users/{id}")
+public ResponseEntity<User> updateUser(
+    @PathVariable Long id,
+    @RequestBody UserUpdateRequest request
+) {
+    User user = userService.update(id, request);
+    return ResponseEntity.ok(user);
+}
+```
+
+### XML 데이터 처리
+
+```java
+@PostMapping(value = "/api/data", consumes = "application/xml")
+public ResponseEntity<String> processXml(@RequestBody XmlDataRequest request) {
+    // XML 데이터 처리
+    return ResponseEntity.ok("processed");
+}
+```
+
+## @Valid와 검증
+
+**JSR-303 Bean Validation을 사용하여 객체를 검증합니다.**
+
+### 기본 검증 애노테이션
+
+```java
+public class UserCreateRequest {
+    @NotBlank(message = "이름은 필수입니다")
+    @Size(min = 2, max = 50, message = "이름은 2-50자 사이여야 합니다")
+    private String name;
+
+    @NotBlank(message = "이메일은 필수입니다")
+    @Email(message = "올바른 이메일 형식이 아닙니다")
+    private String email;
+
+    @NotNull(message = "나이는 필수입니다")
+    @Min(value = 1, message = "나이는 1 이상이어야 합니다")
+    @Max(value = 150, message = "나이는 150 이하여야 합니다")
+    private Integer age;
+
+    @Pattern(regexp = "^01[016789]-\\d{3,4}-\\d{4}$", message = "올바른 휴대폰 번호 형식이 아닙니다")
+    private String phoneNumber;
+
+    // getters and setters...
+}
+```
+
+### 컨트롤러에서 검증 사용
+
+```java
+@PostMapping("/users")
+public String createUser(
+    @Valid @ModelAttribute UserCreateRequest request,
+    BindingResult bindingResult,
+    Model model
+) {
+    if (bindingResult.hasErrors()) {
+        // 검증 오류가 있는 경우
+        model.addAttribute("request", request);
+        return "user-form";
+    }
+
+    User user = userService.create(request);
+    return "redirect:/users/" + user.getId();
+}
+```
+
+### REST API에서의 검증
+
+```java
+@PostMapping("/api/users")
+public ResponseEntity<?> createUser(@Valid @RequestBody UserCreateRequest request) {
+    // @Valid 검증 실패시 자동으로 400 Bad Request 응답
+    User user = userService.create(request);
+    return ResponseEntity.status(HttpStatus.CREATED).body(user);
+}
+```
+
+## @Value
+
+**프로퍼티 파일의 값을 주입받는 애노테이션입니다.**
+
+### application.properties 값 주입
+
+```java
+@RestController
+public class ConfigController {
+
+    @Value("${app.name}")
+    private String appName;
+
+    @Value("${app.version:1.0.0}") // 기본값 설정
+    private String appVersion;
+
+    @Value("${database.max-connections:10}")
+    private int maxConnections;
+
+    @GetMapping("/config")
+    public Map<String, Object> getConfig() {
+        Map<String, Object> config = new HashMap<>();
+        config.put("appName", appName);
+        config.put("appVersion", appVersion);
+        config.put("maxConnections", maxConnections);
+        return config;
+    }
+}
+```
+
+### SpEL 표현식 사용
+
+```java
+@Component
+public class SystemInfoController {
+
+    @Value("#{systemProperties['java.version']}")
+    private String javaVersion;
+
+    @Value("#{systemProperties['os.name']}")
+    private String osName;
+
+    @Value("#{T(java.time.LocalDateTime).now()}")
+    private LocalDateTime serverTime;
+}
+```
+
+## 실전 활용 예제
+
+### 페이징과 정렬이 포함된 사용자 검색
+
+```java
+@GetMapping("/users")
+public String getUsers(
+    @RequestParam(defaultValue = "0") int page,
+    @RequestParam(defaultValue = "20") int size,
+    @RequestParam(defaultValue = "id") String sort,
+    @RequestParam(defaultValue = "asc") String direction,
+    @RequestParam(required = false) String keyword,
+    @RequestParam(required = false) String category,
+    Model model
+) {
+    Pageable pageable = PageRequest.of(page, size,
+        Sort.Direction.fromString(direction), sort);
+
+    Page<User> users = userService.searchUsers(keyword, category, pageable);
+
+    model.addAttribute("users", users);
+    model.addAttribute("currentPage", page);
+    model.addAttribute("keyword", keyword);
+    model.addAttribute("category", category);
+
+    return "user-list";
+}
+```
+
+### 파일 업로드와 폼 데이터 처리
+
+```java
+@PostMapping("/posts")
+public String createPost(
+    @ModelAttribute PostCreateRequest request,
+    @RequestParam("attachments") List<MultipartFile> files,
+    @RequestHeader(value = "User-Agent", required = false) String userAgent,
+    @CookieValue(value = "userId") Long userId,
+    BindingResult bindingResult,
+    Model model
+) {
+    if (bindingResult.hasErrors()) {
+        return "post-form";
+    }
+
+    Post post = postService.create(request, files, userId, userAgent);
+    return "redirect:/posts/" + post.getId();
+}
+```
