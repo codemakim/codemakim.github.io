@@ -57,8 +57,8 @@ export default async function PostPage({ params }: PageProps) {
               {post.description}
             </p>
           )}
-          <div className="flex items-center justify-between mt-4">
-            <time className="text-sm text-gray-500 dark:text-gray-400">
+          <div className="flex items-center justify-between mt-4 gap-4">
+            <time className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap flex-shrink-0 min-w-fit">
               {format(new Date(post.date), "yyyy년 M월 d일", { locale: ko })}
             </time>
             {post.tags && (
