@@ -10,6 +10,9 @@ const nextConfig: NextConfig = {
   experimental: {
     mdxRs: true,
   },
+  // GitHub Pages용 설정 (필요시 주석 해제)
+  // basePath: '/codemakim.github.io',
+  // assetPrefix: '/codemakim.github.io',
 };
 
 export default withContentlayer(nextConfig);
