@@ -1,0 +1,12 @@
+{
+  "files.associations": {
+    "*.mdx": "markdown"
+  },
+  "editor.quickSuggestions": {
+    "strings": true
+  },
+  "[mdx]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  }
+}
