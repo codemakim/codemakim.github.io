@@ -2,6 +2,7 @@ import { defineDocumentType, makeSource } from 'contentlayer2/source-files'
 import rehypeHighlight from 'rehype-highlight'
 import rehypeSlug from 'rehype-slug'
 import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 
 export const Post = defineDocumentType(() => ({
@@ -47,7 +48,7 @@ export default makeSource({
   contentDirPath: './content',
   documentTypes: [Post],
   mdx: {
-    remarkPlugins: [remarkGfm],
+    remarkPlugins: [remarkGfm, remarkMath],
     rehypePlugins: [
       rehypeKatex,
       rehypeSlug,
