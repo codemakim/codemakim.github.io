@@ -16,7 +16,7 @@ export default function TagFilter({
   totalCount,
 }: TagFilterProps) {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-6 mb-8">
+    <div className="glass-card p-6 mb-8">
       <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
         🏷️ 태그로 필터링
       </h2>
@@ -26,12 +26,8 @@ export default function TagFilter({
         <button
           onClick={() => onTagSelect(null)}
           className={`
-            px-3 py-1.5 text-sm rounded-full transition-colors cursor-pointer
-            ${
-              selectedTag === null
-                ? "bg-blue-500 dark:bg-blue-600 text-white hover:bg-blue-600 dark:hover:bg-blue-700"
-                : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
-            }
+            glass-tag px-3 py-1.5 text-sm rounded-full cursor-pointer
+            ${selectedTag === null ? "active" : ""}
           `}
         >
           전체 <span className="ml-1 text-xs opacity-70">({totalCount})</span>
@@ -43,12 +39,8 @@ export default function TagFilter({
             key={tag.name}
             onClick={() => onTagSelect(tag.name)}
             className={`
-              px-3 py-1.5 text-sm rounded-full transition-colors cursor-pointer
-              ${
-                selectedTag === tag.name
-                  ? "bg-blue-500 dark:bg-blue-600 text-white hover:bg-blue-600 dark:hover:bg-blue-700"
-                  : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
-              }
+              glass-tag px-3 py-1.5 text-sm rounded-full cursor-pointer
+              ${selectedTag === tag.name ? "active" : ""}
             `}
           >
             {tag.name}{" "}
@@ -59,8 +51,8 @@ export default function TagFilter({
 
       {/* 필터 상태 표시 */}
       {selectedTag && (
-        <div className="mt-4 pt-4 border-t dark:border-gray-700">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+        <div className="mt-4 pt-4 border-t border-white/30 dark:border-white/10">
+          <p className="text-sm text-gray-700 dark:text-gray-300">
             <span className="font-medium text-gray-900 dark:text-white">
               [{selectedTag}]
             </span>{" "}
