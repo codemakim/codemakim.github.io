@@ -20,10 +20,30 @@
   }
 }
 
+html {
+  background: var(--background);
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  height: 100%;
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+}
+
+/* iOS Safari bounce scroll 완전 차단용 wrapper */
+.app-wrapper {
+  height: 100vh;
+  height: 100dvh; /* 동적 viewport height (모바일 주소창 고려) */
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
 }
 
 /* Syntax Highlighting - GitHub Light Theme with Glass Effect */
@@ -385,19 +405,19 @@ pre code {
 }
 
 /* 본문 전용 글래스 카드 - 더 불투명 */
-article.glass-card {
+.glass-card-content {
   background: rgba(255, 255, 255, 0.75) !important;
   backdrop-filter: blur(24px) saturate(180%) !important;
   -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
   border: 1px solid rgba(255, 255, 255, 0.8) !important;
 }
 
-/* 본문 article은 호버 효과와 빛 반사 효과 제거 */
-article.glass-card::before {
+/* 본문은 호버 효과와 빛 반사 효과 제거 */
+.glass-card-content::before {
   display: none !important;
 }
 
-article.glass-card:hover {
+.glass-card-content:hover {
   transform: none !important;
 }
 
@@ -441,7 +461,7 @@ article.glass-card:hover {
   }
   
   /* 본문 전용 글래스 카드 - 다크모드 더 불투명 */
-  article.glass-card {
+  .glass-card-content {
     background: rgba(17, 25, 40, 0.8) !important;
     backdrop-filter: blur(24px) saturate(180%) !important;
     -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
@@ -548,18 +568,29 @@ pre.glass-code {
 }
 
 /* 배경 그라데이션 - 강화 (힙한 느낌) */
-body {
+html,
+body,
+.app-wrapper {
   background: 
     radial-gradient(ellipse at top left, rgba(102, 126, 234, 0.3), transparent 50%),
     radial-gradient(ellipse at top right, rgba(237, 100, 166, 0.3), transparent 50%),
     radial-gradient(ellipse at bottom, rgba(118, 75, 162, 0.3), transparent 50%),
     linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+}
+
+html,
+body {
   background-attachment: fixed;
+}
+
+.app-wrapper {
   min-height: 100vh;
 }
 
 @media (prefers-color-scheme: dark) {
-  body {
+  html,
+  body,
+  .app-wrapper {
     background: 
       radial-gradient(ellipse at top left, rgba(59, 130, 246, 0.15), transparent 50%),
       radial-gradient(ellipse at top right, rgba(139, 92, 246, 0.15), transparent 50%),

@@ -7,6 +7,7 @@ interface SearchBarProps {
   onSearchChange: (query: string) => void;
   resultsCount: number;
   totalCount: number;
+  isSearching?: boolean;
 }
 
 const PLACEHOLDER_TEXTS = [
@@ -21,6 +22,7 @@ export default function SearchBar({
   onSearchChange,
   resultsCount,
   totalCount,
+  isSearching = false,
 }: SearchBarProps) {
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
 
@@ -37,20 +39,42 @@ export default function SearchBar({
     <div className="mb-6">
       <div className="relative glass-card p-1">
         <div className="flex items-center gap-3 px-4 py-3">
-          {/* 검색 아이콘 */}
-          <svg
-            className="w-5 h-5 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
+          {/* 검색 아이콘 또는 로딩 스피너 */}
+          {isSearching ? (
+            <svg
+              className="w-5 h-5 text-blue-500 animate-spin"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              />
+            </svg>
+          ) : (
+            <svg
+              className="w-5 h-5 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          )}
 
           {/* 검색 입력 */}
           <input
@@ -104,11 +128,16 @@ export default function SearchBar({
 
       {/* 검색 결과 메시지 */}
       {searchQuery && (
-        <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+        <div className="mt-2 text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
           <span className="font-medium text-gray-900 dark:text-white">
             "{searchQuery}"
           </span>{" "}
           검색 결과 {resultsCount}개
+          {isSearching && (
+            <span className="text-xs text-blue-500 dark:text-blue-400 animate-pulse">
+              • 검색 중...
+            </span>
+          )}
         </div>
       )}
     </div>

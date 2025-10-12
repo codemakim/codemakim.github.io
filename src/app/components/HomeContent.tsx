@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { allPosts } from "contentlayer/generated";
 import TagFilter from "./TagFilter";
@@ -17,7 +17,18 @@ export default function HomeContent() {
   // URL 파라미터 읽기
   const selectedTag = searchParams.get("tag");
   const sortOrder = (searchParams.get("sort") as 'desc' | 'asc') || 'desc';
-  const searchQuery = searchParams.get("search") || "";
+  const urlSearchQuery = searchParams.get("search") || "";
+  
+  // 로컬 검색어 상태 (한글 입력 문제 해결)
+  const [searchQuery, setSearchQuery] = useState(urlSearchQuery);
+  const [isSearching, setIsSearching] = useState(false);
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+  // URL 검색어가 변경되면 로컬 상태 동기화
+  useEffect(() => {
+    setSearchQuery(urlSearchQuery);
+    setIsSearching(false); // URL 업데이트 완료
+  }, [urlSearchQuery]);
 
   // 포스트 필터링 및 정렬
   const filteredPosts = useMemo(() => {
@@ -30,7 +41,7 @@ export default function HomeContent() {
       return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
     });
 
-    // 2. 검색
+    // 2. 검색 (로컬 상태 사용 - 즉시 반영)
     if (searchQuery) {
       posts = searchPosts(posts, searchQuery);
     }
@@ -38,7 +49,7 @@ export default function HomeContent() {
     // 3. 태그 필터 (PostList에서 처리)
 
     return posts;
-  }, [sortOrder, searchQuery]);
+  }, [sortOrder, searchQuery]); // searchQuery는 로컬 상태
 
   // 최종 필터링된 포스트 (태그 적용)
   const displayPosts = useMemo(() => {
@@ -49,18 +60,45 @@ export default function HomeContent() {
   // 모든 태그 추출
   const tags = getAllTags(allPosts);
 
-  // 검색 핸들러
+  // 검색 핸들러 (debounce 적용)
   function handleSearchChange(query: string) {
-    const params = new URLSearchParams(searchParams.toString());
+    // 로컬 상태는 즉시 업데이트 (한글 입력 문제 해결)
+    setSearchQuery(query);
     
-    if (query) {
-      params.set('search', query);
-    } else {
-      params.delete('search');
+    // 이전 타이머 취소
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
     }
     
-    router.push(`/?${params.toString()}`);
+    // 빈 문자열이면 즉시 URL 업데이트 (debounce 없음)
+    if (query === '') {
+      setIsSearching(false);
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete('search');
+      router.push(`/?${params.toString()}`);
+      return;
+    }
+    
+    // 검색어가 있으면 debounce 적용
+    setIsSearching(true);
+    
+    // 1200ms 후에 URL 업데이트 (확실한 입력 완료 후)
+    debounceTimer.current = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('search', query);
+      router.push(`/?${params.toString()}`);
+      // isSearching은 useEffect에서 false로 변경됨
+    }, 1200);
   }
+  
+  // 컴포넌트 언마운트 시 타이머 정리
+  useEffect(() => {
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
+    };
+  }, []);
 
   // 태그 선택 핸들러
   function handleTagSelect(tag: string | null) {
@@ -90,6 +128,7 @@ export default function HomeContent() {
         onSearchChange={handleSearchChange}
         resultsCount={displayPosts.length}
         totalCount={allPosts.length}
+        isSearching={isSearching}
       />
 
       {/* 태그 필터 */}

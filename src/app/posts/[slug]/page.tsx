@@ -87,7 +87,7 @@ export default async function PostPage({ params }: PageProps) {
         <SeriesNav seriesInfo={seriesInfo} />
 
         {/* 본문 */}
-        <article className="glass-card p-8 prose dark:prose-invert max-w-none prose-lg prose-headings:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none">
+        <article className="glass-card glass-card-content p-8 prose dark:prose-invert max-w-none prose-lg prose-headings:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none">
           <MDXContent code={post.body.code} />
         </article>
 
