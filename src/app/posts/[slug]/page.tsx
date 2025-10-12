@@ -41,7 +41,7 @@ export default async function PostPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen">
-      <header className="glass-header sticky top-0 z-50">
+      <header className="glass-header md:sticky md:top-0 z-50">
         <div className="max-w-4xl mx-auto px-4 py-6">
           <Link 
             href="/"

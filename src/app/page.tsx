@@ -4,7 +4,7 @@ import HomeContent from "./components/HomeContent";
 export default function Home() {
   return (
     <div className="min-h-screen">
-      <header className="glass-header sticky top-0 z-50">
+      <header className="glass-header md:sticky md:top-0 z-50">
         <div className="max-w-4xl mx-auto px-4 py-6">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
             🪟 개발 블로그

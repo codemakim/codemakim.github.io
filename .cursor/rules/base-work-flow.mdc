@@ -46,6 +46,14 @@ tags: ["Next.js", "블로그"]  # 선택
 - 태그: `text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200`
 - 색상: `bg-white dark:bg-gray-900`, `text-gray-900 dark:text-white`
 
+### 모바일 UX 규칙 (중요!)
+
+- **Sticky 헤더**: 데스크톱만 고정, 모바일은 일반 스크롤
+  - ✅ 올바른 예: `className="glass-header md:sticky md:top-0 z-50"`
+  - ❌ 잘못된 예: `className="glass-header sticky top-0 z-50"`
+- **이유**: 모바일에서 sticky 헤더가 화면의 30% 이상을 차지하면 콘텐츠 읽기 불편
+- **적용 위치**: 모든 페이지 헤더 (홈페이지, 포스트 상세 페이지 등)
+
 ## 빌드 & 배포
 
 ```bash
