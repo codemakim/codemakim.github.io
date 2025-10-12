@@ -1,0 +1,221 @@
+---
+title: "⚡ [React 성능 3/3] 고급 패턴 - 가상화 & Concurrent"
+date: "2024-10-05"
+description: "가상화, Web Vitals, Concurrent Features를 활용한 전문가 레벨 최적화"
+tags: ["React", "성능", "가상화", "WebVitals", "고급"]
+---
+
+# React 고급 성능 최적화 패턴
+
+> 프로덕션 수준의 성능 최적화 학습 자료
+
+---
+
+## 📚 목차
+
+1. [가상화 (Virtualization)](#가상화-virtualization)
+2. [이미지 최적화](#이미지-최적화)
+3. [Web Vitals](#web-vitals)
+4. [서버 컴포넌트 최적화](#서버-컴포넌트-최적화)
+5. [Concurrent Features](#concurrent-features)
+
+---
+
+## 가상화 (Virtualization)
+
+### react-window
+
+```bash
+npm install react-window
+```
+
+```jsx
+import { FixedSizeList } from 'react-window';
+
+function VirtualList({ items }) {
+  const Row = ({ index, style }) => (
+    <div style={style}>
+      {items[index].name}
+    </div>
+  );
+
+  return (
+    <FixedSizeList
+      height={600}
+      itemCount={items.length}
+      itemSize={50}
+      width="100%"
+    >
+      {Row}
+    </FixedSizeList>
+  );
+}
+```
+
+**10,000개 항목도 빠르게 렌더링!**
+
+---
+
+## 이미지 최적화
+
+### Next.js Image 컴포넌트
+
+```jsx
+import Image from 'next/image';
+
+export default function Gallery() {
+  return (
+    <div>
+      <Image
+        src="/hero.jpg"
+        alt="Hero"
+        width={1200}
+        height={600}
+        priority  // LCP 최적화
+      />
+
+      <Image
+        src="/photo.jpg"
+        alt="Photo"
+        width={500}
+        height={300}
+        loading="lazy"  // 지연 로딩
+        placeholder="blur"  // 블러 효과
+      />
+    </div>
+  );
+}
+```
+
+---
+
+## Web Vitals
+
+### 핵심 지표
+
+- **LCP (Largest Contentful Paint)**: 2.5초 이하
+- **FID (First Input Delay)**: 100ms 이하
+- **CLS (Cumulative Layout Shift)**: 0.1 이하
+
+### 측정
+
+```jsx
+import { useReportWebVitals } from 'next/web-vitals';
+
+export function WebVitals() {
+  useReportWebVitals((metric) => {
+    console.log(metric);
+  });
+}
+```
+
+---
+
+## 서버 컴포넌트 최적화
+
+### 데이터 페칭 최적화
+
+```jsx
+// ✅ 병렬 페칭
+export default async function Page() {
+  const [users, posts] = await Promise.all([
+    fetchUsers(),
+    fetchPosts()
+  ]);
+
+  return (
+    <div>
+      <Users data={users} />
+      <Posts data={posts} />
+    </div>
+  );
+}
+```
+
+---
+
+## Concurrent Features
+
+### useTransition
+
+```jsx
+import { useTransition, useState } from 'react';
+
+function SearchResults() {
+  const [isPending, startTransition] = useTransition();
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState([]);
+
+  function handleChange(e) {
+    const value = e.target.value;
+    setQuery(value);
+
+    startTransition(() => {
+      // 우선순위 낮은 업데이트
+      setResults(filterResults(value));
+    });
+  }
+
+  return (
+    <div>
+      <input value={query} onChange={handleChange} />
+      {isPending && <Spinner />}
+      <ResultList results={results} />
+    </div>
+  );
+}
+```
+
+### useDeferredValue
+
+```jsx
+import { useDeferredValue, useState } from 'react';
+
+function SearchResults() {
+  const [query, setQuery] = useState('');
+  const deferredQuery = useDeferredValue(query);
+
+  const results = useMemo(() => {
+    return filterResults(deferredQuery);
+  }, [deferredQuery]);
+
+  return (
+    <div>
+      <input 
+        value={query} 
+        onChange={(e) => setQuery(e.target.value)} 
+      />
+      <ResultList results={results} />
+    </div>
+  );
+}
+```
+
+---
+
+## 최종 체크리스트
+
+### 필수 최적화
+
+- [ ] 이미지 최적화
+- [ ] 코드 분할
+- [ ] 불필요한 리렌더링 방지
+- [ ] 큰 리스트 가상화
+- [ ] Web Vitals 측정
+
+### 고급 최적화
+
+- [ ] Service Worker
+- [ ] Preloading
+- [ ] Prefetching
+- [ ] Concurrent Features
+
+---
+
+**작성일**: 2025-10-11  
+**대상**: React 고급 개발자
+
+---
+
+축하합니다! 모든 최적화 가이드를 완료했습니다! 🎉
+

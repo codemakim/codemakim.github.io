@@ -1,0 +1,175 @@
+---
+title: "🧪 [React 테스팅 3/3] E2E - Playwright & Cypress"
+date: "2024-09-22"
+description: "End-to-End 테스팅 전략과 도구 선택 기준을 학습합니다"
+tags: ["Testing", "E2E", "Playwright", "Cypress", "중급"]
+---
+
+# E2E 테스팅 가이드 (Playwright & Cypress)
+
+> End-to-End 테스팅 학습 자료
+
+---
+
+## 📚 목차
+
+1. [개요](#개요)
+2. [Playwright](#playwright)
+3. [Cypress](#cypress)
+4. [비교 및 선택](#비교-및-선택)
+
+---
+
+## 개요
+
+### E2E 테스팅이란?
+
+실제 사용자처럼 애플리케이션을 테스트하는 방법입니다.
+
+**특징:**
+- 전체 시스템 테스트
+- 브라우저 자동화
+- 사용자 플로우 검증
+
+---
+
+## Playwright
+
+### 설치
+
+```bash
+npm install --save-dev @playwright/test
+npx playwright install
+```
+
+### 기본 테스트
+
+```javascript
+// tests/example.spec.js
+import { test, expect } from '@playwright/test';
+
+test('홈페이지 방문', async ({ page }) => {
+  await page.goto('http://localhost:3000');
+  await expect(page).toHaveTitle(/My App/);
+});
+
+test('로그인', async ({ page }) => {
+  await page.goto('http://localhost:3000/login');
+  
+  await page.fill('input[name="email"]', 'test@example.com');
+  await page.fill('input[name="password"]', 'password123');
+  await page.click('button[type="submit"]');
+  
+  await expect(page).toHaveURL(/dashboard/);
+});
+```
+
+### Selectors
+
+```javascript
+// 텍스트로 찾기
+await page.click('text=Submit');
+
+// Role로 찾기
+await page.click('role=button[name="Submit"]');
+
+// CSS Selector
+await page.click('.submit-button');
+
+// XPath
+await page.click('//button[@type="submit"]');
+
+// 복합
+await page.locator('button').filter({ hasText: 'Submit' }).click();
+```
+
+### API 테스트
+
+```javascript
+test('API 호출 테스트', async ({ request }) => {
+  const response = await request.post('/api/users', {
+    data: {
+      name: 'John',
+      email: 'john@example.com'
+    }
+  });
+  
+  expect(response.ok()).toBeTruthy();
+  const data = await response.json();
+  expect(data.name).toBe('John');
+});
+```
+
+### 스크린샷
+
+```javascript
+test('스크린샷', async ({ page }) => {
+  await page.goto('http://localhost:3000');
+  await page.screenshot({ path: 'screenshot.png' });
+});
+```
+
+---
+
+## Cypress
+
+### 설치
+
+```bash
+npm install --save-dev cypress
+npx cypress open
+```
+
+### 기본 테스트
+
+```javascript
+// cypress/e2e/example.cy.js
+describe('홈페이지', () => {
+  it('방문', () => {
+    cy.visit('http://localhost:3000');
+    cy.contains('Welcome').should('be.visible');
+  });
+
+  it('로그인', () => {
+    cy.visit('http://localhost:3000/login');
+    
+    cy.get('input[name="email"]').type('test@example.com');
+    cy.get('input[name="password"]').type('password123');
+    cy.get('button[type="submit"]').click();
+    
+    cy.url().should('include', '/dashboard');
+  });
+});
+```
+
+### Commands
+
+```javascript
+// 커스텀 커맨드
+Cypress.Commands.add('login', (email, password) => {
+  cy.visit('/login');
+  cy.get('input[name="email"]').type(email);
+  cy.get('input[name="password"]').type(password);
+  cy.get('button[type="submit"]').click();
+});
+
+// 사용
+cy.login('test@example.com', 'password123');
+```
+
+---
+
+## 비교 및 선택
+
+| 기능 | Playwright | Cypress |
+|------|-----------|---------|
+| **속도** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
+| **브라우저** | Chrome, Firefox, Safari | Chrome, Firefox, Edge |
+| **병렬 실행** | ✅ | ✅ (유료) |
+| **학습 곡선** | 중간 | 쉬움 |
+
+---
+
+**작성일**: 2025-10-11  
+**대상**: 프론트엔드 개발자
+

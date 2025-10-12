@@ -1,0 +1,1353 @@
+---
+title: "🚀 [React 라이브러리 2/4] React Query - 캐싱 메커니즘"
+date: "2024-08-18"
+description: "React Query의 캐싱 원리, Stale/Cache Time, 낙관적 업데이트를 깊이 있게 학습합니다"
+tags: ["React", "React Query", "데이터페칭", "캐싱", "고급"]
+---
+
+# React Query (TanStack Query) 완벽 가이드
+
+> TanStack Query v5를 기반으로 한 데이터 페칭 학습 자료  
+> 출처: [TanStack Query Documentation](https://tanstack.com/query/)
+
+---
+
+## 📚 목차
+
+1. [개요](#개요)
+2. [설치 및 설정](#설치-및-설정)
+3. [쿼리 기초](#쿼리-기초)
+4. [뮤테이션](#뮤테이션)
+5. [캐싱 전략](#캐싱-전략)
+6. [낙관적 업데이트](#낙관적-업데이트)
+7. [무한 스크롤](#무한-스크롤)
+8. [고급 패턴](#고급-패턴)
+
+---
+
+## 개요
+
+### React Query란?
+
+**React Query (TanStack Query)**는 서버 상태 관리를 위한 강력한 라이브러리입니다.
+
+**주요 기능:**
+
+- 자동 캐싱
+- 백그라운드 리페칭
+- 중복 요청 제거
+- 낙관적 업데이트
+- 무한 스크롤
+- 서버 상태와 클라이언트 상태 분리
+
+### 왜 React Query인가?
+
+```jsx
+// ❌ 일반적인 방법 (복잡함)
+function Users() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch('/api/users')
+      .then(res => res.json())
+      .then(data => {
+        setUsers(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError(err);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+
+  return <UserList users={users} />;
+}
+
+// ✅ React Query (간결함)
+import { useQuery } from '@tanstack/react-query';
+
+function Users() {
+  const { data: users, isLoading, error } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => fetch('/api/users').then(res => res.json())
+  });
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+
+  return <UserList users={users} />;
+}
+```
+
+### Vue와 비교
+
+```vue
+<!-- Vue: VueQuery 또는 Pinia -->
+<script setup>
+import { useQuery } from '@tanstack/vue-query'
+
+const { data: users, isLoading, error } = useQuery({
+  queryKey: ['users'],
+  queryFn: () => fetch('/api/users').then(res => res.json())
+})
+</script>
+```
+
+---
+
+## 설치 및 설정
+
+### 설치
+
+```bash
+npm install @tanstack/react-query
+npm install @tanstack/react-query-devtools
+```
+
+### 기본 설정
+
+```jsx
+// App.jsx
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5,  // 5분
+      cacheTime: 1000 * 60 * 10, // 10분
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+export default function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <YourApp />
+      <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
+  );
+}
+```
+
+### QueryClient 옵션
+
+```javascript
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5,        // 데이터가 stale되기까지 시간
+      cacheTime: 1000 * 60 * 10,       // 캐시 유지 시간
+      retry: 3,                         // 실패 시 재시도 횟수
+      retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+      refetchOnWindowFocus: true,      // 윈도우 포커스 시 리페치
+      refetchOnReconnect: true,        // 네트워크 재연결 시 리페치
+      refetchOnMount: true,            // 마운트 시 리페치
+    },
+    mutations: {
+      retry: 0,                        // 뮤테이션은 재시도 안함
+    },
+  },
+});
+```
+
+---
+
+## 쿼리 기초
+
+### 1. useQuery 기본
+
+```jsx
+import { useQuery } from '@tanstack/react-query';
+
+function Users() {
+  const { data, isLoading, error, isError } = useQuery({
+    queryKey: ['users'],
+    queryFn: fetchUsers,
+  });
+
+  if (isLoading) return <div>Loading...</div>;
+  if (isError) return <div>Error: {error.message}</div>;
+
+  return (
+    <ul>
+      {data.map(user => (
+        <li key={user.id}>{user.name}</li>
+      ))}
+    </ul>
+  );
+}
+
+async function fetchUsers() {
+  const response = await fetch('/api/users');
+  if (!response.ok) {
+    throw new Error('Failed to fetch users');
+  }
+  return response.json();
+}
+```
+
+### 2. Query Key
+
+**Query Key는 쿼리를 고유하게 식별합니다.**
+
+```jsx
+// 단순 키
+useQuery({ queryKey: ['users'], queryFn: fetchUsers });
+
+// 파라미터가 있는 키
+useQuery({ 
+  queryKey: ['user', userId], 
+  queryFn: () => fetchUser(userId) 
+});
+
+// 복잡한 키
+useQuery({ 
+  queryKey: ['users', { status: 'active', page: 1 }],
+  queryFn: () => fetchUsers({ status: 'active', page: 1 })
+});
+```
+
+### 3. Query Function
+
+```jsx
+// 기본
+const query = useQuery({
+  queryKey: ['users'],
+  queryFn: fetchUsers,
+});
+
+// 화살표 함수
+const query = useQuery({
+  queryKey: ['users'],
+  queryFn: () => fetch('/api/users').then(res => res.json()),
+});
+
+// async/await
+const query = useQuery({
+  queryKey: ['users'],
+  queryFn: async () => {
+    const response = await fetch('/api/users');
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    return response.json();
+  },
+});
+
+// QueryKey에서 값 추출
+const query = useQuery({
+  queryKey: ['user', userId],
+  queryFn: ({ queryKey }) => {
+    const [_key, userId] = queryKey;
+    return fetchUser(userId);
+  },
+});
+```
+
+### 4. 상태 관리
+
+```jsx
+function UserProfile({ userId }) {
+  const { 
+    data,           // 쿼리 데이터
+    error,          // 에러 객체
+    isLoading,      // 초기 로딩 (데이터 없음 + 로딩 중)
+    isFetching,     // 백그라운드 페칭 중
+    isError,        // 에러 발생
+    isSuccess,      // 성공
+    status,         // 'pending' | 'error' | 'success'
+    fetchStatus,    // 'fetching' | 'paused' | 'idle'
+  } = useQuery({
+    queryKey: ['user', userId],
+    queryFn: () => fetchUser(userId),
+  });
+
+  // isLoading: 처음 로딩 중 (데이터 없음)
+  if (isLoading) return <Spinner />;
+
+  // isError: 에러 발생
+  if (isError) return <ErrorMessage error={error} />;
+
+  // isSuccess: 데이터 로드 완료
+  return (
+    <div>
+      {/* isFetching: 백그라운드에서 리페칭 중 */}
+      {isFetching && <RefreshingIndicator />}
+      <h1>{data.name}</h1>
+      <p>{data.email}</p>
+    </div>
+  );
+}
+```
+
+### 5. 의존적 쿼리
+
+```jsx
+function UserPosts({ userId }) {
+  // 먼저 사용자 정보 가져오기
+  const { data: user } = useQuery({
+    queryKey: ['user', userId],
+    queryFn: () => fetchUser(userId),
+  });
+
+  // user가 있을 때만 포스트 가져오기
+  const { data: posts } = useQuery({
+    queryKey: ['posts', user?.id],
+    queryFn: () => fetchPosts(user.id),
+    enabled: !!user,  // user가 있을 때만 실행
+  });
+
+  return (
+    <div>
+      <h1>{user?.name}'s Posts</h1>
+      {posts?.map(post => (
+        <Post key={post.id} {...post} />
+      ))}
+    </div>
+  );
+}
+```
+
+### 6. 병렬 쿼리
+
+```jsx
+function Dashboard() {
+  const users = useQuery({ 
+    queryKey: ['users'], 
+    queryFn: fetchUsers 
+  });
+  
+  const posts = useQuery({ 
+    queryKey: ['posts'], 
+    queryFn: fetchPosts 
+  });
+  
+  const comments = useQuery({ 
+    queryKey: ['comments'], 
+    queryFn: fetchComments 
+  });
+
+  // 모든 쿼리가 로딩 중인지 확인
+  if (users.isLoading || posts.isLoading || comments.isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  return (
+    <div>
+      <Users data={users.data} />
+      <Posts data={posts.data} />
+      <Comments data={comments.data} />
+    </div>
+  );
+}
+```
+
+**useQueries로 동적 병렬 쿼리:**
+
+```jsx
+function UserProfiles({ userIds }) {
+  const userQueries = useQueries({
+    queries: userIds.map(id => ({
+      queryKey: ['user', id],
+      queryFn: () => fetchUser(id),
+    })),
+  });
+
+  const isLoading = userQueries.some(query => query.isLoading);
+  const isError = userQueries.some(query => query.isError);
+
+  if (isLoading) return <div>Loading...</div>;
+  if (isError) return <div>Error loading users</div>;
+
+  return (
+    <div>
+      {userQueries.map((query, index) => (
+        <UserCard key={userIds[index]} user={query.data} />
+      ))}
+    </div>
+  );
+}
+```
+
+---
+
+## 뮤테이션
+
+### 1. useMutation 기본
+
+```jsx
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+
+function CreateUser() {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: (newUser) => {
+      return fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newUser),
+      }).then(res => res.json());
+    },
+    onSuccess: () => {
+      // 쿼리 무효화 (리페치 트리거)
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    mutation.mutate({
+      name: formData.get('name'),
+      email: formData.get('email'),
+    });
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input name="name" placeholder="Name" />
+      <input name="email" placeholder="Email" />
+      <button type="submit" disabled={mutation.isPending}>
+        {mutation.isPending ? 'Creating...' : 'Create User'}
+      </button>
+      {mutation.isError && <div>Error: {mutation.error.message}</div>}
+      {mutation.isSuccess && <div>User created!</div>}
+    </form>
+  );
+}
+```
+
+### 2. 뮤테이션 상태
+
+```jsx
+function DeleteUser({ userId }) {
+  const mutation = useMutation({
+    mutationFn: (id) => fetch(`/api/users/${id}`, { method: 'DELETE' }),
+  });
+
+  const {
+    mutate,         // 뮤테이션 실행 함수
+    isPending,      // 진행 중
+    isError,        // 에러 발생
+    isSuccess,      // 성공
+    error,          // 에러 객체
+    data,           // 응답 데이터
+    reset,          // 상태 초기화
+  } = mutation;
+
+  return (
+    <div>
+      <button onClick={() => mutate(userId)} disabled={isPending}>
+        {isPending ? 'Deleting...' : 'Delete'}
+      </button>
+      
+      {isError && <div>Error: {error.message}</div>}
+      {isSuccess && <div>User deleted successfully!</div>}
+      
+      {(isError || isSuccess) && (
+        <button onClick={reset}>Reset</button>
+      )}
+    </div>
+  );
+}
+```
+
+### 3. 뮤테이션 콜백
+
+```jsx
+const mutation = useMutation({
+  mutationFn: createUser,
+  onMutate: async (newUser) => {
+    // 뮤테이션 시작 전
+    console.log('Creating user:', newUser);
+    
+    // 낙관적 업데이트를 위한 이전 데이터 반환
+    const previousUsers = queryClient.getQueryData(['users']);
+    return { previousUsers };
+  },
+  onError: (error, variables, context) => {
+    // 에러 발생 시
+    console.error('Error creating user:', error);
+    
+    // 롤백
+    if (context?.previousUsers) {
+      queryClient.setQueryData(['users'], context.previousUsers);
+    }
+  },
+  onSuccess: (data, variables, context) => {
+    // 성공 시
+    console.log('User created:', data);
+    toast.success('User created successfully!');
+  },
+  onSettled: (data, error, variables, context) => {
+    // 성공이든 실패든 완료 후
+    queryClient.invalidateQueries({ queryKey: ['users'] });
+  },
+});
+```
+
+### 4. 쿼리 무효화
+
+```jsx
+const queryClient = useQueryClient();
+
+// 특정 쿼리 무효화
+queryClient.invalidateQueries({ queryKey: ['users'] });
+
+// 특정 사용자 쿼리 무효화
+queryClient.invalidateQueries({ queryKey: ['user', userId] });
+
+// 접두사로 무효화 (모든 user 관련 쿼리)
+queryClient.invalidateQueries({ queryKey: ['user'] });
+
+// 정확히 일치하는 쿼리만 무효화
+queryClient.invalidateQueries({ 
+  queryKey: ['users'], 
+  exact: true 
+});
+```
+
+### 5. 캐시 직접 업데이트
+
+```jsx
+const mutation = useMutation({
+  mutationFn: createUser,
+  onSuccess: (newUser) => {
+    // 기존 캐시 가져오기
+    const previousUsers = queryClient.getQueryData(['users']);
+    
+    // 새 사용자 추가
+    queryClient.setQueryData(['users'], (old) => [...old, newUser]);
+    
+    // 또는 invalidateQueries로 리페치
+    // queryClient.invalidateQueries({ queryKey: ['users'] });
+  },
+});
+```
+
+---
+
+## 캐싱 전략
+
+### 🔍 React Query 캐싱의 동작 원리
+
+**React Query가 해결하는 문제:**
+
+1. **중복 요청 제거**
+
+   ```jsx
+   // 여러 컴포넌트가 동시에 같은 데이터 요청
+   function Header() {
+     useQuery({ queryKey: ['user'], queryFn: fetchUser });
+   }
+   function Sidebar() {
+     useQuery({ queryKey: ['user'], queryFn: fetchUser });
+   }
+   function Profile() {
+     useQuery({ queryKey: ['user'], queryFn: fetchUser });
+   }
+   
+   // ❌ 일반 방법: 3번 요청!
+   // ✅ React Query: 1번만 요청! (나머지는 캐시 사용)
+   ```
+
+2. **자동 백그라운드 리페칭**
+
+   ```
+   사용자가 탭 전환 후 돌아옴
+     ↓
+   React Query가 감지
+     ↓
+   데이터가 stale이면 자동 리페칭
+     ↓
+   최신 데이터 유지!
+
+   ```
+
+3. **메모리 관리**
+
+   ```
+   컴포넌트 언마운트
+     ↓
+   해당 쿼리 사용자 0명
+     ↓
+   Cache Time 동안 메모리 유지 (다시 마운트될 수 있음)
+     ↓
+   Cache Time 경과 → 가비지 컬렉션
+   ```
+
+### 1. Stale Time vs Cache Time (핵심 개념!)
+
+```javascript
+useQuery({
+  queryKey: ['users'],
+  queryFn: fetchUsers,
+  staleTime: 1000 * 60 * 5,  // 5분 동안 fresh
+  cacheTime: 1000 * 60 * 10, // 10분 동안 캐시 유지
+
+});
+```
+
+**Stale Time (신선도):**
+
+- 데이터가 "fresh"로 간주되는 시간
+- fresh 데이터는 리페치하지 않음
+- **예시**: staleTime이 5분이면, 5분 안에는 캐시에서 즉시 반환
+
+**Cache Time (캐시 유지):**
+
+- 사용되지 않는 데이터를 메모리에 유지하는 시간
+- 이 시간이 지나면 가비지 컬렉션
+- **예시**: cacheTime이 10분이면, 컴포넌트 언마운트 후 10분간 캐시 유지
+
+### 🎯 실무 시나리오로 이해하기
+
+**시나리오**: 사용자 프로필 페이지
+
+```
+1. 00:00 - 페이지 접속
+   → fetchUser() 호출 (네트워크 요청)
+   → 캐시 저장 (fresh 상태)
+
+2. 00:30 - 다른 페이지 이동 후 돌아옴
+   → staleTime 5분 안 → 캐시에서 즉시 반환 (fresh)
+   → 네트워크 요청 없음! (빠름!)
+
+3. 06:00 - 다시 페이지 접속
+   → staleTime 초과 → 캐시 반환 + 백그라운드 리페치 (stale)
+   → 사용자는 즉시 데이터 봄 + 백그라운드에서 최신화
+
+4. 15:00 - 페이지 접속
+   → cacheTime 초과 → 캐시 삭제됨
+   → fetchUser() 다시 호출 (네트워크 요청)
+```
+
+### 💡 면접 TIP: "React Query는 어떻게 캐싱하나요?"
+
+**답변 예시:**
+
+"React Query는 Qury Key를 기반으로 캐시를 관리합니다.
+
+**핵심 메커니즘:**
+
+1. **Query Key 해싱**: `['users', { status: 'active' }]` → 고유 키 생성
+2. **캐시 스토리지**: 메모리에 Map 구조로 저장
+
+3. **State 관리**:
+   - fresh: 신선한 데이터 (리페치 안함)
+   - stale: 오래된 데이터 (백그라운드 리페치)
+   - inactive: 사용 안하는 데이터 (cacheTime 후 삭제)
+
+**최적화 효과:**
+
+- 동일한 Query Key → 단일 요청으로 통합
+- 캐시 히트 시 즉시 반환 (0ms)
+- 백그라운드 리페치로 최신성 유지
+
+**실무 설정:**
+
+```javascript
+// 자주 변하지 않는 데이터 (사용자 정보)
+staleTime: 5분, cacheTime: 10분
+
+// 자주 변하는 데이터 (실시간 댓글)
+staleTime: 0, cacheTime: 0
+
+// 정적 데이터 (국가 목록)
+staleTime: Infinity, cacheTime: Infinity
+```
+
+이를 통해 네트워크 요청을 최소화하면서도 데이터 최신성을 유지할 수 있습니다."
+
+### 2. 리페치 설정
+
+```javascript
+useQuery({
+  queryKey: ['users'],
+  queryFn: fetchUsers,
+  refetchOnWindowFocus: true,    // 윈도우 포커스 시
+  refetchOnReconnect: true,      // 네트워크 재연결 시
+  refetchOnMount: true,          // 마운트 시
+  refetchInterval: 1000 * 30,    // 30초마다 폴링
+  refetchIntervalInBackground: false,  // 백그라운드에서도 폴링
+});
+```
+
+### 3. 수동 리페치
+
+```jsx
+function Users() {
+  const { data, refetch, isRefetching } = useQuery({
+    queryKey: ['users'],
+    queryFn: fetchUsers,
+  });
+
+  return (
+    <div>
+      <button onClick={() => refetch()} disabled={isRefetching}>
+        {isRefetching ? 'Refreshing...' : 'Refresh'}
+      </button>
+      <UserList users={data} />
+    </div>
+  );
+}
+```
+
+### 4. Prefetch (사전 로딩)
+
+```jsx
+import { useQueryClient } from '@tanstack/react-query';
+
+function UserList() {
+  const queryClient = useQueryClient();
+
+  function handleMouseEnter(userId) {
+    // 마우스 호버 시 사용자 상세 정보 미리 로드
+    queryClient.prefetchQuery({
+      queryKey: ['user', userId],
+      queryFn: () => fetchUser(userId),
+    });
+  }
+
+  return (
+    <ul>
+      {users.map(user => (
+        <li 
+          key={user.id}
+          onMouseEnter={() => handleMouseEnter(user.id)}
+        >
+          <Link to={`/users/${user.id}`}>{user.name}</Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+```
+
+### 5. Initial Data
+
+```jsx
+function UserProfile({ userId }) {
+  const queryClient = useQueryClient();
+
+  const { data } = useQuery({
+    queryKey: ['user', userId],
+    queryFn: () => fetchUser(userId),
+    initialData: () => {
+      // 캐시에서 사용자 목록 가져오기
+      const users = queryClient.getQueryData(['users']);
+      // 해당 사용자 찾기
+      return users?.find(user => user.id === userId);
+    },
+  });
+
+  return <div>{data?.name}</div>;
+}
+```
+
+### 6. Placeholder Data
+
+```jsx
+function Users() {
+  const { data } = useQuery({
+    queryKey: ['users'],
+    queryFn: fetchUsers,
+    placeholderData: [],  // 로딩 중 표시할 데이터
+  });
+
+  // 또는 이전 데이터 유지
+  const { data } = useQuery({
+    queryKey: ['users', page],
+    queryFn: () => fetchUsers(page),
+    placeholderData: (previousData) => previousData,
+  });
+
+  return <UserList users={data} />;
+}
+```
+
+---
+
+## 낙관적 업데이트
+
+### 기본 패턴
+
+```jsx
+function TodoList() {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: updateTodo,
+    onMutate: async (newTodo) => {
+      // 진행 중인 리페치 취소
+      await queryClient.cancelQueries({ queryKey: ['todos'] });
+
+      // 이전 데이터 스냅샷
+      const previousTodos = queryClient.getQueryData(['todos']);
+
+      // 낙관적 업데이트
+      queryClient.setQueryData(['todos'], (old) =>
+        old.map(todo =>
+          todo.id === newTodo.id ? newTodo : todo
+        )
+      );
+
+      // 롤백을 위한 컨텍스트 반환
+      return { previousTodos };
+    },
+    onError: (err, newTodo, context) => {
+      // 에러 발생 시 롤백
+      queryClient.setQueryData(['todos'], context.previousTodos);
+      toast.error('Failed to update todo');
+    },
+    onSettled: () => {
+      // 성공/실패 상관없이 리페치
+      queryClient.invalidateQueries({ queryKey: ['todos'] });
+    },
+  });
+
+  function handleToggle(todo) {
+    mutation.mutate({
+      ...todo,
+      completed: !todo.completed,
+    });
+  }
+
+  return (
+    <div>
+      {todos.map(todo => (
+        <TodoItem
+          key={todo.id}
+          todo={todo}
+          onToggle={handleToggle}
+        />
+      ))}
+    </div>
+  );
+}
+```
+
+### 복잡한 예제: 좋아요 버튼
+
+```jsx
+function LikeButton({ postId }) {
+  const queryClient = useQueryClient();
+
+  const likeMutation = useMutation({
+    mutationFn: (postId) => fetch(`/api/posts/${postId}/like`, { method: 'POST' }),
+    onMutate: async (postId) => {
+      await queryClient.cancelQueries({ queryKey: ['post', postId] });
+
+      const previousPost = queryClient.getQueryData(['post', postId]);
+
+      queryClient.setQueryData(['post', postId], (old) => ({
+        ...old,
+        likes: old.likes + 1,
+        isLiked: true,
+      }));
+
+      return { previousPost };
+    },
+    onError: (err, postId, context) => {
+      queryClient.setQueryData(['post', postId], context.previousPost);
+    },
+    onSettled: (data, error, postId) => {
+      queryClient.invalidateQueries({ queryKey: ['post', postId] });
+    },
+  });
+
+  const unlikeMutation = useMutation({
+    mutationFn: (postId) => fetch(`/api/posts/${postId}/unlike`, { method: 'POST' }),
+    onMutate: async (postId) => {
+      await queryClient.cancelQueries({ queryKey: ['post', postId] });
+
+      const previousPost = queryClient.getQueryData(['post', postId]);
+
+      queryClient.setQueryData(['post', postId], (old) => ({
+        ...old,
+        likes: old.likes - 1,
+        isLiked: false,
+      }));
+
+      return { previousPost };
+    },
+    onError: (err, postId, context) => {
+      queryClient.setQueryData(['post', postId], context.previousPost);
+    },
+  });
+
+  const { data: post } = useQuery({
+    queryKey: ['post', postId],
+    queryFn: () => fetchPost(postId),
+  });
+
+  function handleClick() {
+    if (post.isLiked) {
+      unlikeMutation.mutate(postId);
+    } else {
+      likeMutation.mutate(postId);
+    }
+  }
+
+  return (
+    <button onClick={handleClick}>
+      {post.isLiked ? '❤️' : '🤍'} {post.likes}
+    </button>
+  );
+}
+```
+
+---
+
+## 무한 스크롤
+
+### useInfiniteQuery
+
+```jsx
+import { useInfiniteQuery } from '@tanstack/react-query';
+
+function Posts() {
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+  } = useInfiniteQuery({
+    queryKey: ['posts'],
+    queryFn: ({ pageParam = 0 }) => fetchPosts(pageParam),
+    getNextPageParam: (lastPage, allPages) => {
+      // 다음 페이지 번호 반환
+      return lastPage.nextCursor;
+    },
+    initialPageParam: 0,
+  });
+
+  if (isLoading) return <div>Loading...</div>;
+
+  return (
+    <div>
+      {data.pages.map((page, i) => (
+        <div key={i}>
+          {page.posts.map(post => (
+            <PostCard key={post.id} post={post} />
+          ))}
+        </div>
+      ))}
+
+      <button
+        onClick={() => fetchNextPage()}
+        disabled={!hasNextPage || isFetchingNextPage}
+      >
+        {isFetchingNextPage
+          ? 'Loading more...'
+          : hasNextPage
+          ? 'Load More'
+          : 'Nothing more to load'}
+      </button>
+    </div>
+  );
+}
+
+async function fetchPosts(pageParam) {
+  const response = await fetch(`/api/posts?cursor=${pageParam}`);
+  return response.json();
+}
+```
+
+### 자동 무한 스크롤
+
+```jsx
+import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInView } from 'react-intersection-observer';
+
+function Posts() {
+  const { ref, inView } = useInView();
+
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['posts'],
+    queryFn: ({ pageParam = 0 }) => fetchPosts(pageParam),
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    initialPageParam: 0,
+  });
+
+  // 화면에 보이면 자동으로 다음 페이지 로드
+  useEffect(() => {
+    if (inView && hasNextPage) {
+      fetchNextPage();
+    }
+  }, [inView, hasNextPage, fetchNextPage]);
+
+  return (
+    <div>
+      {data?.pages.map((page, i) => (
+        <div key={i}>
+          {page.posts.map(post => (
+            <PostCard key={post.id} post={post} />
+          ))}
+        </div>
+      ))}
+
+      {/* 감지 영역 */}
+      <div ref={ref}>
+        {isFetchingNextPage && <LoadingSpinner />}
+      </div>
+    </div>
+  );
+}
+```
+
+### 양방향 무한 스크롤
+
+```jsx
+const {
+  data,
+  fetchNextPage,
+  fetchPreviousPage,
+  hasNextPage,
+  hasPreviousPage,
+} = useInfiniteQuery({
+  queryKey: ['posts'],
+  queryFn: ({ pageParam = 0 }) => fetchPosts(pageParam),
+  getNextPageParam: (lastPage) => lastPage.nextCursor,
+  getPreviousPageParam: (firstPage) => firstPage.previousCursor,
+  initialPageParam: 0,
+});
+```
+
+---
+
+## 고급 패턴
+
+### 1. Query Cancellation
+
+```jsx
+function Search() {
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['search', searchTerm],
+    queryFn: async ({ signal }) => {
+      const response = await fetch(`/api/search?q=${searchTerm}`, {
+        signal,  // AbortSignal 전달
+      });
+      return response.json();
+    },
+    enabled: searchTerm.length > 0,
+  });
+
+  return (
+    <div>
+      <input
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        placeholder="Search..."
+      />
+      {isLoading && <div>Searching...</div>}
+      <SearchResults results={data} />
+    </div>
+  );
+}
+```
+
+### 2. Dependent Queries
+
+```jsx
+function UserProjects({ userId }) {
+  const { data: user } = useQuery({
+    queryKey: ['user', userId],
+    queryFn: () => fetchUser(userId),
+  });
+
+  const { data: projects } = useQuery({
+    queryKey: ['projects', user?.id],
+    queryFn: () => fetchProjects(user.id),
+    enabled: !!user?.id,  // user가 로드된 후에만 실행
+  });
+
+  return <ProjectList projects={projects} />;
+}
+```
+
+### 3. Query Keys Factory
+
+```javascript
+// queryKeys.js
+export const userKeys = {
+  all: ['users'],
+  lists: () => [...userKeys.all, 'list'],
+  list: (filters) => [...userKeys.lists(), { filters }],
+  details: () => [...userKeys.all, 'detail'],
+  detail: (id) => [...userKeys.details(), id],
+};
+
+// 사용
+useQuery({
+  queryKey: userKeys.detail(userId),
+  queryFn: () => fetchUser(userId),
+});
+
+// 모든 user 쿼리 무효화
+queryClient.invalidateQueries({ queryKey: userKeys.all });
+
+// 특정 user 무효화
+queryClient.invalidateQueries({ queryKey: userKeys.detail(userId) });
+```
+
+### 4. Suspense Mode
+
+```jsx
+import { Suspense } from 'react';
+
+function App() {
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <Users />
+    </Suspense>
+  );
+}
+
+function Users() {
+  const { data } = useQuery({
+    queryKey: ['users'],
+    queryFn: fetchUsers,
+    suspense: true,  // Suspense 모드 활성화
+  });
+
+  return <UserList users={data} />;
+}
+```
+
+### 5. Retry Logic
+
+```javascript
+useQuery({
+  queryKey: ['users'],
+  queryFn: fetchUsers,
+  retry: 3,  // 3번 재시도
+  retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  // 1초, 2초, 4초... 최대 30초
+});
+
+// 조건부 재시도
+useQuery({
+  queryKey: ['users'],
+  queryFn: fetchUsers,
+  retry: (failureCount, error) => {
+    // 404는 재시도 안함
+    if (error.status === 404) return false;
+    // 최대 3번
+    return failureCount < 3;
+  },
+});
+```
+
+### 6. Query Filters
+
+```javascript
+const queryClient = useQueryClient();
+
+// 모든 쿼리 무효화
+queryClient.invalidateQueries();
+
+// 특정 접두사 쿼리 무효화
+queryClient.invalidateQueries({ queryKey: ['posts'] });
+
+// 조건부 무효화
+queryClient.invalidateQueries({
+  predicate: (query) => 
+    query.queryKey[0] === 'posts' && 
+    query.state.data?.isArchived
+});
+
+// 쿼리 제거
+queryClient.removeQueries({ queryKey: ['posts'] });
+
+// 쿼리 데이터 설정
+queryClient.setQueriesData(
+  { queryKey: ['posts'] },
+  (oldData) => oldData.filter(post => !post.isDeleted)
+);
+```
+
+---
+
+## 실전 예제: 블로그 애플리케이션
+
+```jsx
+// api/posts.js
+export const postKeys = {
+  all: ['posts'],
+  lists: () => [...postKeys.all, 'list'],
+  list: (filters) => [...postKeys.lists(), filters],
+  details: () => [...postKeys.all, 'detail'],
+  detail: (id) => [...postKeys.details(), id],
+};
+
+export async function fetchPosts({ page = 1, limit = 10 } = {}) {
+  const response = await fetch(`/api/posts?page=${page}&limit=${limit}`);
+  if (!response.ok) throw new Error('Failed to fetch posts');
+  return response.json();
+}
+
+export async function fetchPost(id) {
+  const response = await fetch(`/api/posts/${id}`);
+  if (!response.ok) throw new Error('Failed to fetch post');
+  return response.json();
+}
+
+export async function createPost(data) {
+  const response = await fetch('/api/posts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error('Failed to create post');
+  return response.json();
+}
+
+export async function updatePost({ id, data }) {
+  const response = await fetch(`/api/posts/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error('Failed to update post');
+  return response.json();
+}
+
+export async function deletePost(id) {
+  const response = await fetch(`/api/posts/${id}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) throw new Error('Failed to delete post');
+}
+```
+
+```jsx
+// components/PostList.jsx
+import { useQuery } from '@tanstack/react-query';
+import { fetchPosts, postKeys } from '../api/posts';
+
+export default function PostList() {
+  const [page, setPage] = useState(1);
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: postKeys.list({ page }),
+    queryFn: () => fetchPosts({ page }),
+    placeholderData: (previousData) => previousData,
+  });
+
+  if (isLoading && !data) return <LoadingSpinner />;
+  if (error) return <ErrorMessage error={error} />;
+
+  return (
+    <div>
+      {data.posts.map(post => (
+        <PostCard key={post.id} post={post} />
+      ))}
+      
+      <Pagination
+        page={page}
+        totalPages={data.totalPages}
+        onPageChange={setPage}
+      />
+    </div>
+  );
+}
+```
+
+```jsx
+// components/CreatePost.jsx
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { createPost, postKeys } from '../api/posts';
+
+export default function CreatePost() {
+  const queryClient = useQueryClient();
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+
+  const mutation = useMutation({
+    mutationFn: createPost,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: postKeys.lists() });
+      setTitle('');
+      setContent('');
+      toast.success('Post created!');
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    mutation.mutate({ title, content });
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Title"
+        required
+      />
+      <textarea
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        placeholder="Content"
+        required
+      />
+      <button type="submit" disabled={mutation.isPending}>
+        {mutation.isPending ? 'Creating...' : 'Create Post'}
+      </button>
+    </form>
+  );
+}
+```
+
+---
+
+## 다음 단계
+
+### 학습 체크리스트
+
+- [ ] useQuery를 사용할 수 있다
+- [ ] useMutation을 사용할 수 있다
+- [ ] 캐싱 전략을 이해한다
+- [ ] 낙관적 업데이트를 구현할 수 있다
+- [ ] 무한 스크롤을 구현할 수 있다
+- [ ] Query Keys를 효율적으로 관리할 수 있다
+- [ ] 에러 처리를 할 수 있다
+- [ ] DevTools를 활용할 수 있다
+
+### 추가 학습 자료
+
+- [TanStack Query 공식 문서](https://tanstack.com/query/latest)
+- [React Query vs SWR](https://tanstack.com/query/latest/docs/react/comparison)
+- [Best Practices](https://tanstack.com/query/latest/docs/react/community/tkdodos-blog)
+
+---
+
+**출처**: TanStack Query Documentation  
+**대상**: React 중급 개발자
+
+---
+
+모든 항목을 체크했다면 다음 주제로 넘어가세요! 🚀

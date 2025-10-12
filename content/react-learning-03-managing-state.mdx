@@ -1,0 +1,1582 @@
+---
+title: "📚 [React 기초 3/4] State 관리 - Reducer & Context"
+date: "2024-07-28"
+description: "State 구조화, Reducer 패턴, Context API의 동작 원리를 깊이 있게 학습합니다"
+tags: ["React", "State", "Reducer", "Context", "중급"]
+---
+
+# React 학습 가이드 - State 관리하기 (Managing State)
+
+> React 공식 문서를 기반으로 한 학습 자료  
+> 원문: [Managing State - React](https://react.dev/learn/managing-state)
+
+---
+
+## 📚 목차
+
+1. [개요](#개요)
+2. [State로 입력에 반응하기](#state로-입력에-반응하기)
+3. [State 구조 선택하기](#state-구조-선택하기)
+4. [컴포넌트 간 State 공유하기](#컴포넌트-간-state-공유하기)
+5. [State 보존 및 재설정](#state-보존-및-재설정)
+6. [Reducer로 State 로직 추출하기](#reducer로-state-로직-추출하기)
+7. [Context로 데이터 깊이 전달하기](#context로-데이터-깊이-전달하기)
+8. [Reducer와 Context로 확장하기](#reducer와-context로-확장하기)
+
+---
+
+## 개요
+
+애플리케이션이 커질수록 state를 어떻게 구성하고 컴포넌트 간에 데이터가 어떻게 흐르는지 의도적으로 설계하는 것이 중요합니다.
+
+### 이 챕터에서 배울 내용
+
+- ✅ UI 변경을 state 변경으로 생각하는 방법
+- ✅ State를 잘 구조화하는 방법
+- ✅ State를 "끌어올려" 컴포넌트 간에 공유하는 방법
+- ✅ State가 보존되거나 재설정되는지 제어하는 방법
+- ✅ 복잡한 state 로직을 함수로 통합하는 방법
+- ✅ "prop drilling" 없이 정보를 전달하는 방법
+- ✅ 앱이 커질수록 state 관리를 확장하는 방법
+
+---
+
+## State로 입력에 반응하기
+
+### 선언적 UI vs 명령적 UI
+
+**명령적 프로그래밍 (Imperative)**: 어떻게(How) 할지 명령
+
+```javascript
+// 명령적: 각 단계를 직접 조작
+function submitForm() {
+  // 1. 버튼 비활성화
+  button.disabled = true;
+  // 2. 스피너 표시
+  spinner.style.display = 'block';
+  // 3. 폼 숨기기
+  form.style.display = 'none';
+  // 4. Ajax 요청
+  ajax.post('/submit', data, () => {
+    // 5. 성공 메시지 표시
+    successMessage.style.display = 'block';
+  });
+}
+```
+
+**선언적 프로그래밍 (Declarative)**: 무엇을(What) 보여줄지 선언
+
+```jsx
+// 선언적: state에 따라 UI 자동 결정
+function Form() {
+  const [status, setStatus] = useState('empty');
+  
+  if (status === 'submitting') {
+    return <Spinner />;
+  }
+  
+  if (status === 'success') {
+    return <SuccessMessage />;
+  }
+  
+  return (
+    <form onSubmit={handleSubmit}>
+      <input disabled={status === 'submitting'} />
+      <button disabled={status === 'empty' || status === 'submitting'}>
+        Submit
+      </button>
+    </form>
+  );
+}
+```
+
+### UI를 선언적으로 생각하기
+
+**5단계 프로세스:**
+
+#### 1. **모든 시각적 state 파악하기**
+
+UI가 가질 수 있는 모든 "상태"를 시각화합니다.
+
+```jsx
+// 폼의 가능한 state들
+const states = [
+  'empty',      // 입력 없음
+  'typing',     // 입력 중
+  'submitting', // 제출 중
+  'success',    // 성공
+  'error',      // 에러
+];
+```
+
+#### 2. **state 변경을 트리거하는 것 파악하기**
+
+state를 변경하는 두 가지 입력:
+
+- **사람의 입력**: 버튼 클릭, 필드 입력, 링크 이동
+- **컴퓨터의 입력**: 네트워크 응답, 타임아웃, 이미지 로딩
+
+```jsx
+// 사람의 입력
+- 텍스트 입력 → 'empty'에서 'typing'으로
+- Submit 클릭 → 'typing'에서 'submitting'으로
+
+// 컴퓨터의 입력
+- 네트워크 성공 → 'submitting'에서 'success'로
+- 네트워크 실패 → 'submitting'에서 'error'로
+```
+
+#### 3. **state를 useState로 메모리에 표현하기**
+
+```jsx
+function Form() {
+  const [answer, setAnswer] = useState('');
+  const [error, setError] = useState(null);
+  const [status, setStatus] = useState('typing'); // 'typing', 'submitting', 'success'
+  
+  // ...
+}
+```
+
+#### 4. **불필요한 state 변수 제거하기**
+
+**다음과 같은 경우 state를 제거하세요:**
+
+- **모순을 일으키는가?**
+
+  ```jsx
+  // ❌ 나쁨: 둘 다 true일 수 없음
+  const [isSending, setIsSending] = useState(false);
+  const [isSent, setIsSent] = useState(false);
+  
+  // ✅ 좋음: 하나의 status로 통합
+  const [status, setStatus] = useState('typing');
+  ```
+
+- **다른 state에서 이미 같은 정보를 얻을 수 있는가?**
+
+  ```jsx
+  // ❌ 나쁨: isEmpty는 계산 가능
+  const [answer, setAnswer] = useState('');
+  const [isEmpty, setIsEmpty] = useState(true);
+  
+  // ✅ 좋음: 계산으로 처리
+  const [answer, setAnswer] = useState('');
+  const isEmpty = answer.length === 0;
+  ```
+
+- **다른 state의 반대 값인가?**
+
+  ```jsx
+  // ❌ 나쁨: isError는 error의 반대
+  const [error, setError] = useState(null);
+  const [isError, setIsError] = useState(false);
+  
+  // ✅ 좋음: error로부터 계산
+  const [error, setError] = useState(null);
+  const isError = error !== null;
+  ```
+
+#### 5. **이벤트 핸들러로 state 설정하기**
+
+```jsx
+import { useState } from 'react';
+
+export default function Form() {
+  const [answer, setAnswer] = useState('');
+  const [error, setError] = useState(null);
+  const [status, setStatus] = useState('typing');
+
+  if (status === 'success') {
+    return <h1>정답입니다!</h1>;
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setStatus('submitting');
+    try {
+      await submitForm(answer);
+      setStatus('success');
+    } catch (err) {
+      setStatus('typing');
+      setError(err);
+    }
+  }
+
+  function handleTextareaChange(e) {
+    setAnswer(e.target.value);
+  }
+
+  return (
+    <>
+      <h2>도시 퀴즈</h2>
+      <p>
+        공기를 물로 바꾸는 광고판이 있는 도시는?
+      </p>
+      <form onSubmit={handleSubmit}>
+        <textarea
+          value={answer}
+          onChange={handleTextareaChange}
+          disabled={status === 'submitting'}
+        />
+        <br />
+        <button disabled={
+          answer.length === 0 ||
+          status === 'submitting'
+        }>
+          제출
+        </button>
+        {error !== null &&
+          <p className="Error">
+            {error.message}
+          </p>
+        }
+      </form>
+    </>
+  );
+}
+
+function submitForm(answer) {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      let shouldError = answer.toLowerCase() !== 'lima';
+      if (shouldError) {
+        reject(new Error('좋은 추측이지만 틀린 답입니다. 다시 시도해보세요!'));
+      } else {
+        resolve();
+      }
+    }, 1500);
+  });
+}
+```
+
+### Vue와 비교
+
+```vue
+<!-- Vue: v-if, v-else로 선언적 UI -->
+<script setup>
+import { ref } from 'vue'
+
+const status = ref('typing')
+const answer = ref('')
+
+async function handleSubmit() {
+  status.value = 'submitting'
+  try {
+    await submitForm(answer.value)
+    status.value = 'success'
+  } catch (err) {
+    status.value = 'typing'
+  }
+}
+</script>
+
+<template>
+  <div v-if="status === 'success'">
+    <h1>정답입니다!</h1>
+  </div>
+  <form v-else @submit.prevent="handleSubmit">
+    <textarea v-model="answer" :disabled="status === 'submitting'" />
+    <button :disabled="answer.length === 0 || status === 'submitting'">
+      제출
+    </button>
+  </form>
+</template>
+```
+
+---
+
+## State 구조 선택하기
+
+좋은 state 구조는 업데이트와 디버깅을 쉽게 만듭니다.
+
+### State 구조화 원칙
+
+#### 1. **관련 state 그룹화하기**
+
+**항상 함께 업데이트되는 state는 하나로 합치세요.**
+
+```jsx
+// ❌ 나쁨: 두 state가 항상 함께 업데이트됨
+const [x, setX] = useState(0);
+const [y, setY] = useState(0);
+
+// ✅ 좋음: 하나의 객체로
+const [position, setPosition] = useState({ x: 0, y: 0 });
+```
+
+**몇 개의 state 변수가 필요할지 모르는 경우:**
+
+```jsx
+// 동적 폼 필드
+const [fields, setFields] = useState({});
+
+function addField(fieldName) {
+  setFields({
+    ...fields,
+    [fieldName]: ''
+  });
+}
+```
+
+#### 2. **State의 모순 피하기**
+
+```jsx
+// ❌ 나쁨: 모순된 상태 가능
+const [isSending, setIsSending] = useState(false);
+const [isSent, setIsSent] = useState(false);
+
+// 문제: 둘 다 true일 수 있음 (불가능한 상태)
+async function handleSubmit() {
+  setIsSending(true);
+  await post('/api/message');
+  setIsSending(false);
+  setIsSent(true);  // 깜빡하고 setIsSending(false) 안하면?
+}
+
+// ✅ 좋음: 하나의 status로 명확히
+const [status, setStatus] = useState('typing');
+// 가능한 값: 'typing', 'sending', 'sent'
+
+async function handleSubmit() {
+  setStatus('sending');
+  await post('/api/message');
+  setStatus('sent');
+}
+```
+
+#### 3. **중복 state 피하기**
+
+```jsx
+// ❌ 나쁨: fullName은 중복
+const [firstName, setFirstName] = useState('');
+const [lastName, setLastName] = useState('');
+const [fullName, setFullName] = useState('');
+
+function handleFirstNameChange(e) {
+  setFirstName(e.target.value);
+  setFullName(e.target.value + ' ' + lastName);  // 동기화 필요!
+}
+
+// ✅ 좋음: 렌더링 중 계산
+const [firstName, setFirstName] = useState('');
+const [lastName, setLastName] = useState('');
+const fullName = firstName + ' ' + lastName;
+```
+
+#### 4. **깊게 중첩된 state 피하기**
+
+```jsx
+// ❌ 나쁨: 깊은 중첩
+const [state, setState] = useState({
+  user: {
+    profile: {
+      address: {
+        city: 'Seoul',
+        street: 'Gangnam'
+      }
+    }
+  }
+});
+
+// 업데이트가 복잡함
+setState({
+  ...state,
+  user: {
+    ...state.user,
+    profile: {
+      ...state.user.profile,
+      address: {
+        ...state.user.profile.address,
+        city: 'Busan'
+      }
+    }
+  }
+});
+
+// ✅ 좋음: 평탄하게
+const [city, setCity] = useState('Seoul');
+const [street, setStreet] = useState('Gangnam');
+const [userName, setUserName] = useState('');
+
+// 또는 정규화
+const [users, setUsers] = useState({
+  1: { name: 'Kim', addressId: 10 }
+});
+const [addresses, setAddresses] = useState({
+  10: { city: 'Seoul', street: 'Gangnam' }
+});
+```
+
+#### 5. **파생 state 피하기**
+
+```jsx
+// ❌ 나쁨: selectedItem은 items로부터 파생 가능
+const [items, setItems] = useState(initialItems);
+const [selectedItem, setSelectedItem] = useState(items[0]);
+
+function handleItemClick(item) {
+  setSelectedItem(item);  // items가 변경되면 동기화 문제!
+}
+
+// ✅ 좋음: ID만 저장하고 렌더링 시 찾기
+const [items, setItems] = useState(initialItems);
+const [selectedId, setSelectedId] = useState(0);
+const selectedItem = items.find(item => item.id === selectedId);
+```
+
+### 실전 예제: 여행 플래너
+
+```jsx
+import { useState } from 'react';
+
+const initialItems = [
+  { id: 0, title: 'Warm socks', packed: true },
+  { id: 1, title: 'Travel journal', packed: false },
+  { id: 2, title: 'Watercolors', packed: false },
+];
+
+export default function TravelPlan() {
+  const [items, setItems] = useState(initialItems);
+  const total = items.length;
+  const packed = items.filter(item => item.packed).length;
+
+  function handleToggle(itemId, nextPacked) {
+    setItems(items.map(item => {
+      if (item.id === itemId) {
+        return { ...item, packed: nextPacked };
+      }
+      return item;
+    }));
+  }
+
+  function handleDelete(itemId) {
+    setItems(items.filter(item => item.id !== itemId));
+  }
+
+  return (
+    <>
+      <h1>여행 짐 목록</h1>
+      <h2>{packed} / {total} 준비됨</h2>
+      <ItemList
+        items={items}
+        onToggle={handleToggle}
+        onDelete={handleDelete}
+      />
+    </>
+  );
+}
+
+function ItemList({ items, onToggle, onDelete }) {
+  return (
+    <ul>
+      {items.map(item => (
+        <li key={item.id}>
+          <label>
+            <input
+              type="checkbox"
+              checked={item.packed}
+              onChange={e => onToggle(item.id, e.target.checked)}
+            />
+            {item.title}
+          </label>
+          <button onClick={() => onDelete(item.id)}>삭제</button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+```
+
+### Vue와 비교
+
+```vue
+<script setup>
+import { ref, computed } from 'vue'
+
+const items = ref([
+  { id: 0, title: 'Warm socks', packed: true },
+  { id: 1, title: 'Travel journal', packed: false },
+])
+
+// ✅ computed로 파생 state
+const total = computed(() => items.value.length)
+const packed = computed(() => items.value.filter(item => item.packed).length)
+</script>
+```
+
+---
+
+## 컴포넌트 간 State 공유하기
+
+### State 끌어올리기 (Lifting State Up)
+
+**두 컴포넌트가 항상 함께 변경되기를 원할 때:**
+
+1. 두 컴포넌트에서 state **제거**
+2. 공통 부모로 state **이동**
+3. Props로 state **전달**
+
+### 예제: 아코디언
+
+```jsx
+import { useState } from 'react';
+
+export default function Accordion() {
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  return (
+    <>
+      <h2>알마티, 카자흐스탄</h2>
+      <Panel
+        title="소개"
+        isActive={activeIndex === 0}
+        onShow={() => setActiveIndex(0)}
+      >
+        인구 약 200만의 알마티는 카자흐스탄에서 가장 큰 도시입니다.
+        1929년부터 1997년까지 수도였습니다.
+      </Panel>
+      <Panel
+        title="어원"
+        isActive={activeIndex === 1}
+        onShow={() => setActiveIndex(1)}
+      >
+        이름은 카자흐어로 "사과"를 의미하는 алма에서 유래했으며,
+        "사과로 가득한"을 뜻합니다.
+      </Panel>
+    </>
+  );
+}
+
+function Panel({ title, children, isActive, onShow }) {
+  return (
+    <section className="panel">
+      <h3>{title}</h3>
+      {isActive ? (
+        <p>{children}</p>
+      ) : (
+        <button onClick={onShow}>보기</button>
+      )}
+    </section>
+  );
+}
+```
+
+### 제어 컴포넌트 vs 비제어 컴포넌트
+
+**비제어 컴포넌트 (Uncontrolled):**
+
+- 자체 state로 설정 관리
+- 부모가 영향을 줄 수 없음
+
+```jsx
+function Panel({ title, children }) {
+  const [isActive, setIsActive] = useState(false);  // 자체 state
+  return (
+    <section>
+      <h3>{title}</h3>
+      {isActive ? <p>{children}</p> : <button onClick={() => setIsActive(true)}>보기</button>}
+    </section>
+  );
+}
+```
+
+**제어 컴포넌트 (Controlled):**
+
+- Props로 state 받음
+- 부모가 완전히 제어
+
+```jsx
+function Panel({ title, children, isActive, onShow }) {  // Props로 제어
+  return (
+    <section>
+      <h3>{title}</h3>
+      {isActive ? <p>{children}</p> : <button onClick={onShow}>보기</button>}
+    </section>
+  );
+}
+```
+
+### 단일 진실의 원천 (Single Source of Truth)
+
+각 state마다 **한 곳**에만 저장하세요.
+
+```jsx
+// ✅ 좋음: state는 Accordion에만 존재
+<Accordion>
+  <Panel />  {/* Props로 받기만 함 */}
+  <Panel />
+</Accordion>
+
+// ❌ 나쁨: 각 Panel이 자체 state 보유
+<Panel />  {/* 독립적 state */}
+<Panel />  {/* 독립적 state */}
+```
+
+### Vue와 비교
+
+```vue
+<!-- Vue: v-model로 양방향 바인딩 -->
+<script setup>
+import { ref } from 'vue'
+
+const activeIndex = ref(0)
+</script>
+
+<template>
+  <Accordion v-model="activeIndex">
+    <Panel :index="0" />
+    <Panel :index="1" />
+  </Accordion>
+</template>
+```
+
+```jsx
+// React: 명시적 props 전달
+function Accordion() {
+  const [activeIndex, setActiveIndex] = useState(0);
+  
+  return (
+    <>
+      <Panel isActive={activeIndex === 0} onShow={() => setActiveIndex(0)} />
+      <Panel isActive={activeIndex === 1} onShow={() => setActiveIndex(1)} />
+    </>
+  );
+}
+```
+
+---
+
+## State 보존 및 재설정
+
+### React는 트리 구조에서 state를 보존합니다
+
+```jsx
+export default function App() {
+  const [showB, setShowB] = useState(true);
+  
+  return (
+    <div>
+      <Counter />
+      {showB && <Counter />}
+    </div>
+  );
+}
+
+function Counter() {
+  const [count, setCount] = useState(0);
+  return <button onClick={() => setCount(count + 1)}>{count}</button>;
+}
+```
+
+**동작:**
+
+- 두 `<Counter />` 모두 독립적인 state 보유
+- `showB`를 false로 변경 → 두 번째 Counter의 state **사라짐**
+- `showB`를 다시 true로 → 두 번째 Counter는 **0부터 시작**
+
+### 같은 위치의 같은 컴포넌트는 state를 보존합니다
+
+```jsx
+export default function App() {
+  const [isFancy, setIsFancy] = useState(false);
+  
+  return (
+    <div>
+      {isFancy ? (
+        <Counter isFancy={true} />
+      ) : (
+        <Counter isFancy={false} />
+      )}
+      <label>
+        <input
+          type="checkbox"
+          checked={isFancy}
+          onChange={e => setIsFancy(e.target.checked)}
+        />
+        Use fancy styling
+      </label>
+    </div>
+  );
+}
+```
+
+**결과:** `isFancy`를 변경해도 Counter의 state는 **유지됨**!
+
+**이유:**
+
+- 같은 위치에 같은 컴포넌트 (`<Counter />`)
+- React는 동일한 컴포넌트로 인식
+
+### 다른 컴포넌트는 state를 재설정합니다
+
+```jsx
+export default function App() {
+  const [isPaused, setIsPaused] = useState(false);
+  
+  return (
+    <div>
+      {isPaused ? (
+        <p>See you later!</p>
+      ) : (
+        <Counter />
+      )}
+      <label>
+        <input
+          type="checkbox"
+          checked={isPaused}
+          onChange={e => setIsPaused(e.target.checked)}
+        />
+        Take a break
+      </label>
+    </div>
+  );
+}
+```
+
+**결과:** `isPaused`를 변경하면 Counter의 state **재설정됨**!
+
+**이유:**
+
+- 다른 컴포넌트 (`<p>` vs `<Counter />`)
+- React가 트리에서 제거 후 다시 추가
+
+### 같은 위치에서 state 재설정하기
+
+#### 방법 1: 다른 위치에 렌더링
+
+```jsx
+export default function Scoreboard() {
+  const [isPlayerA, setIsPlayerA] = useState(true);
+  
+  return (
+    <div>
+      {isPlayerA && <Counter person="Taylor" />}
+      {!isPlayerA && <Counter person="Sarah" />}
+      <button onClick={() => setIsPlayerA(!isPlayerA)}>
+        다음 플레이어!
+      </button>
+    </div>
+  );
+}
+```
+
+#### 방법 2: key로 state 재설정 (권장)
+
+```jsx
+export default function Scoreboard() {
+  const [isPlayerA, setIsPlayerA] = useState(true);
+  
+  return (
+    <div>
+      {isPlayerA ? (
+        <Counter key="Taylor" person="Taylor" />
+      ) : (
+        <Counter key="Sarah" person="Sarah" />
+      )}
+      <button onClick={() => setIsPlayerA(!isPlayerA)}>
+        다음 플레이어!
+      </button>
+    </div>
+  );
+}
+```
+
+**`key`를 사용하면:**
+
+- 같은 위치더라도 다른 key = 다른 컴포넌트
+- state 완전히 재설정됨
+
+### 실전 예제: 채팅 앱
+
+```jsx
+import { useState } from 'react';
+import Chat from './Chat.js';
+import ContactList from './ContactList.js';
+
+export default function Messenger() {
+  const [to, setTo] = useState(contacts[0]);
+  
+  return (
+    <div>
+      <ContactList
+        contacts={contacts}
+        selectedContact={to}
+        onSelect={contact => setTo(contact)}
+      />
+      <Chat key={to.id} contact={to} />
+    </div>
+  );
+}
+
+const contacts = [
+  { id: 0, name: 'Taylor', email: 'taylor@mail.com' },
+  { id: 1, name: 'Alice', email: 'alice@mail.com' },
+  { id: 2, name: 'Bob', email: 'bob@mail.com' }
+];
+```
+
+**`key={to.id}`를 사용하면:**
+
+- 다른 연락처 선택 시 입력 필드 초기화됨
+- 각 연락처마다 별도의 `Chat` 인스턴스
+
+### Vue와 비교
+
+Vue도 `key`를 사용하여 강제 재렌더링할 수 있습니다:
+
+```vue
+<template>
+  <Chat :key="selectedContact.id" :contact="selectedContact" />
+</template>
+```
+
+---
+
+## Reducer로 State 로직 추출하기
+
+### Reducer가 필요한 이유
+
+많은 이벤트 핸들러에 걸쳐 state 업데이트가 분산되면 복잡해집니다.
+
+```jsx
+// ❌ 복잡함: 여러 핸들러에 분산된 state 업데이트
+function TaskApp() {
+  const [tasks, setTasks] = useState(initialTasks);
+
+  function handleAddTask(text) {
+    setTasks([...tasks, {
+      id: nextId++,
+      text: text,
+      done: false
+    }]);
+  }
+
+  function handleChangeTask(task) {
+    setTasks(tasks.map(t => {
+      if (t.id === task.id) {
+        return task;
+      } else {
+        return t;
+      }
+    }));
+  }
+
+  function handleDeleteTask(taskId) {
+    setTasks(tasks.filter(t => t.id !== taskId));
+  }
+  
+  // 핸들러가 너무 많음...
+}
+```
+
+**Reducer로 통합:**
+
+```jsx
+// ✅ 간결함: 모든 업데이트 로직을 reducer에 통합
+function TaskApp() {
+  const [tasks, dispatch] = useReducer(tasksReducer, initialTasks);
+
+  function handleAddTask(text) {
+    dispatch({ type: 'added', id: nextId++, text: text });
+  }
+
+  function handleChangeTask(task) {
+    dispatch({ type: 'changed', task: task });
+  }
+
+  function handleDeleteTask(taskId) {
+    dispatch({ type: 'deleted', id: taskId });
+  }
+}
+```
+
+### useState에서 useReducer로 마이그레이션
+
+#### 1단계: dispatch 액션으로 변경
+
+```jsx
+// 이전: setState 직접 호출
+function handleAddTask(text) {
+  setTasks([...tasks, { id: nextId++, text: text, done: false }]);
+}
+
+// 이후: dispatch로 액션 전달
+function handleAddTask(text) {
+  dispatch({
+    type: 'added',
+    id: nextId++,
+    text: text,
+  });
+}
+```
+
+#### 2단계: reducer 함수 작성
+
+```jsx
+function tasksReducer(tasks, action) {
+  switch (action.type) {
+    case 'added': {
+      return [...tasks, {
+        id: action.id,
+        text: action.text,
+        done: false
+      }];
+    }
+    case 'changed': {
+      return tasks.map(t => {
+        if (t.id === action.task.id) {
+          return action.task;
+        } else {
+          return t;
+        }
+      });
+    }
+    case 'deleted': {
+      return tasks.filter(t => t.id !== action.id);
+    }
+    default: {
+      throw Error('Unknown action: ' + action.type);
+    }
+  }
+}
+```
+
+#### 3단계: useReducer 사용
+
+```jsx
+import { useReducer } from 'react';
+
+function TaskApp() {
+  const [tasks, dispatch] = useReducer(tasksReducer, initialTasks);
+  
+  // ...
+}
+```
+
+### Reducer 작성 팁
+
+#### 1. **Reducer는 순수해야 합니다**
+
+```jsx
+// ❌ 나쁨: 부작용
+function reducer(state, action) {
+  switch (action.type) {
+    case 'increment':
+      state.count++;  // 돌연변이!
+      return state;
+  }
+}
+
+// ✅ 좋음: 새 객체 반환
+function reducer(state, action) {
+  switch (action.type) {
+    case 'increment':
+      return { ...state, count: state.count + 1 };
+  }
+}
+```
+
+#### 2. **각 액션은 단일 사용자 상호작용을 설명합니다**
+
+```jsx
+// ❌ 나쁨: 여러 작업을 하나의 액션으로
+dispatch({ type: 'update_everything', newData });
+
+// ✅ 좋음: 명확한 의도
+dispatch({ type: 'user_logged_in', userId: 123 });
+dispatch({ type: 'profile_updated', profile: newProfile });
+```
+
+### 실전 예제: 할 일 앱
+
+```jsx
+import { useReducer } from 'react';
+
+function tasksReducer(tasks, action) {
+  switch (action.type) {
+    case 'added': {
+      return [...tasks, {
+        id: action.id,
+        text: action.text,
+        done: false
+      }];
+    }
+    case 'changed': {
+      return tasks.map(t => {
+        if (t.id === action.task.id) {
+          return action.task;
+        }
+        return t;
+      });
+    }
+    case 'deleted': {
+      return tasks.filter(t => t.id !== action.id);
+    }
+    default: {
+      throw Error('Unknown action: ' + action.type);
+    }
+  }
+}
+
+let nextId = 3;
+const initialTasks = [
+  { id: 0, text: 'Visit Kafka Museum', done: true },
+  { id: 1, text: 'Watch a puppet show', done: false },
+  { id: 2, text: 'Lennon Wall pic', done: false }
+];
+
+export default function TaskApp() {
+  const [tasks, dispatch] = useReducer(tasksReducer, initialTasks);
+
+  function handleAddTask(text) {
+    dispatch({
+      type: 'added',
+      id: nextId++,
+      text: text,
+    });
+  }
+
+  function handleChangeTask(task) {
+    dispatch({
+      type: 'changed',
+      task: task
+    });
+  }
+
+  function handleDeleteTask(taskId) {
+    dispatch({
+      type: 'deleted',
+      id: taskId
+    });
+  }
+
+  return (
+    <>
+      <h1>Prague itinerary</h1>
+      <AddTask onAddTask={handleAddTask} />
+      <TaskList
+        tasks={tasks}
+        onChangeTask={handleChangeTask}
+        onDeleteTask={handleDeleteTask}
+      />
+    </>
+  );
+}
+```
+
+### Immer로 간결한 Reducer
+
+```bash
+npm install use-immer
+```
+
+```jsx
+import { useImmerReducer } from 'use-immer';
+
+function tasksReducer(draft, action) {
+  switch (action.type) {
+    case 'added': {
+      draft.push({
+        id: action.id,
+        text: action.text,
+        done: false
+      });
+      break;
+    }
+    case 'changed': {
+      const task = draft.find(t => t.id === action.task.id);
+      task.text = action.task.text;
+      task.done = action.task.done;
+      break;
+    }
+    case 'deleted': {
+      return draft.filter(t => t.id !== action.id);
+    }
+    default: {
+      throw Error('Unknown action: ' + action.type);
+    }
+  }
+}
+
+export default function TaskApp() {
+  const [tasks, dispatch] = useImmerReducer(tasksReducer, initialTasks);
+  // ...
+}
+```
+
+### Vue와 비교
+
+Vue에서는 Pinia나 Vuex를 사용하여 유사한 패턴을 구현합니다:
+
+```javascript
+// Vue: Pinia store
+import { defineStore } from 'pinia'
+
+export const useTaskStore = defineStore('tasks', {
+  state: () => ({
+    tasks: []
+  }),
+  actions: {
+    addTask(text) {
+      this.tasks.push({ id: nextId++, text, done: false })
+    },
+    changeTask(task) {
+      const index = this.tasks.findIndex(t => t.id === task.id)
+      if (index !== -1) {
+        this.tasks[index] = task
+      }
+    },
+    deleteTask(taskId) {
+      this.tasks = this.tasks.filter(t => t.id !== taskId)
+    }
+  }
+})
+```
+
+---
+
+## Context로 데이터 깊이 전달하기
+
+### Prop Drilling 문제
+
+```jsx
+// ❌ Prop Drilling: 중간 컴포넌트들이 theme을 사용하지 않는데도 전달해야 함
+<Page theme={theme}>
+  <Layout theme={theme}>
+    <Header theme={theme}>
+      <Button theme={theme} />
+    </Header>
+  </Layout>
+</Page>
+```
+
+### Context로 해결
+
+Context를 사용하면 부모 컴포넌트가 트리 아래 **모든 컴포넌트**에 데이터를 제공할 수 있습니다.
+
+#### 1단계: Context 생성
+
+```jsx
+import { createContext } from 'react';
+
+export const ThemeContext = createContext('light');
+```
+
+#### 2단계: Context 제공 (Provider)
+
+```jsx
+import { ThemeContext } from './ThemeContext.js';
+
+export default function App() {
+  const [theme, setTheme] = useState('light');
+  
+  return (
+    <ThemeContext.Provider value={theme}>
+      <Page />
+    </ThemeContext.Provider>
+  );
+}
+```
+
+#### 3단계: Context 사용 (Consumer)
+
+```jsx
+import { useContext } from 'react';
+import { ThemeContext } from './ThemeContext.js';
+
+function Button() {
+  const theme = useContext(ThemeContext);
+  
+  return (
+    <button className={theme}>
+      Click me
+    </button>
+  );
+}
+```
+
+### 전체 예제
+
+```jsx
+// ThemeContext.js
+import { createContext } from 'react';
+
+export const ThemeContext = createContext('light');
+```
+
+```jsx
+// App.js
+import { useState } from 'react';
+import { ThemeContext } from './ThemeContext.js';
+
+export default function App() {
+  const [theme, setTheme] = useState('light');
+  
+  return (
+    <ThemeContext.Provider value={theme}>
+      <Page />
+      <label>
+        <input
+          type="checkbox"
+          checked={theme === 'dark'}
+          onChange={(e) => {
+            setTheme(e.target.checked ? 'dark' : 'light')
+          }}
+        />
+        Use dark mode
+      </label>
+    </ThemeContext.Provider>
+  );
+}
+
+function Page() {
+  return (
+    <section>
+      <Header />
+      <Article />
+    </section>
+  );
+}
+
+function Header() {
+  return (
+    <header>
+      <h1>My Website</h1>
+      <Button />
+    </header>
+  );
+}
+
+function Button() {
+  const theme = useContext(ThemeContext);
+  const className = 'button-' + theme;
+  
+  return (
+    <button className={className}>
+      Click me
+    </button>
+  );
+}
+```
+
+### Context와 Reducer 결합하기
+
+복잡한 state 관리는 Context + Reducer를 함께 사용합니다.
+
+```jsx
+// TasksContext.js
+import { createContext, useContext } from 'react';
+
+export const TasksContext = createContext(null);
+export const TasksDispatchContext = createContext(null);
+
+export function useTasks() {
+  return useContext(TasksContext);
+}
+
+export function useTasksDispatch() {
+  return useContext(TasksDispatchContext);
+}
+```
+
+```jsx
+// TasksProvider.js
+import { useReducer } from 'react';
+import { TasksContext, TasksDispatchContext } from './TasksContext.js';
+
+export function TasksProvider({ children }) {
+  const [tasks, dispatch] = useReducer(tasksReducer, initialTasks);
+
+  return (
+    <TasksContext.Provider value={tasks}>
+      <TasksDispatchContext.Provider value={dispatch}>
+        {children}
+      </TasksDispatchContext.Provider>
+    </TasksContext.Provider>
+  );
+}
+
+function tasksReducer(tasks, action) {
+  // ... reducer 로직
+}
+
+const initialTasks = [
+  { id: 0, text: 'Philosopher's Path', done: true },
+  { id: 1, text: 'Visit the temple', done: false },
+  { id: 2, text: 'Drink matcha', done: false }
+];
+```
+
+```jsx
+// App.js
+import { TasksProvider } from './TasksProvider.js';
+import TaskList from './TaskList.js';
+import AddTask from './AddTask.js';
+
+export default function TaskApp() {
+  return (
+    <TasksProvider>
+      <h1>Day off in Kyoto</h1>
+      <AddTask />
+      <TaskList />
+    </TasksProvider>
+  );
+}
+```
+
+```jsx
+// TaskList.js
+import { useTasks, useTasksDispatch } from './TasksContext.js';
+
+export default function TaskList() {
+  const tasks = useTasks();
+  const dispatch = useTasksDispatch();
+
+  return (
+    <ul>
+      {tasks.map(task => (
+        <li key={task.id}>
+          <input
+            type="checkbox"
+            checked={task.done}
+            onChange={e => {
+              dispatch({
+                type: 'changed',
+                task: {
+                  ...task,
+                  done: e.target.checked
+                }
+              });
+            }}
+          />
+          {task.text}
+          <button onClick={() => {
+            dispatch({
+              type: 'deleted',
+              id: task.id
+            });
+          }}>
+            Delete
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+```
+
+```jsx
+// AddTask.js
+import { useState } from 'react';
+import { useTasksDispatch } from './TasksContext.js';
+
+export default function AddTask() {
+  const [text, setText] = useState('');
+  const dispatch = useTasksDispatch();
+  
+  return (
+    <>
+      <input
+        placeholder="Add task"
+        value={text}
+        onChange={e => setText(e.target.value)}
+      />
+      <button onClick={() => {
+        setText('');
+        dispatch({
+          type: 'added',
+          id: nextId++,
+          text: text,
+        });
+      }}>Add</button>
+    </>
+  );
+}
+
+let nextId = 3;
+```
+
+### Context 사용 시 주의사항
+
+#### 1. **과도한 사용 피하기**
+
+```jsx
+// ❌ 나쁨: 모든 것을 Context로
+<UserContext.Provider>
+  <ThemeContext.Provider>
+    <LanguageContext.Provider>
+      <AuthContext.Provider>
+        <SettingsContext.Provider>
+          <App />
+        </SettingsContext.Provider>
+      </AuthContext.Provider>
+    </LanguageContext.Provider>
+  </ThemeContext.Provider>
+</UserContext.Provider>
+
+// ✅ 좋음: 필요한 경우에만
+// 1. Props 전달부터 시작
+// 2. 컴포넌트 추출 및 children으로 JSX 전달
+// 3. 그래도 불편하면 Context 사용
+```
+
+#### 2. **Props 전달을 먼저 고려하세요**
+
+```jsx
+// ✅ 좋음: Props 전달이 명확함
+<Layout posts={posts}>
+  <Posts posts={posts} />
+</Layout>
+
+// Context는 정말 많은 컴포넌트가 같은 데이터를 필요로 할 때만
+```
+
+### Vue와 비교
+
+```vue
+<!-- Vue: provide/inject -->
+<script setup>
+import { provide } from 'vue'
+
+provide('theme', 'dark')
+</script>
+```
+
+```vue
+<!-- 자식 컴포넌트 -->
+<script setup>
+import { inject } from 'vue'
+
+const theme = inject('theme')
+</script>
+```
+
+---
+
+## Reducer와 Context로 확장하기
+
+위에서 이미 다뤘지만, 다시 한번 정리하면:
+
+### 통합 패턴
+
+1. **Reducer로 복잡한 state 관리**
+2. **Context로 깊은 트리에 전달**
+3. **커스텀 Hook으로 사용 편의성 향상**
+
+### 파일 구조 예시
+
+```
+src/
+  contexts/
+    TasksContext.js       # Context 정의 및 Hook
+    TasksProvider.js      # Provider 컴포넌트
+  components/
+    TaskList.js
+    AddTask.js
+    TaskItem.js
+  App.js
+```
+
+### 장점
+
+- ✅ **관심사 분리**: state 로직과 UI 분리
+- ✅ **재사용성**: 다른 컴포넌트에서 쉽게 사용
+- ✅ **테스트 용이**: reducer는 순수 함수
+- ✅ **확장성**: 앱이 커져도 관리 가능
+
+---
+
+## 다음 단계
+
+### 이 챕터에서 배운 내용 요약
+
+✅ **선언적 UI**: state로 UI 표현  
+✅ **State 구조화**: 중복, 모순 피하기  
+✅ **State 끌어올리기**: 컴포넌트 간 공유  
+✅ **State 보존/재설정**: key로 제어  
+✅ **Reducer**: 복잡한 state 로직 통합  
+✅ **Context**: prop drilling 없이 데이터 전달  
+✅ **Reducer + Context**: 확장 가능한 구조
+
+### 연습 문제
+
+#### 1. 폼 검증
+
+```jsx
+// TODO: 이메일, 비밀번호 검증이 있는 회원가입 폼
+// - 이메일 형식 검증
+// - 비밀번호 8자 이상
+// - 비밀번호 확인 일치
+// - 에러 메시지 표시
+import { useState } from 'react';
+
+export default function SignupForm() {
+  // 여기에 코드 작성
+}
+```
+
+#### 2. 장바구니 시스템
+
+```jsx
+// TODO: Context + Reducer로 장바구니 구현
+// - 상품 추가
+// - 수량 증가/감소
+// - 상품 제거
+// - 총액 계산
+```
+
+#### 3. 다크 모드 토글
+
+```jsx
+// TODO: Context로 전역 테마 관리
+// - 라이트/다크 모드 전환
+// - localStorage에 저장
+// - 모든 컴포넌트에 자동 적용
+```
+
+### 다음에 학습할 내용
+
+다음 챕터에서는 **Escape Hatches**를 학습합니다.
+
+**배울 내용:**
+
+- Ref로 값 참조하기
+- Ref로 DOM 조작하기
+- Effect로 동기화하기
+- Effect가 필요 없을 수도 있습니다
+- 반응형 Effect의 생명주기
+- Effect에서 이벤트 분리하기
+- Effect 의존성 제거하기
+- 커스텀 Hook으로 로직 재사용하기
+
+---
+
+## 참고 자료
+
+- [React 공식 문서 - Managing State](https://react.dev/learn/managing-state)
+- [React 공식 문서 - Escape Hatches](https://react.dev/learn/escape-hatches)
+- [useReducer Hook](https://react.dev/reference/react/useReducer)
+- [useContext Hook](https://react.dev/reference/react/useContext)
+- [Context API](https://react.dev/learn/passing-data-deeply-with-context)
+
+---
+
+**작성일**: 2025-10-11  
+**출처**: [React Official Documentation](https://react.dev/learn/managing-state)  
+**대상**: React 중급 학습자
+
+---
+
+## 학습 체크리스트
+
+- [ ] 선언적 UI 방식을 이해한다
+- [ ] State를 효율적으로 구조화할 수 있다
+- [ ] State를 끌어올려 공유할 수 있다
+- [ ] key로 state를 제어할 수 있다
+- [ ] useReducer로 복잡한 로직을 관리할 수 있다
+- [ ] Context로 데이터를 전달할 수 있다
+- [ ] Reducer와 Context를 결합할 수 있다
+- [ ] 언제 Context를 사용해야 할지 안다
+
+모든 항목을 체크했다면 다음 챕터로 넘어가세요! 🚀

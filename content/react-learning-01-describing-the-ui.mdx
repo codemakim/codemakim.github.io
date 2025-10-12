@@ -1,0 +1,1996 @@
+---
+title: "📚 [React 기초 1/4] UI 표현하기 - JSX & 컴포넌트"
+date: "2024-07-14"
+description: "React 공식 문서 기반 학습 자료 - JSX, 컴포넌트, Props, 조건부 렌더링을 Vue와 비교하며 배웁니다"
+tags: ["React", "JavaScript", "학습", "Vue비교", "초급"]
+---
+
+# React 학습 가이드 - UI 표현하기 (Describing the UI)
+
+> React 공식 문서를 기반으로 한 학습 자료  
+> 원문: [Describing the UI - React](https://react.dev/learn/describing-the-ui)
+
+---
+
+## 📚 목차
+
+1. [개요](#개요)
+2. [첫 번째 컴포넌트](#첫-번째-컴포넌트)
+3. [컴포넌트 Import/Export](#컴포넌트-importexport)
+4. [JSX로 마크업 작성하기](#jsx로-마크업-작성하기)
+5. [JSX에서 JavaScript 사용하기](#jsx에서-javascript-사용하기)
+6. [Props로 데이터 전달하기](#props로-데이터-전달하기)
+7. [조건부 렌더링](#조건부-렌더링)
+8. [리스트 렌더링](#리스트-렌더링)
+9. [순수 컴포넌트 유지하기](#순수-컴포넌트-유지하기)
+10. [UI를 트리로 이해하기](#ui를-트리로-이해하기)
+
+---
+
+## 개요
+
+**React란?**  
+React는 사용자 인터페이스(UI)를 렌더링하는 JavaScript 라이브러리입니다.
+
+**핵심 개념:**
+
+- UI는 버튼, 텍스트, 이미지와 같은 작은 단위로 구성됨
+- React는 이들을 **재사용 가능하고 중첩 가능한 컴포넌트**로 결합
+- 웹사이트부터 모바일 앱까지 모든 화면은 컴포넌트로 분해 가능
+
+### 이 챕터에서 배울 내용
+
+- ✅ 첫 React 컴포넌트 작성하기
+- ✅ 멀티 컴포넌트 파일 생성 방법
+- ✅ JSX로 JavaScript에 마크업 추가하기
+- ✅ JSX에서 중괄호로 JavaScript 기능 사용하기
+- ✅ Props로 컴포넌트 설정하기
+- ✅ 조건부 렌더링
+- ✅ 여러 컴포넌트 한 번에 렌더링하기
+- ✅ 순수 컴포넌트로 버그 방지하기
+- ✅ UI를 트리로 이해하기
+
+---
+
+## 첫 번째 컴포넌트
+
+### 컴포넌트란?
+
+React 애플리케이션은 **컴포넌트**라는 독립적인 UI 조각으로 구성됩니다.
+
+**핵심 특징:**
+
+- React 컴포넌트는 **마크업을 포함할 수 있는 JavaScript 함수**
+- 버튼만큼 작을 수도, 전체 페이지만큼 클 수도 있음
+
+### 예제: Gallery 컴포넌트
+
+```jsx
+// Profile 컴포넌트 정의
+function Profile() {
+  return (
+    <img
+      src="https://i.imgur.com/MK3eW3As.jpg"
+      alt="Katherine Johnson"
+    />
+  );
+}
+
+// Gallery 컴포넌트: Profile을 3번 재사용
+export default function Gallery() {
+  return (
+    <section>
+      <h1>Amazing scientists</h1>
+      <Profile />
+      <Profile />
+      <Profile />
+    </section>
+  );
+}
+```
+
+**결과:**
+
+- `Gallery` 컴포넌트가 `Profile` 컴포넌트를 3번 렌더링
+- 각 `Profile`은 독립적인 이미지를 표시
+
+### 핵심 포인트
+
+1. **함수 컴포넌트**: `function ComponentName() { }`
+2. **JSX 반환**: HTML처럼 보이는 마크업 반환
+3. **재사용성**: 같은 컴포넌트를 여러 번 사용 가능
+4. **중첩 가능**: 컴포넌트 안에 다른 컴포넌트 포함 가능
+
+### Vue와 비교
+
+```vue
+<!-- Vue: Single File Component -->
+<template>
+  <section>
+    <h1>Amazing scientists</h1>
+    <Profile />
+    <Profile />
+    <Profile />
+  </section>
+</template>
+
+<script setup>
+import Profile from './Profile.vue'
+</script>
+```
+
+```jsx
+// React: 함수 컴포넌트
+export default function Gallery() {
+  return (
+    <section>
+      <h1>Amazing scientists</h1>
+      <Profile />
+      <Profile />
+      <Profile />
+    </section>
+  );
+}
+```
+
+**차이점:**
+
+- Vue: `<template>` 태그로 분리
+- React: JSX를 함수에서 직접 반환
+
+---
+
+## 컴포넌트 Import/Export
+
+### 문제 상황
+
+한 파일에 많은 컴포넌트를 선언하면 파일이 커지고 탐색이 어려워집니다.
+
+### 해결책: 파일 분리
+
+**파일 구조:**
+
+```
+src/
+  ├── Gallery.js      # Gallery 컴포넌트
+  └── Profile.js      # Profile 컴포넌트
+```
+
+### Export/Import 예제
+
+```jsx
+// Profile.js
+export default function Profile() {
+  return (
+    <img
+      src="https://i.imgur.com/MK3eW3As.jpg"
+      alt="Katherine Johnson"
+    />
+  );
+}
+```
+
+```jsx
+// Gallery.js
+import Profile from './Profile.js';
+
+export default function Gallery() {
+  return (
+    <section>
+      <h1>Amazing scientists</h1>
+      <Profile />
+      <Profile />
+      <Profile />
+    </section>
+  );
+}
+```
+
+### Export 방식
+
+| 방식 | Export | Import |
+|------|--------|--------|
+| **Default Export** | `export default function Button() {}` | `import Button from './Button.js'` |
+| **Named Export** | `export function Button() {}` | `import { Button } from './Button.js'` |
+
+**권장 사항:**
+
+- 파일당 하나의 컴포넌트 → **Default Export** 사용
+- 파일당 여러 컴포넌트 → **Named Export** 사용
+
+### Vue와 비교
+
+```vue
+<!-- Vue: Profile.vue -->
+<template>
+  <img src="..." alt="Katherine Johnson" />
+</template>
+
+<script setup>
+// 자동으로 export됨
+</script>
+```
+
+```jsx
+// React: Profile.js
+export default function Profile() {
+  return <img src="..." alt="Katherine Johnson" />
+}
+```
+
+---
+
+## JSX로 마크업 작성하기
+
+### JSX란?
+
+**JSX (JavaScript XML)**는 JavaScript 파일 안에 HTML과 유사한 마크업을 작성할 수 있는 문법 확장입니다.
+
+### 핵심 특징
+
+1. **HTML보다 엄격함**: 태그는 반드시 닫아야 함
+2. **동적 정보 표시 가능**: JavaScript 표현식 사용
+3. **React 컴포넌트의 표준**: 렌더링 로직과 마크업을 함께 관리
+
+### HTML을 JSX로 변환하기
+
+#### ❌ 작동하지 않는 코드 (HTML 그대로)
+
+```jsx
+export default function TodoList() {
+  return (
+    // ❌ 여러 요소를 반환할 수 없음!
+    <h1>Hedy Lamarr's Todos</h1>
+    <img
+      src="https://i.imgur.com/yXOvdOSs.jpg"
+      alt="Hedy Lamarr"
+      class="photo"        // ❌ class는 JSX에서 사용 불가
+    >                      // ❌ 자체 닫기 태그 필요
+    <ul>
+      <li>Invent new traffic lights      // ❌ 태그 닫기 필요
+      <li>Rehearse a movie scene
+      <li>Improve spectrum technology
+    </ul>
+  )
+}
+```
+
+#### ✅ 올바른 JSX 코드
+
+```jsx
+export default function TodoList() {
+  return (
+    <>
+      <h1>Hedy Lamarr's Todos</h1>
+      <img
+        src="https://i.imgur.com/yXOvdOSs.jpg"
+        alt="Hedy Lamarr"
+        className="photo"  // ✅ className 사용
+      />                   // ✅ 자체 닫기
+      <ul>
+        <li>Invent new traffic lights</li>  // ✅ 태그 닫기
+        <li>Rehearse a movie scene</li>
+        <li>Improve spectrum technology</li>
+      </ul>
+    </>  // ✅ Fragment로 감싸기
+  );
+}
+```
+
+### JSX 규칙
+
+#### 1. **단일 루트 요소 반환**
+
+```jsx
+// ❌ 여러 요소 반환 불가
+return (
+  <h1>Title</h1>
+  <p>Content</p>
+)
+
+// ✅ Fragment(<>)로 감싸기
+return (
+  <>
+    <h1>Title</h1>
+    <p>Content</p>
+  </>
+)
+
+// ✅ div로 감싸기 (DOM 노드 추가됨)
+return (
+  <div>
+    <h1>Title</h1>
+    <p>Content</p>
+  </div>
+)
+```
+
+#### 2. **모든 태그 닫기**
+
+```jsx
+// ❌ 잘못된 코드
+<img src="...">
+<br>
+
+// ✅ 올바른 코드
+<img src="..." />
+<br />
+```
+
+#### 3. **camelCase 속성 사용**
+
+```jsx
+// ❌ HTML 속성명
+<div class="container" onclick="handleClick()">
+
+// ✅ JSX 속성명 (camelCase)
+<div className="container" onClick={handleClick}>
+```
+
+**주요 변경사항:**
+
+| HTML | JSX |
+|------|-----|
+| `class` | `className` |
+| `for` | `htmlFor` |
+| `onclick` | `onClick` |
+| `onchange` | `onChange` |
+| `tabindex` | `tabIndex` |
+
+### HTML → JSX 변환기 활용
+
+복잡한 HTML은 [변환기](https://transform.tools/html-to-jsx)를 사용하면 편리합니다.
+
+### Vue와 비교
+
+```vue
+<!-- Vue: HTML 문법 그대로 -->
+<template>
+  <div>
+    <h1>{{ title }}</h1>
+    <img :src="imageUrl" class="photo">
+  </div>
+</template>
+```
+
+```jsx
+// React: JSX (더 엄격)
+export default function Component() {
+  return (
+    <div>
+      <h1>{title}</h1>
+      <img src={imageUrl} className="photo" />
+    </div>
+  )
+}
+```
+
+---
+
+## JSX에서 JavaScript 사용하기
+
+### 중괄호 `{}` - JavaScript로의 창
+
+JSX에서 **중괄호 `{}`**를 사용하면 JavaScript 로직이나 동적 속성을 사용할 수 있습니다.
+
+### 기본 사용법
+
+```jsx
+const person = {
+  name: 'Gregorio Y. Zara',
+  theme: {
+    backgroundColor: 'black',
+    color: 'pink'
+  }
+};
+
+export default function TodoList() {
+  return (
+    <div style={person.theme}>
+      <h1>{person.name}'s Todos</h1>
+      <img
+        className="avatar"
+        src="https://i.imgur.com/7vQD0fPs.jpg"
+        alt="Gregorio Y. Zara"
+      />
+      <ul>
+        <li>Improve the videophone</li>
+        <li>Prepare aeronautics lectures</li>
+        <li>Work on the alcohol-fuelled engine</li>
+      </ul>
+    </div>
+  );
+}
+```
+
+**결과:**
+
+- `{person.name}` → "Gregorio Y. Zara" 출력
+- `style={person.theme}` → 동적 스타일 적용
+
+### 중괄호 사용 위치
+
+#### 1. **JSX 태그 내부의 텍스트**
+
+```jsx
+<h1>{user.name}'s Profile</h1>
+```
+
+#### 2. **속성 값**
+
+```jsx
+// ❌ 따옴표 안에서는 문자열로 취급됨
+<img src="user.imageUrl" />  // 'user.imageUrl' 문자열
+
+// ✅ 중괄호로 JavaScript 값 전달
+<img src={user.imageUrl} />  // user.imageUrl 변수
+```
+
+### 다양한 JavaScript 표현식 사용
+
+```jsx
+export default function Component() {
+  const user = {
+    name: 'Kim',
+    imageUrl: 'https://example.com/image.jpg',
+    imageSize: 90
+  };
+
+  return (
+    <div>
+      {/* 1. 변수 */}
+      <h1>{user.name}</h1>
+
+      {/* 2. 함수 호출 */}
+      <p>Today is {new Date().toLocaleDateString()}</p>
+
+      {/* 3. 삼항 연산자 */}
+      <p>{user.age > 18 ? 'Adult' : 'Minor'}</p>
+
+      {/* 4. 객체 속성 */}
+      <img
+        src={user.imageUrl}
+        alt={user.name}
+        style={{
+          width: user.imageSize,
+          height: user.imageSize
+        }}
+      />
+
+      {/* 5. 배열 메서드 */}
+      <ul>
+        {[1, 2, 3].map(num => (
+          <li key={num}>{num * 2}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+```
+
+### 이중 중괄호 `{{ }}` - 객체를 JSX에 전달
+
+```jsx
+// 스타일 객체 전달
+<div style={{ backgroundColor: 'black', color: 'pink' }}>
+  Content
+</div>
+
+// 외부 중괄호: JSX로 JavaScript 전환
+// 내부 중괄호: JavaScript 객체 리터럴
+```
+
+### Vue와 비교
+
+```vue
+<!-- Vue: 이중 중괄호 {{ }} 또는 v-bind -->
+<template>
+  <div :style="{ backgroundColor: 'black', color: 'pink' }">
+    <h1>{{ person.name }}</h1>
+    <img :src="person.imageUrl" />
+  </div>
+</template>
+```
+
+```jsx
+// React: 단일 중괄호 { }
+export default function Component() {
+  return (
+    <div style={{ backgroundColor: 'black', color: 'pink' }}>
+      <h1>{person.name}</h1>
+      <img src={person.imageUrl} />
+    </div>
+  )
+}
+```
+
+**차이점:**
+
+- Vue: `{{ }}` (텍스트), `:속성` (바인딩)
+- React: `{ }` (모든 곳에서 동일)
+
+---
+
+## Props로 데이터 전달하기
+
+### Props란?
+
+**Props (Properties)**는 React 컴포넌트가 서로 통신하는 방법입니다.
+
+**핵심 개념:**
+
+- 부모 컴포넌트가 자식 컴포넌트에게 정보를 전달
+- HTML 속성과 유사하지만 **모든 JavaScript 값** 전달 가능
+- 객체, 배열, 함수, 심지어 JSX도 전달 가능
+
+### 기본 사용법
+
+```jsx
+// utils.js
+export function getImageUrl(person) {
+  return `https://i.imgur.com/${person.imageId}s.jpg`;
+}
+```
+
+```jsx
+// App.js
+import { getImageUrl } from './utils.js';
+
+export default function Profile() {
+  return (
+    <Card>
+      <Avatar
+        size={100}
+        person={{
+          name: 'Katsuko Saruhashi',
+          imageId: 'YfeOqp2'
+        }}
+      />
+    </Card>
+  );
+}
+
+// Avatar 컴포넌트: props 받기
+function Avatar({ person, size }) {
+  return (
+    <img
+      className="avatar"
+      src={getImageUrl(person)}
+      alt={person.name}
+      width={size}
+      height={size}
+    />
+  );
+}
+
+// Card 컴포넌트: children prop
+function Card({ children }) {
+  return (
+    <div className="card">
+      {children}
+    </div>
+  );
+}
+```
+
+### Props 전달 단계
+
+#### 1. **자식 컴포넌트에 Props 전달**
+
+```jsx
+<Avatar
+  size={100}
+  person={{ name: 'Kim', imageId: 'abc123' }}
+/>
+```
+
+#### 2. **자식 컴포넌트에서 Props 읽기**
+
+```jsx
+// 방법 1: 구조 분해 할당 (권장)
+function Avatar({ person, size }) {
+  return <img src={person.imageId} width={size} />;
+}
+
+// 방법 2: props 객체 사용
+function Avatar(props) {
+  return <img src={props.person.imageId} width={props.size} />;
+}
+```
+
+### Props 기본값 설정
+
+```jsx
+function Avatar({ person, size = 100 }) {
+  // size가 전달되지 않으면 100 사용
+  return <img src={person.imageId} width={size} />;
+}
+
+// 사용
+<Avatar person={person} />  // size는 100
+<Avatar person={person} size={200} />  // size는 200
+```
+
+### JSX Spread 문법
+
+```jsx
+function Profile(props) {
+  return (
+    <Avatar {...props} />  // 모든 props 전달
+  );
+}
+
+// 동일한 코드
+function Profile({ person, size }) {
+  return (
+    <Avatar person={person} size={size} />
+  );
+}
+```
+
+**주의:** Spread 문법은 편리하지만 남용하지 마세요. 필요한 props만 명시적으로 전달하는 것이 좋습니다.
+
+### Children Prop - 특별한 Props
+
+**`children`**은 컴포넌트 태그 사이의 내용을 전달하는 특별한 prop입니다.
+
+```jsx
+function Card({ children }) {
+  return (
+    <div className="card">
+      {children}
+    </div>
+  );
+}
+
+// 사용
+<Card>
+  <h1>Title</h1>
+  <p>Content</p>
+</Card>
+```
+
+**Vue의 `<slot>`과 동일:**
+
+```vue
+<!-- Vue -->
+<template>
+  <div class="card">
+    <slot />
+  </div>
+</template>
+```
+
+### Props는 읽기 전용 (Immutable)
+
+**중요:** Props는 절대 수정할 수 없습니다!
+
+```jsx
+// ❌ 잘못된 코드
+function Avatar({ person, size }) {
+  person.name = 'New Name';  // Props 수정 불가!
+  size = 200;                // Props 수정 불가!
+  return <img />;
+}
+
+// ✅ 올바른 코드
+function Avatar({ person, size }) {
+  // Props는 읽기만 가능
+  const displayName = person.name.toUpperCase();
+  return <img alt={displayName} width={size} />;
+}
+```
+
+**상태 변경이 필요하다면:**
+
+- `useState` Hook 사용 (다음 챕터에서 학습)
+
+### Props 타입 지정 (TypeScript)
+
+```tsx
+interface AvatarProps {
+  person: {
+    name: string;
+    imageId: string;
+  };
+  size: number;
+}
+
+function Avatar({ person, size }: AvatarProps) {
+  return (
+    <img
+      src={`https://i.imgur.com/${person.imageId}s.jpg`}
+      alt={person.name}
+      width={size}
+      height={size}
+    />
+  );
+}
+```
+
+### Vue와 비교
+
+```vue
+<!-- Vue: defineProps -->
+<script setup>
+const props = defineProps({
+  person: Object,
+  size: Number
+})
+</script>
+
+<template>
+  <img :width="props.size" />
+</template>
+```
+
+```jsx
+// React: 함수 매개변수
+function Avatar({ person, size }) {
+  return <img width={size} />
+}
+```
+
+---
+
+## 조건부 렌더링
+
+### 조건부 렌더링이란?
+
+컴포넌트가 **다른 조건에 따라 다른 내용을 표시**하는 것입니다.
+
+React에서는 JavaScript 문법(`if`, `&&`, `? :`)을 사용하여 조건부로 JSX를 렌더링합니다.
+
+### 방법 1: `if` 문 사용
+
+```jsx
+function Item({ name, isPacked }) {
+  if (isPacked) {
+    return <li className="item">{name} ✅</li>;
+  }
+  return <li className="item">{name}</li>;
+}
+
+export default function PackingList() {
+  return (
+    <section>
+      <h1>Sally Ride's Packing List</h1>
+      <ul>
+        <Item isPacked={true} name="Space suit" />
+        <Item isPacked={true} name="Helmet with a golden leaf" />
+        <Item isPacked={false} name="Photo of Tam" />
+      </ul>
+    </section>
+  );
+}
+```
+
+**결과:**
+
+- `isPacked={true}` → "Space suit ✅"
+- `isPacked={false}` → "Photo of Tam"
+
+### 방법 2: 조건부로 `null` 반환
+
+```jsx
+function Item({ name, isPacked }) {
+  if (isPacked) {
+    return null;  // 아무것도 렌더링하지 않음
+  }
+  return <li className="item">{name}</li>;
+}
+```
+
+**주의:** 실전에서는 `null`을 반환하는 것이 혼란스러울 수 있으므로 신중히 사용하세요.
+
+### 방법 3: 삼항 연산자 `? :`
+
+```jsx
+function Item({ name, isPacked }) {
+  return (
+    <li className="item">
+      {isPacked ? name + ' ✅' : name}
+    </li>
+  );
+}
+```
+
+**더 명확한 버전:**
+
+```jsx
+function Item({ name, isPacked }) {
+  return (
+    <li className="item">
+      {isPacked ? (
+        <del>{name} ✅</del>  // 패킹됨: 취소선
+      ) : (
+        name                   // 패킹 안됨: 일반 텍스트
+      )}
+    </li>
+  );
+}
+```
+
+### 방법 4: 논리 AND 연산자 `&&`
+
+```jsx
+function Item({ name, isPacked }) {
+  return (
+    <li className="item">
+      {name} {isPacked && '✅'}
+    </li>
+  );
+}
+```
+
+**해석:**
+
+- `isPacked`이 `true`면 `'✅'` 렌더링
+- `isPacked`이 `false`면 아무것도 렌더링하지 않음
+
+**동작 원리:**
+
+```jsx
+// JavaScript 논리 연산
+true && 'hello'   // 'hello'
+false && 'hello'  // false (React는 false를 렌더링하지 않음)
+```
+
+### ⚠️ 주의: `&&` 왼쪽에 숫자를 두지 마세요
+
+```jsx
+// ❌ 잘못된 코드
+messageCount && <p>New messages</p>
+
+// messageCount가 0이면 0이 렌더링됨! (빈 것이 아님)
+```
+
+```jsx
+// ✅ 올바른 코드
+messageCount > 0 && <p>New messages</p>
+
+// 또는
+!!messageCount && <p>New messages</p>
+```
+
+### 방법 5: 변수에 JSX 할당
+
+```jsx
+function Item({ name, isPacked }) {
+  let itemContent = name;
+  
+  if (isPacked) {
+    itemContent = name + ' ✅';
+  }
+  
+  return (
+    <li className="item">
+      {itemContent}
+    </li>
+  );
+}
+```
+
+**복잡한 조건일 때 유용:**
+
+```jsx
+function Item({ name, isPacked, priority }) {
+  let itemContent;
+  
+  if (isPacked && priority === 'high') {
+    itemContent = <strong>{name} ✅ 🔥</strong>;
+  } else if (isPacked) {
+    itemContent = name + ' ✅';
+  } else if (priority === 'high') {
+    itemContent = <strong>{name} 🔥</strong>;
+  } else {
+    itemContent = name;
+  }
+  
+  return <li className="item">{itemContent}</li>;
+}
+```
+
+### 실전 예제: 로그인 버튼
+
+```jsx
+function LoginButton({ isLoggedIn, userName }) {
+  return (
+    <div>
+      {isLoggedIn ? (
+        <div>
+          <span>Welcome, {userName}!</span>
+          <button>Logout</button>
+        </div>
+      ) : (
+        <button>Login</button>
+      )}
+    </div>
+  );
+}
+```
+
+### Vue와 비교
+
+```vue
+<!-- Vue: v-if / v-else -->
+<template>
+  <li class="item">
+    <span v-if="isPacked">{{ name }} ✅</span>
+    <span v-else>{{ name }}</span>
+  </li>
+</template>
+```
+
+```jsx
+// React: JavaScript 문법 사용
+function Item({ name, isPacked }) {
+  return (
+    <li className="item">
+      {isPacked ? `${name} ✅` : name}
+    </li>
+  )
+}
+```
+
+**차이점:**
+
+- Vue: 템플릿 디렉티브 (`v-if`, `v-else`, `v-show`)
+- React: JavaScript 문법 (`if`, `&&`, `? :`)
+
+---
+
+## 리스트 렌더링
+
+### 리스트 렌더링이란?
+
+**데이터 컬렉션(배열)을 여러 개의 유사한 컴포넌트로 표시**하는 것입니다.
+
+React에서는 JavaScript의 `filter()`와 `map()`을 사용하여 데이터 배열을 컴포넌트 배열로 변환합니다.
+
+### 기본 예제
+
+```jsx
+// data.js
+export const people = [
+  {
+    id: 0,
+    name: 'Creola Katherine Johnson',
+    profession: 'mathematician',
+    accomplishment: 'spaceflight calculations',
+    imageId: 'MK3eW3A'
+  },
+  {
+    id: 1,
+    name: 'Mario José Molina-Pasquel Henríquez',
+    profession: 'chemist',
+    accomplishment: 'discovery of Arctic ozone hole',
+    imageId: 'mynHUSa'
+  },
+  {
+    id: 2,
+    name: 'Mohammad Abdus Salam',
+    profession: 'physicist',
+    accomplishment: 'electromagnetism theory',
+    imageId: 'bE7W1ji'
+  }
+];
+```
+
+```jsx
+// utils.js
+export function getImageUrl(person) {
+  return `https://i.imgur.com/${person.imageId}s.jpg`;
+}
+```
+
+```jsx
+// App.js
+import { people } from './data.js';
+import { getImageUrl } from './utils.js';
+
+export default function List() {
+  // 배열을 JSX 배열로 변환
+  const listItems = people.map(person =>
+    <li key={person.id}>
+      <img
+        src={getImageUrl(person)}
+        alt={person.name}
+      />
+      <p>
+        <b>{person.name}:</b>
+        {' ' + person.profession + ' '}
+        known for {person.accomplishment}
+      </p>
+    </li>
+  );
+  
+  return (
+    <article>
+      <h1>Scientists</h1>
+      <ul>{listItems}</ul>
+    </article>
+  );
+}
+```
+
+### `map()` 메서드
+
+```jsx
+const numbers = [1, 2, 3, 4, 5];
+
+// 배열을 JSX 배열로 변환
+const listItems = numbers.map(number =>
+  <li key={number}>{number * 2}</li>
+);
+
+return <ul>{listItems}</ul>;
+```
+
+**인라인 버전:**
+
+```jsx
+return (
+  <ul>
+    {numbers.map(number =>
+      <li key={number}>{number * 2}</li>
+    )}
+  </ul>
+);
+```
+
+### `filter()` 메서드로 필터링
+
+```jsx
+import { people } from './data.js';
+
+export default function List() {
+  // 직업이 'chemist'인 사람만 필터링
+  const chemists = people.filter(person =>
+    person.profession === 'chemist'
+  );
+  
+  // JSX 배열로 변환
+  const listItems = chemists.map(person =>
+    <li key={person.id}>
+      <img src={getImageUrl(person)} alt={person.name} />
+      <p>
+        <b>{person.name}:</b>
+        {' ' + person.profession + ' '}
+        known for {person.accomplishment}
+      </p>
+    </li>
+  );
+  
+  return <ul>{listItems}</ul>;
+}
+```
+
+**체이닝 버전:**
+
+```jsx
+export default function List() {
+  return (
+    <ul>
+      {people
+        .filter(person => person.profession === 'chemist')
+        .map(person => (
+          <li key={person.id}>
+            <img src={getImageUrl(person)} alt={person.name} />
+            <p>
+              <b>{person.name}:</b> {person.profession}
+            </p>
+          </li>
+        ))
+      }
+    </ul>
+  );
+}
+```
+
+### Key의 중요성
+
+**`key`는 React가 각 항목을 고유하게 식별하는 데 사용됩니다.**
+
+```jsx
+// ✅ 올바른 코드: key 사용
+{people.map(person =>
+  <li key={person.id}>
+    {person.name}
+  </li>
+)}
+
+// ❌ 잘못된 코드: key 없음
+{people.map(person =>
+  <li>
+    {person.name}
+  </li>
+)}
+```
+
+### Key 규칙
+
+#### 1. **형제 간에 고유해야 함**
+
+```jsx
+// ✅ 각 리스트 내에서 고유하면 됨
+<ul>
+  {people.map(person => <li key={person.id}>{person.name}</li>)}
+</ul>
+
+<ul>
+  {people.map(person => <li key={person.id}>{person.name}</li>)}
+</ul>
+```
+
+#### 2. **변경되지 않아야 함**
+
+```jsx
+// ❌ 배열 인덱스를 key로 사용 (비추천)
+{people.map((person, index) =>
+  <li key={index}>{person.name}</li>
+)}
+
+// ✅ 고유한 ID 사용
+{people.map(person =>
+  <li key={person.id}>{person.name}</li>
+)}
+```
+
+**배열 인덱스를 사용하면 안 되는 이유:**
+
+- 항목 순서가 변경되면 버그 발생 가능
+- 성능 저하
+- 컴포넌트 상태 문제
+
+#### 3. **생성 시점에 지정하지 마세요**
+
+```jsx
+// ❌ 렌더링할 때마다 새로운 key 생성 (최악!)
+<li key={Math.random()}>...</li>
+<li key={crypto.randomUUID()}>...</li>
+
+// ✅ 데이터에 안정적인 ID 포함
+{people.map(person =>
+  <li key={person.id}>...</li>
+)}
+```
+
+### Key로 사용할 수 있는 값
+
+| 상황 | 추천 Key |
+|------|---------|
+| **데이터베이스에서 가져온 데이터** | 데이터베이스 ID (`user.id`, `post.id`) |
+| **로컬에서 생성한 데이터** | UUID 라이브러리 (`crypto.randomUUID()`, `uuid`) |
+| **안정적인 고유 속성** | 이메일 주소, 사용자명 등 |
+
+**UUID 생성 예제:**
+
+```jsx
+import { v4 as uuidv4 } from 'uuid';
+
+const [items, setItems] = useState([
+  { id: uuidv4(), text: 'Item 1' },
+  { id: uuidv4(), text: 'Item 2' },
+]);
+
+return (
+  <ul>
+    {items.map(item =>
+      <li key={item.id}>{item.text}</li>
+    )}
+  </ul>
+);
+```
+
+### Fragment를 사용한 리스트 렌더링
+
+여러 요소를 반환해야 하는 경우:
+
+```jsx
+import { Fragment } from 'react';
+
+export default function List() {
+  return (
+    <div>
+      {people.map(person => (
+        <Fragment key={person.id}>
+          <h2>{person.name}</h2>
+          <p>{person.bio}</p>
+        </Fragment>
+      ))}
+    </div>
+  );
+}
+```
+
+**주의:** `<Fragment>`는 `key`를 전달할 수 있지만, 짧은 문법 `<>`는 불가능합니다.
+
+```jsx
+// ❌ key를 전달할 수 없음
+<>
+  <h2>{person.name}</h2>
+  <p>{person.bio}</p>
+</>
+
+// ✅ Fragment 사용
+<Fragment key={person.id}>
+  <h2>{person.name}</h2>
+  <p>{person.bio}</p>
+</Fragment>
+```
+
+### 실전 예제: 카테고리별 그룹화
+
+```jsx
+const products = [
+  { id: 1, name: 'Apple', category: 'Fruit' },
+  { id: 2, name: 'Broccoli', category: 'Vegetable' },
+  { id: 3, name: 'Banana', category: 'Fruit' },
+  { id: 4, name: 'Carrot', category: 'Vegetable' },
+];
+
+export default function ProductList() {
+  // 카테고리별로 그룹화
+  const groupedProducts = products.reduce((acc, product) => {
+    if (!acc[product.category]) {
+      acc[product.category] = [];
+    }
+    acc[product.category].push(product);
+    return acc;
+  }, {});
+
+  return (
+    <div>
+      {Object.entries(groupedProducts).map(([category, items]) => (
+        <div key={category}>
+          <h2>{category}</h2>
+          <ul>
+            {items.map(item => (
+              <li key={item.id}>{item.name}</li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+### Vue와 비교
+
+```vue
+<!-- Vue: v-for -->
+<template>
+  <ul>
+    <li v-for="person in people" :key="person.id">
+      {{ person.name }}
+    </li>
+  </ul>
+</template>
+```
+
+```jsx
+// React: map()
+export default function List() {
+  return (
+    <ul>
+      {people.map(person =>
+        <li key={person.id}>
+          {person.name}
+        </li>
+      )}
+    </ul>
+  )
+}
+```
+
+**차이점:**
+
+- Vue: `v-for` 디렉티브
+- React: JavaScript `map()` 메서드
+
+---
+
+## 순수 컴포넌트 유지하기
+
+### 순수 함수란?
+
+**순수 함수**는 다음 특징을 가진 함수입니다:
+
+1. **자기 일만 함 (Minds its own business)**
+   - 함수 호출 전에 존재했던 객체나 변수를 변경하지 않음
+
+2. **같은 입력, 같은 출력 (Same inputs, same output)**
+   - 같은 입력이 주어지면 항상 같은 결과 반환
+
+### 순수 함수 예제
+
+```javascript
+// ✅ 순수 함수
+function double(number) {
+  return number * 2;
+}
+
+double(3)  // 6
+double(3)  // 6 (항상 같은 결과)
+```
+
+```javascript
+// ❌ 순수하지 않은 함수
+let count = 0;
+
+function increment() {
+  count = count + 1;  // 외부 변수 수정!
+  return count;
+}
+
+increment()  // 1
+increment()  // 2 (다른 결과!)
+```
+
+### React 컴포넌트를 순수 함수처럼 작성하기
+
+**React는 모든 컴포넌트가 순수 함수라고 가정합니다.**
+
+```jsx
+// ✅ 순수 컴포넌트
+function Cup({ guest }) {
+  return <h2>Tea cup for guest #{guest}</h2>;
+}
+
+export default function TeaSet() {
+  return (
+    <>
+      <Cup guest={1} />
+      <Cup guest={2} />
+      <Cup guest={3} />
+    </>
+  );
+}
+```
+
+**결과:**
+
+```
+Tea cup for guest #1
+Tea cup for guest #2
+Tea cup for guest #3
+```
+
+### 비순수 컴포넌트의 문제
+
+```jsx
+// ❌ 비순수 컴포넌트 (안티패턴!)
+let guest = 0;
+
+function Cup() {
+  // 나쁨: 기존 변수를 변경!
+  guest = guest + 1;
+  return <h2>Tea cup for guest #{guest}</h2>;
+}
+
+export default function TeaSet() {
+  return (
+    <>
+      <Cup />
+      <Cup />
+      <Cup />
+    </>
+  );
+}
+```
+
+**결과 (예측 불가능!):**
+
+```
+Tea cup for guest #2  // 1이 아님!
+Tea cup for guest #4  // 3이 아님!
+Tea cup for guest #6  // 5가 아님!
+```
+
+**왜 이런 일이 발생하나?**
+
+- React는 컴포넌트를 여러 번 렌더링할 수 있음
+- Strict Mode에서는 개발 중 2번 렌더링
+- 비순수 컴포넌트는 예측 불가능한 버그 발생
+
+### 순수하게 고치기
+
+```jsx
+// ✅ 순수 컴포넌트로 변경
+function Cup({ guest }) {
+  return <h2>Tea cup for guest #{guest}</h2>;
+}
+
+export default function TeaSet() {
+  return (
+    <>
+      <Cup guest={1} />
+      <Cup guest={2} />
+      <Cup guest={3} />
+    </>
+  );
+}
+```
+
+**이제 항상 예상대로 작동:**
+
+```
+Tea cup for guest #1
+Tea cup for guest #2
+Tea cup for guest #3
+```
+
+### 부작용 (Side Effects)이 필요한 경우
+
+**부작용 예:**
+
+- 화면 업데이트
+- 애니메이션 시작
+- 데이터 변경
+
+**해결책:** 렌더링 중이 아니라 **"옆에서"** 발생해야 함
+
+#### 1. **이벤트 핸들러에서 부작용 처리**
+
+```jsx
+// ✅ 이벤트 핸들러는 순수할 필요 없음
+function Button() {
+  function handleClick() {
+    alert('Clicked!');  // 부작용 OK!
+  }
+  
+  return <button onClick={handleClick}>Click me</button>;
+}
+```
+
+#### 2. **useEffect Hook 사용**
+
+```jsx
+import { useEffect } from 'react';
+
+function Component() {
+  useEffect(() => {
+    // 부작용 코드 (API 호출, 타이머 등)
+    console.log('Component rendered');
+  }, []);
+  
+  return <div>Content</div>;
+}
+```
+
+### 로컬 뮤테이션은 괜찮음
+
+```jsx
+// ✅ 렌더링 중 생성된 변수/객체 수정은 OK
+function Cup({ guest }) {
+  const cups = [];  // 렌더링 중 생성
+  
+  for (let i = 1; i <= guest; i++) {
+    cups.push(<div key={i}>Cup #{i}</div>);
+  }
+  
+  return <>{cups}</>;
+}
+```
+
+**핵심:** 렌더링 **전**에 존재했던 변수만 수정하지 않으면 됩니다.
+
+### Strict Mode로 비순수성 감지
+
+React는 **Strict Mode**에서 각 컴포넌트를 2번 호출하여 비순수 함수를 감지합니다.
+
+```jsx
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+
+const root = createRoot(document.getElementById('root'));
+root.render(
+  <StrictMode>
+    <App />
+  </StrictMode>
+);
+```
+
+**동작:**
+
+- 개발 모드에서만 2번 렌더링
+- 프로덕션에서는 1번만 렌더링
+- 비순수 컴포넌트는 다른 결과를 출력하여 문제를 발견할 수 있음
+
+### 실전 예제: API 호출
+
+```jsx
+// ❌ 잘못된 코드: 렌더링 중 API 호출
+function ProductList() {
+  const products = fetch('/api/products');  // 비순수!
+  return <div>{products}</div>;
+}
+
+// ✅ 올바른 코드: useEffect 사용
+import { useState, useEffect } from 'react';
+
+function ProductList() {
+  const [products, setProducts] = useState([]);
+  
+  useEffect(() => {
+    fetch('/api/products')
+      .then(res => res.json())
+      .then(data => setProducts(data));
+  }, []);
+  
+  return (
+    <ul>
+      {products.map(p => <li key={p.id}>{p.name}</li>)}
+    </ul>
+  );
+}
+```
+
+### 순수성의 이점
+
+1. **예측 가능성**: 같은 props → 같은 결과
+2. **테스트 용이**: 단위 테스트 작성 쉬움
+3. **최적화 가능**: React가 안전하게 렌더링 스킵 가능
+4. **병렬 처리**: React 18+ Concurrent Rendering
+
+### Vue와 비교
+
+```vue
+<!-- Vue: setup()에서 반응성 시스템이 관리 -->
+<script setup>
+import { ref } from 'vue'
+
+let count = ref(0)  // Vue가 관리
+
+function increment() {
+  count.value++  // 안전함
+}
+</script>
+```
+
+```jsx
+// React: 순수성 유지 필수
+function Counter() {
+  const [count, setCount] = useState(0)
+  
+  function increment() {
+    setCount(count + 1)  // 순수하게 상태 업데이트
+  }
+  
+  return <button onClick={increment}>{count}</button>
+}
+```
+
+---
+
+## UI를 트리로 이해하기
+
+### 트리 구조란?
+
+React는 **트리**를 사용하여 컴포넌트와 모듈 간의 관계를 모델링합니다.
+
+**트리 개념:**
+
+- **루트 (Root)**: 최상위 노드
+- **부모/자식 관계**: 컴포넌트 포함 관계
+- **형제 (Sibling)**: 같은 부모를 가진 노드
+- **리프 (Leaf)**: 자식이 없는 노드
+
+### 1. 렌더 트리 (Render Tree)
+
+**렌더 트리**는 컴포넌트 간의 부모-자식 관계를 나타냅니다.
+
+```
+Root Component
+├── Component A
+│   └── Component B
+└── Component C
+    └── Component D
+```
+
+#### 예제 코드
+
+```jsx
+function App() {
+  return (
+    <div>
+      <Header />
+      <Main />
+    </div>
+  );
+}
+
+function Header() {
+  return (
+    <header>
+      <Logo />
+      <Nav />
+    </header>
+  );
+}
+
+function Main() {
+  return (
+    <main>
+      <Sidebar />
+      <Content />
+    </main>
+  );
+}
+```
+
+#### 렌더 트리 다이어그램
+
+```
+App (Root)
+├── Header
+│   ├── Logo
+│   └── Nav
+└── Main
+    ├── Sidebar
+    └── Content
+```
+
+### 트리 용어
+
+| 용어 | 설명 | 예제 |
+|------|------|------|
+| **Root Component** | 최상위 컴포넌트 | `App` |
+| **Top-level Component** | 루트에 가까운 컴포넌트 | `Header`, `Main` |
+| **Leaf Component** | 자식이 없는 컴포넌트 | `Logo`, `Nav`, `Sidebar`, `Content` |
+
+### 2. 모듈 의존성 트리 (Module Dependency Tree)
+
+**모듈 의존성 트리**는 JavaScript 모듈 간의 import 관계를 나타냅니다.
+
+#### 예제 코드
+
+```jsx
+// RootModule.js
+import ModuleA from './ModuleA.js';
+import ModuleB from './ModuleB.js';
+import ModuleC from './ModuleC.js';
+```
+
+```jsx
+// ModuleC.js
+import ModuleD from './ModuleD.js';
+```
+
+#### 의존성 트리 다이어그램
+
+```
+RootModule.js
+├── ModuleA.js
+├── ModuleB.js
+└── ModuleC.js
+    └── ModuleD.js
+```
+
+### 렌더 트리 vs 모듈 의존성 트리
+
+| 비교 | 렌더 트리 | 모듈 의존성 트리 |
+|------|----------|----------------|
+| **표현** | 컴포넌트 관계 | 파일(모듈) 관계 |
+| **노드** | React 컴포넌트 | JavaScript 파일 |
+| **간선** | 렌더링 관계 | import 관계 |
+| **용도** | UI 구조 이해 | 번들 크기 분석 |
+
+### 트리 구조의 활용
+
+#### 1. **데이터 흐름 이해**
+
+```jsx
+// 데이터는 부모 → 자식으로 흐름 (단방향)
+<App>                  // 데이터 소유
+  <Header user={user} />   // Props로 전달
+    <UserInfo user={user} />  // Props로 전달
+```
+
+#### 2. **렌더링 성능 최적화**
+
+- **Top-level 컴포넌트**: 변경 시 전체 트리 리렌더링
+- **Leaf 컴포넌트**: 변경 시 자신만 리렌더링
+
+```jsx
+// ⚠️ App이 리렌더링되면 모든 자식도 리렌더링
+function App() {
+  const [count, setCount] = useState(0);
+  
+  return (
+    <div>
+      <Header />        // 리렌더링됨
+      <Main />          // 리렌더링됨
+      <Footer />        // 리렌더링됨
+    </div>
+  );
+}
+
+// ✅ React.memo로 불필요한 리렌더링 방지
+const Header = React.memo(function Header() {
+  return <header>Header</header>;
+});
+```
+
+#### 3. **번들 크기 최적화**
+
+모듈 의존성 트리를 분석하여 불필요한 의존성을 제거합니다.
+
+```jsx
+// ❌ 전체 라이브러리 import (번들 크기 증가)
+import _ from 'lodash';
+
+// ✅ 필요한 함수만 import (번들 크기 감소)
+import debounce from 'lodash/debounce';
+```
+
+#### 4. **Code Splitting (코드 분할)**
+
+```jsx
+import { lazy, Suspense } from 'react';
+
+// 동적 import로 번들 분할
+const Admin = lazy(() => import('./Admin'));
+
+function App() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <Admin />
+    </Suspense>
+  );
+}
+```
+
+**모듈 의존성 트리:**
+
+```
+RootModule.js
+├── App.js
+│   └── Admin.js (별도 번들)  // Lazy load
+└── Home.js
+```
+
+### 실전 예제: 컴포넌트 계층 구조
+
+```jsx
+// 블로그 애플리케이션 트리
+function BlogApp() {
+  return (
+    <div>
+      <Header>
+        <Logo />
+        <Navigation>
+          <NavItem />
+          <NavItem />
+          <NavItem />
+        </Navigation>
+      </Header>
+      <Main>
+        <Sidebar>
+          <SearchBox />
+          <CategoryList>
+            <Category />
+            <Category />
+          </CategoryList>
+        </Sidebar>
+        <Content>
+          <PostList>
+            <Post>
+              <PostHeader />
+              <PostBody />
+              <PostFooter>
+                <CommentCount />
+                <ShareButton />
+              </PostFooter>
+            </Post>
+          </PostList>
+        </Content>
+      </Main>
+      <Footer>
+        <Copyright />
+        <SocialLinks />
+      </Footer>
+    </div>
+  );
+}
+```
+
+**렌더 트리 (간소화):**
+
+```
+BlogApp
+├── Header
+│   ├── Logo
+│   └── Navigation
+│       └── NavItem (x3)
+├── Main
+│   ├── Sidebar
+│   │   ├── SearchBox
+│   │   └── CategoryList
+│   │       └── Category (x2)
+│   └── Content
+│       └── PostList
+│           └── Post
+│               ├── PostHeader
+│               ├── PostBody
+│               └── PostFooter
+│                   ├── CommentCount
+│                   └── ShareButton
+└── Footer
+    ├── Copyright
+    └── SocialLinks
+```
+
+### 트리 구조의 이점
+
+1. **멘탈 모델**: UI 구조를 쉽게 이해
+2. **디버깅**: React DevTools에서 트리 구조로 표시
+3. **성능 분석**: 어느 컴포넌트가 리렌더링되는지 파악
+4. **최적화**: 불필요한 리렌더링 방지
+5. **코드 분할**: 효율적인 번들링 전략 수립
+
+### Vue와 비교
+
+Vue도 동일하게 컴포넌트 트리 구조를 사용하지만, 템플릿 기반이라 시각적으로 더 명확합니다.
+
+```vue
+<!-- Vue: 템플릿에서 트리 구조가 명확 -->
+<template>
+  <div>
+    <Header>
+      <Logo />
+      <Navigation />
+    </Header>
+    <Main />
+  </div>
+</template>
+```
+
+```jsx
+// React: JSX에서 트리 구조 표현
+function App() {
+  return (
+    <div>
+      <Header>
+        <Logo />
+        <Navigation />
+      </Header>
+      <Main />
+    </div>
+  );
+}
+```
+
+---
+
+## 다음 단계
+
+### 이 챕터에서 배운 내용 요약
+
+✅ **첫 번째 컴포넌트**: 함수로 작성, JSX 반환  
+✅ **Import/Export**: 파일 분리로 코드 구조화  
+✅ **JSX**: JavaScript에 HTML 마크업 작성  
+✅ **중괄호 `{}`**: JSX에서 JavaScript 표현식 사용  
+✅ **Props**: 부모 → 자식 데이터 전달  
+✅ **조건부 렌더링**: `if`, `&&`, `? :`로 조건 처리  
+✅ **리스트 렌더링**: `map()`으로 배열 → JSX 배열 변환, `key` 필수  
+✅ **순수 컴포넌트**: 같은 입력 → 같은 출력, 부작용 없음  
+✅ **UI 트리**: 렌더 트리와 모듈 의존성 트리 이해
+
+### 연습 문제
+
+#### 1. 프로필 카드 컴포넌트
+
+```jsx
+// 목표: 재사용 가능한 프로필 카드 만들기
+const users = [
+  { id: 1, name: 'Alice', role: 'Developer', avatar: 'https://i.imgur.com/avatar1.jpg' },
+  { id: 2, name: 'Bob', role: 'Designer', avatar: 'https://i.imgur.com/avatar2.jpg' },
+  { id: 3, name: 'Charlie', role: 'Manager', avatar: 'https://i.imgur.com/avatar3.jpg' },
+];
+
+// TODO: ProfileCard 컴포넌트 작성
+function ProfileCard({ user }) {
+  // 여기에 코드 작성
+}
+
+// TODO: App 컴포넌트에서 users 배열을 렌더링
+export default function App() {
+  // 여기에 코드 작성
+}
+```
+
+#### 2. 할 일 목록 (Todo List)
+
+```jsx
+// 목표: 조건부 렌더링 연습
+const todos = [
+  { id: 1, text: 'Learn React', completed: true },
+  { id: 2, text: 'Build a project', completed: false },
+  { id: 3, text: 'Deploy to production', completed: false },
+];
+
+// TODO: TodoItem 컴포넌트 작성
+// - completed가 true면 체크마크 표시, 텍스트 취소선
+function TodoItem({ todo }) {
+  // 여기에 코드 작성
+}
+
+// TODO: TodoList 컴포넌트 작성
+export default function TodoList() {
+  // 여기에 코드 작성
+}
+```
+
+#### 3. 상품 필터링
+
+```jsx
+// 목표: filter()와 map() 연습
+const products = [
+  { id: 1, name: 'Laptop', category: 'Electronics', price: 1200 },
+  { id: 2, name: 'Phone', category: 'Electronics', price: 800 },
+  { id: 3, name: 'Desk', category: 'Furniture', price: 300 },
+  { id: 4, name: 'Chair', category: 'Furniture', price: 150 },
+];
+
+// TODO: ProductList 컴포넌트 작성
+// - category prop을 받아서 해당 카테고리의 상품만 표시
+function ProductList({ category }) {
+  // 여기에 코드 작성
+}
+
+export default function App() {
+  return (
+    <div>
+      <h1>Electronics</h1>
+      <ProductList category="Electronics" />
+      
+      <h1>Furniture</h1>
+      <ProductList category="Furniture" />
+    </div>
+  );
+}
+```
+
+### 다음에 학습할 내용
+
+이제 UI를 표현하는 방법을 배웠으니, 다음 챕터에서는 **인터랙티비티 추가하기 (Adding Interactivity)**를 학습합니다.
+
+**배울 내용:**
+
+- 이벤트 처리 (`onClick`, `onChange` 등)
+- 상태 관리 (`useState`)
+- 렌더링과 커밋 이해
+- 상태 업데이트 패턴
+
+---
+
+## 참고 자료
+
+- [React 공식 문서 - Describing the UI](https://react.dev/learn/describing-the-ui)
+- [React 공식 문서 - Adding Interactivity](https://react.dev/learn/adding-interactivity)
+- [JavaScript Array 메서드 (map, filter)](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)
+- [JSX 소개](https://react.dev/learn/writing-markup-with-jsx)
+
+---
+
+**작성일**: 2025-10-11  
+**출처**: [React Official Documentation](https://react.dev/learn/describing-the-ui)  
+**대상**: React 초급 학습자
+
+---
+
+## 학습 체크리스트
+
+- [ ] 함수 컴포넌트 작성할 수 있다
+- [ ] JSX 문법을 이해하고 사용할 수 있다
+- [ ] Props를 전달하고 받을 수 있다
+- [ ] 조건부 렌더링을 할 수 있다
+- [ ] 배열을 컴포넌트 리스트로 렌더링할 수 있다
+- [ ] `key`의 중요성을 이해한다
+- [ ] 순수 컴포넌트를 작성할 수 있다
+- [ ] UI를 트리 구조로 이해할 수 있다
+
+모든 항목을 체크했다면 다음 챕터로 넘어가세요! 🚀

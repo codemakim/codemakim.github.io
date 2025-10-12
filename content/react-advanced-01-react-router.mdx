@@ -1,0 +1,1376 @@
+---
+title: "🚀 [React 라이브러리 1/4] React Router - 라우팅 원리"
+date: "2024-08-11"
+description: "SPA 라우팅의 동작 메커니즘을 이해하고 React Router v6를 마스터합니다"
+tags: ["React", "React Router", "라우팅", "고급"]
+---
+
+# React Router 완벽 가이드
+
+> React Router v6를 기반으로 한 라우팅 학습 자료  
+> 출처: [React Router Documentation](https://reactrouter.com/)
+
+---
+
+## 📚 목차
+
+1. [개요](#개요)
+2. [기본 라우팅](#기본-라우팅)
+3. [중첩 라우트](#중첩-라우트)
+4. [동적 라우트](#동적-라우트)
+5. [프로그래밍 방식 네비게이션](#프로그래밍-방식-네비게이션)
+6. [Router Hooks](#router-hooks)
+7. [Protected Routes](#protected-routes)
+8. [로딩 및 에러 처리](#로딩-및-에러-처리)
+9. [고급 패턴](#고급-패턴)
+
+---
+
+## 개요
+
+### React Router란?
+
+**React Router**는 React 애플리케이션에서 **클라이언트 사이드 라우팅**을 구현하는 표준 라이브러리입니다.
+
+### 🔍 클라이언트 사이드 라우팅의 동작 원리
+
+**전통적인 서버 사이드 라우팅:**
+```
+사용자가 /about 클릭
+  ↓
+서버에 새 요청
+  ↓
+서버가 about.html 전송
+  ↓
+페이지 전체 새로고침 (깜빡임!)
+```
+
+**클라이언트 사이드 라우팅 (SPA):**
+```
+사용자가 /about 클릭
+  ↓
+JavaScript가 가로챔 (e.preventDefault())
+  ↓
+History API로 URL만 변경 (window.history.pushState)
+  ↓
+React Router가 URL 감지
+  ↓
+해당 컴포넌트만 교체 (깜빡임 없음!)
+```
+
+**핵심 원리:**
+1. **History API 활용**: `pushState()`, `replaceState()`, `popstate` 이벤트
+2. **컴포넌트 매칭**: URL 패턴과 컴포넌트 매핑
+3. **상태 보존**: 페이지 전환 없이 UI만 업데이트
+
+**실제 코드로 보는 원리:**
+```javascript
+// React Router가 내부적으로 하는 일 (단순화)
+window.addEventListener('popstate', () => {
+  const path = window.location.pathname;
+  const component = matchRoute(path);  // URL → 컴포넌트 매칭
+  renderComponent(component);           // 컴포넌트 렌더링
+});
+
+function navigate(path) {
+  window.history.pushState({}, '', path);  // URL 변경
+  const component = matchRoute(path);
+  renderComponent(component);
+}
+```
+
+**장점:**
+- ✅ 빠른 페이지 전환 (네트워크 요청 없음)
+- ✅ 부드러운 UX (깜빡임 없음)
+- ✅ 상태 유지 (전역 state 보존)
+- ✅ 애니메이션 가능
+
+**단점:**
+- ❌ 초기 번들 크기 증가 (해결책: 코드 분할)
+- ❌ SEO 어려움 (해결책: SSR - Next.js)
+
+### 💡 면접 TIP: "SPA 라우팅을 설명해보세요"
+
+**답변 예시:**
+
+"SPA에서 라우팅은 History API를 활용합니다. 
+
+사용자가 링크를 클릭하면 React Router가 기본 동작을 막고 (`preventDefault`), `history.pushState`로 URL만 변경합니다. 이때 페이지는 새로고침되지 않습니다.
+
+React Router는 URL 변경을 감지하여 해당 경로에 매핑된 컴포넌트만 교체합니다. 이를 통해 빠르고 부드러운 페이지 전환이 가능하며, 전역 상태도 유지됩니다.
+
+다만 초기 번들 크기가 커질 수 있어 코드 분할이 중요하고, SEO를 위해서는 Next.js 같은 SSR 프레임워크를 고려해야 합니다."
+
+**주요 기능:**
+- 선언적 라우팅
+- 중첩 라우트
+- 동적 라우트 매칭
+- 프로그래밍 방식 네비게이션
+- 지연 로딩
+
+### 설치
+
+```bash
+npm install react-router-dom
+```
+
+### Vue Router와 비교
+
+| 기능 | Vue Router | React Router |
+|------|-----------|--------------|
+| **라우트 정의** | 객체 배열 | JSX 컴포넌트 |
+| **중첩 라우트** | `children` | `<Outlet />` |
+| **네비게이션** | `<router-link>` | `<Link>` |
+| **프로그래밍 네비게이션** | `router.push()` | `navigate()` |
+| **파라미터 접근** | `route.params` | `useParams()` |
+
+---
+
+## 기본 라우팅
+
+### 1. 라우터 설정
+
+```jsx
+// App.jsx
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Home from './pages/Home';
+import About from './pages/About';
+import Contact from './pages/Contact';
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/contact" element={<Contact />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+```
+
+### 2. Link 컴포넌트
+
+```jsx
+import { Link } from 'react-router-dom';
+
+export default function Navigation() {
+  return (
+    <nav>
+      <Link to="/">Home</Link>
+      <Link to="/about">About</Link>
+      <Link to="/contact">Contact</Link>
+    </nav>
+  );
+}
+```
+
+### 3. NavLink (활성 링크)
+
+```jsx
+import { NavLink } from 'react-router-dom';
+
+export default function Navigation() {
+  return (
+    <nav>
+      <NavLink 
+        to="/"
+        className={({ isActive }) => isActive ? 'active' : ''}
+      >
+        Home
+      </NavLink>
+      <NavLink 
+        to="/about"
+        style={({ isActive }) => ({
+          color: isActive ? 'red' : 'black'
+        })}
+      >
+        About
+      </NavLink>
+    </nav>
+  );
+}
+```
+
+### Vue Router와 비교
+
+```vue
+<!-- Vue Router -->
+<template>
+  <router-view />
+  <router-link to="/">Home</router-link>
+  <router-link to="/about">About</router-link>
+</template>
+
+<script>
+import { createRouter, createWebHistory } from 'vue-router'
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes: [
+    { path: '/', component: Home },
+    { path: '/about', component: About }
+  ]
+})
+</script>
+```
+
+```jsx
+// React Router
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
+
+function App() {
+  return (
+    <BrowserRouter>
+      <nav>
+        <Link to="/">Home</Link>
+        <Link to="/about">About</Link>
+      </nav>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/about" element={<About />} />
+      </Routes>
+    </BrowserRouter>
+  )
+}
+```
+
+---
+
+## 중첩 라우트
+
+### 1. Layout 패턴
+
+```jsx
+// App.jsx
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Layout from './components/Layout';
+import Home from './pages/Home';
+import About from './pages/About';
+import Blog from './pages/Blog';
+import Post from './pages/Post';
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Layout />}>
+          <Route index element={<Home />} />
+          <Route path="about" element={<About />} />
+          <Route path="blog" element={<Blog />} />
+          <Route path="blog/:postId" element={<Post />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
+}
+```
+
+### 2. Layout 컴포넌트
+
+```jsx
+// components/Layout.jsx
+import { Outlet, Link } from 'react-router-dom';
+
+export default function Layout() {
+  return (
+    <div>
+      <header>
+        <nav>
+          <Link to="/">Home</Link>
+          <Link to="/about">About</Link>
+          <Link to="/blog">Blog</Link>
+        </nav>
+      </header>
+      
+      <main>
+        <Outlet />  {/* 자식 라우트가 여기에 렌더링됨 */}
+      </main>
+      
+      <footer>
+        <p>© 2025 My App</p>
+      </footer>
+    </div>
+  );
+}
+```
+
+### 3. 다단계 중첩
+
+```jsx
+<Routes>
+  <Route path="/" element={<Layout />}>
+    <Route index element={<Home />} />
+    
+    <Route path="dashboard" element={<DashboardLayout />}>
+      <Route index element={<DashboardHome />} />
+      <Route path="settings" element={<Settings />} />
+      <Route path="profile" element={<Profile />} />
+    </Route>
+    
+    <Route path="admin" element={<AdminLayout />}>
+      <Route index element={<AdminHome />} />
+      <Route path="users" element={<Users />} />
+      <Route path="posts" element={<Posts />} />
+    </Route>
+  </Route>
+</Routes>
+```
+
+### Index Route
+
+```jsx
+// index: 부모 경로와 동일한 경로에 렌더링
+<Route path="/" element={<Layout />}>
+  <Route index element={<Home />} />  {/* / */}
+  <Route path="about" element={<About />} />  {/* /about */}
+</Route>
+```
+
+### Vue Router와 비교
+
+```javascript
+// Vue Router: children
+const routes = [
+  {
+    path: '/',
+    component: Layout,
+    children: [
+      { path: '', component: Home },
+      { path: 'about', component: About },
+      {
+        path: 'dashboard',
+        component: DashboardLayout,
+        children: [
+          { path: '', component: DashboardHome },
+          { path: 'settings', component: Settings }
+        ]
+      }
+    ]
+  }
+]
+```
+
+```jsx
+// React Router: Outlet
+<Route path="/" element={<Layout />}>
+  <Route index element={<Home />} />
+  <Route path="about" element={<About />} />
+  <Route path="dashboard" element={<DashboardLayout />}>
+    <Route index element={<DashboardHome />} />
+    <Route path="settings" element={<Settings />} />
+  </Route>
+</Route>
+```
+
+---
+
+## 동적 라우트
+
+### 1. URL 파라미터
+
+```jsx
+// 라우트 정의
+<Route path="/users/:userId" element={<User />} />
+<Route path="/posts/:postId" element={<Post />} />
+<Route path="/products/:category/:productId" element={<Product />} />
+```
+
+### 2. useParams Hook
+
+```jsx
+// pages/User.jsx
+import { useParams } from 'react-router-dom';
+
+export default function User() {
+  const { userId } = useParams();
+  
+  return (
+    <div>
+      <h1>User Profile</h1>
+      <p>User ID: {userId}</p>
+    </div>
+  );
+}
+```
+
+### 3. 복수 파라미터
+
+```jsx
+// pages/Product.jsx
+import { useParams } from 'react-router-dom';
+
+export default function Product() {
+  const { category, productId } = useParams();
+  
+  return (
+    <div>
+      <h1>Product Details</h1>
+      <p>Category: {category}</p>
+      <p>Product ID: {productId}</p>
+    </div>
+  );
+}
+```
+
+### 4. Optional 파라미터
+
+```jsx
+<Route path="/users/:userId?" element={<Users />} />
+
+function Users() {
+  const { userId } = useParams();
+  
+  if (userId) {
+    return <UserDetail userId={userId} />;
+  }
+  
+  return <UserList />;
+}
+```
+
+### 5. Wildcard (*)
+
+```jsx
+<Route path="/docs/*" element={<Docs />} />
+
+function Docs() {
+  const params = useParams();
+  const path = params['*'];  // /docs/ 이후의 모든 경로
+  
+  return <div>Docs path: {path}</div>;
+}
+```
+
+### Vue Router와 비교
+
+```vue
+<!-- Vue Router -->
+<script setup>
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
+const userId = route.params.userId
+const category = route.params.category
+</script>
+```
+
+```jsx
+// React Router
+import { useParams } from 'react-router-dom'
+
+function Component() {
+  const { userId, category } = useParams()
+  // ...
+}
+```
+
+---
+
+## 프로그래밍 방식 네비게이션
+
+### 1. useNavigate Hook
+
+```jsx
+import { useNavigate } from 'react-router-dom';
+
+export default function LoginForm() {
+  const navigate = useNavigate();
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    // 로그인 로직
+    navigate('/dashboard');
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <button type="submit">Login</button>
+    </form>
+  );
+}
+```
+
+### 2. Navigate 옵션
+
+```jsx
+const navigate = useNavigate();
+
+// 기본 네비게이션
+navigate('/about');
+
+// 상대 경로
+navigate('profile');
+navigate('../settings');
+
+// Replace (히스토리에 추가 안함)
+navigate('/login', { replace: true });
+
+// State 전달
+navigate('/dashboard', { 
+  state: { from: '/login', userId: 123 } 
+});
+
+// 뒤로 가기 / 앞으로 가기
+navigate(-1);  // 뒤로
+navigate(1);   // 앞으로
+navigate(-2);  // 2단계 뒤로
+```
+
+### 3. Navigate 컴포넌트 (리다이렉트)
+
+```jsx
+import { Navigate } from 'react-router-dom';
+
+function ProtectedRoute({ isAuthenticated, children }) {
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return children;
+}
+```
+
+### 4. 조건부 네비게이션
+
+```jsx
+function ProductPage() {
+  const navigate = useNavigate();
+  const [product, setProduct] = useState(null);
+
+  async function deleteProduct() {
+    await api.delete(`/products/${product.id}`);
+    navigate('/products', { 
+      replace: true,
+      state: { message: 'Product deleted successfully' }
+    });
+  }
+
+  return (
+    <div>
+      <h1>{product.name}</h1>
+      <button onClick={deleteProduct}>Delete</button>
+    </div>
+  );
+}
+```
+
+### Vue Router와 비교
+
+```javascript
+// Vue Router
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+// 네비게이션
+router.push('/about')
+router.push({ path: '/user', query: { id: 123 } })
+router.replace('/login')
+router.go(-1)
+```
+
+```jsx
+// React Router
+import { useNavigate } from 'react-router-dom'
+
+const navigate = useNavigate()
+
+// 네비게이션
+navigate('/about')
+navigate('/user?id=123')
+navigate('/login', { replace: true })
+navigate(-1)
+```
+
+---
+
+## Router Hooks
+
+### 1. useLocation
+
+```jsx
+import { useLocation } from 'react-router-dom';
+
+export default function Header() {
+  const location = useLocation();
+  
+  return (
+    <div>
+      <p>Current path: {location.pathname}</p>
+      <p>Search: {location.search}</p>
+      <p>Hash: {location.hash}</p>
+      <p>State: {JSON.stringify(location.state)}</p>
+    </div>
+  );
+}
+```
+
+**활용 예시: 이전 페이지 기억**
+
+```jsx
+function LoginPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from || '/';
+
+  function handleLogin() {
+    // 로그인 성공 후 원래 페이지로
+    navigate(from, { replace: true });
+  }
+
+  return <button onClick={handleLogin}>Login</button>;
+}
+```
+
+### 2. useSearchParams
+
+```jsx
+import { useSearchParams } from 'react-router-dom';
+
+export default function ProductList() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  const category = searchParams.get('category');
+  const sort = searchParams.get('sort');
+  
+  function handleFilter(newCategory) {
+    setSearchParams({ category: newCategory, sort });
+  }
+  
+  return (
+    <div>
+      <p>Category: {category}</p>
+      <p>Sort: {sort}</p>
+      <button onClick={() => handleFilter('electronics')}>
+        Electronics
+      </button>
+    </div>
+  );
+}
+```
+
+**URLSearchParams API:**
+
+```jsx
+const [searchParams, setSearchParams] = useSearchParams();
+
+// 읽기
+searchParams.get('category');           // 'books'
+searchParams.getAll('tags');            // ['fiction', 'bestseller']
+searchParams.has('category');           // true
+
+// 쓰기
+setSearchParams({ category: 'movies' });
+setSearchParams(prev => {
+  prev.set('page', '2');
+  return prev;
+});
+```
+
+### 3. useParams (재확인)
+
+```jsx
+import { useParams } from 'react-router-dom';
+
+function BlogPost() {
+  const { postId } = useParams();
+  const [post, setPost] = useState(null);
+  
+  useEffect(() => {
+    fetch(`/api/posts/${postId}`)
+      .then(res => res.json())
+      .then(setPost);
+  }, [postId]);
+  
+  return <article>{post?.title}</article>;
+}
+```
+
+### 4. useMatch
+
+```jsx
+import { useMatch } from 'react-router-dom';
+
+function Navigation() {
+  const match = useMatch('/users/:userId');
+  
+  if (match) {
+    console.log('User ID:', match.params.userId);
+  }
+  
+  return <nav>...</nav>;
+}
+```
+
+### 5. useRoutes (프로그래밍 방식 라우트)
+
+```jsx
+import { useRoutes } from 'react-router-dom';
+
+function App() {
+  const routes = useRoutes([
+    { path: '/', element: <Home /> },
+    { path: '/about', element: <About /> },
+    {
+      path: '/users',
+      element: <UsersLayout />,
+      children: [
+        { index: true, element: <UserList /> },
+        { path: ':userId', element: <UserDetail /> }
+      ]
+    }
+  ]);
+  
+  return routes;
+}
+```
+
+### Vue Router와 비교
+
+```vue
+<!-- Vue Router -->
+<script setup>
+import { useRoute, useRouter } from 'vue-router'
+
+const route = useRoute()
+const router = useRouter()
+
+// 현재 경로
+const path = route.path
+const params = route.params
+const query = route.query
+
+// 쿼리 변경
+router.push({ query: { page: 2 } })
+</script>
+```
+
+```jsx
+// React Router
+import { useLocation, useParams, useSearchParams } from 'react-router-dom'
+
+function Component() {
+  const location = useLocation()
+  const params = useParams()
+  const [searchParams, setSearchParams] = useSearchParams()
+  
+  // 현재 경로
+  const path = location.pathname
+  const userId = params.userId
+  const page = searchParams.get('page')
+  
+  // 쿼리 변경
+  setSearchParams({ page: 2 })
+}
+```
+
+---
+
+## Protected Routes
+
+### 1. 기본 인증 가드
+
+```jsx
+import { Navigate } from 'react-router-dom';
+
+function ProtectedRoute({ children }) {
+  const isAuthenticated = useAuth();
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return children;
+}
+
+// 사용
+<Route 
+  path="/dashboard" 
+  element={
+    <ProtectedRoute>
+      <Dashboard />
+    </ProtectedRoute>
+  } 
+/>
+```
+
+### 2. 로그인 페이지로 리다이렉트 (이전 경로 기억)
+
+```jsx
+import { Navigate, useLocation } from 'react-router-dom';
+
+function ProtectedRoute({ children }) {
+  const isAuthenticated = useAuth();
+  const location = useLocation();
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+  
+  return children;
+}
+```
+
+### 3. 역할 기반 접근 제어 (RBAC)
+
+```jsx
+function ProtectedRoute({ children, requiredRole }) {
+  const { isAuthenticated, user } = useAuth();
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  if (requiredRole && user.role !== requiredRole) {
+    return <Navigate to="/unauthorized" replace />;
+  }
+  
+  return children;
+}
+
+// 사용
+<Route 
+  path="/admin" 
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <AdminPanel />
+    </ProtectedRoute>
+  } 
+/>
+```
+
+### 4. 복수 역할 지원
+
+```jsx
+function ProtectedRoute({ children, allowedRoles = [] }) {
+  const { isAuthenticated, user } = useAuth();
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/unauthorized" replace />;
+  }
+  
+  return children;
+}
+
+// 사용
+<Route 
+  path="/dashboard" 
+  element={
+    <ProtectedRoute allowedRoles={['admin', 'editor']}>
+      <Dashboard />
+    </ProtectedRoute>
+  } 
+/>
+```
+
+### 5. 권한 체크 Hook
+
+```jsx
+function useAuth() {
+  const [auth, setAuth] = useState({
+    isAuthenticated: false,
+    user: null,
+    loading: true
+  });
+  
+  useEffect(() => {
+    checkAuth()
+      .then(user => {
+        setAuth({ isAuthenticated: true, user, loading: false });
+      })
+      .catch(() => {
+        setAuth({ isAuthenticated: false, user: null, loading: false });
+      });
+  }, []);
+  
+  return auth;
+}
+
+function ProtectedRoute({ children }) {
+  const { isAuthenticated, loading } = useAuth();
+  
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return children;
+}
+```
+
+### Vue Router와 비교
+
+```javascript
+// Vue Router: Navigation Guards
+router.beforeEach((to, from, next) => {
+  const isAuthenticated = store.state.isAuthenticated
+  
+  if (to.meta.requiresAuth && !isAuthenticated) {
+    next('/login')
+  } else {
+    next()
+  }
+})
+
+const routes = [
+  {
+    path: '/dashboard',
+    component: Dashboard,
+    meta: { requiresAuth: true, role: 'admin' }
+  }
+]
+```
+
+```jsx
+// React Router: Protected Route Component
+function ProtectedRoute({ children, requiredRole }) {
+  const { isAuthenticated, user } = useAuth()
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+  
+  if (requiredRole && user.role !== requiredRole) {
+    return <Navigate to="/unauthorized" replace />
+  }
+  
+  return children
+}
+
+<Route 
+  path="/dashboard" 
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <Dashboard />
+    </ProtectedRoute>
+  } 
+/>
+```
+
+---
+
+## 로딩 및 에러 처리
+
+### 1. Suspense와 Lazy Loading
+
+```jsx
+import { Suspense, lazy } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+
+const Home = lazy(() => import('./pages/Home'));
+const About = lazy(() => import('./pages/About'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Suspense fallback={<LoadingSpinner />}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+        </Routes>
+      </Suspense>
+    </BrowserRouter>
+  );
+}
+
+function LoadingSpinner() {
+  return (
+    <div className="loading-spinner">
+      <div>Loading...</div>
+    </div>
+  );
+}
+```
+
+### 2. 에러 바운더리
+
+```jsx
+import { Component } from 'react';
+
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('Error caught by boundary:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div>
+          <h1>Something went wrong</h1>
+          <p>{this.state.error?.message}</p>
+          <button onClick={() => window.location.reload()}>
+            Reload
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+// 사용
+<BrowserRouter>
+  <ErrorBoundary>
+    <Suspense fallback={<LoadingSpinner />}>
+      <Routes>
+        <Route path="/" element={<Home />} />
+      </Routes>
+    </Suspense>
+  </ErrorBoundary>
+</BrowserRouter>
+```
+
+### 3. 404 Not Found
+
+```jsx
+<Routes>
+  <Route path="/" element={<Home />} />
+  <Route path="/about" element={<About />} />
+  <Route path="*" element={<NotFound />} />
+</Routes>
+
+function NotFound() {
+  return (
+    <div>
+      <h1>404 - Page Not Found</h1>
+      <Link to="/">Go Home</Link>
+    </div>
+  );
+}
+```
+
+### 4. 데이터 로딩 패턴
+
+```jsx
+function UserProfile() {
+  const { userId } = useParams();
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`/api/users/${userId}`)
+      .then(res => {
+        if (!res.ok) throw new Error('User not found');
+        return res.json();
+      })
+      .then(data => {
+        setUser(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError(err);
+        setLoading(false);
+      });
+  }, [userId]);
+
+  if (loading) return <LoadingSpinner />;
+  if (error) return <ErrorMessage error={error} />;
+  if (!user) return <NotFound />;
+
+  return (
+    <div>
+      <h1>{user.name}</h1>
+      <p>{user.email}</p>
+    </div>
+  );
+}
+```
+
+---
+
+## 고급 패턴
+
+### 1. Route 구성 분리
+
+```jsx
+// routes/index.jsx
+import { lazy } from 'react';
+
+const Home = lazy(() => import('../pages/Home'));
+const About = lazy(() => import('../pages/About'));
+const Dashboard = lazy(() => import('../pages/Dashboard'));
+
+export const routes = [
+  {
+    path: '/',
+    element: <Layout />,
+    children: [
+      { index: true, element: <Home /> },
+      { path: 'about', element: <About /> },
+      {
+        path: 'dashboard',
+        element: <ProtectedRoute><Dashboard /></ProtectedRoute>
+      }
+    ]
+  }
+];
+
+// App.jsx
+import { useRoutes } from 'react-router-dom';
+import { routes } from './routes';
+
+export default function App() {
+  const element = useRoutes(routes);
+  return element;
+}
+```
+
+### 2. Breadcrumbs
+
+```jsx
+import { useMatches, Link } from 'react-router-dom';
+
+function Breadcrumbs() {
+  const matches = useMatches();
+  
+  const crumbs = matches
+    .filter(match => match.handle?.crumb)
+    .map(match => match.handle.crumb(match.data));
+  
+  return (
+    <nav>
+      {crumbs.map((crumb, index) => (
+        <span key={index}>
+          {index > 0 && ' > '}
+          {crumb}
+        </span>
+      ))}
+    </nav>
+  );
+}
+
+// 라우트 설정
+<Route 
+  path="/users/:userId" 
+  element={<User />}
+  handle={{
+    crumb: (data) => <Link to={`/users/${data.userId}`}>{data.name}</Link>
+  }}
+/>
+```
+
+### 3. Scroll Restoration
+
+```jsx
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  
+  return null;
+}
+
+// App.jsx
+<BrowserRouter>
+  <ScrollToTop />
+  <Routes>
+    {/* ... */}
+  </Routes>
+</BrowserRouter>
+```
+
+### 4. Route-based Code Splitting
+
+```jsx
+import { lazy, Suspense } from 'react';
+
+const routes = [
+  {
+    path: '/',
+    element: <Layout />,
+    children: [
+      {
+        index: true,
+        element: <Home />
+      },
+      {
+        path: 'admin',
+        element: (
+          <Suspense fallback={<Loading />}>
+            {lazy(() => import('./pages/admin/AdminLayout'))}
+          </Suspense>
+        ),
+        children: [
+          {
+            index: true,
+            element: lazy(() => import('./pages/admin/Dashboard'))
+          },
+          {
+            path: 'users',
+            element: lazy(() => import('./pages/admin/Users'))
+          }
+        ]
+      }
+    ]
+  }
+];
+```
+
+### 5. Modal Routes
+
+```jsx
+function App() {
+  const location = useLocation();
+  const state = location.state;
+
+  return (
+    <>
+      <Routes location={state?.backgroundLocation || location}>
+        <Route path="/" element={<Home />} />
+        <Route path="/gallery" element={<Gallery />} />
+      </Routes>
+
+      {state?.backgroundLocation && (
+        <Routes>
+          <Route path="/img/:id" element={<ImageModal />} />
+        </Routes>
+      )}
+    </>
+  );
+}
+
+function Gallery() {
+  const location = useLocation();
+
+  return (
+    <div>
+      {images.map(img => (
+        <Link
+          key={img.id}
+          to={`/img/${img.id}`}
+          state={{ backgroundLocation: location }}
+        >
+          <img src={img.thumbnail} alt={img.title} />
+        </Link>
+      ))}
+    </div>
+  );
+}
+```
+
+---
+
+## 실전 예제: 블로그 애플리케이션
+
+```jsx
+// App.jsx
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Suspense, lazy } from 'react';
+
+const Layout = lazy(() => import('./components/Layout'));
+const Home = lazy(() => import('./pages/Home'));
+const PostList = lazy(() => import('./pages/PostList'));
+const PostDetail = lazy(() => import('./pages/PostDetail'));
+const CreatePost = lazy(() => import('./pages/CreatePost'));
+const EditPost = lazy(() => import('./pages/EditPost'));
+const Login = lazy(() => import('./pages/Login'));
+const Profile = lazy(() => import('./pages/Profile'));
+const NotFound = lazy(() => import('./pages/NotFound'));
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Suspense fallback={<LoadingScreen />}>
+        <Routes>
+          <Route path="/" element={<Layout />}>
+            <Route index element={<Home />} />
+            <Route path="login" element={<Login />} />
+            
+            <Route path="posts">
+              <Route index element={<PostList />} />
+              <Route path=":postId" element={<PostDetail />} />
+              <Route 
+                path="new" 
+                element={
+                  <ProtectedRoute>
+                    <CreatePost />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path=":postId/edit" 
+                element={
+                  <ProtectedRoute>
+                    <EditPost />
+                  </ProtectedRoute>
+                } 
+              />
+            </Route>
+            
+            <Route 
+              path="profile" 
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route path="*" element={<NotFound />} />
+          </Route>
+        </Routes>
+      </Suspense>
+    </BrowserRouter>
+  );
+}
+```
+
+---
+
+## 다음 단계
+
+### 학습 체크리스트
+
+- [ ] 기본 라우팅을 구현할 수 있다
+- [ ] 중첩 라우트를 사용할 수 있다
+- [ ] 동적 라우트와 파라미터를 다룰 수 있다
+- [ ] 프로그래밍 방식 네비게이션을 사용할 수 있다
+- [ ] Router Hooks를 활용할 수 있다
+- [ ] Protected Routes를 구현할 수 있다
+- [ ] Lazy Loading과 Code Splitting을 적용할 수 있다
+- [ ] 에러 처리를 할 수 있다
+
+### 추가 학습 자료
+
+- [React Router 공식 문서](https://reactrouter.com/)
+- [React Router Tutorial](https://reactrouter.com/en/main/start/tutorial)
+- [Vue Router 비교](https://router.vuejs.org/)
+
+---
+
+**작성일**: 2025-10-11  
+**출처**: React Router Documentation  
+**대상**: React 중급 개발자
+
+---
+
+모든 항목을 체크했다면 다음 주제로 넘어가세요! 🚀
+
