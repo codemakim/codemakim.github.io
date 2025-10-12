@@ -1,10 +1,3 @@
----
-title: "🚀 [React 라이브러리 2/4] React Query - 캐싱 메커니즘"
-date: "2024-08-18"
-description: "React Query의 캐싱 원리, Stale/Cache Time, 낙관적 업데이트를 깊이 있게 학습합니다"
-tags: ["React", "React Query", "데이터페칭", "캐싱", "고급"]
----
-
 # React Query (TanStack Query) 완벽 가이드
 
 > TanStack Query v5를 기반으로 한 데이터 페칭 학습 자료  

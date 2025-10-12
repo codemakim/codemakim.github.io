@@ -1,10 +1,3 @@
----
-title: "📚 [React 기초 3/4] State 관리 - Reducer & Context"
-date: "2024-07-28"
-description: "State 구조화, Reducer 패턴, Context API의 동작 원리를 깊이 있게 학습합니다"
-tags: ["React", "State", "Reducer", "Context", "중급"]
----
-
 # React 학습 가이드 - State 관리하기 (Managing State)
 
 > React 공식 문서를 기반으로 한 학습 자료  

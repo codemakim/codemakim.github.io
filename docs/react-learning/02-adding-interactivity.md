@@ -1,10 +1,3 @@
----
-title: "📚 [React 기초 2/4] 상호작용 - useState & 이벤트"
-date: "2024-07-21"
-description: "이벤트 처리, useState Hook, State 스냅샷 개념을 원리부터 이해합니다"
-tags: ["React", "useState", "이벤트", "학습", "초급"]
----
-
 # React 학습 가이드 - 상호작용 추가하기 (Adding Interactivity)
 
 > React 공식 문서를 기반으로 한 학습 자료  

@@ -1,10 +1,3 @@
----
-title: "📚 [React 기초 1/4] UI 표현하기 - JSX & 컴포넌트"
-date: "2024-07-14"
-description: "React 공식 문서 기반 학습 자료 - JSX, 컴포넌트, Props, 조건부 렌더링을 Vue와 비교하며 배웁니다"
-tags: ["React", "JavaScript", "학습", "Vue비교", "초급"]
----
-
 # React 학습 가이드 - UI 표현하기 (Describing the UI)
 
 > React 공식 문서를 기반으로 한 학습 자료  
