@@ -4,6 +4,8 @@ import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { allPosts } from "contentlayer/generated";
 import { MDXContent } from "./MDXContent";
+import SeriesNav from "@/app/components/SeriesNav";
+import { getSeriesNavigation } from "@/app/lib/series";
 
 interface PageProps {
   params: Promise<{
@@ -38,6 +40,9 @@ export default async function PostPage({ params }: PageProps) {
   if (!post) {
     notFound();
   }
+
+  // 시리즈 네비게이션 정보
+  const seriesInfo = getSeriesNavigation(post, allPosts);
 
   return (
     <div className="min-h-screen">
@@ -78,9 +83,16 @@ export default async function PostPage({ params }: PageProps) {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-8">
+        {/* 시리즈 네비게이션 (상단) */}
+        <SeriesNav seriesInfo={seriesInfo} />
+
+        {/* 본문 */}
         <article className="glass-card p-8 prose dark:prose-invert max-w-none prose-lg prose-headings:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none">
           <MDXContent code={post.body.code} />
         </article>
+
+        {/* 시리즈 네비게이션 (하단) */}
+        <SeriesNav seriesInfo={seriesInfo} />
       </main>
     </div>
   );

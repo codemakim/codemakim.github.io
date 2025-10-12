@@ -31,6 +31,16 @@ export const Post = defineDocumentType(() => ({
       description: '태그 목록',
       required: false,
     },
+    series: {
+      type: 'string',
+      description: '시리즈 이름',
+      required: false,
+    },
+    seriesOrder: {
+      type: 'number',
+      description: '시리즈 내 순서',
+      required: false,
+    },
   },
   computedFields: {
     url: {

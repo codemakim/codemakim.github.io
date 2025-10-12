@@ -26,13 +26,19 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Syntax Highlighting - GitHub Light Theme */
+/* Syntax Highlighting - GitHub Light Theme with Glass Effect */
 .hljs {
   display: block;
   overflow-x: auto;
-  padding: 1em;
-  background: #f6f8fa;
-  color: #24292e;
+  padding: 1.25em;
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  color: #1f2328 !important;
+  border: 1px solid rgba(0, 0, 0, 0.15) !important;
+  box-shadow: 
+    0 8px 32px rgba(31, 38, 135, 0.2),
+    inset 0 0 20px rgba(255, 255, 255, 0.3) !important;
 }
 
 .hljs-comment,
@@ -44,7 +50,7 @@ body {
 .hljs-keyword,
 .hljs-selector-tag,
 .hljs-subst {
-  color: #d73a49;
+  color: #cf222e;
   font-weight: bold;
 }
 
@@ -53,31 +59,31 @@ body {
 .hljs-variable,
 .hljs-template-variable,
 .hljs-tag .hljs-attr {
-  color: #005cc5;
+  color: #0550ae;
 }
 
 .hljs-string,
 .hljs-doctag {
-  color: #032f62;
+  color: #0a3069;
 }
 
 .hljs-title,
 .hljs-section,
 .hljs-selector-id {
-  color: #6f42c1;
+  color: #6639ba;
   font-weight: bold;
 }
 
 .hljs-type,
 .hljs-class .hljs-title {
-  color: #d73a49;
+  color: #cf222e;
   font-weight: bold;
 }
 
 .hljs-tag,
 .hljs-name,
 .hljs-attribute {
-  color: #22863a;
+  color: #1a7f37;
   font-weight: bold;
 }
 
@@ -88,16 +94,16 @@ body {
 
 .hljs-symbol,
 .hljs-bullet {
-  color: #e36209;
+  color: #953800;
 }
 
 .hljs-built_in,
 .hljs-builtin-name {
-  color: #005cc5;
+  color: #0550ae;
 }
 
 .hljs-meta {
-  color: #005cc5;
+  color: #0550ae;
 }
 
 .hljs-deletion {
@@ -116,22 +122,30 @@ body {
   font-weight: bold;
 }
 
-/* Syntax Highlighting - GitHub Dark Theme */
+/* Syntax Highlighting - GitHub Dark Theme with Glass Effect */
 @media (prefers-color-scheme: dark) {
   .hljs {
-    background: #0d1117;
-    color: #c9d1d9;
+    background: rgba(17, 25, 40, 0.95) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    color: #e6e6e6 !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.7),
+      inset 0 0 20px rgba(255, 255, 255, 0.1) !important;
   }
 
   .hljs-comment,
   .hljs-quote {
-    color: #8b949e;
+    color: #9ca3af;
+    font-style: italic;
   }
 
   .hljs-keyword,
   .hljs-selector-tag,
   .hljs-subst {
-    color: #ff7b72;
+    color: #ff6b6b;
+    font-weight: bold;
   }
 
   .hljs-number,
@@ -139,29 +153,32 @@ body {
   .hljs-variable,
   .hljs-template-variable,
   .hljs-tag .hljs-attr {
-    color: #79c0ff;
+    color: #4fc3f7;
   }
 
   .hljs-string,
   .hljs-doctag {
-    color: #a5d6ff;
+    color: #81d4fa;
   }
 
   .hljs-title,
   .hljs-section,
   .hljs-selector-id {
-    color: #d2a8ff;
+    color: #ce93d8;
+    font-weight: bold;
   }
 
   .hljs-type,
   .hljs-class .hljs-title {
-    color: #ff7b72;
+    color: #ff6b6b;
+    font-weight: bold;
   }
 
   .hljs-tag,
   .hljs-name,
   .hljs-attribute {
-    color: #7ee787;
+    color: #81c784;
+    font-weight: bold;
   }
 
   .hljs-regexp,
@@ -192,132 +209,19 @@ body {
   }
 }
 
-/* 언어별 추가 스타일링 */
-
-/* Python */
-.hljs-decorator,
-.hljs-params {
-  color: #e36209;
-}
-
-/* Java, C++, C# */
-.hljs-class,
-.hljs-function {
-  color: #6f42c1;
-}
-
-.hljs-annotation {
-  color: #6a737d;
-}
-
-/* JSON */
-.hljs-attr {
-  color: #005cc5;
-}
-
-/* Shell/Bash */
-.hljs-built_in {
-  color: #005cc5;
-}
-
-.hljs-literal {
-  color: #005cc5;
-}
-
-/* CSS */
-.hljs-selector-class,
-.hljs-selector-pseudo {
-  color: #6f42c1;
-}
-
-.hljs-attribute {
-  color: #005cc5;
-}
-
-/* Markdown */
-.hljs-section {
-  color: #d73a49;
-  font-weight: bold;
-}
-
-.hljs-bullet,
-.hljs-code {
-  color: #032f62;
-}
-
-/* SQL */
-.hljs-keyword {
-  color: #d73a49;
-  text-transform: uppercase;
-}
-
-/* Vue, HTML, JSX, TSX */
-.hljs-tag {
-  color: #22863a;
-}
-
-.hljs-name {
-  color: #22863a;
-  font-weight: bold;
-}
-
-.hljs-attr {
-  color: #6f42c1;
-}
-
-/* 다크모드 언어별 스타일 */
-@media (prefers-color-scheme: dark) {
-  .hljs-decorator,
-  .hljs-params {
-    color: #ffa657;
-  }
-
-  .hljs-class,
-  .hljs-function {
-    color: #d2a8ff;
-  }
-
-  .hljs-annotation {
-    color: #8b949e;
-  }
-
-  .hljs-attr {
-    color: #79c0ff;
-  }
-
-  .hljs-selector-class,
-  .hljs-selector-pseudo {
-    color: #d2a8ff;
-  }
-
-  .hljs-section {
-    color: #ff7b72;
-  }
-
-  .hljs-bullet,
-  .hljs-code {
-    color: #a5d6ff;
-  }
-
-  .hljs-tag {
-    color: #7ee787;
-  }
-
-  .hljs-name {
-    color: #7ee787;
-  }
-
-  .hljs-attr {
-    color: #d2a8ff;
-  }
-}
+/* ========================================
+   ⚠️ 모든 hljs 토큰 색상은 위에서 정의됨
+   언어별 추가 스타일은 제거됨 (충돌 방지)
+   ======================================== */
 
 /* 코드 블록 개선 */
 pre {
   border-radius: 0.5rem;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: none !important;
   margin: 1.5em 0;
   overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  background: transparent !important;
 }
 
 pre code {
@@ -326,116 +230,303 @@ pre code {
   line-height: 1.7;
 }
 
+/* 일반 코드 블록 (hljs가 없는 경우) - .hljs와 완전히 동일한 스타일 */
+pre code {
+  display: block;
+  padding: 1.25em;
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  color: #1f2328 !important;
+  border: 1px solid rgba(0, 0, 0, 0.15) !important;
+  box-shadow: 
+    0 8px 32px rgba(31, 38, 135, 0.2),
+    inset 0 0 20px rgba(255, 255, 255, 0.3) !important;
+  overflow-x: auto;
+  border-radius: 0.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  pre code {
+    background: rgba(17, 25, 40, 0.95) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    color: #e6e6e6 !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.7),
+      inset 0 0 20px rgba(255, 255, 255, 0.1) !important;
+  }
+}
+
+/* prose 클래스 내부의 pre 스타일 오버라이드 */
+.prose pre {
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+/* prose 내부의 인라인 코드 - 글래스 스타일 */
+.prose code {
+  color: #1f2328 !important;
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(10px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(180%) !important;
+  padding: 0.2em 0.4em !important;
+  border-radius: 6px !important;
+  font-size: 0.875em !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  box-shadow: 0 2px 8px rgba(31, 38, 135, 0.1) !important;
+}
+
+/* prose 내부의 pre > code는 블록 코드 - 인라인 스타일 완전 제거 */
+.prose pre code {
+  /* pre code의 스타일 사용, 인라인 코드 스타일 제거 */
+  padding: 1.25em !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid rgba(0, 0, 0, 0.15) !important;
+  box-shadow: 
+    0 8px 32px rgba(31, 38, 135, 0.2),
+    inset 0 0 20px rgba(255, 255, 255, 0.3) !important;
+  font-size: 0.875rem !important;
+}
+
 @media (prefers-color-scheme: dark) {
   pre {
-    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+  }
+  
+  .prose pre {
+    border: none !important;
+    background: transparent !important;
+  }
+  
+  /* 인라인 코드는 별도 스타일 */
+  .prose code {
+    color: #e6e6e6 !important;
+    background: rgba(17, 25, 40, 0.85) !important;
+    backdrop-filter: blur(10px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(10px) saturate(180%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5) !important;
+  }
+  
+  /* pre 내부의 code는 블록 코드 스타일 사용 */
+  .prose pre code {
+    padding: 1.25em !important;
+    background: rgba(17, 25, 40, 0.95) !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.7),
+      inset 0 0 20px rgba(255, 255, 255, 0.1) !important;
+    font-size: 0.875rem !important;
   }
 }
 
 /* ============================================
-   🪟 Glassmorphism Styles
+   🪟 Glassmorphism Styles 2.0 - Enhanced
    ============================================ */
 
-/* 글래스모피즘 기본 클래스 */
+/* 글래스모피즘 기본 클래스 - 강화 */
 .glass {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 
+    0 8px 32px 0 rgba(31, 38, 135, 0.37),
+    inset 0 0 20px rgba(255, 255, 255, 0.2);
 }
 
 @media (prefers-color-scheme: dark) {
   .glass {
-    background: rgba(17, 25, 40, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    background: rgba(17, 25, 40, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 
+      0 8px 32px 0 rgba(0, 0, 0, 0.5),
+      inset 0 0 20px rgba(255, 255, 255, 0.05);
   }
 }
 
-/* 글래스 헤더 */
+/* 글래스 헤더 - 강화 */
 .glass-header {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 
+    0 4px 30px rgba(0, 0, 0, 0.1),
+    inset 0 0 30px rgba(255, 255, 255, 0.1);
 }
 
 @media (prefers-color-scheme: dark) {
   .glass-header {
-    background: rgba(10, 10, 10, 0.8);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+    background: rgba(10, 10, 10, 0.6);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 
+      0 4px 30px rgba(0, 0, 0, 0.5),
+      inset 0 0 30px rgba(255, 255, 255, 0.03);
   }
 }
 
-/* 글래스 카드 */
+/* 글래스 카드 - 강화 */
 .glass-card {
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 1rem;
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 1.25rem;
+  box-shadow: 
+    0 8px 32px 0 rgba(31, 38, 135, 0.25),
+    inset 0 0 15px rgba(255, 255, 255, 0.15);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+/* 본문 전용 글래스 카드 - 더 불투명 */
+article.glass-card {
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.8) !important;
+}
+
+/* 본문 article은 호버 효과와 빛 반사 효과 제거 */
+article.glass-card::before {
+  display: none !important;
+}
+
+article.glass-card:hover {
+  transform: none !important;
+}
+
+/* 빛 반사 효과 */
+.glass-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: left 0.5s;
+}
+
+.glass-card:hover::before {
+  left: 100%;
 }
 
 .glass-card:hover {
-  background: rgba(255, 255, 255, 0.8);
-  box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.2);
-  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.5);
+  border-color: rgba(255, 255, 255, 0.8);
+  box-shadow: 
+    0 16px 48px 0 rgba(31, 38, 135, 0.35),
+    inset 0 0 20px rgba(255, 255, 255, 0.2);
+  transform: translateY(-4px);
 }
 
 @media (prefers-color-scheme: dark) {
   .glass-card {
-    background: rgba(17, 25, 40, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    background: rgba(17, 25, 40, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 
+      0 8px 32px 0 rgba(0, 0, 0, 0.5),
+      inset 0 0 15px rgba(255, 255, 255, 0.05);
+  }
+  
+  /* 본문 전용 글래스 카드 - 다크모드 더 불투명 */
+  article.glass-card {
+    background: rgba(17, 25, 40, 0.8) !important;
+    backdrop-filter: blur(24px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  }
+  
+  .glass-card::before {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.05),
+      transparent
+    );
   }
   
   .glass-card:hover {
-    background: rgba(17, 25, 40, 0.8);
-    box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5);
+    background: rgba(17, 25, 40, 0.6);
+    border-color: rgba(255, 255, 255, 0.25);
+    box-shadow: 
+      0 16px 48px 0 rgba(0, 0, 0, 0.7),
+      inset 0 0 20px rgba(255, 255, 255, 0.08);
   }
 }
 
-/* 글래스 태그 */
+/* 글래스 태그 - 강화 */
 .glass-tag {
-  background: rgba(59, 130, 246, 0.1);
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  transition: all 0.2s ease;
+  background: rgba(59, 130, 246, 0.15);
+  backdrop-filter: blur(8px) saturate(180%);
+  -webkit-backdrop-filter: blur(8px) saturate(180%);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.glass-tag::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+  opacity: 0;
+  transition: opacity 0.3s;
 }
 
 .glass-tag:hover {
-  background: rgba(59, 130, 246, 0.2);
-  border-color: rgba(59, 130, 246, 0.4);
-  transform: translateY(-1px);
+  background: rgba(59, 130, 246, 0.25);
+  border-color: rgba(59, 130, 246, 0.5);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.glass-tag:hover::after {
+  opacity: 1;
 }
 
 .glass-tag.active {
-  background: rgba(59, 130, 246, 0.3);
-  border-color: rgba(59, 130, 246, 0.5);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  background: rgba(59, 130, 246, 0.35);
+  border-color: rgba(59, 130, 246, 0.6);
+  box-shadow: 
+    0 4px 16px rgba(59, 130, 246, 0.4),
+    inset 0 0 10px rgba(59, 130, 246, 0.2);
+  transform: scale(1.05);
 }
 
 @media (prefers-color-scheme: dark) {
   .glass-tag {
-    background: rgba(59, 130, 246, 0.15);
-    border: 1px solid rgba(59, 130, 246, 0.3);
+    background: rgba(59, 130, 246, 0.2);
+    border: 1px solid rgba(59, 130, 246, 0.4);
+  }
+  
+  .glass-tag::after {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(139, 92, 246, 0.15));
   }
   
   .glass-tag:hover {
-    background: rgba(59, 130, 246, 0.25);
-    border-color: rgba(59, 130, 246, 0.5);
+    background: rgba(59, 130, 246, 0.3);
+    border-color: rgba(59, 130, 246, 0.6);
   }
   
   .glass-tag.active {
-    background: rgba(59, 130, 246, 0.4);
-    border-color: rgba(59, 130, 246, 0.6);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    background: rgba(59, 130, 246, 0.45);
+    border-color: rgba(59, 130, 246, 0.7);
+    box-shadow: 
+      0 4px 16px rgba(59, 130, 246, 0.5),
+      inset 0 0 10px rgba(59, 130, 246, 0.3);
   }
 }
 
@@ -456,15 +547,23 @@ pre.glass-code {
   }
 }
 
-/* 배경 그라데이션 (선택사항) */
+/* 배경 그라데이션 - 강화 (힙한 느낌) */
 body {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: 
+    radial-gradient(ellipse at top left, rgba(102, 126, 234, 0.3), transparent 50%),
+    radial-gradient(ellipse at top right, rgba(237, 100, 166, 0.3), transparent 50%),
+    radial-gradient(ellipse at bottom, rgba(118, 75, 162, 0.3), transparent 50%),
+    linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
   background-attachment: fixed;
   min-height: 100vh;
 }
 
 @media (prefers-color-scheme: dark) {
   body {
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    background: 
+      radial-gradient(ellipse at top left, rgba(59, 130, 246, 0.15), transparent 50%),
+      radial-gradient(ellipse at top right, rgba(139, 92, 246, 0.15), transparent 50%),
+      radial-gradient(ellipse at bottom, rgba(236, 72, 153, 0.15), transparent 50%),
+      linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #1e293b 100%);
   }
 }
