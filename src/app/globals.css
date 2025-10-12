@@ -25,3 +25,308 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Syntax Highlighting - GitHub Light Theme */
+.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1em;
+  background: #f6f8fa;
+  color: #24292e;
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: #6a737d;
+  font-style: italic;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-subst {
+  color: #d73a49;
+  font-weight: bold;
+}
+
+.hljs-number,
+.hljs-literal,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag .hljs-attr {
+  color: #005cc5;
+}
+
+.hljs-string,
+.hljs-doctag {
+  color: #032f62;
+}
+
+.hljs-title,
+.hljs-section,
+.hljs-selector-id {
+  color: #6f42c1;
+  font-weight: bold;
+}
+
+.hljs-type,
+.hljs-class .hljs-title {
+  color: #d73a49;
+  font-weight: bold;
+}
+
+.hljs-tag,
+.hljs-name,
+.hljs-attribute {
+  color: #22863a;
+  font-weight: bold;
+}
+
+.hljs-regexp,
+.hljs-link {
+  color: #032f62;
+}
+
+.hljs-symbol,
+.hljs-bullet {
+  color: #e36209;
+}
+
+.hljs-built_in,
+.hljs-builtin-name {
+  color: #005cc5;
+}
+
+.hljs-meta {
+  color: #005cc5;
+}
+
+.hljs-deletion {
+  background: #ffeef0;
+}
+
+.hljs-addition {
+  background: #e6ffed;
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: bold;
+}
+
+/* Syntax Highlighting - GitHub Dark Theme */
+@media (prefers-color-scheme: dark) {
+  .hljs {
+    background: #0d1117;
+    color: #c9d1d9;
+  }
+
+  .hljs-comment,
+  .hljs-quote {
+    color: #8b949e;
+  }
+
+  .hljs-keyword,
+  .hljs-selector-tag,
+  .hljs-subst {
+    color: #ff7b72;
+  }
+
+  .hljs-number,
+  .hljs-literal,
+  .hljs-variable,
+  .hljs-template-variable,
+  .hljs-tag .hljs-attr {
+    color: #79c0ff;
+  }
+
+  .hljs-string,
+  .hljs-doctag {
+    color: #a5d6ff;
+  }
+
+  .hljs-title,
+  .hljs-section,
+  .hljs-selector-id {
+    color: #d2a8ff;
+  }
+
+  .hljs-type,
+  .hljs-class .hljs-title {
+    color: #ff7b72;
+  }
+
+  .hljs-tag,
+  .hljs-name,
+  .hljs-attribute {
+    color: #7ee787;
+  }
+
+  .hljs-regexp,
+  .hljs-link {
+    color: #a5d6ff;
+  }
+
+  .hljs-symbol,
+  .hljs-bullet {
+    color: #ffa657;
+  }
+
+  .hljs-built_in,
+  .hljs-builtin-name {
+    color: #79c0ff;
+  }
+
+  .hljs-meta {
+    color: #79c0ff;
+  }
+
+  .hljs-deletion {
+    background: #490202;
+  }
+
+  .hljs-addition {
+    background: #04260f;
+  }
+}
+
+/* 언어별 추가 스타일링 */
+
+/* Python */
+.hljs-decorator,
+.hljs-params {
+  color: #e36209;
+}
+
+/* Java, C++, C# */
+.hljs-class,
+.hljs-function {
+  color: #6f42c1;
+}
+
+.hljs-annotation {
+  color: #6a737d;
+}
+
+/* JSON */
+.hljs-attr {
+  color: #005cc5;
+}
+
+/* Shell/Bash */
+.hljs-built_in {
+  color: #005cc5;
+}
+
+.hljs-literal {
+  color: #005cc5;
+}
+
+/* CSS */
+.hljs-selector-class,
+.hljs-selector-pseudo {
+  color: #6f42c1;
+}
+
+.hljs-attribute {
+  color: #005cc5;
+}
+
+/* Markdown */
+.hljs-section {
+  color: #d73a49;
+  font-weight: bold;
+}
+
+.hljs-bullet,
+.hljs-code {
+  color: #032f62;
+}
+
+/* SQL */
+.hljs-keyword {
+  color: #d73a49;
+  text-transform: uppercase;
+}
+
+/* Vue, HTML, JSX, TSX */
+.hljs-tag {
+  color: #22863a;
+}
+
+.hljs-name {
+  color: #22863a;
+  font-weight: bold;
+}
+
+.hljs-attr {
+  color: #6f42c1;
+}
+
+/* 다크모드 언어별 스타일 */
+@media (prefers-color-scheme: dark) {
+  .hljs-decorator,
+  .hljs-params {
+    color: #ffa657;
+  }
+
+  .hljs-class,
+  .hljs-function {
+    color: #d2a8ff;
+  }
+
+  .hljs-annotation {
+    color: #8b949e;
+  }
+
+  .hljs-attr {
+    color: #79c0ff;
+  }
+
+  .hljs-selector-class,
+  .hljs-selector-pseudo {
+    color: #d2a8ff;
+  }
+
+  .hljs-section {
+    color: #ff7b72;
+  }
+
+  .hljs-bullet,
+  .hljs-code {
+    color: #a5d6ff;
+  }
+
+  .hljs-tag {
+    color: #7ee787;
+  }
+
+  .hljs-name {
+    color: #7ee787;
+  }
+
+  .hljs-attr {
+    color: #d2a8ff;
+  }
+}
+
+/* 코드 블록 개선 */
+pre {
+  border-radius: 0.5rem;
+  border: 1px solid #e1e4e8;
+  margin: 1.5em 0;
+}
+
+pre code {
+  font-family: 'Geist Mono', 'Courier New', monospace;
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+
+@media (prefers-color-scheme: dark) {
+  pre {
+    border-color: #30363d;
+  }
+}

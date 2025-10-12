@@ -1,13 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { allPosts } from "contentlayer/generated";
 import TagFilter from "./components/TagFilter";
 import PostList from "./components/PostList";
 import { getAllTags } from "./lib/tags";
 
 export default function Home() {
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // URL에서 태그 읽기
+  const selectedTag = searchParams.get("tag");
 
   // 포스트 정렬 (최신순)
   const posts = allPosts.sort(
@@ -16,6 +20,15 @@ export default function Home() {
 
   // 모든 태그 추출
   const tags = getAllTags(posts);
+
+  // 태그 선택 핸들러 (URL 업데이트)
+  function handleTagSelect(tag: string | null) {
+    if (tag) {
+      router.push(`/?tag=${encodeURIComponent(tag)}`);
+    } else {
+      router.push("/");
+    }
+  }
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
@@ -35,7 +48,7 @@ export default function Home() {
         <TagFilter
           tags={tags}
           selectedTag={selectedTag}
-          onTagSelect={setSelectedTag}
+          onTagSelect={handleTagSelect}
           totalCount={posts.length}
         />
 
