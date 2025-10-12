@@ -130,7 +130,7 @@ export default function SearchBar({
       {searchQuery && (
         <div className="mt-2 text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
           <span className="font-medium text-gray-900 dark:text-white">
-            "{searchQuery}"
+            &ldquo;{searchQuery}&rdquo;
           </span>{" "}
           검색 결과 {resultsCount}개
           {isSearching && (

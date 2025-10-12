@@ -61,7 +61,7 @@ export function getAllSeries(posts: Post[]): Map<string, Post[]> {
   });
 
   // 각 시리즈의 포스트를 seriesOrder로 정렬
-  seriesMap.forEach((seriesPosts, series) => {
+  seriesMap.forEach((seriesPosts) => {
     seriesPosts.sort((a, b) => (a.seriesOrder || 0) - (b.seriesOrder || 0));
   });
 
