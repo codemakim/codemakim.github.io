@@ -2,7 +2,7 @@
 title: "📘 [입문] Next.js 프로젝트 가이드 - Vue 개발자를 위한"
 date: "2025-07-07"
 description: "Vue 개발자가 Next.js를 빠르게 이해하도록 프로젝트 구조와 설정 파일을 상세히 설명합니다"
-tags: ["Next.js", "Vue", "초급"]
+tags: ["Next.js", "Vue", "초급", "프론트엔드"]
 ---
 
 # Next.js 15 프로젝트 완벽 가이드 (Vue 개발자를 위한)
@@ -1462,6 +1462,276 @@ export default function Loading() {
   return <div>로딩 중...</div>
 }
 ```
+
+---
+
+## 🚨 실무 필수: Suspense와 정적 빌드 (GitHub Pages)
+
+### 문제 상황
+
+Next.js에서 `useSearchParams`를 사용할 때 정적 빌드(`output: 'export'`)를 하면 다음과 같은 에러가 발생합니다:
+
+```bash
+⨯ useSearchParams() should be wrapped in a suspense boundary
+Error occurred prerendering page "/"
+```
+
+**왜 발생하나요?**
+
+- `useSearchParams`는 클라이언트에서 URL을 읽는 Hook
+- 정적 빌드 시에는 서버에서 미리 렌더링 시도
+- URL 정보는 클라이언트에서만 알 수 있음
+- → Suspense로 감싸서 "이 부분은 클라이언트에서 처리할게요"라고 알려줘야 함
+
+### ❌ 잘못된 방법
+
+```tsx
+// src/app/page.tsx
+"use client";
+
+import { useSearchParams } from "next/navigation";
+
+export default function Home() {
+  const searchParams = useSearchParams(); // ⚠️ 빌드 에러!
+  const tag = searchParams.get("tag");
+  
+  return <div>...</div>;
+}
+```
+
+**문제점:**
+
+- 정적 빌드 시 에러 발생
+- GitHub Pages 배포 실패
+
+### ✅ 올바른 방법 1: Suspense 사용 (권장)
+
+```tsx
+// src/app/page.tsx (서버 컴포넌트)
+import { Suspense } from "react";
+import HomeContent from "./components/HomeContent";
+
+export default function Home() {
+  return (
+    <div>
+      <header>
+        <h1>블로그</h1>
+      </header>
+
+      <main>
+        <Suspense fallback={<div>로딩 중...</div>}>
+          <HomeContent />
+        </Suspense>
+      </main>
+    </div>
+  );
+}
+```
+
+```tsx
+// src/app/components/HomeContent.tsx (클라이언트 컴포넌트)
+"use client";
+
+import { useSearchParams, useRouter } from "next/navigation";
+
+export default function HomeContent() {
+  const searchParams = useSearchParams(); // ✅ Suspense 안에서 사용
+  const router = useRouter();
+  const selectedTag = searchParams.get("tag");
+
+  function handleTagSelect(tag: string | null) {
+    if (tag) {
+      router.push(`/?tag=${encodeURIComponent(tag)}`);
+    } else {
+      router.push("/");
+    }
+  }
+
+  return (
+    <>
+      {/* 태그 필터 */}
+      <div>
+        <button onClick={() => handleTagSelect("React")}>
+          React
+        </button>
+        <button onClick={() => handleTagSelect(null)}>
+          전체
+        </button>
+      </div>
+
+      {/* 필터링된 컨텐츠 */}
+      <div>
+        현재 선택된 태그: {selectedTag || "전체"}
+      </div>
+    </>
+  );
+}
+```
+
+**장점:**
+
+- ✅ Next.js 15 권장 패턴
+- ✅ 정적 빌드 성공
+- ✅ 점진적 렌더링 (헤더 먼저 → 컨텐츠 나중에)
+- ✅ 로딩 상태 표시 가능
+- ✅ SEO 친화적
+
+### ✅ 올바른 방법 2: 글래스모피즘 스타일 적용
+
+```tsx
+<Suspense
+  fallback={
+    <div className="flex items-center justify-center py-12">
+      <div className="glass-card px-8 py-4">
+        <p className="text-gray-600 dark:text-gray-400">
+          🔄 로딩 중...
+        </p>
+      </div>
+    </div>
+  }
+>
+  <HomeContent />
+</Suspense>
+```
+
+**세련된 로딩 UI:**
+
+- 반투명 유리 효과
+- 다크모드 지원
+- 부드러운 애니메이션
+
+### Vue와 비교
+
+**Vue 3 (Composition API):**
+
+```html
+<template>
+  <div>
+    <header>
+      <h1>블로그</h1>
+    </header>
+
+    <main>
+      <Suspense>
+        <template #default>
+          <HomeContent />
+        </template>
+        <template #fallback>
+          <div>로딩 중...</div>
+        </template>
+      </Suspense>
+    </main>
+  </div>
+</template>
+
+<script setup>
+// HomeContent.vue
+const route = useRoute();
+const tag = computed(() => route.query.tag);
+</script>
+```
+
+**차이점:**
+
+| 항목 | Vue 3 | Next.js 15 |
+|------|-------|------------|
+| Suspense | `<Suspense>` 컴포넌트 | `<Suspense>` 컴포넌트 |
+| URL 쿼리 | `useRoute().query` | `useSearchParams()` |
+| 클라이언트 표시 | 자동 | `"use client"` 필요 |
+| 정적 빌드 | 문제 없음 | Suspense 필수 |
+
+### 실무 팁 💡
+
+**1. Suspense 경계 설정**
+
+```tsx
+// ✅ 좋은 예: 적절한 단위로 분리
+<Suspense fallback={<FilterLoading />}>
+  <FilterSection />
+</Suspense>
+
+<Suspense fallback={<PostsLoading />}>
+  <PostsList />
+</Suspense>
+```
+
+```tsx
+// ❌ 나쁜 예: 너무 큰 단위
+<Suspense fallback={<div>로딩 중...</div>}>
+  <EntireApp /> {/* 전체가 로딩 상태 */}
+</Suspense>
+```
+
+**2. 폴백 UI는 실제 컨텐츠와 비슷한 크기로**
+
+```tsx
+// ✅ 레이아웃 시프트 방지
+<Suspense fallback={
+  <div className="h-96 animate-pulse bg-gray-200">
+    {/* 실제 컨텐츠와 비슷한 높이 */}
+  </div>
+}>
+  <PostsList />
+</Suspense>
+```
+
+**3. 중첩된 Suspense 활용**
+
+```tsx
+<Suspense fallback={<PageLoading />}>
+  <Layout>
+    <Suspense fallback={<HeaderLoading />}>
+      <Header />
+    </Suspense>
+    
+    <Suspense fallback={<ContentLoading />}>
+      <Content />
+    </Suspense>
+  </Layout>
+</Suspense>
+```
+
+### 디버깅 팁 🔧
+
+**빌드 에러 확인:**
+
+```bash
+# 1. Contentlayer 빌드
+npx contentlayer2 build
+
+# 2. Next.js 빌드
+npm run build
+
+# 3. 에러 메시지 확인
+# "missing-suspense-with-csr-bailout" → Suspense 필요!
+```
+
+**개발 서버에서는 정상인데 빌드 시 에러?**
+
+→ `useSearchParams`, `usePathname`, `useRouter` 등 클라이언트 Hook을 Suspense로 감싸세요!
+
+### 정리
+
+**핵심 원칙:**
+
+1. **클라이언트 Hook (useSearchParams 등) 사용 시**
+   - Suspense로 감싸기
+   - 컴포넌트 분리하기
+
+2. **정적 빌드 (export) 시**
+   - 서버에서 불가능한 작업은 Suspense 내부로
+   - 폴백 UI 제공
+
+3. **사용자 경험**
+   - 로딩 상태 명확히 표시
+   - 점진적 렌더링 활용
+
+**체크리스트:**
+
+- ✅ `useSearchParams` 사용 → Suspense 체크
+- ✅ 빌드 에러 → 에러 메시지 읽고 Suspense 추가
+- ✅ 로딩 UI → 실제 컨텐츠와 비슷한 크기
+- ✅ 테스트 → `npm run build`로 정적 빌드 확인
 
 ### 4주차: 실전 프로젝트
 
