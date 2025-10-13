@@ -15,15 +15,25 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "개발 블로그",
   description: "Next.js와 웹 개발에 관한 이야기들을 공유합니다",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "개발 블로그",
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
 };
 
 export const viewport = {
   width: "device-width",
   initialScale: 1,
+  maximumScale: 1,
   viewportFit: "cover" as const,
+  colorScheme: "light dark" as const,
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#764ba2" },
-    { media: "(prefers-color-scheme: dark)", color: "#0f172a" },
+    { media: "(prefers-color-scheme: light)", color: "transparent" },
+    { media: "(prefers-color-scheme: dark)", color: "transparent" },
   ],
 };
 
@@ -34,10 +44,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <head>
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
