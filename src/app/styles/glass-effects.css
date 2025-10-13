@@ -1,0 +1,221 @@
+/* 글래스모피즘 효과 - iOS 18 스타일 */
+
+/* 글래스 헤더 - 강화 */
+.glass-header {
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 
+    0 4px 30px rgba(0, 0, 0, 0.1),
+    inset 0 0 30px rgba(255, 255, 255, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  .glass-header {
+    background: rgba(10, 10, 10, 0.6);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 
+      0 4px 30px rgba(0, 0, 0, 0.5),
+      inset 0 0 30px rgba(255, 255, 255, 0.03);
+  }
+}
+
+/* 글래스 카드 - iOS 18 스타일 왜곡 효과 */
+.glass-card {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: 
+    blur(20px) 
+    saturate(200%) 
+    contrast(120%) 
+    brightness(110%) !important;
+  -webkit-backdrop-filter: 
+    blur(20px) 
+    saturate(200%) 
+    contrast(120%) 
+    brightness(110%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 1.25rem;
+  box-shadow: 
+    0 8px 32px 0 rgba(31, 38, 135, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.2);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+/* 본문 전용 글래스 카드 - iOS 18 스타일 */
+.glass-card-content {
+  background: rgba(255, 255, 255, 0.6) !important;
+  backdrop-filter: 
+    blur(25px) 
+    saturate(200%) 
+    contrast(120%) 
+    brightness(110%) !important;
+  -webkit-backdrop-filter: 
+    blur(25px) 
+    saturate(200%) 
+    contrast(120%) 
+    brightness(110%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+}
+
+/* 본문은 호버 효과와 빛 반사 효과 제거 */
+.glass-card-content::before {
+  display: none !important;
+}
+
+.glass-card-content:hover {
+  transform: none !important;
+}
+
+/* 빛 반사 효과 */
+.glass-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: left 0.5s;
+}
+
+.glass-card:hover::before {
+  left: 100%;
+}
+
+.glass-card:hover {
+  background: rgba(255, 255, 255, 0.5);
+  border-color: rgba(255, 255, 255, 0.8);
+  box-shadow: 
+    0 16px 48px 0 rgba(31, 38, 135, 0.35),
+    inset 0 0 20px rgba(255, 255, 255, 0.2);
+  transform: translateY(-4px);
+}
+
+/* 다크모드 글래스 효과 */
+@media (prefers-color-scheme: dark) {
+  .glass-card {
+    background: rgba(17, 25, 40, 0.3);
+    backdrop-filter: 
+      blur(20px) 
+      saturate(200%) 
+      contrast(120%) 
+      brightness(110%) !important;
+    -webkit-backdrop-filter: 
+      blur(20px) 
+      saturate(200%) 
+      contrast(120%) 
+      brightness(110%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 
+      0 8px 32px 0 rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+  }
+  
+  /* 본문 전용 글래스 카드 - 다크모드 iOS 18 스타일 */
+  .glass-card-content {
+    background: rgba(17, 25, 40, 0.6) !important;
+    backdrop-filter: 
+      blur(25px) 
+      saturate(200%) 
+      contrast(120%) 
+      brightness(110%) !important;
+    -webkit-backdrop-filter: 
+      blur(25px) 
+      saturate(200%) 
+      contrast(120%) 
+      brightness(110%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  }
+  
+  .glass-card::before {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.05),
+      transparent
+    );
+  }
+  
+  .glass-card:hover {
+    background: rgba(17, 25, 40, 0.6);
+    border-color: rgba(255, 255, 255, 0.25);
+    box-shadow: 
+      0 16px 48px 0 rgba(0, 0, 0, 0.7),
+      inset 0 0 20px rgba(255, 255, 255, 0.08);
+  }
+}
+
+/* 글래스 태그 - 강화 */
+.glass-tag {
+  background: rgba(59, 130, 246, 0.15);
+  backdrop-filter: blur(8px) saturate(180%);
+  -webkit-backdrop-filter: blur(8px) saturate(180%);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.glass-tag::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.glass-tag:hover {
+  background: rgba(59, 130, 246, 0.25);
+  border-color: rgba(59, 130, 246, 0.5);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.glass-tag:hover::after {
+  opacity: 1;
+}
+
+.glass-tag.active {
+  background: rgba(59, 130, 246, 0.35);
+  border-color: rgba(59, 130, 246, 0.6);
+  box-shadow: 
+    0 4px 16px rgba(59, 130, 246, 0.4),
+    inset 0 0 10px rgba(59, 130, 246, 0.2);
+  transform: scale(1.05);
+}
+
+/* 글래스 태그 다크모드 */
+@media (prefers-color-scheme: dark) {
+  .glass-tag {
+    background: rgba(59, 130, 246, 0.2);
+    border: 1px solid rgba(59, 130, 246, 0.4);
+  }
+  
+  .glass-tag::after {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(139, 92, 246, 0.15));
+  }
+  
+  .glass-tag:hover {
+    background: rgba(59, 130, 246, 0.3);
+    border-color: rgba(59, 130, 246, 0.6);
+  }
+  
+  .glass-tag.active {
+    background: rgba(59, 130, 246, 0.45);
+    border-color: rgba(59, 130, 246, 0.7);
+    box-shadow: 
+      0 4px 16px rgba(59, 130, 246, 0.5),
+      inset 0 0 10px rgba(59, 130, 246, 0.3);
+  }
+}

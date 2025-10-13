@@ -1,0 +1,32 @@
+/* 모바일 최적화 스타일 */
+
+/* iOS Safari bounce scroll 완전 차단용 wrapper */
+.app-wrapper {
+  height: 100vh;
+  height: 100dvh; /* 동적 viewport height (모바일 주소창 고려) */
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+  /* iOS Safe Area 대응 (노치 영역) */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* 모바일에서만 코드블록 전체 너비 사용 */
+@media (max-width: 768px) {
+  .prose pre {
+    margin-left: -1rem !important;
+    margin-right: -1rem !important;
+    width: calc(100% + 2rem) !important;
+  }
+}
+
+/* PWA 모드에서만 하단 Safe Area 제거 */
+@media (display-mode: standalone) {
+  .app-wrapper {
+    padding-bottom: 0; /* PWA에서 하단 흰 영역 제거 */
+  }
+}
