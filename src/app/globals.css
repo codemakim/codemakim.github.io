@@ -46,11 +46,21 @@ body {
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   position: relative;
-  /* iOS Safe Area 대응 (노치 영역) */
+  /* PWA 모드에서는 Safe Area 제거하여 전체 화면 사용 */
   padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
+  /* padding-bottom 제거: PWA에서 아래쪽 흰 영역 방지 */
+}
+
+/* PWA 모드에서 전체 화면 사용 */
+@supports (display-mode: standalone) {
+  .app-wrapper {
+    /* PWA 설치 시 전체 화면 사용 */
+    height: 100vh;
+    height: 100svh; /* Small Viewport Height - 가장 작은 뷰포트 */
+    padding-bottom: 0; /* 하단 Safe Area 완전 제거 */
+  }
 }
 
 /* Syntax Highlighting - GitHub Light Theme with Glass Effect */
