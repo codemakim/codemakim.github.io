@@ -1,10 +1,8 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { format } from "date-fns";
-import { ko } from "date-fns/locale";
 import { allPosts } from "contentlayer/generated";
 import { MDXContent } from "./MDXContent";
 import SeriesNav from "@/app/components/SeriesNav";
+import PostHeader from "@/app/components/PostHeader";
 import { getSeriesNavigation } from "@/app/lib/series";
 
 interface PageProps {
@@ -46,41 +44,7 @@ export default async function PostPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen">
-      <header className="glass-header md:sticky md:top-0 z-50">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <Link 
-            href="/"
-            className="text-blue-600 dark:text-blue-400 hover:underline text-sm mb-4 block"
-          >
-            ← 블로그로 돌아가기
-          </Link>
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
-            {post.title}
-          </h1>
-          {post.description && (
-            <p className="text-xl text-gray-700 dark:text-gray-300 mt-2">
-              {post.description}
-            </p>
-          )}
-          <div className="flex items-center justify-between mt-4 gap-4">
-            <time className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap flex-shrink-0 min-w-fit">
-              {format(new Date(post.date), "yyyy년 M월 d일", { locale: ko })}
-            </time>
-            {post.tags && (
-              <div className="flex gap-2 flex-wrap">
-                {post.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="glass-tag px-2 py-1 text-xs rounded whitespace-nowrap text-gray-700 dark:text-gray-300"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
+      <PostHeader post={post} />
 
       <main className="max-w-4xl mx-auto px-4 py-8">
         {/* 시리즈 네비게이션 (상단) */}

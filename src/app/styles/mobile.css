@@ -15,12 +15,38 @@
   padding-right: env(safe-area-inset-right);
 }
 
-/* 모바일에서만 코드블록 전체 너비 사용 */
+/* 모바일에서만 코드블록과 본문 패딩 최적화 */
 @media (max-width: 768px) {
+  /* 본문 article의 좌우 패딩 줄이기 (p-8 → p-4) */
+  .prose {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  /* 코드 블록은 article 패딩만 무시 (main의 px-4는 유지) */
+  /* article의 p-4 (1rem) 제거 */
   .prose pre {
     margin-left: -1rem !important;
     margin-right: -1rem !important;
     width: calc(100% + 2rem) !important;
+    border-radius: 0 !important;
+  }
+
+  /* 모바일 코드 블록 - 스크롤 시 배경 드러남 방지 */
+  .prose pre code.hljs {
+    display: block !important;
+    min-width: 100% !important;
+    width: max-content !important;
+    /* 코드 내용에는 페이지 여백과 동일한 패딩 (main의 px-4와 맞춤) */
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+}
+
+/* 다크모드 모바일 최적화 */
+@media (max-width: 768px) and (prefers-color-scheme: dark) {
+  .prose pre code.hljs {
+    background: rgba(17, 25, 40, 0.95) !important;
   }
 }
 
