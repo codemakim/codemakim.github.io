@@ -17,6 +17,16 @@ export const metadata: Metadata = {
   description: "Next.js와 웹 개발에 관한 이야기들을 공유합니다",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover" as const,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#764ba2" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f172a" },
+  ],
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -24,6 +34,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
+      <head>
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
