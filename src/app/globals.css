@@ -53,61 +53,6 @@ body {
   padding-right: env(safe-area-inset-right);
 }
 
-/* 상하단 그라데이션 페이드 효과 */
-.app-wrapper::before,
-.app-wrapper::after {
-  content: '';
-  position: fixed;
-  left: 0;
-  right: 0;
-  height: 100px;
-  pointer-events: none;
-  z-index: 100;
-}
-
-/* 상단 그라데이션 (테마색 → 투명) */
-.app-wrapper::before {
-  top: 0;
-  background: linear-gradient(
-    to bottom,
-    rgba(118, 75, 162, 0.8) 0%,    /* #764ba2 - 진한 보라 */
-    rgba(118, 75, 162, 0.4) 30%,
-    transparent 100%
-  );
-}
-
-/* 하단 그라데이션 (투명 → 테마색) */
-.app-wrapper::after {
-  bottom: 0;
-  background: linear-gradient(
-    to top,
-    rgba(118, 75, 162, 0.8) 0%,    /* #764ba2 - 진한 보라 */
-    rgba(118, 75, 162, 0.4) 30%,
-    transparent 100%
-  );
-}
-
-/* 다크 모드 그라데이션 */
-@media (prefers-color-scheme: dark) {
-  .app-wrapper::before {
-    background: linear-gradient(
-      to bottom,
-      rgba(15, 23, 42, 0.9) 0%,    /* #0f172a - 진한 네이비 */
-      rgba(15, 23, 42, 0.5) 30%,
-      transparent 100%
-    );
-  }
-  
-  .app-wrapper::after {
-    background: linear-gradient(
-      to top,
-      rgba(15, 23, 42, 0.9) 0%,    /* #0f172a - 진한 네이비 */
-      rgba(15, 23, 42, 0.5) 30%,
-      transparent 100%
-    );
-  }
-}
-
 /* Syntax Highlighting - GitHub Light Theme with Glass Effect */
 .hljs {
   display: block;
