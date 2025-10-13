@@ -53,13 +53,6 @@ body {
   padding-right: env(safe-area-inset-right);
 }
 
-/* PWA 모드에서만 하단 Safe Area 제거 */
-@media (display-mode: standalone) {
-  .app-wrapper {
-    padding-bottom: 0; /* PWA에서 하단 흰 영역 제거 */
-  }
-}
-
 /* Syntax Highlighting - GitHub Light Theme with Glass Effect */
 .hljs {
   display: block;
