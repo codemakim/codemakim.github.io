@@ -291,6 +291,19 @@ pre code {
   border: none !important;
   background: transparent !important;
   padding: 0 !important;
+  /* 모바일에서 코드블록 좌우 여백 제거 */
+  margin-left: calc(-1 * env(safe-area-inset-left, 0px)) !important;
+  margin-right: calc(-1 * env(safe-area-inset-right, 0px)) !important;
+  width: calc(100% + env(safe-area-inset-left, 0px) + env(safe-area-inset-right, 0px)) !important;
+}
+
+/* 모바일에서만 코드블록 전체 너비 사용 */
+@media (max-width: 768px) {
+  .prose pre {
+    margin-left: -1rem !important;
+    margin-right: -1rem !important;
+    width: calc(100% + 2rem) !important;
+  }
 }
 
 /* prose 내부의 인라인 코드 - 글래스 스타일 */
