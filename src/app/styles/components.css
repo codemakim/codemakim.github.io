@@ -1,94 +1,44 @@
 /* 컴포넌트별 스타일 */
 
-/* Syntax Highlighting - iOS 18 스타일 글래스모피즘 */
+/* 코드 블록 - 플랫 디자인 */
 .hljs {
   display: block;
   overflow-x: auto;
   padding: 1.25em;
-  background: rgba(255, 255, 255, 0.8) !important;
-  backdrop-filter: 
-    blur(25px) 
-    saturate(200%) 
-    contrast(120%) 
-    brightness(110%) !important;
-  -webkit-backdrop-filter: 
-    blur(25px) 
-    saturate(200%) 
-    contrast(120%) 
-    brightness(110%) !important;
+  background: #f6f8fa !important;
   color: #1f2328 !important;
-  border: 1px solid rgba(255, 255, 255, 0.3) !important;
-  box-shadow: 
-    0 8px 32px rgba(31, 38, 135, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.2) !important;
-  position: relative;
-}
-
-/* iOS 18 스타일 물방울 효과 */
-.hljs::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.1) 0%,
-    rgba(255, 255, 255, 0.05) 50%,
-    rgba(255, 255, 255, 0.1) 100%
-  );
-  border-radius: inherit;
-  pointer-events: none;
+  border: 1px solid #d0d7de !important;
+  border-radius: 0.5rem !important;
 }
 
 /* prose 클래스 내부의 pre 스타일 오버라이드 */
 .prose pre {
-  border: none !important;
-  background: transparent !important;
+  background: #f6f8fa !important;
+  border: 1px solid #d0d7de !important;
+  border-radius: 0.5rem !important;
   padding: 0 !important;
-  /* 모바일에서 코드블록 좌우 여백 제거 */
-  margin-left: calc(-1 * env(safe-area-inset-left, 0px)) !important;
-  margin-right: calc(-1 * env(safe-area-inset-right, 0px)) !important;
-  width: calc(100% + env(safe-area-inset-left, 0px) + env(safe-area-inset-right, 0px)) !important;
+  overflow: hidden !important; /* pre는 overflow 없음, code가 스크롤 */
 }
 
-/* prose 내부의 인라인 코드 - iOS 18 스타일 글래스 */
+/* prose 내부의 인라인 코드 - 플랫 디자인 */
 .prose code {
   color: #1f2328 !important;
-  background: rgba(255, 255, 255, 0.7) !important;
-  backdrop-filter: 
-    blur(15px) 
-    saturate(180%) 
-    contrast(110%) 
-    brightness(105%) !important;
-  -webkit-backdrop-filter: 
-    blur(15px) 
-    saturate(180%) 
-    contrast(110%) 
-    brightness(105%) !important;
+  background: #f6f8fa !important;
   padding: 0.2em 0.4em !important;
-  border-radius: 6px !important;
+  border-radius: 0.25rem !important;
   font-size: 0.875em !important;
-  border: 1px solid rgba(255, 255, 255, 0.4) !important;
-  box-shadow: 
-    0 2px 8px rgba(31, 38, 135, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+  border: 1px solid #d0d7de !important;
 }
 
-/* prose 내부의 pre > code는 블록 코드 - 인라인 스타일 완전 제거 */
+/* prose 내부의 pre > code는 블록 코드 */
 .prose pre code {
-  /* pre code의 스타일 사용, 인라인 코드 스타일 제거 */
+  display: block !important;
   padding: 1.25em !important;
-  background: rgba(255, 255, 255, 0.95) !important;
-  border: 1px solid rgba(0, 0, 0, 0.15) !important;
-  box-shadow: 
-    0 8px 32px rgba(31, 38, 135, 0.2),
-    inset 0 0 20px rgba(255, 255, 255, 0.3) !important;
-  backdrop-filter: blur(20px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  background: transparent !important;
+  border: none !important;
   color: #1f2328 !important;
+  overflow-x: auto !important; /* code가 스크롤 */
+  border-radius: 0 !important;
 }
 
 /* 코드 하이라이팅 색상 - 라이트모드 */
@@ -174,36 +124,29 @@
 
 /* 다크모드 컴포넌트 스타일 */
 @media (prefers-color-scheme: dark) {
+  /* 인라인 코드 */
   .prose code {
-    color: #e6e6e6 !important;
-    background: rgba(17, 25, 40, 0.85) !important;
-    backdrop-filter: blur(10px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(10px) saturate(180%) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5) !important;
+    color: #e6edf3 !important;
+    background: #161b22 !important;
+    border: 1px solid #30363d !important;
   }
   
-  /* pre 내부의 code는 블록 코드 스타일 사용 */
-  .prose pre code {
-    padding: 1.25em !important;
-    background: rgba(17, 25, 40, 0.95) !important;
-    border: 1px solid rgba(255, 255, 255, 0.25) !important;
-    box-shadow: 
-      0 8px 32px rgba(0, 0, 0, 0.7),
-      inset 0 0 20px rgba(255, 255, 255, 0.1) !important;
-    backdrop-filter: blur(20px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
-    color: #e6e6e6 !important;
+  /* 블록 코드 */
+  .prose pre {
+    background: #0d1117 !important;
+    border: 1px solid #30363d !important;
   }
 
-  /* 다크모드 코드 하이라이팅 색상 */
+  .prose pre code {
+    color: #e6edf3 !important;
+    background: transparent !important;
+  }
+
+  /* 코드 블록 다크모드 */
   .hljs {
-    background: rgba(17, 25, 40, 0.95) !important;
-    color: #e6e6e6 !important;
-    border: 1px solid rgba(255, 255, 255, 0.25) !important;
-    box-shadow: 
-      0 8px 32px rgba(0, 0, 0, 0.7),
-      inset 0 0 20px rgba(255, 255, 255, 0.1) !important;
+    background: #0d1117 !important;
+    color: #e6edf3 !important;
+    border: 1px solid #30363d !important;
   }
 
   .hljs-comment,

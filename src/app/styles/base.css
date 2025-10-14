@@ -37,14 +37,14 @@ body {
   width: 100%;
 }
 
-/* 배경 그라데이션 */
+/* 배경 그라데이션 - 밝은 파스텔톤 */
 body,
 .app-wrapper {
   background: 
-    radial-gradient(ellipse at top left, rgba(102, 126, 234, 0.3), transparent 50%),
-    radial-gradient(ellipse at top right, rgba(237, 100, 166, 0.3), transparent 50%),
-    radial-gradient(ellipse at bottom, rgba(118, 75, 162, 0.3), transparent 50%),
-    linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    radial-gradient(ellipse at top left, rgba(147, 197, 253, 0.4), transparent 60%),
+    radial-gradient(ellipse at top right, rgba(251, 207, 232, 0.4), transparent 60%),
+    radial-gradient(ellipse at bottom, rgba(196, 181, 253, 0.35), transparent 60%),
+    linear-gradient(135deg, #e0f2fe 0%, #fce7f3 50%, #f3e8ff 100%);
 }
 
 html,
@@ -60,10 +60,10 @@ body {
   html,
   body,
   .app-wrapper {
-    background: 
-      radial-gradient(ellipse at top left, rgba(59, 130, 246, 0.15), transparent 50%),
-      radial-gradient(ellipse at top right, rgba(139, 92, 246, 0.15), transparent 50%),
-      radial-gradient(ellipse at bottom, rgba(236, 72, 153, 0.15), transparent 50%),
-      linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #1e293b 100%);
+    background:
+      radial-gradient(ellipse at top left, rgba(99, 102, 241, 0.08), transparent 50%),
+      radial-gradient(ellipse at top right, rgba(139, 92, 246, 0.06), transparent 50%),
+      radial-gradient(ellipse at bottom, rgba(236, 72, 153, 0.05), transparent 50%),
+      linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%);
   }
 }
