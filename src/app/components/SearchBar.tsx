@@ -37,12 +37,12 @@ export default function SearchBar({
 
   return (
     <div className="mb-6">
-      <div className="relative glass-card p-1">
+      <div className="relative glass-card p-1 group focus-within:ring-2 focus-within:ring-pink-400/50 dark:focus-within:ring-purple-400/50 focus-within:shadow-lg focus-within:shadow-pink-200/50 dark:focus-within:shadow-purple-500/30 transition-all duration-300">
         <div className="flex items-center gap-3 px-4 py-3">
           {/* 검색 아이콘 또는 로딩 스피너 */}
           {isSearching ? (
             <svg
-              className="w-5 h-5 text-blue-500 animate-spin"
+              className="w-5 h-5 text-blue-400 dark:text-purple-400 animate-spin"
               fill="none"
               viewBox="0 0 24 24"
             >
@@ -62,7 +62,7 @@ export default function SearchBar({
             </svg>
           ) : (
             <svg
-              className="w-5 h-5 text-gray-400"
+              className="w-5 h-5 text-gray-400 dark:text-purple-300 group-focus-within:text-blue-500 dark:group-focus-within:text-purple-400 transition-colors"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -129,12 +129,12 @@ export default function SearchBar({
       {/* 검색 결과 메시지 */}
       {searchQuery && (
         <div className="mt-2 text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
-          <span className="font-medium text-gray-900 dark:text-white">
+          <span className="font-medium text-blue-600 dark:text-purple-400">
             &ldquo;{searchQuery}&rdquo;
           </span>{" "}
           검색 결과 {resultsCount}개
           {isSearching && (
-            <span className="text-xs text-blue-500 dark:text-blue-400 animate-pulse">
+            <span className="text-xs text-blue-500 dark:text-purple-400 animate-pulse">
               • 검색 중...
             </span>
           )}
