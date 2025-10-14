@@ -49,7 +49,8 @@ export default function PostHeader({ post }: PostHeaderProps) {
         <Link
           href="/"
           className={`
-            text-blue-600 dark:text-blue-400 hover:underline text-sm block
+            text-sm block hover:underline
+            text-pink-600 dark:text-purple-400
             transition-all duration-500 ease-in-out
             ${isScrolled ? "mb-2" : "mb-4"}
           `}
