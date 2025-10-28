@@ -29,7 +29,7 @@ tags: ["React", "학습", "Vue", "프론트엔드"]
 
 ## 📚 전체 커리큘럼 구조
 
-```
+```text
 docs/
 ├── 📖 nextjs-guide-for-vue-developers.md
 │   └── Next.js 프로젝트 구조 및 Vue와 비교
@@ -103,7 +103,7 @@ docs/
 
 **Week 1-2 마무리 프로젝트:**
 
-```
+```text
 할 일 앱 (CRUD + LocalStorage)
 - useState, useEffect 활용
 - Context로 전역 상태 관리
@@ -154,7 +154,7 @@ docs/
 
 **Week 3-4 마무리 프로젝트:**
 
-```
+```text
 블로그 플랫폼 확장
 - React Router로 라우팅
 - React Query로 데이터 관리
@@ -192,7 +192,7 @@ docs/
 
 **Week 5 실습:**
 
-```
+```text
 기존 프로젝트에 테스트 추가
 - 컴포넌트 단위 테스트 작성
 - 통합 테스트 작성
@@ -229,7 +229,7 @@ docs/
 
 **Week 6 실습:**
 
-```
+```text
 프로젝트 성능 최적화
 - Profiler로 병목 지점 찾기
 - 불필요한 리렌더링 제거
@@ -255,7 +255,7 @@ docs/
    - 변경된 부분만 실제 DOM에 적용 (효율적)
 3. **동작 과정**:
 
-   ```
+   ```text
    State 변경 → 새 Virtual DOM 생성
    → 이전 Virtual DOM과 비교 (Diffing)
    → 변경사항만 실제 DOM에 적용 (Reconciliation)
@@ -372,7 +372,7 @@ const handleClick = useCallback(() => {
 
 2. **번들 크기**:
 
-   ```
+   ```text
    서버 컴포넌트:
    - 서버에서 실행 → HTML 생성 → 클라이언트로 전송
    - JavaScript 번들에 포함 안됨 (0KB!)
@@ -437,7 +437,7 @@ const handleClick = useCallback(() => {
 
 4. **동작 방식**:
 
-   ```
+   ```text
    폼 제출 → Next.js가 서버 액션 감지
    → 서버에서 함수 실행
    → 결과 반환 & 캐시 업데이트
@@ -555,7 +555,7 @@ const handleClick = useCallback(() => {
 
 1. **피라미드 구조**:
 
-   ```
+   ```text
          /\
         /E2E\      (10%) - 느림, 비쌈, 중요 플로우만
        /------\
@@ -572,7 +572,7 @@ const handleClick = useCallback(() => {
 
 3. **실무 적용**:
 
-   ```
+   ```text
    단위: 버튼 컴포넌트, 유틸 함수
    E2E: 회원가입 → 로그인 → 포스트 작성 → 로그아웃
    ```
