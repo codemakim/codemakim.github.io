@@ -41,6 +41,12 @@ export const Post = defineDocumentType(() => ({
       description: '시리즈 내 순서',
       required: false,
     },
+    draft: {
+      type: 'boolean',
+      description: '초안 여부 (true면 빌드에서 제외)',
+      required: false,
+      default: false,
+    },
   },
   computedFields: {
     url: {

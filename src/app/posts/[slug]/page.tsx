@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
-import { allPosts } from "contentlayer/generated";
 import { MDXContent } from "./MDXContent";
 import SeriesNav from "@/app/components/SeriesNav";
 import PostHeader from "@/app/components/PostHeader";
 import { getSeriesNavigation } from "@/app/lib/series";
+import { getPublicPosts, getPublicPost } from "@/app/lib/posts";
 
 interface PageProps {
   params: Promise<{
@@ -12,14 +12,15 @@ interface PageProps {
 }
 
 export async function generateStaticParams() {
-  return allPosts.map((post) => ({
+  const publicPosts = getPublicPosts();
+  return publicPosts.map((post) => ({
     slug: post.slug,
   }));
 }
 
 export async function generateMetadata({ params }: PageProps) {
   const { slug } = await params;
-  const post = allPosts.find((post) => post.slug === slug);
+  const post = getPublicPost(slug);
 
   if (!post) {
     return {};
@@ -33,14 +34,15 @@ export async function generateMetadata({ params }: PageProps) {
 
 export default async function PostPage({ params }: PageProps) {
   const { slug } = await params;
-  const post = allPosts.find((post) => post.slug === slug);
+  const post = getPublicPost(slug);
 
   if (!post) {
     notFound();
   }
 
-  // 시리즈 네비게이션 정보
-  const seriesInfo = getSeriesNavigation(post, allPosts);
+  // 시리즈 네비게이션 정보 (공개 포스트만 사용)
+  const publicPosts = getPublicPosts();
+  const seriesInfo = getSeriesNavigation(post, publicPosts);
 
   return (
     <div className="min-h-screen">

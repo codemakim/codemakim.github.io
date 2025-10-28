@@ -2,12 +2,11 @@
 
 import { useMemo, useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { allPosts } from "contentlayer/generated";
 import TagFilter from "./TagFilter";
 import PostList from "./PostList";
 import SortOptions from "./SortOptions";
 import SearchBar from "./SearchBar";
-import { getAllTags } from "../lib/tags";
+import { getPublicPosts, getPublicTags } from "../lib/posts";
 import { searchPosts } from "../lib/search";
 
 export default function HomeContent() {
@@ -30,9 +29,12 @@ export default function HomeContent() {
     setIsSearching(false); // URL 업데이트 완료
   }, [urlSearchQuery]);
 
+  // 공개 포스트만 가져오기
+  const publicPosts = getPublicPosts();
+  
   // 포스트 필터링 및 정렬
   const filteredPosts = useMemo(() => {
-    let posts = [...allPosts];
+    let posts = [...publicPosts];
 
     // 1. 정렬
     posts = posts.sort((a, b) => {
@@ -49,7 +51,7 @@ export default function HomeContent() {
     // 3. 태그 필터 (PostList에서 처리)
 
     return posts;
-  }, [sortOrder, searchQuery]); // searchQuery는 로컬 상태
+  }, [publicPosts, sortOrder, searchQuery]); // publicPosts 추가
 
   // 최종 필터링된 포스트 (태그 적용)
   const displayPosts = useMemo(() => {
@@ -57,8 +59,8 @@ export default function HomeContent() {
     return filteredPosts.filter(post => post.tags?.includes(selectedTag));
   }, [filteredPosts, selectedTag]);
 
-  // 모든 태그 추출
-  const tags = getAllTags(allPosts);
+  // 공개 포스트의 태그만 추출
+  const tags = getPublicTags();
 
   // 검색 핸들러 (debounce 적용)
   function handleSearchChange(query: string) {
@@ -127,7 +129,7 @@ export default function HomeContent() {
         searchQuery={searchQuery}
         onSearchChange={handleSearchChange}
         resultsCount={displayPosts.length}
-        totalCount={allPosts.length}
+        totalCount={publicPosts.length}
         isSearching={isSearching}
       />
 
@@ -136,7 +138,7 @@ export default function HomeContent() {
         tags={tags}
         selectedTag={selectedTag}
         onTagSelect={handleTagSelect}
-        totalCount={allPosts.length}
+        totalCount={publicPosts.length}
       />
 
       {/* 정렬 옵션 */}
