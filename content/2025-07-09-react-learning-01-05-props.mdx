@@ -1,0 +1,252 @@
+---
+title: "📚 [React 기초 1-5/10] Props로 데이터 전달하기"
+date: "2025-07-09"
+description: "React Props를 사용해 컴포넌트 간 데이터를 전달하는 방법을 학습합니다"
+tags: ["React", "학습", "Vue", "초급", "프론트엔드"]
+series: "React 기초"
+seriesOrder: 5
+---
+
+# React 학습 가이드 - Props로 데이터 전달하기
+
+> React 공식 문서를 기반으로 한 학습 자료  
+> 원문: [Describing the UI - React](https://react.dev/learn/describing-the-ui)
+
+---
+
+## Props로 데이터 전달하기
+
+### Props란?
+
+**Props (Properties)**는 React 컴포넌트가 서로 통신하는 방법입니다.
+
+**핵심 개념:**
+
+- 부모 컴포넌트가 자식 컴포넌트에게 정보를 전달
+- HTML 속성과 유사하지만 **모든 JavaScript 값** 전달 가능
+- 객체, 배열, 함수, 심지어 JSX도 전달 가능
+
+### 기본 사용법
+
+```jsx
+// utils.js
+export function getImageUrl(person) {
+  return `https://i.imgur.com/${person.imageId}s.jpg`;
+}
+```
+
+```jsx
+// App.js
+import { getImageUrl } from './utils.js';
+
+export default function Profile() {
+  return (
+    <Card>
+      <Avatar
+        size={100}
+        person={{
+          name: 'Katsuko Saruhashi',
+          imageId: 'YfeOqp2'
+        }}
+      />
+    </Card>
+  );
+}
+
+// Avatar 컴포넌트: props 받기
+function Avatar({ person, size }) {
+  return (
+    <img
+      className="avatar"
+      src={getImageUrl(person)}
+      alt={person.name}
+      width={size}
+      height={size}
+    />
+  );
+}
+
+// Card 컴포넌트: children prop
+function Card({ children }) {
+  return (
+    <div className="card">
+      {children}
+    </div>
+  );
+}
+```
+
+### Props 전달 단계
+
+#### 1. **자식 컴포넌트에 Props 전달**
+
+```jsx
+<Avatar
+  size={100}
+  person={{ name: 'Kim', imageId: 'abc123' }}
+/>
+```
+
+#### 2. **자식 컴포넌트에서 Props 읽기**
+
+```jsx
+// 방법 1: 구조 분해 할당 (권장)
+function Avatar({ person, size }) {
+  return <img src={person.imageId} width={size} />;
+}
+
+// 방법 2: props 객체 사용
+function Avatar(props) {
+  return <img src={props.person.imageId} width={props.size} />;
+}
+```
+
+### Props 기본값 설정
+
+```jsx
+function Avatar({ person, size = 100 }) {
+  // size가 전달되지 않으면 100 사용
+  return <img src={person.imageId} width={size} />;
+}
+
+// 사용
+<Avatar person={person} />  // size는 100
+<Avatar person={person} size={200} />  // size는 200
+```
+
+### JSX Spread 문법
+
+```jsx
+function Profile(props) {
+  return (
+    <Avatar {...props} />  // 모든 props 전달
+  );
+}
+
+// 동일한 코드
+function Profile({ person, size }) {
+  return (
+    <Avatar person={person} size={size} />
+  );
+}
+```
+
+**주의:** Spread 문법은 편리하지만 남용하지 마세요. 필요한 props만 명시적으로 전달하는 것이 좋습니다.
+
+### Children Prop - 특별한 Props
+
+**`children`**은 컴포넌트 태그 사이의 내용을 전달하는 특별한 prop입니다.
+
+```jsx
+function Card({ children }) {
+  return (
+    <div className="card">
+      {children}
+    </div>
+  );
+}
+
+// 사용
+<Card>
+  <h1>Title</h1>
+  <p>Content</p>
+</Card>
+```
+
+**Vue의 `<slot>`과 동일:**
+
+```html
+<!-- Vue -->
+<template>
+  <div class="card">
+    <slot />
+  </div>
+</template>
+```
+
+### Props는 읽기 전용 (Immutable)
+
+**중요:** Props는 절대 수정할 수 없습니다!
+
+```jsx
+// ❌ 잘못된 코드
+function Avatar({ person, size }) {
+  person.name = 'New Name';  // Props 수정 불가!
+  size = 200;                // Props 수정 불가!
+  return <img />;
+}
+
+// ✅ 올바른 코드
+function Avatar({ person, size }) {
+  // Props는 읽기만 가능
+  const displayName = person.name.toUpperCase();
+  return <img alt={displayName} width={size} />;
+}
+```
+
+**상태 변경이 필요하다면:**
+
+- `useState` Hook 사용 (다음 챕터에서 학습)
+
+### Props 타입 지정 (TypeScript)
+
+```tsx
+interface AvatarProps {
+  person: {
+    name: string;
+    imageId: string;
+  };
+  size: number;
+}
+
+function Avatar({ person, size }: AvatarProps) {
+  return (
+    <img
+      src={`https://i.imgur.com/${person.imageId}s.jpg`}
+      alt={person.name}
+      width={size}
+      height={size}
+    />
+  );
+}
+```
+
+### Vue와 비교
+
+```html
+<!-- Vue: defineProps -->
+<script setup>
+const props = defineProps({
+  person: Object,
+  size: Number
+})
+</script>
+
+<template>
+  <img :width="props.size" />
+</template>
+```
+
+```jsx
+// React: 함수 매개변수
+function Avatar({ person, size }) {
+  return <img width={size} />
+}
+```
+
+---
+
+## 다음 단계
+
+이제 Props를 사용해 데이터를 전달하는 방법을 배웠으니, 다음 포스트에서는 **조건부 렌더링**을 학습합니다.
+
+**배울 내용:**
+- if문, 삼항연산자, && 연산자 사용
+- 조건에 따른 UI 표시
+- null 반환 패턴
+
+---
+
+**작성일**: 2025-10-11  
+**출처**: [React Official Documentation](https://react.dev/learn/describing-the-ui)  
+**대상**: React 초급 학습자

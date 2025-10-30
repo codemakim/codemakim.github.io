@@ -1,0 +1,380 @@
+---
+title: "📚 [React 기초 2-1/8] 상호작용 개요"
+date: "2025-07-15"
+description: "React에서 사용자 상호작용을 처리하는 기본 개념과 이벤트 핸들러를 학습합니다"
+tags: ["React", "학습", "Vue", "초급", "프론트엔드"]
+series: "React 기초"
+seriesOrder: 11
+---
+
+# React 학습 가이드 - 상호작용 개요
+
+> React 공식 문서를 기반으로 한 학습 자료  
+> 원문: [Adding Interactivity - React](https://react.dev/learn/adding-interactivity)
+
+---
+
+## 개요
+
+화면의 일부 요소는 **사용자 입력에 응답하여 업데이트**됩니다.
+
+**예시:**
+
+- 이미지 갤러리에서 사진 클릭 → 활성 이미지 변경
+- 검색 상자에 입력 → 검색 결과 업데이트
+- "구매" 버튼 클릭 → 장바구니에 상품 추가
+
+React에서는 시간에 따라 변하는 데이터를 **state**라고 부릅니다.
+
+### 이 챕터에서 배울 내용
+
+- ✅ 사용자 이벤트 처리 방법
+- ✅ State로 컴포넌트에 정보 기억시키기
+- ✅ React가 UI를 업데이트하는 2단계 (렌더링 & 커밋)
+- ✅ State 변경 직후 업데이트되지 않는 이유
+- ✅ 여러 State 업데이트를 큐에 넣는 방법
+- ✅ State에서 객체를 업데이트하는 방법
+- ✅ State에서 배열을 업데이트하는 방법
+
+---
+
+## 이벤트에 응답하기
+
+### 이벤트 핸들러란?
+
+React에서는 JSX에 **이벤트 핸들러**를 추가하여 사용자 상호작용에 응답할 수 있습니다.
+
+**이벤트 핸들러**는 다음과 같은 사용자 동작에 응답하는 함수입니다:
+
+- 클릭
+- 호버 (마우스 올리기)
+- 폼 입력에 포커스
+- 키보드 입력 등
+
+### 기본 사용법
+
+```jsx
+export default function Button() {
+  function handleClick() {
+    alert('버튼을 클릭했습니다!');
+  }
+
+  return (
+    <button onClick={handleClick}>
+      클릭하세요
+    </button>
+  );
+}
+```
+
+**핵심 포인트:**
+
+1. `handleClick` 함수 정의
+2. `onClick={handleClick}`으로 전달
+3. ⚠️ `onClick={handleClick()}` ❌ - 함수를 호출하지 마세요!
+
+### 이벤트 핸들러 작성 패턴
+
+#### 1. **컴포넌트 내부에서 정의 (권장)**
+
+```jsx
+function Button() {
+  function handleClick() {
+    alert('클릭됨!');
+  }
+  
+  return <button onClick={handleClick}>클릭</button>;
+}
+```
+
+#### 2. **인라인으로 정의**
+
+```jsx
+function Button() {
+  return (
+    <button onClick={function handleClick() {
+      alert('클릭됨!');
+    }}>
+      클릭
+    </button>
+  );
+}
+```
+
+#### 3. **화살표 함수 (간단한 경우)**
+
+```jsx
+function Button() {
+  return (
+    <button onClick={() => {
+      alert('클릭됨!');
+    }}>
+      클릭
+    </button>
+  );
+}
+```
+
+#### 4. **한 줄 인라인**
+
+```jsx
+<button onClick={() => alert('클릭됨!')}>클릭</button>
+```
+
+### ⚠️ 일반적인 실수
+
+```jsx
+// ❌ 함수를 호출함 (즉시 실행됨!)
+<button onClick={handleClick()}>
+
+// ✅ 함수를 전달함 (클릭 시 실행됨)
+<button onClick={handleClick}>
+
+// ❌ 화살표 함수 없이 호출
+<button onClick={alert('클릭됨!')}>
+
+// ✅ 화살표 함수로 감싸기
+<button onClick={() => alert('클릭됨!')}>
+```
+
+### 이벤트 핸들러에서 Props 읽기
+
+이벤트 핸들러는 컴포넌트 내부에 정의되므로 props에 접근할 수 있습니다.
+
+```jsx
+function AlertButton({ message, children }) {
+  return (
+    <button onClick={() => alert(message)}>
+      {children}
+    </button>
+  );
+}
+
+export default function Toolbar() {
+  return (
+    <div>
+      <AlertButton message="영상을 재생합니다!">
+        영상 재생
+      </AlertButton>
+      <AlertButton message="이미지를 업로드합니다!">
+        이미지 업로드
+      </AlertButton>
+    </div>
+  );
+}
+```
+
+### 이벤트 핸들러를 Props로 전달하기
+
+부모 컴포넌트가 자식의 이벤트 핸들러를 지정하고 싶을 때 유용합니다.
+
+```jsx
+function Button({ onClick, children }) {
+  return (
+    <button onClick={onClick}>
+      {children}
+    </button>
+  );
+}
+
+function PlayButton({ movieName }) {
+  function handlePlayClick() {
+    alert(`${movieName} 재생 중!`);
+  }
+
+  return (
+    <Button onClick={handlePlayClick}>
+      "{movieName}" 재생
+    </Button>
+  );
+}
+
+export default function Toolbar() {
+  return (
+    <div>
+      <PlayButton movieName="기생충" />
+      <PlayButton movieName="오징어 게임" />
+    </div>
+  );
+}
+```
+
+**디자인 시스템에서 흔한 패턴:**
+
+- `Button` 같은 컴포넌트는 스타일만 정의
+- 실제 동작은 부모 컴포넌트에서 `onClick` prop으로 전달
+
+### 이벤트 핸들러 Props 명명 규칙
+
+**관례적으로 `on`으로 시작:**
+
+```jsx
+function Button({ onSmash, children }) {
+  return (
+    <button onClick={onSmash}>
+      {children}
+    </button>
+  );
+}
+
+export default function App() {
+  return (
+    <div>
+      <Button onSmash={() => alert('영상 재생!')}>
+        영상 재생
+      </Button>
+      <Button onSmash={() => alert('이미지 업로드!')}>
+        이미지 업로드
+      </Button>
+    </div>
+  );
+}
+```
+
+**명명 규칙:**
+
+- 이벤트 핸들러 prop: `onSmash`, `onClick`, `onPlayVideo` 등
+- 핸들러 함수: `handleSmash`, `handleClick`, `handlePlayVideo` 등
+
+### 이벤트 전파 (Event Propagation)
+
+이벤트 핸들러는 **자식 컴포넌트의 이벤트도 포착**합니다. 이를 "버블링" 또는 "전파"라고 합니다.
+
+```jsx
+export default function Toolbar() {
+  return (
+    <div
+      className="Toolbar"
+      onClick={() => {
+        alert('툴바를 클릭했습니다!');
+      }}
+    >
+      <button onClick={() => alert('영상 재생!')}>
+        영상 재생
+      </button>
+      <button onClick={() => alert('이미지 업로드!')}>
+        이미지 업로드
+      </button>
+    </div>
+  );
+}
+```
+
+**동작:**
+
+1. 버튼 클릭 → 버튼의 `onClick` 실행
+2. 부모 `<div>`의 `onClick` 실행 (전파!)
+
+### 이벤트 전파 중단하기
+
+```jsx
+function Button({ onClick, children }) {
+  return (
+    <button onClick={e => {
+      e.stopPropagation();  // 전파 중단!
+      onClick();
+    }}>
+      {children}
+    </button>
+  );
+}
+
+export default function Toolbar() {
+  return (
+    <div className="Toolbar" onClick={() => alert('툴바 클릭!')}>
+      <Button onClick={() => alert('영상 재생!')}>
+        영상 재생
+      </Button>
+      <Button onClick={() => alert('이미지 업로드!')}>
+        이미지 업로드
+      </Button>
+    </div>
+  );
+}
+```
+
+**이제 버튼 클릭 시 부모의 `onClick`은 실행되지 않습니다.**
+
+### 기본 동작 방지하기
+
+일부 브라우저 이벤트는 기본 동작이 있습니다. `e.preventDefault()`로 방지할 수 있습니다.
+
+```jsx
+export default function Signup() {
+  return (
+    <form onSubmit={e => {
+      e.preventDefault();  // 페이지 새로고침 방지!
+      alert('제출되었습니다!');
+    }}>
+      <input />
+      <button>전송</button>
+    </form>
+  );
+}
+```
+
+**`stopPropagation()` vs `preventDefault()`**
+
+| 메서드 | 설명 |
+|--------|------|
+| `e.stopPropagation()` | 상위 핸들러 실행 중단 |
+| `e.preventDefault()` | 기본 브라우저 동작 방지 |
+
+### 이벤트 핸들러에서 부작용 처리 가능
+
+이벤트 핸들러는 **순수할 필요가 없습니다!** 부작용을 일으키기에 가장 좋은 곳입니다.
+
+**예시:**
+
+- 입력 필드 값 변경
+- 버튼 클릭으로 리스트 변경
+- API 호출
+
+### Vue와 비교
+
+```html
+<!-- Vue: @ 또는 v-on -->
+<template>
+  <button @click="handleClick">클릭</button>
+  <button v-on:click="handleClick">클릭</button>
+</template>
+
+<script setup>
+function handleClick() {
+  alert('클릭됨!')
+}
+</script>
+```
+
+```jsx
+// React: onClick
+function Button() {
+  function handleClick() {
+    alert('클릭됨!')
+  }
+  
+  return <button onClick={handleClick}>클릭</button>
+}
+```
+
+**차이점:**
+
+- Vue: `@click` (kebab-case)
+- React: `onClick` (camelCase)
+
+---
+
+## 다음 단계
+
+이제 이벤트 처리의 기본을 배웠으니, 다음 포스트에서는 **State: 컴포넌트의 메모리**를 학습합니다.
+
+**배울 내용:**
+- useState Hook 사용법
+- State와 일반 변수의 차이
+- State 업데이트 방법
+
+---
+
+**작성일**: 2025-10-11  
+**출처**: [React Official Documentation](https://react.dev/learn/adding-interactivity)  
+**대상**: React 초급 학습자

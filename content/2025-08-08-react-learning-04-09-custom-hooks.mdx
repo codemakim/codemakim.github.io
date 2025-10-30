@@ -1,0 +1,400 @@
+---
+title: "📚 [React 기초 4-9/10] 커스텀 Hook으로 로직 재사용하기"
+date: "2025-08-08"
+description: "커스텀 Hook을 만들고 사용하는 방법과 모범 사례"
+tags: ["React", "학습", "Hook", "중급"]
+series: "React 기초"
+seriesOrder: 35
+---
+
+## 커스텀 Hook으로 로직 재사용하기
+
+### 커스텀 Hook이란?
+
+**커스텀 Hook**은 컴포넌트 로직을 재사용 가능한 함수로 추출한 것입니다.
+
+**명명 규칙:** `use`로 시작
+
+```jsx
+function useOnlineStatus() {
+  const [isOnline, setIsOnline] = useState(true);
+  
+  useEffect(() => {
+    function handleOnline() {
+      setIsOnline(true);
+    }
+    function handleOffline() {
+      setIsOnline(false);
+    }
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+  
+  return isOnline;
+}
+```
+
+### 커스텀 Hook 사용
+
+```jsx
+function StatusBar() {
+  const isOnline = useOnlineStatus();
+  return <h1>{isOnline ? '✅ Online' : '❌ Disconnected'}</h1>;
+}
+
+function SaveButton() {
+  const isOnline = useOnlineStatus();
+
+  function handleSaveClick() {
+    console.log('✅ Progress saved');
+  }
+
+  return (
+    <button disabled={!isOnline} onClick={handleSaveClick}>
+      {isOnline ? 'Save progress' : 'Reconnecting...'}
+    </button>
+  );
+}
+```
+
+### 커스텀 Hook은 state를 공유하지 않습니다
+
+```jsx
+// 각 컴포넌트는 독립적인 isOnline state를 가짐
+function StatusBar() {
+  const isOnline = useOnlineStatus();  // 독립적
+  // ...
+}
+
+function SaveButton() {
+  const isOnline = useOnlineStatus();  // 독립적
+  // ...
+}
+```
+
+### 커스텀 Hook 예제 모음
+
+#### 1. **useLocalStorage**
+
+```jsx
+import { useState, useEffect } from 'react';
+
+function useLocalStorage(key, initialValue) {
+  const [value, setValue] = useState(() => {
+    const saved = localStorage.getItem(key);
+    return saved !== null ? JSON.parse(saved) : initialValue;
+  });
+
+  useEffect(() => {
+    localStorage.setItem(key, JSON.stringify(value));
+  }, [key, value]);
+
+  return [value, setValue];
+}
+
+// 사용
+function App() {
+  const [name, setName] = useLocalStorage('name', '');
+  
+  return (
+    <input
+      value={name}
+      onChange={e => setName(e.target.value)}
+    />
+  );
+}
+```
+
+#### 2. **useWindowSize**
+
+```jsx
+import { useState, useEffect } from 'react';
+
+function useWindowSize() {
+  const [size, setSize] = useState({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  });
+
+  useEffect(() => {
+    function handleResize() {
+      setSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    }
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  return size;
+}
+
+// 사용
+function App() {
+  const { width, height } = useWindowSize();
+  return <p>Window size: {width} x {height}</p>;
+}
+```
+
+#### 3. **useFetch**
+
+```jsx
+import { useState, useEffect } from 'react';
+
+function useFetch(url) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+
+    fetch(url)
+      .then(response => response.json())
+      .then(data => {
+        setData(data);
+        setLoading(false);
+      })
+      .catch(error => {
+        setError(error);
+        setLoading(false);
+      });
+  }, [url]);
+
+  return { data, loading, error };
+}
+
+// 사용
+function UserProfile({ userId }) {
+  const { data, loading, error } = useFetch(`/api/users/${userId}`);
+
+  if (loading) return <p>Loading...</p>;
+  if (error) return <p>Error: {error.message}</p>;
+  return <h1>{data.name}</h1>;
+}
+```
+
+#### 4. **useDebounce**
+
+```jsx
+import { useState, useEffect } from 'react';
+
+function useDebounce(value, delay) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
+// 사용
+function SearchBar() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
+  useEffect(() => {
+    if (debouncedSearchTerm) {
+      // API 호출
+      searchAPI(debouncedSearchTerm);
+    }
+  }, [debouncedSearchTerm]);
+
+  return (
+    <input
+      value={searchTerm}
+      onChange={e => setSearchTerm(e.target.value)}
+    />
+  );
+}
+```
+
+#### 5. **usePrevious**
+
+```jsx
+import { useRef, useEffect } from 'react';
+
+function usePrevious(value) {
+  const ref = useRef();
+  
+  useEffect(() => {
+    ref.current = value;
+  }, [value]);
+  
+  return ref.current;
+}
+
+// 사용
+function Counter() {
+  const [count, setCount] = useState(0);
+  const prevCount = usePrevious(count);
+
+  return (
+    <div>
+      <h1>Now: {count}, before: {prevCount}</h1>
+      <button onClick={() => setCount(count + 1)}>Increment</button>
+    </div>
+  );
+}
+```
+
+#### 6. **useInterval**
+
+```jsx
+import { useEffect, useRef } from 'react';
+
+function useInterval(callback, delay) {
+  const savedCallback = useRef();
+
+  useEffect(() => {
+    savedCallback.current = callback;
+  }, [callback]);
+
+  useEffect(() => {
+    function tick() {
+      savedCallback.current();
+    }
+    
+    if (delay !== null) {
+      const id = setInterval(tick, delay);
+      return () => clearInterval(id);
+    }
+  }, [delay]);
+}
+
+// 사용
+function Counter() {
+  const [count, setCount] = useState(0);
+
+  useInterval(() => {
+    setCount(count + 1);
+  }, 1000);
+
+  return <h1>{count}</h1>;
+}
+```
+
+### 커스텀 Hook 작성 모범 사례
+
+#### 1. **이름은 `use`로 시작**
+
+```jsx
+// ✅ 좋음
+function useOnlineStatus() { }
+function useFormInput() { }
+function useFetch() { }
+
+// ❌ 나쁨
+function getOnlineStatus() { }
+function formInput() { }
+```
+
+#### 2. **높은 수준의 사용 사례에 집중**
+
+```jsx
+// ❌ 나쁨: 너무 일반적
+function useEffect2(fn, deps) {
+  // ...
+}
+
+// ✅ 좋음: 구체적인 목적
+function useChatRoom({ serverUrl, roomId }) {
+  useEffect(() => {
+    const connection = createConnection(serverUrl, roomId);
+    connection.connect();
+    return () => connection.disconnect();
+  }, [serverUrl, roomId]);
+}
+```
+
+#### 3. **Hook은 순수해야 합니다**
+
+```jsx
+// ✅ 좋음: 순수 함수
+function useFormInput(initialValue) {
+  const [value, setValue] = useState(initialValue);
+  
+  function handleChange(e) {
+    setValue(e.target.value);
+  }
+  
+  return {
+    value,
+    onChange: handleChange
+  };
+}
+
+// ❌ 나쁨: 부작용
+function useFormInput(initialValue) {
+  console.log('Rendering!');  // 순수하지 않음
+  const [value, setValue] = useState(initialValue);
+  return { value, setValue };
+}
+```
+
+#### 4. **이벤트 핸들러를 Hook으로 추출하지 마세요**
+
+```jsx
+// ❌ 나쁨
+function useSubmit(onSubmit) {
+  return (e) => {
+    e.preventDefault();
+    onSubmit();
+  };
+}
+
+// ✅ 좋음: 일반 함수로
+function handleSubmit(e, onSubmit) {
+  e.preventDefault();
+  onSubmit();
+}
+```
+
+### Vue와 비교
+
+```javascript
+// Vue: Composables (커스텀 Hook과 유사)
+import { ref, onMounted, onUnmounted } from 'vue'
+
+export function useOnlineStatus() {
+  const isOnline = ref(true)
+
+  function handleOnline() {
+    isOnline.value = true
+  }
+
+  function handleOffline() {
+    isOnline.value = false
+  }
+
+  onMounted(() => {
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+  })
+
+  onUnmounted(() => {
+    window.removeEventListener('online', handleOnline)
+    window.removeEventListener('offline', handleOffline)
+  })
+
+  return { isOnline }
+}
+```
+
+---

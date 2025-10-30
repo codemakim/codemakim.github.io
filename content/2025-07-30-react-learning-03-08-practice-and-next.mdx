@@ -1,0 +1,323 @@
+---
+title: "📚 [React 기초 3-8/8] 연습문제 & 다음 단계"
+date: "2025-07-30"
+description: "React State 관리 학습을 마무리하는 연습문제와 다음 단계 안내"
+tags: ["React", "학습", "Vue", "초급", "프론트엔드"]
+series: "React 기초"
+seriesOrder: 26
+---
+
+# React 학습 가이드 - 연습문제 & 다음 단계
+
+> React 공식 문서를 기반으로 한 학습 자료  
+> 원문: [Managing State - React](https://react.dev/learn/managing-state)
+
+---
+
+## 이 챕터에서 배운 내용 요약
+
+✅ **선언적 UI**: state로 UI 표현  
+✅ **State 구조화**: 중복, 모순 피하기  
+✅ **State 끌어올리기**: 컴포넌트 간 공유  
+✅ **State 보존/재설정**: key로 제어  
+✅ **Reducer**: 복잡한 state 로직 통합  
+✅ **Context**: prop drilling 없이 데이터 전달  
+✅ **Reducer + Context**: 확장 가능한 구조
+
+---
+
+## 연습 문제
+
+### 1. 폼 검증
+
+```jsx
+// TODO: 이메일, 비밀번호 검증이 있는 회원가입 폼
+// - 이메일 형식 검증
+// - 비밀번호 8자 이상
+// - 비밀번호 확인 일치
+// - 에러 메시지 표시
+import { useState } from 'react';
+
+export default function SignupForm() {
+  // 여기에 코드 작성
+}
+```
+
+**요구사항:**
+- 이메일 형식 검증 (정규식 사용)
+- 비밀번호 8자 이상 검증
+- 비밀번호 확인 일치 검증
+- 실시간 에러 메시지 표시
+- State 구조화 원칙 적용
+
+### 2. 장바구니 시스템
+
+```jsx
+// TODO: Context + Reducer로 장바구니 구현
+// - 상품 추가
+// - 수량 증가/감소
+// - 상품 제거
+// - 총액 계산
+```
+
+**요구사항:**
+- Context로 전역 상태 관리
+- Reducer로 복잡한 로직 처리
+- 상품 추가/제거/수량 변경
+- 총 가격 자동 계산
+- localStorage에 데이터 저장
+
+### 3. 다크 모드 토글
+
+```jsx
+// TODO: Context로 전역 테마 관리
+// - 라이트/다크 모드 전환
+// - localStorage에 저장
+// - 모든 컴포넌트에 자동 적용
+```
+
+**요구사항:**
+- Context로 테마 상태 관리
+- localStorage에 테마 설정 저장
+- 페이지 새로고침 시에도 테마 유지
+- 모든 컴포넌트에서 테마 사용 가능
+
+### 4. 고급: 할 일 앱 (Context + Reducer)
+
+```jsx
+// TODO: 완전한 할 일 앱 구현
+// - 할 일 추가/수정/삭제
+// - 완료 상태 토글
+// - 필터링 (전체/완료/미완료)
+// - 검색 기능
+// - 우선순위 설정
+```
+
+**요구사항:**
+- Context + Reducer 패턴 사용
+- 복잡한 State 구조 설계
+- 성능 최적화 고려
+- 사용자 경험 개선
+
+---
+
+## 해답 예시
+
+### 1. 폼 검증 해답
+
+```jsx
+import { useState } from 'react';
+
+export default function SignupForm() {
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
+  const [errors, setErrors] = useState({});
+
+  function validateEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    const newErrors = {};
+
+    if (!validateEmail(formData.email)) {
+      newErrors.email = '올바른 이메일 형식이 아닙니다.';
+    }
+
+    if (formData.password.length < 8) {
+      newErrors.password = '비밀번호는 8자 이상이어야 합니다.';
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = '비밀번호가 일치하지 않습니다.';
+    }
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length === 0) {
+      alert('회원가입이 완료되었습니다!');
+    }
+  }
+
+  function handleChange(e) {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    
+    // 실시간 검증
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div>
+        <label>이메일:</label>
+        <input
+          type="email"
+          name="email"
+          value={formData.email}
+          onChange={handleChange}
+        />
+        {errors.email && <span style={{color: 'red'}}>{errors.email}</span>}
+      </div>
+      
+      <div>
+        <label>비밀번호:</label>
+        <input
+          type="password"
+          name="password"
+          value={formData.password}
+          onChange={handleChange}
+        />
+        {errors.password && <span style={{color: 'red'}}>{errors.password}</span>}
+      </div>
+      
+      <div>
+        <label>비밀번호 확인:</label>
+        <input
+          type="password"
+          name="confirmPassword"
+          value={formData.confirmPassword}
+          onChange={handleChange}
+        />
+        {errors.confirmPassword && <span style={{color: 'red'}}>{errors.confirmPassword}</span>}
+      </div>
+      
+      <button type="submit">회원가입</button>
+    </form>
+  );
+}
+```
+
+### 2. 다크 모드 해답
+
+```jsx
+// ThemeContext.js
+import { createContext, useContext, useState, useEffect } from 'react';
+
+const ThemeContext = createContext();
+
+export function ThemeProvider({ children }) {
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('theme') || 'light';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('theme', theme);
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
+  return (
+    <ThemeContext.Provider value={{ theme, setTheme }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+}
+
+export function useTheme() {
+  return useContext(ThemeContext);
+}
+```
+
+```jsx
+// App.js
+import { ThemeProvider, useTheme } from './ThemeContext';
+
+function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
+  
+  return (
+    <button onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
+      {theme === 'light' ? '🌙' : '☀️'}
+    </button>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <div className="app">
+        <header>
+          <h1>My App</h1>
+          <ThemeToggle />
+        </header>
+        <main>
+          <p>테마가 자동으로 적용됩니다!</p>
+        </main>
+      </div>
+    </ThemeProvider>
+  );
+}
+```
+
+---
+
+## 다음에 학습할 내용
+
+다음 챕터에서는 **Escape Hatches**를 학습합니다.
+
+**배울 내용:**
+
+- Ref로 값 참조하기
+- Ref로 DOM 조작하기
+- Effect로 동기화하기
+- Effect가 필요 없을 수도 있습니다
+- 반응형 Effect의 생명주기
+- Effect에서 이벤트 분리하기
+- Effect 의존성 제거하기
+- 커스텀 Hook으로 로직 재사용하기
+
+### 학습 로드맵
+
+1. **React 기초 4/4**: Escape Hatches
+   - useRef
+   - useEffect
+   - 커스텀 Hook
+
+2. **React 중급**: 더 고급 패턴들
+   - 고차 컴포넌트 (HOC)
+   - Render Props
+   - Compound Components
+
+---
+
+## 학습 체크리스트
+
+- [ ] 선언적 UI 방식을 이해한다
+- [ ] State를 효율적으로 구조화할 수 있다
+- [ ] State를 끌어올려 공유할 수 있다
+- [ ] key로 state를 제어할 수 있다
+- [ ] useReducer로 복잡한 로직을 관리할 수 있다
+- [ ] Context로 데이터를 전달할 수 있다
+- [ ] Reducer와 Context를 결합할 수 있다
+- [ ] 언제 Context를 사용해야 할지 안다
+
+모든 항목을 체크했다면 다음 챕터로 넘어가세요! 🚀
+
+---
+
+## 참고 자료
+
+- [React 공식 문서 - Managing State](https://react.dev/learn/managing-state)
+- [React 공식 문서 - Escape Hatches](https://react.dev/learn/escape-hatches)
+- [useReducer Hook](https://react.dev/reference/react/useReducer)
+- [useContext Hook](https://react.dev/reference/react/useContext)
+- [Context API](https://react.dev/learn/passing-data-deeply-with-context)
+
+---
+
+**작성일**: 2025-10-11  
+**출처**: [React Official Documentation](https://react.dev/learn/managing-state)  
+**대상**: React 중급 학습자

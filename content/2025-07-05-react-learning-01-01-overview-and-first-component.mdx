@@ -1,0 +1,143 @@
+---
+title: "📚 [React 기초 1-1/10] 개요 & 첫 번째 컴포넌트"
+date: "2025-07-05"
+description: "React란 무엇인지, 첫 번째 컴포넌트를 작성하는 방법을 Vue와 비교하며 학습합니다"
+tags: ["React", "학습", "Vue", "초급", "프론트엔드"]
+series: "React 기초"
+seriesOrder: 1
+---
+
+# React 학습 가이드 - 개요 & 첫 번째 컴포넌트
+
+> React 공식 문서를 기반으로 한 학습 자료  
+> 원문: [Describing the UI - React](https://react.dev/learn/describing-the-ui)
+
+---
+
+## 개요
+
+**React란?**  
+React는 사용자 인터페이스(UI)를 렌더링하는 JavaScript 라이브러리입니다.
+
+**핵심 개념:**
+
+- UI는 버튼, 텍스트, 이미지와 같은 작은 단위로 구성됨
+- React는 이들을 **재사용 가능하고 중첩 가능한 컴포넌트**로 결합
+- 웹사이트부터 모바일 앱까지 모든 화면은 컴포넌트로 분해 가능
+
+### 이 챕터에서 배울 내용
+
+- ✅ 첫 React 컴포넌트 작성하기
+- ✅ 멀티 컴포넌트 파일 생성 방법
+- ✅ JSX로 JavaScript에 마크업 추가하기
+- ✅ JSX에서 중괄호로 JavaScript 기능 사용하기
+- ✅ Props로 컴포넌트 설정하기
+- ✅ 조건부 렌더링
+- ✅ 여러 컴포넌트 한 번에 렌더링하기
+- ✅ 순수 컴포넌트로 버그 방지하기
+- ✅ UI를 트리로 이해하기
+
+---
+
+## 첫 번째 컴포넌트
+
+### 컴포넌트란?
+
+React 애플리케이션은 **컴포넌트**라는 독립적인 UI 조각으로 구성됩니다.
+
+**핵심 특징:**
+
+- React 컴포넌트는 **마크업을 포함할 수 있는 JavaScript 함수**
+- 버튼만큼 작을 수도, 전체 페이지만큼 클 수도 있음
+
+### 예제: Gallery 컴포넌트
+
+```jsx
+// Profile 컴포넌트 정의
+function Profile() {
+  return (
+    <img
+      src="https://i.imgur.com/MK3eW3As.jpg"
+      alt="Katherine Johnson"
+    />
+  );
+}
+
+// Gallery 컴포넌트: Profile을 3번 재사용
+export default function Gallery() {
+  return (
+    <section>
+      <h1>Amazing scientists</h1>
+      <Profile />
+      <Profile />
+      <Profile />
+    </section>
+  );
+}
+```
+
+**결과:**
+
+- `Gallery` 컴포넌트가 `Profile` 컴포넌트를 3번 렌더링
+- 각 `Profile`은 독립적인 이미지를 표시
+
+### 핵심 포인트
+
+1. **함수 컴포넌트**: `function ComponentName() { }`
+2. **JSX 반환**: HTML처럼 보이는 마크업 반환
+3. **재사용성**: 같은 컴포넌트를 여러 번 사용 가능
+4. **중첩 가능**: 컴포넌트 안에 다른 컴포넌트 포함 가능
+
+### Vue와 비교
+
+```html
+<!-- Vue: Single File Component -->
+<template>
+  <section>
+    <h1>Amazing scientists</h1>
+    <Profile />
+    <Profile />
+    <Profile />
+  </section>
+</template>
+
+<script setup>
+import Profile from './Profile.vue'
+</script>
+```
+
+```jsx
+// React: 함수 컴포넌트
+export default function Gallery() {
+  return (
+    <section>
+      <h1>Amazing scientists</h1>
+      <Profile />
+      <Profile />
+      <Profile />
+    </section>
+  );
+}
+```
+
+**차이점:**
+
+- Vue: `<template>` 태그로 분리
+- React: JSX를 함수에서 직접 반환
+
+---
+
+## 다음 단계
+
+이제 컴포넌트의 기본 개념을 이해했으니, 다음 포스트에서는 **컴포넌트 Import/Export**를 학습합니다.
+
+**배울 내용:**
+- 파일 분리 방법
+- Export/Import 문법
+- Default vs Named Export
+
+---
+
+**작성일**: 2025-10-11  
+**출처**: [React Official Documentation](https://react.dev/learn/describing-the-ui)  
+**대상**: React 초급 학습자

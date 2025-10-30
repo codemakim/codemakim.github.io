@@ -1,0 +1,348 @@
+---
+title: "📚 [React 기초 3-6/8] Context로 데이터 깊이 전달하기"
+date: "2025-07-28"
+description: "React Context API를 사용해 Prop Drilling 문제를 해결하는 방법을 학습합니다"
+tags: ["React", "학습", "Vue", "초급", "프론트엔드"]
+series: "React 기초"
+seriesOrder: 24
+---
+
+# React 학습 가이드 - Context로 데이터 깊이 전달하기
+
+> React 공식 문서를 기반으로 한 학습 자료  
+> 원문: [Managing State - React](https://react.dev/learn/managing-state)
+
+---
+
+## Context로 데이터 깊이 전달하기
+
+### Prop Drilling 문제
+
+```jsx
+// ❌ Prop Drilling: 중간 컴포넌트들이 theme을 사용하지 않는데도 전달해야 함
+<Page theme={theme}>
+  <Layout theme={theme}>
+    <Header theme={theme}>
+      <Button theme={theme} />
+    </Header>
+  </Layout>
+</Page>
+```
+
+### Context로 해결
+
+Context를 사용하면 부모 컴포넌트가 트리 아래 **모든 컴포넌트**에 데이터를 제공할 수 있습니다.
+
+#### 1단계: Context 생성
+
+```jsx
+import { createContext } from 'react';
+
+export const ThemeContext = createContext('light');
+```
+
+#### 2단계: Context 제공 (Provider)
+
+```jsx
+import { ThemeContext } from './ThemeContext.js';
+
+export default function App() {
+  const [theme, setTheme] = useState('light');
+  
+  return (
+    <ThemeContext.Provider value={theme}>
+      <Page />
+    </ThemeContext.Provider>
+  );
+}
+```
+
+#### 3단계: Context 사용 (Consumer)
+
+```jsx
+import { useContext } from 'react';
+import { ThemeContext } from './ThemeContext.js';
+
+function Button() {
+  const theme = useContext(ThemeContext);
+  
+  return (
+    <button className={theme}>
+      Click me
+    </button>
+  );
+}
+```
+
+### 전체 예제
+
+```jsx
+// ThemeContext.js
+import { createContext } from 'react';
+
+export const ThemeContext = createContext('light');
+```
+
+```jsx
+// App.js
+import { useState } from 'react';
+import { ThemeContext } from './ThemeContext.js';
+
+export default function App() {
+  const [theme, setTheme] = useState('light');
+  
+  return (
+    <ThemeContext.Provider value={theme}>
+      <Page />
+      <label>
+        <input
+          type="checkbox"
+          checked={theme === 'dark'}
+          onChange={(e) => {
+            setTheme(e.target.checked ? 'dark' : 'light')
+          }}
+        />
+        Use dark mode
+      </label>
+    </ThemeContext.Provider>
+  );
+}
+
+function Page() {
+  return (
+    <section>
+      <Header />
+      <Article />
+    </section>
+  );
+}
+
+function Header() {
+  return (
+    <header>
+      <h1>My Website</h1>
+      <Button />
+    </header>
+  );
+}
+
+function Button() {
+  const theme = useContext(ThemeContext);
+  const className = 'button-' + theme;
+  
+  return (
+    <button className={className}>
+      Click me
+    </button>
+  );
+}
+```
+
+### Context와 Reducer 결합하기
+
+복잡한 state 관리는 Context + Reducer를 함께 사용합니다.
+
+```jsx
+// TasksContext.js
+import { createContext, useContext } from 'react';
+
+export const TasksContext = createContext(null);
+export const TasksDispatchContext = createContext(null);
+
+export function useTasks() {
+  return useContext(TasksContext);
+}
+
+export function useTasksDispatch() {
+  return useContext(TasksDispatchContext);
+}
+```
+
+```jsx
+// TasksProvider.js
+import { useReducer } from 'react';
+import { TasksContext, TasksDispatchContext } from './TasksContext.js';
+
+export function TasksProvider({ children }) {
+  const [tasks, dispatch] = useReducer(tasksReducer, initialTasks);
+
+  return (
+    <TasksContext.Provider value={tasks}>
+      <TasksDispatchContext.Provider value={dispatch}>
+        {children}
+      </TasksDispatchContext.Provider>
+    </TasksContext.Provider>
+  );
+}
+
+function tasksReducer(tasks, action) {
+  // ... reducer 로직
+}
+
+const initialTasks = [
+  { id: 0, text: 'Philosopher's Path', done: true },
+  { id: 1, text: 'Visit the temple', done: false },
+  { id: 2, text: 'Drink matcha', done: false }
+];
+```
+
+```jsx
+// App.js
+import { TasksProvider } from './TasksProvider.js';
+import TaskList from './TaskList.js';
+import AddTask from './AddTask.js';
+
+export default function TaskApp() {
+  return (
+    <TasksProvider>
+      <h1>Day off in Kyoto</h1>
+      <AddTask />
+      <TaskList />
+    </TasksProvider>
+  );
+}
+```
+
+```jsx
+// TaskList.js
+import { useTasks, useTasksDispatch } from './TasksContext.js';
+
+export default function TaskList() {
+  const tasks = useTasks();
+  const dispatch = useTasksDispatch();
+
+  return (
+    <ul>
+      {tasks.map(task => (
+        <li key={task.id}>
+          <input
+            type="checkbox"
+            checked={task.done}
+            onChange={e => {
+              dispatch({
+                type: 'changed',
+                task: {
+                  ...task,
+                  done: e.target.checked
+                }
+              });
+            }}
+          />
+          {task.text}
+          <button onClick={() => {
+            dispatch({
+              type: 'deleted',
+              id: task.id
+            });
+          }}>
+            Delete
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+```
+
+```jsx
+// AddTask.js
+import { useState } from 'react';
+import { useTasksDispatch } from './TasksContext.js';
+
+export default function AddTask() {
+  const [text, setText] = useState('');
+  const dispatch = useTasksDispatch();
+  
+  return (
+    <>
+      <input
+        placeholder="Add task"
+        value={text}
+        onChange={e => setText(e.target.value)}
+      />
+      <button onClick={() => {
+        setText('');
+        dispatch({
+          type: 'added',
+          id: nextId++,
+          text: text,
+        });
+      }}>Add</button>
+    </>
+  );
+}
+
+let nextId = 3;
+```
+
+### Context 사용 시 주의사항
+
+#### 1. **과도한 사용 피하기**
+
+```jsx
+// ❌ 나쁨: 모든 것을 Context로
+<UserContext.Provider>
+  <ThemeContext.Provider>
+    <LanguageContext.Provider>
+      <AuthContext.Provider>
+        <SettingsContext.Provider>
+          <App />
+        </SettingsContext.Provider>
+      </AuthContext.Provider>
+    </LanguageContext.Provider>
+  </ThemeContext.Provider>
+</UserContext.Provider>
+
+// ✅ 좋음: 필요한 경우에만
+// 1. Props 전달부터 시작
+// 2. 컴포넌트 추출 및 children으로 JSX 전달
+// 3. 그래도 불편하면 Context 사용
+```
+
+#### 2. **Props 전달을 먼저 고려하세요**
+
+```jsx
+// ✅ 좋음: Props 전달이 명확함
+<Layout posts={posts}>
+  <Posts posts={posts} />
+</Layout>
+
+// Context는 정말 많은 컴포넌트가 같은 데이터를 필요로 할 때만
+```
+
+### Vue와 비교
+
+```html
+<!-- Vue: provide/inject -->
+<script setup>
+import { provide } from 'vue'
+
+provide('theme', 'dark')
+</script>
+```
+
+```html
+<!-- 자식 컴포넌트 -->
+<script setup>
+import { inject } from 'vue'
+
+const theme = inject('theme')
+</script>
+```
+
+---
+
+## 다음 단계
+
+이제 Context를 이해했으니, 다음 포스트에서는 **Reducer와 Context로 확장하기**를 학습합니다.
+
+**배울 내용:**
+- Reducer와 Context 통합 패턴
+- 파일 구조 설계
+- 확장 가능한 State 관리
+
+---
+
+**작성일**: 2025-10-11  
+**출처**: [React Official Documentation](https://react.dev/learn/managing-state)  
+**대상**: React 초급 학습자

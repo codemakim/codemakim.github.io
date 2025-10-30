@@ -1,0 +1,308 @@
+---
+title: "📚 [React 기초 1-10/10] 연습문제 & 다음 단계"
+date: "2025-07-14"
+description: "React 기초 학습을 마무리하는 연습문제와 다음 단계 안내"
+tags: ["React", "학습", "Vue", "초급", "프론트엔드"]
+series: "React 기초"
+seriesOrder: 10
+---
+
+# React 학습 가이드 - 연습문제 & 다음 단계
+
+> React 공식 문서를 기반으로 한 학습 자료  
+> 원문: [Describing the UI - React](https://react.dev/learn/describing-the-ui)
+
+---
+
+## 이 챕터에서 배운 내용 요약
+
+✅ **첫 번째 컴포넌트**: 함수로 작성, JSX 반환  
+✅ **Import/Export**: 파일 분리로 코드 구조화  
+✅ **JSX**: JavaScript에 HTML 마크업 작성  
+✅ **중괄호 `{}`**: JSX에서 JavaScript 표현식 사용  
+✅ **Props**: 부모 → 자식 데이터 전달  
+✅ **조건부 렌더링**: `if`, `&&`, `? :`로 조건 처리  
+✅ **리스트 렌더링**: `map()`으로 배열 → JSX 배열 변환, `key` 필수  
+✅ **순수 컴포넌트**: 같은 입력 → 같은 출력, 부작용 없음  
+✅ **UI 트리**: 렌더 트리와 모듈 의존성 트리 이해
+
+---
+
+## 연습 문제
+
+### 1. 프로필 카드 컴포넌트
+
+```jsx
+// 목표: 재사용 가능한 프로필 카드 만들기
+const users = [
+  { id: 1, name: 'Alice', role: 'Developer', avatar: 'https://i.imgur.com/avatar1.jpg' },
+  { id: 2, name: 'Bob', role: 'Designer', avatar: 'https://i.imgur.com/avatar2.jpg' },
+  { id: 3, name: 'Charlie', role: 'Manager', avatar: 'https://i.imgur.com/avatar3.jpg' },
+];
+
+// TODO: ProfileCard 컴포넌트 작성
+function ProfileCard({ user }) {
+  // 여기에 코드 작성
+}
+
+// TODO: App 컴포넌트에서 users 배열을 렌더링
+export default function App() {
+  // 여기에 코드 작성
+}
+```
+
+**요구사항:**
+- `ProfileCard` 컴포넌트는 `user` prop을 받아야 함
+- 사용자 이름, 역할, 아바타 이미지를 표시
+- `users` 배열을 `map()`으로 렌더링
+- 각 항목에 적절한 `key` 사용
+
+### 2. 할 일 목록 (Todo List)
+
+```jsx
+// 목표: 조건부 렌더링 연습
+const todos = [
+  { id: 1, text: 'Learn React', completed: true },
+  { id: 2, text: 'Build a project', completed: false },
+  { id: 3, text: 'Deploy to production', completed: false },
+];
+
+// TODO: TodoItem 컴포넌트 작성
+// - completed가 true면 체크마크 표시, 텍스트 취소선
+function TodoItem({ todo }) {
+  // 여기에 코드 작성
+}
+
+// TODO: TodoList 컴포넌트 작성
+export default function TodoList() {
+  // 여기에 코드 작성
+}
+```
+
+**요구사항:**
+- `completed`가 `true`면 `✅` 표시하고 텍스트에 취소선
+- `completed`가 `false`면 일반 텍스트
+- 삼항 연산자 또는 `&&` 연산자 사용
+
+### 3. 상품 필터링
+
+```jsx
+// 목표: filter()와 map() 연습
+const products = [
+  { id: 1, name: 'Laptop', category: 'Electronics', price: 1200 },
+  { id: 2, name: 'Phone', category: 'Electronics', price: 800 },
+  { id: 3, name: 'Desk', category: 'Furniture', price: 300 },
+  { id: 4, name: 'Chair', category: 'Furniture', price: 150 },
+];
+
+// TODO: ProductList 컴포넌트 작성
+// - category prop을 받아서 해당 카테고리의 상품만 표시
+function ProductList({ category }) {
+  // 여기에 코드 작성
+}
+
+export default function App() {
+  return (
+    <div>
+      <h1>Electronics</h1>
+      <ProductList category="Electronics" />
+      
+      <h1>Furniture</h1>
+      <ProductList category="Furniture" />
+    </div>
+  );
+}
+```
+
+**요구사항:**
+- `filter()`로 카테고리별 상품 필터링
+- `map()`으로 상품 리스트 렌더링
+- 상품명과 가격 표시
+- 적절한 `key` 사용
+
+### 4. 고급: 사용자 대시보드
+
+```jsx
+// 목표: 복합 컴포넌트 구조 만들기
+const users = [
+  {
+    id: 1,
+    name: 'John Doe',
+    email: 'john@example.com',
+    role: 'Admin',
+    isActive: true,
+    lastLogin: '2025-10-11'
+  },
+  {
+    id: 2,
+    name: 'Jane Smith',
+    email: 'jane@example.com',
+    role: 'User',
+    isActive: false,
+    lastLogin: '2025-10-09'
+  },
+  {
+    id: 3,
+    name: 'Bob Johnson',
+    email: 'bob@example.com',
+    role: 'User',
+    isActive: true,
+    lastLogin: '2025-10-10'
+  }
+];
+
+// TODO: UserCard 컴포넌트 작성
+function UserCard({ user }) {
+  // 여기에 코드 작성
+  // - 사용자 정보 표시
+  // - isActive에 따라 다른 스타일 적용
+  // - 역할에 따라 다른 색상 표시
+}
+
+// TODO: UserDashboard 컴포넌트 작성
+export default function UserDashboard() {
+  // 여기에 코드 작성
+  // - 활성 사용자와 비활성 사용자 분리
+  // - 각 그룹별로 렌더링
+}
+```
+
+**요구사항:**
+- 활성/비활성 사용자를 분리해서 표시
+- `isActive`에 따라 다른 배경색 적용
+- 역할에 따라 다른 태그 색상 사용
+- 마지막 로그인 날짜 표시
+
+---
+
+## 해답 예시
+
+### 1. 프로필 카드 해답
+
+```jsx
+function ProfileCard({ user }) {
+  return (
+    <div className="profile-card">
+      <img src={user.avatar} alt={user.name} />
+      <h3>{user.name}</h3>
+      <p>{user.role}</p>
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <div className="profiles">
+      {users.map(user => (
+        <ProfileCard key={user.id} user={user} />
+      ))}
+    </div>
+  );
+}
+```
+
+### 2. 할 일 목록 해답
+
+```jsx
+function TodoItem({ todo }) {
+  return (
+    <li className="todo-item">
+      {todo.completed ? (
+        <del>{todo.text} ✅</del>
+      ) : (
+        todo.text
+      )}
+    </li>
+  );
+}
+
+export default function TodoList() {
+  return (
+    <ul>
+      {todos.map(todo => (
+        <TodoItem key={todo.id} todo={todo} />
+      ))}
+    </ul>
+  );
+}
+```
+
+### 3. 상품 필터링 해답
+
+```jsx
+function ProductList({ category }) {
+  const filteredProducts = products.filter(
+    product => product.category === category
+  );
+  
+  return (
+    <ul>
+      {filteredProducts.map(product => (
+        <li key={product.id}>
+          {product.name} - ${product.price}
+        </li>
+      ))}
+    </ul>
+  );
+}
+```
+
+---
+
+## 다음에 학습할 내용
+
+이제 UI를 표현하는 방법을 배웠으니, 다음 챕터에서는 **인터랙티비티 추가하기 (Adding Interactivity)**를 학습합니다.
+
+**배울 내용:**
+
+- 이벤트 처리 (`onClick`, `onChange` 등)
+- 상태 관리 (`useState`)
+- 렌더링과 커밋 이해
+- 상태 업데이트 패턴
+
+### 학습 로드맵
+
+1. **React 기초 2/4**: Adding Interactivity
+   - 이벤트 핸들러
+   - useState Hook
+   - 상태 업데이트
+
+2. **React 기초 3/4**: Managing State
+   - 상태 끌어올리기
+   - 상태 관리 패턴
+   - useReducer
+
+3. **React 기초 4/4**: Escape Hatches
+   - useRef
+   - useEffect
+   - 커스텀 Hook
+
+---
+
+## 학습 체크리스트
+
+- [ ] 함수 컴포넌트 작성할 수 있다
+- [ ] JSX 문법을 이해하고 사용할 수 있다
+- [ ] Props를 전달하고 받을 수 있다
+- [ ] 조건부 렌더링을 할 수 있다
+- [ ] 배열을 컴포넌트 리스트로 렌더링할 수 있다
+- [ ] `key`의 중요성을 이해한다
+- [ ] 순수 컴포넌트를 작성할 수 있다
+- [ ] UI를 트리 구조로 이해할 수 있다
+
+모든 항목을 체크했다면 다음 챕터로 넘어가세요! 🚀
+
+---
+
+## 참고 자료
+
+- [React 공식 문서 - Describing the UI](https://react.dev/learn/describing-the-ui)
+- [React 공식 문서 - Adding Interactivity](https://react.dev/learn/adding-interactivity)
+- [JavaScript Array 메서드 (map, filter)](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)
+- [JSX 소개](https://react.dev/learn/writing-markup-with-jsx)
+
+---
+
+**작성일**: 2025-10-11  
+**출처**: [React Official Documentation](https://react.dev/learn/describing-the-ui)  
+**대상**: React 초급 학습자

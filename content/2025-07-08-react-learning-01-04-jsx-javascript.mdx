@@ -1,0 +1,174 @@
+---
+title: "📚 [React 기초 1-4/10] JSX에서 JavaScript 사용하기"
+date: "2025-07-08"
+description: "JSX에서 중괄호를 사용해 JavaScript 표현식을 활용하는 방법을 학습합니다"
+tags: ["React", "학습", "Vue", "초급", "프론트엔드"]
+series: "React 기초"
+seriesOrder: 4
+---
+
+# React 학습 가이드 - JSX에서 JavaScript 사용하기
+
+> React 공식 문서를 기반으로 한 학습 자료  
+> 원문: [Describing the UI - React](https://react.dev/learn/describing-the-ui)
+
+---
+
+## JSX에서 JavaScript 사용하기
+
+### 중괄호 `{}` - JavaScript로의 창
+
+JSX에서 **중괄호 `{}`**를 사용하면 JavaScript 로직이나 동적 속성을 사용할 수 있습니다.
+
+### 기본 사용법
+
+```jsx
+const person = {
+  name: 'Gregorio Y. Zara',
+  theme: {
+    backgroundColor: 'black',
+    color: 'pink'
+  }
+};
+
+export default function TodoList() {
+  return (
+    <div style={person.theme}>
+      <h1>{person.name}'s Todos</h1>
+      <img
+        className="avatar"
+        src="https://i.imgur.com/7vQD0fPs.jpg"
+        alt="Gregorio Y. Zara"
+      />
+      <ul>
+        <li>Improve the videophone</li>
+        <li>Prepare aeronautics lectures</li>
+        <li>Work on the alcohol-fuelled engine</li>
+      </ul>
+    </div>
+  );
+}
+```
+
+**결과:**
+
+- `{person.name}` → "Gregorio Y. Zara" 출력
+- `style={person.theme}` → 동적 스타일 적용
+
+### 중괄호 사용 위치
+
+#### 1. **JSX 태그 내부의 텍스트**
+
+```jsx
+<h1>{user.name}'s Profile</h1>
+```
+
+#### 2. **속성 값**
+
+```jsx
+// ❌ 따옴표 안에서는 문자열로 취급됨
+<img src="user.imageUrl" />  // 'user.imageUrl' 문자열
+
+// ✅ 중괄호로 JavaScript 값 전달
+<img src={user.imageUrl} />  // user.imageUrl 변수
+```
+
+### 다양한 JavaScript 표현식 사용
+
+```jsx
+export default function Component() {
+  const user = {
+    name: 'Kim',
+    imageUrl: 'https://example.com/image.jpg',
+    imageSize: 90
+  };
+
+  return (
+    <div>
+      {/* 1. 변수 */}
+      <h1>{user.name}</h1>
+
+      {/* 2. 함수 호출 */}
+      <p>Today is {new Date().toLocaleDateString()}</p>
+
+      {/* 3. 삼항 연산자 */}
+      <p>{user.age > 18 ? 'Adult' : 'Minor'}</p>
+
+      {/* 4. 객체 속성 */}
+      <img
+        src={user.imageUrl}
+        alt={user.name}
+        style={{
+          width: user.imageSize,
+          height: user.imageSize
+        }}
+      />
+
+      {/* 5. 배열 메서드 */}
+      <ul>
+        {[1, 2, 3].map(num => (
+          <li key={num}>{num * 2}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+```
+
+### 이중 중괄호 `{{ }}` - 객체를 JSX에 전달
+
+```jsx
+// 스타일 객체 전달
+<div style={{ backgroundColor: 'black', color: 'pink' }}>
+  Content
+</div>
+
+// 외부 중괄호: JSX로 JavaScript 전환
+// 내부 중괄호: JavaScript 객체 리터럴
+```
+
+### Vue와 비교
+
+```html
+<!-- Vue: 이중 중괄호 {{ }} 또는 v-bind -->
+<template>
+  <div :style="{ backgroundColor: 'black', color: 'pink' }">
+    <h1>{{ person.name }}</h1>
+    <img :src="person.imageUrl" />
+  </div>
+</template>
+```
+
+```jsx
+// React: 단일 중괄호 { }
+export default function Component() {
+  return (
+    <div style={{ backgroundColor: 'black', color: 'pink' }}>
+      <h1>{person.name}</h1>
+      <img src={person.imageUrl} />
+    </div>
+  )
+}
+```
+
+**차이점:**
+
+- Vue: `{{ }}` (텍스트), `:속성` (바인딩)
+- React: `{ }` (모든 곳에서 동일)
+
+---
+
+## 다음 단계
+
+이제 JSX에서 JavaScript를 사용하는 방법을 배웠으니, 다음 포스트에서는 **Props로 데이터 전달하기**를 학습합니다.
+
+**배울 내용:**
+- Props 개념과 사용법
+- 부모-자식 컴포넌트 통신
+- Children prop 활용
+
+---
+
+**작성일**: 2025-10-11  
+**출처**: [React Official Documentation](https://react.dev/learn/describing-the-ui)  
+**대상**: React 초급 학습자

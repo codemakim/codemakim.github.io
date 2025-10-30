@@ -1,0 +1,414 @@
+---
+title: "📚 [React 기초 2-7/8] 배열 State 업데이트하기"
+date: "2025-07-21"
+description: "React에서 배열 State를 불변성 원칙에 따라 업데이트하는 방법을 학습합니다"
+tags: ["React", "학습", "Vue", "초급", "프론트엔드"]
+series: "React 기초"
+seriesOrder: 17
+---
+
+# React 학습 가이드 - 배열 State 업데이트하기
+
+> React 공식 문서를 기반으로 한 학습 자료  
+> 원문: [Adding Interactivity - React](https://react.dev/learn/adding-interactivity)
+
+---
+
+## 배열 State 업데이트하기
+
+### 배열도 불변으로 취급하세요
+
+JavaScript에서 배열은 변경 가능하지만, state에 저장할 때는 **불변으로 취급**해야 합니다.
+
+**피해야 할 메서드 (돌연변이):**
+
+| 피하기 | 대신 사용 | 이유 |
+|--------|----------|------|
+| `push`, `unshift` | `concat`, `[...arr]` | 끝/시작에 추가 |
+| `pop`, `shift`, `splice` | `filter`, `slice` | 제거 |
+| `reverse`, `sort` | 배열 복사 후 사용 | 정렬/역순 |
+| `arr[i] = ...` | `map` | 요소 대체 |
+
+### 배열에 요소 추가하기
+
+```jsx
+import { useState } from 'react';
+
+export default function List() {
+  const [artists, setArtists] = useState([]);
+
+  return (
+    <>
+      <h1>Inspiring sculptors:</h1>
+      <input
+        value={name}
+        onChange={e => setName(e.target.value)}
+      />
+      <button onClick={() => {
+        setArtists([
+          ...artists,                    // 기존 배열 복사
+          { id: nextId++, name: name }   // 새 요소 추가
+        ]);
+      }}>
+        Add
+      </button>
+      <ul>
+        {artists.map(artist => (
+          <li key={artist.id}>{artist.name}</li>
+        ))}
+      </ul>
+    </>
+  );
+}
+```
+
+**Spread 문법:**
+
+- `[...artists, newItem]`: 끝에 추가
+- `[newItem, ...artists]`: 시작에 추가
+
+### 배열에서 요소 제거하기
+
+```jsx
+import { useState } from 'react';
+
+const initialArtists = [
+  { id: 0, name: 'Marta Colvin Andrade' },
+  { id: 1, name: 'Lamidi Olonade Fakeye'},
+  { id: 2, name: 'Louise Nevelson'},
+];
+
+export default function List() {
+  const [artists, setArtists] = useState(initialArtists);
+
+  return (
+    <>
+      <h1>Inspiring sculptors:</h1>
+      <ul>
+        {artists.map(artist => (
+          <li key={artist.id}>
+            {artist.name}{' '}
+            <button onClick={() => {
+              setArtists(
+                artists.filter(a => a.id !== artist.id)
+              );
+            }}>
+              Delete
+            </button>
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+```
+
+**`filter()` 메서드:**
+
+- 조건에 맞는 요소만 포함하는 새 배열 생성
+- 원본 배열은 변경되지 않음
+
+### 배열 변환하기
+
+```jsx
+import { useState } from 'react';
+
+let initialShapes = [
+  { id: 0, type: 'circle', x: 50, y: 100 },
+  { id: 1, type: 'square', x: 150, y: 100 },
+  { id: 2, type: 'circle', x: 250, y: 100 },
+];
+
+export default function ShapeEditor() {
+  const [shapes, setShapes] = useState(initialShapes);
+
+  function handleClick() {
+    const nextShapes = shapes.map(shape => {
+      if (shape.type === 'square') {
+        return shape;  // 변경 안함
+      } else {
+        return {
+          ...shape,
+          y: shape.y + 50  // 아래로 50px 이동
+        };
+      }
+    });
+    setShapes(nextShapes);
+  }
+
+  return (
+    <>
+      <button onClick={handleClick}>
+        Move circles down!
+      </button>
+      {shapes.map(shape => (
+        <div
+          key={shape.id}
+          style={{
+            background: 'purple',
+            position: 'absolute',
+            left: shape.x,
+            top: shape.y,
+            borderRadius: shape.type === 'circle' ? '50%' : '',
+            width: 20,
+            height: 20,
+          }}
+        />
+      ))}
+    </>
+  );
+}
+```
+
+### 배열의 특정 위치에 삽입하기
+
+```jsx
+import { useState } from 'react';
+
+let nextId = 3;
+const initialArtists = [
+  { id: 0, name: 'Marta Colvin Andrade' },
+  { id: 1, name: 'Lamidi Olonade Fakeye'},
+  { id: 2, name: 'Louise Nevelson'},
+];
+
+export default function List() {
+  const [name, setName] = useState('');
+  const [artists, setArtists] = useState(initialArtists);
+
+  function handleClick() {
+    const insertAt = 1;  // 인덱스 1에 삽입
+    const nextArtists = [
+      ...artists.slice(0, insertAt),  // insertAt 이전 요소들
+      { id: nextId++, name: name },   // 새 요소
+      ...artists.slice(insertAt)      // insertAt 이후 요소들
+    ];
+    setArtists(nextArtists);
+    setName('');
+  }
+
+  return (
+    <>
+      <h1>Inspiring sculptors:</h1>
+      <input
+        value={name}
+        onChange={e => setName(e.target.value)}
+      />
+      <button onClick={handleClick}>
+        Insert
+      </button>
+      <ul>
+        {artists.map(artist => (
+          <li key={artist.id}>{artist.name}</li>
+        ))}
+      </ul>
+    </>
+  );
+}
+```
+
+### 배열 역순/정렬
+
+```jsx
+import { useState } from 'react';
+
+const initialList = [
+  { id: 0, title: 'Big Bellies' },
+  { id: 1, title: 'Lunar Landscape' },
+  { id: 2, title: 'Terracotta Army' },
+];
+
+export default function List() {
+  const [list, setList] = useState(initialList);
+
+  function handleReverse() {
+    const nextList = [...list];  // 복사
+    nextList.reverse();          // 복사본 변경
+    setList(nextList);
+  }
+
+  function handleSort() {
+    const nextList = [...list];
+    nextList.sort((a, b) => a.title.localeCompare(b.title));
+    setList(nextList);
+  }
+
+  return (
+    <>
+      <button onClick={handleReverse}>
+        Reverse
+      </button>
+      <button onClick={handleSort}>
+        Sort
+      </button>
+      <ul>
+        {list.map(artwork => (
+          <li key={artwork.id}>{artwork.title}</li>
+        ))}
+      </ul>
+    </>
+  );
+}
+```
+
+**⚠️ 주의:**
+
+- `reverse()`와 `sort()`는 원본 배열을 변경
+- 먼저 배열을 복사한 후 사용해야 함
+
+### 배열 내부 객체 업데이트
+
+```jsx
+import { useState } from 'react';
+
+let nextId = 3;
+const initialList = [
+  { id: 0, title: 'Big Bellies', seen: false },
+  { id: 1, title: 'Lunar Landscape', seen: false },
+  { id: 2, title: 'Terracotta Army', seen: true },
+];
+
+export default function BucketList() {
+  const [list, setList] = useState(initialList);
+
+  function handleToggle(artworkId, nextSeen) {
+    setList(list.map(artwork => {
+      if (artwork.id === artworkId) {
+        return { ...artwork, seen: nextSeen };  // 새 객체 생성
+      } else {
+        return artwork;
+      }
+    }));
+  }
+
+  return (
+    <>
+      <h1>Art Bucket List</h1>
+      <h2>My list of art to see:</h2>
+      <ItemList
+        artworks={list}
+        onToggle={handleToggle}
+      />
+    </>
+  );
+}
+
+function ItemList({ artworks, onToggle }) {
+  return (
+    <ul>
+      {artworks.map(artwork => (
+        <li key={artwork.id}>
+          <label>
+            <input
+              type="checkbox"
+              checked={artwork.seen}
+              onChange={e => {
+                onToggle(
+                  artwork.id,
+                  e.target.checked
+                );
+              }}
+            />
+            {artwork.title}
+          </label>
+        </li>
+      ))}
+    </ul>
+  );
+}
+```
+
+### Immer로 간결한 배열 업데이트
+
+```jsx
+import { useState } from 'react';
+import { useImmer } from 'use-immer';
+
+let nextId = 3;
+const initialList = [
+  { id: 0, title: 'Big Bellies', seen: false },
+  { id: 1, title: 'Lunar Landscape', seen: false },
+  { id: 2, title: 'Terracotta Army', seen: true },
+];
+
+export default function BucketList() {
+  const [list, updateList] = useImmer(initialList);
+
+  function handleToggle(artworkId, nextSeen) {
+    updateList(draft => {
+      const artwork = draft.find(a => a.id === artworkId);
+      artwork.seen = nextSeen;  // 직접 수정처럼 작성!
+    });
+  }
+
+  return (
+    <>
+      <h1>Art Bucket List</h1>
+      <ItemList
+        artworks={list}
+        onToggle={handleToggle}
+      />
+    </>
+  );
+}
+```
+
+### 배열 메서드 참조표
+
+| 동작 | 피하기 (돌연변이) | 권장 (새 배열 반환) |
+|------|----------------|------------------|
+| 추가 | `push`, `unshift` | `concat`, `[...arr]` spread |
+| 제거 | `pop`, `shift`, `splice` | `filter`, `slice` |
+| 교체 | `splice`, `arr[i] = ...` | `map` |
+| 정렬 | `reverse`, `sort` | 복사 후 사용 |
+
+**항상 새 배열을 반환하는 메서드:**
+
+- `concat`
+- `filter`
+- `slice`
+- `map`
+- Spread 문법 `[...arr]`
+
+### Vue와 비교
+
+```html
+<script setup>
+import { reactive } from 'vue'
+
+const artists = reactive([])
+
+// ✅ Vue는 직접 수정 가능 (반응형)
+artists.push({ id: 1, name: 'Kim' })
+artists.splice(0, 1)
+</script>
+```
+
+```jsx
+// React: 불변 업데이트 필요
+const [artists, setArtists] = useState([])
+
+// ❌ 직접 수정 불가
+artists.push({ id: 1, name: 'Kim' })
+
+// ✅ 새 배열 생성
+setArtists([...artists, { id: 1, name: 'Kim' }])
+setArtists(artists.filter((a, i) => i !== 0))
+```
+
+---
+
+## 다음 단계
+
+이제 배열 State 업데이트를 이해했으니, 다음 포스트에서는 **연습문제와 다음 단계**를 학습합니다.
+
+**배울 내용:**
+- 실전 연습문제
+- 다음 챕터 소개
+- 학습 체크리스트
+
+---
+
+**작성일**: 2025-10-11  
+**출처**: [React Official Documentation](https://react.dev/learn/adding-interactivity)  
+**대상**: React 초급 학습자

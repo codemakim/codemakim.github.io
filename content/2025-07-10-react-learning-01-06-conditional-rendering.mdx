@@ -1,0 +1,237 @@
+---
+title: "📚 [React 기초 1-6/10] 조건부 렌더링"
+date: "2025-07-10"
+description: "React에서 조건에 따라 다른 UI를 렌더링하는 방법을 학습합니다"
+tags: ["React", "학습", "Vue", "초급", "프론트엔드"]
+series: "React 기초"
+seriesOrder: 6
+---
+
+# React 학습 가이드 - 조건부 렌더링
+
+> React 공식 문서를 기반으로 한 학습 자료  
+> 원문: [Describing the UI - React](https://react.dev/learn/describing-the-ui)
+
+---
+
+## 조건부 렌더링
+
+### 조건부 렌더링이란?
+
+컴포넌트가 **다른 조건에 따라 다른 내용을 표시**하는 것입니다.
+
+React에서는 JavaScript 문법(`if`, `&&`, `? :`)을 사용하여 조건부로 JSX를 렌더링합니다.
+
+### 방법 1: `if` 문 사용
+
+```jsx
+function Item({ name, isPacked }) {
+  if (isPacked) {
+    return <li className="item">{name} ✅</li>;
+  }
+  return <li className="item">{name}</li>;
+}
+
+export default function PackingList() {
+  return (
+    <section>
+      <h1>Sally Ride's Packing List</h1>
+      <ul>
+        <Item isPacked={true} name="Space suit" />
+        <Item isPacked={true} name="Helmet with a golden leaf" />
+        <Item isPacked={false} name="Photo of Tam" />
+      </ul>
+    </section>
+  );
+}
+```
+
+**결과:**
+
+- `isPacked={true}` → "Space suit ✅"
+- `isPacked={false}` → "Photo of Tam"
+
+### 방법 2: 조건부로 `null` 반환
+
+```jsx
+function Item({ name, isPacked }) {
+  if (isPacked) {
+    return null;  // 아무것도 렌더링하지 않음
+  }
+  return <li className="item">{name}</li>;
+}
+```
+
+**주의:** 실전에서는 `null`을 반환하는 것이 혼란스러울 수 있으므로 신중히 사용하세요.
+
+### 방법 3: 삼항 연산자 `? :`
+
+```jsx
+function Item({ name, isPacked }) {
+  return (
+    <li className="item">
+      {isPacked ? name + ' ✅' : name}
+    </li>
+  );
+}
+```
+
+**더 명확한 버전:**
+
+```jsx
+function Item({ name, isPacked }) {
+  return (
+    <li className="item">
+      {isPacked ? (
+        <del>{name} ✅</del>  // 패킹됨: 취소선
+      ) : (
+        name                   // 패킹 안됨: 일반 텍스트
+      )}
+    </li>
+  );
+}
+```
+
+### 방법 4: 논리 AND 연산자 `&&`
+
+```jsx
+function Item({ name, isPacked }) {
+  return (
+    <li className="item">
+      {name} {isPacked && '✅'}
+    </li>
+  );
+}
+```
+
+**해석:**
+
+- `isPacked`이 `true`면 `'✅'` 렌더링
+- `isPacked`이 `false`면 아무것도 렌더링하지 않음
+
+**동작 원리:**
+
+```jsx
+// JavaScript 논리 연산
+true && 'hello'   // 'hello'
+false && 'hello'  // false (React는 false를 렌더링하지 않음)
+```
+
+### ⚠️ 주의: `&&` 왼쪽에 숫자를 두지 마세요
+
+```jsx
+// ❌ 잘못된 코드
+messageCount && <p>New messages</p>
+
+// messageCount가 0이면 0이 렌더링됨! (빈 것이 아님)
+```
+
+```jsx
+// ✅ 올바른 코드
+messageCount > 0 && <p>New messages</p>
+
+// 또는
+!!messageCount && <p>New messages</p>
+```
+
+### 방법 5: 변수에 JSX 할당
+
+```jsx
+function Item({ name, isPacked }) {
+  let itemContent = name;
+  
+  if (isPacked) {
+    itemContent = name + ' ✅';
+  }
+  
+  return (
+    <li className="item">
+      {itemContent}
+    </li>
+  );
+}
+```
+
+**복잡한 조건일 때 유용:**
+
+```jsx
+function Item({ name, isPacked, priority }) {
+  let itemContent;
+  
+  if (isPacked && priority === 'high') {
+    itemContent = <strong>{name} ✅ 🔥</strong>;
+  } else if (isPacked) {
+    itemContent = name + ' ✅';
+  } else if (priority === 'high') {
+    itemContent = <strong>{name} 🔥</strong>;
+  } else {
+    itemContent = name;
+  }
+  
+  return <li className="item">{itemContent}</li>;
+}
+```
+
+### 실전 예제: 로그인 버튼
+
+```jsx
+function LoginButton({ isLoggedIn, userName }) {
+  return (
+    <div>
+      {isLoggedIn ? (
+        <div>
+          <span>Welcome, {userName}!</span>
+          <button>Logout</button>
+        </div>
+      ) : (
+        <button>Login</button>
+      )}
+    </div>
+  );
+}
+```
+
+### Vue와 비교
+
+```html
+<!-- Vue: v-if / v-else -->
+<template>
+  <li class="item">
+    <span v-if="isPacked">{{ name }} ✅</span>
+    <span v-else>{{ name }}</span>
+  </li>
+</template>
+```
+
+```jsx
+// React: JavaScript 문법 사용
+function Item({ name, isPacked }) {
+  return (
+    <li className="item">
+      {isPacked ? `${name} ✅` : name}
+    </li>
+  )
+}
+```
+
+**차이점:**
+
+- Vue: 템플릿 디렉티브 (`v-if`, `v-else`, `v-show`)
+- React: JavaScript 문법 (`if`, `&&`, `? :`)
+
+---
+
+## 다음 단계
+
+이제 조건부 렌더링을 배웠으니, 다음 포스트에서는 **리스트 렌더링**을 학습합니다.
+
+**배울 내용:**
+- map() 메서드 사용
+- key 속성의 중요성
+- 필터링과 렌더링 조합
+
+---
+
+**작성일**: 2025-10-11  
+**출처**: [React Official Documentation](https://react.dev/learn/describing-the-ui)  
+**대상**: React 초급 학습자

@@ -1,0 +1,159 @@
+---
+title: "📚 [React 기초 4-8/10] Effect 의존성 제거하기"
+date: "2025-08-07"
+description: "불필요한 Effect 의존성을 제거해 재실행을 줄이는 방법"
+tags: ["React", "학습", "Effect", "의존성", "최적화"]
+series: "React 기초"
+seriesOrder: 34
+---
+
+## Effect 의존성 제거하기
+
+### 불필요한 의존성 제거
+
+#### 1. **객체 의존성**
+
+```jsx
+// ❌ 나쁨: 객체는 매 렌더링마다 재생성
+function ChatRoom({ options }) {
+  useEffect(() => {
+    const connection = createConnection(options);
+    connection.connect();
+    return () => connection.disconnect();
+  }, [options]);  // 매 렌더링마다 재연결!
+}
+
+function App() {
+  const [isDark, setIsDark] = useState(false);
+  const options = { serverUrl: 'https://localhost:1234', roomId: 'music' };
+  return <ChatRoom options={options} />;
+}
+
+// ✅ 좋음: 필요한 값만 의존성으로
+function ChatRoom({ options }) {
+  const { serverUrl, roomId } = options;
+  useEffect(() => {
+    const connection = createConnection(serverUrl, roomId);
+    connection.connect();
+    return () => connection.disconnect();
+  }, [serverUrl, roomId]);
+}
+```
+
+#### 2. **함수 의존성**
+
+```jsx
+// ❌ 나쁨: 함수는 매 렌더링마다 재생성
+function ChatRoom({ getOptions }) {
+  useEffect(() => {
+    const options = getOptions();
+    const connection = createConnection(options);
+    connection.connect();
+    return () => connection.disconnect();
+  }, [getOptions]);  // 매 렌더링마다 재연결!
+}
+
+// ✅ 좋음: 함수를 Effect 안으로
+function ChatRoom({ roomId }) {
+  useEffect(() => {
+    function getOptions() {
+      return { serverUrl: 'https://localhost:1234', roomId };
+    }
+    
+    const options = getOptions();
+    const connection = createConnection(options);
+    connection.connect();
+    return () => connection.disconnect();
+  }, [roomId]);
+}
+```
+
+#### 3. **동적 객체/함수 생성**
+
+```jsx
+// ❌ 나쁨
+function ChatRoom({ roomId }) {
+  useEffect(() => {
+    const options = {
+      serverUrl: serverUrl,
+      roomId: roomId
+    };
+    const connection = createConnection(options);
+    connection.connect();
+    return () => connection.disconnect();
+  }, [roomId, serverUrl]);
+}
+
+// ✅ 좋음
+function ChatRoom({ roomId }) {
+  useEffect(() => {
+    const connection = createConnection(serverUrl, roomId);
+    connection.connect();
+    return () => connection.disconnect();
+  }, [roomId]);  // serverUrl은 컴포넌트 외부의 상수
+}
+
+const serverUrl = 'https://localhost:1234';
+```
+
+### State로부터 다음 state 계산
+
+```jsx
+// ❌ 나쁨: messages가 의존성
+function ChatRoom({ roomId }) {
+  const [messages, setMessages] = useState([]);
+
+  useEffect(() => {
+    const connection = createConnection();
+    connection.on('message', (receivedMessage) => {
+      setMessages([...messages, receivedMessage]);
+    });
+    return () => connection.disconnect();
+  }, [roomId, messages]);  // messages 변경 시마다 재연결!
+}
+
+// ✅ 좋음: 업데이터 함수 사용
+function ChatRoom({ roomId }) {
+  const [messages, setMessages] = useState([]);
+
+  useEffect(() => {
+    const connection = createConnection();
+    connection.on('message', (receivedMessage) => {
+      setMessages(msgs => [...msgs, receivedMessage]);
+    });
+    return () => connection.disconnect();
+  }, [roomId]);  // messages는 의존성 아님!
+}
+```
+
+### 값을 읽되 "반응"하고 싶지 않을 때
+
+```jsx
+// ❌ 나쁨: theme 변경 시 재연결
+function ChatRoom({ roomId, theme }) {
+  useEffect(() => {
+    const connection = createConnection(serverUrl, roomId);
+    connection.on('connected', () => {
+      showNotification('Connected!', theme);
+    });
+    connection.connect();
+    return () => connection.disconnect();
+  }, [roomId, theme]);
+}
+
+// ✅ 좋음: Effect Event 사용
+function ChatRoom({ roomId, theme }) {
+  const onConnected = useEffectEvent(() => {
+    showNotification('Connected!', theme);
+  });
+
+  useEffect(() => {
+    const connection = createConnection(serverUrl, roomId);
+    connection.on('connected', onConnected);
+    connection.connect();
+    return () => connection.disconnect();
+  }, [roomId]);
+}
+```
+
+---

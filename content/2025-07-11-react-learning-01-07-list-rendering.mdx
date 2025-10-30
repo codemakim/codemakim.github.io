@@ -1,0 +1,382 @@
+---
+title: "📚 [React 기초 1-7/10] 리스트 렌더링"
+date: "2025-07-11"
+description: "React에서 배열 데이터를 컴포넌트 리스트로 렌더링하는 방법을 학습합니다"
+tags: ["React", "학습", "Vue", "초급", "프론트엔드"]
+series: "React 기초"
+seriesOrder: 7
+---
+
+# React 학습 가이드 - 리스트 렌더링
+
+> React 공식 문서를 기반으로 한 학습 자료  
+> 원문: [Describing the UI - React](https://react.dev/learn/describing-the-ui)
+
+---
+
+## 리스트 렌더링
+
+### 리스트 렌더링이란?
+
+**데이터 컬렉션(배열)을 여러 개의 유사한 컴포넌트로 표시**하는 것입니다.
+
+React에서는 JavaScript의 `filter()`와 `map()`을 사용하여 데이터 배열을 컴포넌트 배열로 변환합니다.
+
+### 기본 예제
+
+```jsx
+// data.js
+export const people = [
+  {
+    id: 0,
+    name: 'Creola Katherine Johnson',
+    profession: 'mathematician',
+    accomplishment: 'spaceflight calculations',
+    imageId: 'MK3eW3A'
+  },
+  {
+    id: 1,
+    name: 'Mario José Molina-Pasquel Henríquez',
+    profession: 'chemist',
+    accomplishment: 'discovery of Arctic ozone hole',
+    imageId: 'mynHUSa'
+  },
+  {
+    id: 2,
+    name: 'Mohammad Abdus Salam',
+    profession: 'physicist',
+    accomplishment: 'electromagnetism theory',
+    imageId: 'bE7W1ji'
+  }
+];
+```
+
+```jsx
+// utils.js
+export function getImageUrl(person) {
+  return `https://i.imgur.com/${person.imageId}s.jpg`;
+}
+```
+
+```jsx
+// App.js
+import { people } from './data.js';
+import { getImageUrl } from './utils.js';
+
+export default function List() {
+  // 배열을 JSX 배열로 변환
+  const listItems = people.map(person =>
+    <li key={person.id}>
+      <img
+        src={getImageUrl(person)}
+        alt={person.name}
+      />
+      <p>
+        <b>{person.name}:</b>
+        {' ' + person.profession + ' '}
+        known for {person.accomplishment}
+      </p>
+    </li>
+  );
+  
+  return (
+    <article>
+      <h1>Scientists</h1>
+      <ul>{listItems}</ul>
+    </article>
+  );
+}
+```
+
+### `map()` 메서드
+
+```jsx
+const numbers = [1, 2, 3, 4, 5];
+
+// 배열을 JSX 배열로 변환
+const listItems = numbers.map(number =>
+  <li key={number}>{number * 2}</li>
+);
+
+return <ul>{listItems}</ul>;
+```
+
+**인라인 버전:**
+
+```jsx
+return (
+  <ul>
+    {numbers.map(number =>
+      <li key={number}>{number * 2}</li>
+    )}
+  </ul>
+);
+```
+
+### `filter()` 메서드로 필터링
+
+```jsx
+import { people } from './data.js';
+
+export default function List() {
+  // 직업이 'chemist'인 사람만 필터링
+  const chemists = people.filter(person =>
+    person.profession === 'chemist'
+  );
+  
+  // JSX 배열로 변환
+  const listItems = chemists.map(person =>
+    <li key={person.id}>
+      <img src={getImageUrl(person)} alt={person.name} />
+      <p>
+        <b>{person.name}:</b>
+        {' ' + person.profession + ' '}
+        known for {person.accomplishment}
+      </p>
+    </li>
+  );
+  
+  return <ul>{listItems}</ul>;
+}
+```
+
+**체이닝 버전:**
+
+```jsx
+export default function List() {
+  return (
+    <ul>
+      {people
+        .filter(person => person.profession === 'chemist')
+        .map(person => (
+          <li key={person.id}>
+            <img src={getImageUrl(person)} alt={person.name} />
+            <p>
+              <b>{person.name}:</b> {person.profession}
+            </p>
+          </li>
+        ))
+      }
+    </ul>
+  );
+}
+```
+
+### Key의 중요성
+
+**`key`는 React가 각 항목을 고유하게 식별하는 데 사용됩니다.**
+
+```jsx
+// ✅ 올바른 코드: key 사용
+{people.map(person =>
+  <li key={person.id}>
+    {person.name}
+  </li>
+)}
+
+// ❌ 잘못된 코드: key 없음
+{people.map(person =>
+  <li>
+    {person.name}
+  </li>
+)}
+```
+
+### Key 규칙
+
+#### 1. **형제 간에 고유해야 함**
+
+```jsx
+// ✅ 각 리스트 내에서 고유하면 됨
+<ul>
+  {people.map(person => <li key={person.id}>{person.name}</li>)}
+</ul>
+
+<ul>
+  {people.map(person => <li key={person.id}>{person.name}</li>)}
+</ul>
+```
+
+#### 2. **변경되지 않아야 함**
+
+```jsx
+// ❌ 배열 인덱스를 key로 사용 (비추천)
+{people.map((person, index) =>
+  <li key={index}>{person.name}</li>
+)}
+
+// ✅ 고유한 ID 사용
+{people.map(person =>
+  <li key={person.id}>{person.name}</li>
+)}
+```
+
+**배열 인덱스를 사용하면 안 되는 이유:**
+
+- 항목 순서가 변경되면 버그 발생 가능
+- 성능 저하
+- 컴포넌트 상태 문제
+
+#### 3. **생성 시점에 지정하지 마세요**
+
+```jsx
+// ❌ 렌더링할 때마다 새로운 key 생성 (최악!)
+<li key={Math.random()}>...</li>
+<li key={crypto.randomUUID()}>...</li>
+
+// ✅ 데이터에 안정적인 ID 포함
+{people.map(person =>
+  <li key={person.id}>...</li>
+)}
+```
+
+### Key로 사용할 수 있는 값
+
+| 상황 | 추천 Key |
+|------|---------|
+| **데이터베이스에서 가져온 데이터** | 데이터베이스 ID (`user.id`, `post.id`) |
+| **로컬에서 생성한 데이터** | UUID 라이브러리 (`crypto.randomUUID()`, `uuid`) |
+| **안정적인 고유 속성** | 이메일 주소, 사용자명 등 |
+
+**UUID 생성 예제:**
+
+```jsx
+import { v4 as uuidv4 } from 'uuid';
+
+const [items, setItems] = useState([
+  { id: uuidv4(), text: 'Item 1' },
+  { id: uuidv4(), text: 'Item 2' },
+]);
+
+return (
+  <ul>
+    {items.map(item =>
+      <li key={item.id}>{item.text}</li>
+    )}
+  </ul>
+);
+```
+
+### Fragment를 사용한 리스트 렌더링
+
+여러 요소를 반환해야 하는 경우:
+
+```jsx
+import { Fragment } from 'react';
+
+export default function List() {
+  return (
+    <div>
+      {people.map(person => (
+        <Fragment key={person.id}>
+          <h2>{person.name}</h2>
+          <p>{person.bio}</p>
+        </Fragment>
+      ))}
+    </div>
+  );
+}
+```
+
+**주의:** `<Fragment>`는 `key`를 전달할 수 있지만, 짧은 문법 `<>`는 불가능합니다.
+
+```jsx
+// ❌ key를 전달할 수 없음
+<>
+  <h2>{person.name}</h2>
+  <p>{person.bio}</p>
+</>
+
+// ✅ Fragment 사용
+<Fragment key={person.id}>
+  <h2>{person.name}</h2>
+  <p>{person.bio}</p>
+</Fragment>
+```
+
+### 실전 예제: 카테고리별 그룹화
+
+```jsx
+const products = [
+  { id: 1, name: 'Apple', category: 'Fruit' },
+  { id: 2, name: 'Broccoli', category: 'Vegetable' },
+  { id: 3, name: 'Banana', category: 'Fruit' },
+  { id: 4, name: 'Carrot', category: 'Vegetable' },
+];
+
+export default function ProductList() {
+  // 카테고리별로 그룹화
+  const groupedProducts = products.reduce((acc, product) => {
+    if (!acc[product.category]) {
+      acc[product.category] = [];
+    }
+    acc[product.category].push(product);
+    return acc;
+  }, {});
+
+  return (
+    <div>
+      {Object.entries(groupedProducts).map(([category, items]) => (
+        <div key={category}>
+          <h2>{category}</h2>
+          <ul>
+            {items.map(item => (
+              <li key={item.id}>{item.name}</li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+### Vue와 비교
+
+```html
+<!-- Vue: v-for -->
+<template>
+  <ul>
+    <li v-for="person in people" :key="person.id">
+      {{ person.name }}
+    </li>
+  </ul>
+</template>
+```
+
+```jsx
+// React: map()
+export default function List() {
+  return (
+    <ul>
+      {people.map(person =>
+        <li key={person.id}>
+          {person.name}
+        </li>
+      )}
+    </ul>
+  )
+}
+```
+
+**차이점:**
+
+- Vue: `v-for` 디렉티브
+- React: JavaScript `map()` 메서드
+
+---
+
+## 다음 단계
+
+이제 리스트 렌더링을 배웠으니, 다음 포스트에서는 **순수 컴포넌트 유지하기**를 학습합니다.
+
+**배울 내용:**
+- 순수 함수의 개념
+- React 컴포넌트의 순수성
+- 부작용 처리 방법
+
+---
+
+**작성일**: 2025-10-11  
+**출처**: [React Official Documentation](https://react.dev/learn/describing-the-ui)  
+**대상**: React 초급 학습자

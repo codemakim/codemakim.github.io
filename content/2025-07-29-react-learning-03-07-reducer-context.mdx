@@ -1,0 +1,63 @@
+---
+title: "📚 [React 기초 3-7/8] Reducer와 Context로 확장하기"
+date: "2025-07-29"
+description: "Reducer와 Context를 결합해 확장 가능한 State 관리 시스템을 구축하는 방법을 학습합니다"
+tags: ["React", "학습", "Vue", "초급", "프론트엔드"]
+series: "React 기초"
+seriesOrder: 25
+---
+
+# React 학습 가이드 - Reducer와 Context로 확장하기
+
+> React 공식 문서를 기반으로 한 학습 자료  
+> 원문: [Managing State - React](https://react.dev/learn/managing-state)
+
+---
+
+## Reducer와 Context로 확장하기
+
+위에서 이미 다뤘지만, 다시 한번 정리하면:
+
+### 통합 패턴
+
+1. **Reducer로 복잡한 state 관리**
+2. **Context로 깊은 트리에 전달**
+3. **커스텀 Hook으로 사용 편의성 향상**
+
+### 파일 구조 예시
+
+```
+src/
+  contexts/
+    TasksContext.js       # Context 정의 및 Hook
+    TasksProvider.js      # Provider 컴포넌트
+  components/
+    TaskList.js
+    AddTask.js
+    TaskItem.js
+  App.js
+```
+
+### 장점
+
+- ✅ **관심사 분리**: state 로직과 UI 분리
+- ✅ **재사용성**: 다른 컴포넌트에서 쉽게 사용
+- ✅ **테스트 용이**: reducer는 순수 함수
+- ✅ **확장성**: 앱이 커져도 관리 가능
+
+---
+
+## 다음 단계
+
+이제 Reducer와 Context 통합을 이해했으니, 다음 포스트에서는 **연습문제와 다음 단계**를 학습합니다.
+
+**배울 내용:**
+- 실전 연습문제
+- 다음 챕터 소개
+- 학습 체크리스트
+
+---
+
+**작성일**: 2025-10-11  
+**출처**: [React Official Documentation](https://react.dev/learn/managing-state)  
+**대상**: React 초급 학습자

@@ -1,0 +1,291 @@
+---
+title: "📚 [React 기초 3-1/8] State 관리 개요"
+date: "2025-07-23"
+description: "React에서 State를 효과적으로 관리하는 기본 개념과 선언적 UI 사고방식을 학습합니다"
+tags: ["React", "학습", "Vue", "초급", "프론트엔드"]
+series: "React 기초"
+seriesOrder: 19
+---
+
+# React 학습 가이드 - State 관리 개요
+
+> React 공식 문서를 기반으로 한 학습 자료  
+> 원문: [Managing State - React](https://react.dev/learn/managing-state)
+
+---
+
+## 개요
+
+애플리케이션이 커질수록 state를 어떻게 구성하고 컴포넌트 간에 데이터가 어떻게 흐르는지 의도적으로 설계하는 것이 중요합니다.
+
+### 이 챕터에서 배울 내용
+
+- ✅ UI 변경을 state 변경으로 생각하는 방법
+- ✅ State를 잘 구조화하는 방법
+- ✅ State를 "끌어올려" 컴포넌트 간에 공유하는 방법
+- ✅ State가 보존되거나 재설정되는지 제어하는 방법
+- ✅ 복잡한 state 로직을 함수로 통합하는 방법
+- ✅ "prop drilling" 없이 정보를 전달하는 방법
+- ✅ 앱이 커질수록 state 관리를 확장하는 방법
+
+---
+
+## State로 입력에 반응하기
+
+### 선언적 UI vs 명령적 UI
+
+**명령적 프로그래밍 (Imperative)**: 어떻게(How) 할지 명령
+
+```javascript
+// 명령적: 각 단계를 직접 조작
+function submitForm() {
+  // 1. 버튼 비활성화
+  button.disabled = true;
+  // 2. 스피너 표시
+  spinner.style.display = 'block';
+  // 3. 폼 숨기기
+  form.style.display = 'none';
+  // 4. Ajax 요청
+  ajax.post('/submit', data, () => {
+    // 5. 성공 메시지 표시
+    successMessage.style.display = 'block';
+  });
+}
+```
+
+**선언적 프로그래밍 (Declarative)**: 무엇을(What) 보여줄지 선언
+
+```jsx
+// 선언적: state에 따라 UI 자동 결정
+function Form() {
+  const [status, setStatus] = useState('empty');
+  
+  if (status === 'submitting') {
+    return <Spinner />;
+  }
+  
+  if (status === 'success') {
+    return <SuccessMessage />;
+  }
+  
+  return (
+    <form onSubmit={handleSubmit}>
+      <input disabled={status === 'submitting'} />
+      <button disabled={status === 'empty' || status === 'submitting'}>
+        Submit
+      </button>
+    </form>
+  );
+}
+```
+
+### UI를 선언적으로 생각하기
+
+**5단계 프로세스:**
+
+#### 1. **모든 시각적 state 파악하기**
+
+UI가 가질 수 있는 모든 "상태"를 시각화합니다.
+
+```jsx
+// 폼의 가능한 state들
+const states = [
+  'empty',      // 입력 없음
+  'typing',     // 입력 중
+  'submitting', // 제출 중
+  'success',    // 성공
+  'error',      // 에러
+];
+```
+
+#### 2. **state 변경을 트리거하는 것 파악하기**
+
+state를 변경하는 두 가지 입력:
+
+- **사람의 입력**: 버튼 클릭, 필드 입력, 링크 이동
+- **컴퓨터의 입력**: 네트워크 응답, 타임아웃, 이미지 로딩
+
+```jsx
+// 사람의 입력
+- 텍스트 입력 → 'empty'에서 'typing'으로
+- Submit 클릭 → 'typing'에서 'submitting'으로
+
+// 컴퓨터의 입력
+- 네트워크 성공 → 'submitting'에서 'success'로
+- 네트워크 실패 → 'submitting'에서 'error'로
+```
+
+#### 3. **state를 useState로 메모리에 표현하기**
+
+```jsx
+function Form() {
+  const [answer, setAnswer] = useState('');
+  const [error, setError] = useState(null);
+  const [status, setStatus] = useState('typing'); // 'typing', 'submitting', 'success'
+  
+  // ...
+}
+```
+
+#### 4. **불필요한 state 변수 제거하기**
+
+**다음과 같은 경우 state를 제거하세요:**
+
+- **모순을 일으키는가?**
+
+  ```jsx
+  // ❌ 나쁨: 둘 다 true일 수 없음
+  const [isSending, setIsSending] = useState(false);
+  const [isSent, setIsSent] = useState(false);
+  
+  // ✅ 좋음: 하나의 status로 통합
+  const [status, setStatus] = useState('typing');
+  ```
+
+- **다른 state에서 이미 같은 정보를 얻을 수 있는가?**
+
+  ```jsx
+  // ❌ 나쁨: isEmpty는 계산 가능
+  const [answer, setAnswer] = useState('');
+  const [isEmpty, setIsEmpty] = useState(true);
+  
+  // ✅ 좋음: 계산으로 처리
+  const [answer, setAnswer] = useState('');
+  const isEmpty = answer.length === 0;
+  ```
+
+- **다른 state의 반대 값인가?**
+
+  ```jsx
+  // ❌ 나쁨: isError는 error의 반대
+  const [error, setError] = useState(null);
+  const [isError, setIsError] = useState(false);
+  
+  // ✅ 좋음: error로부터 계산
+  const [error, setError] = useState(null);
+  const isError = error !== null;
+  ```
+
+#### 5. **이벤트 핸들러로 state 설정하기**
+
+```jsx
+import { useState } from 'react';
+
+export default function Form() {
+  const [answer, setAnswer] = useState('');
+  const [error, setError] = useState(null);
+  const [status, setStatus] = useState('typing');
+
+  if (status === 'success') {
+    return <h1>정답입니다!</h1>;
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setStatus('submitting');
+    try {
+      await submitForm(answer);
+      setStatus('success');
+    } catch (err) {
+      setStatus('typing');
+      setError(err);
+    }
+  }
+
+  function handleTextareaChange(e) {
+    setAnswer(e.target.value);
+  }
+
+  return (
+    <>
+      <h2>도시 퀴즈</h2>
+      <p>
+        공기를 물로 바꾸는 광고판이 있는 도시는?
+      </p>
+      <form onSubmit={handleSubmit}>
+        <textarea
+          value={answer}
+          onChange={handleTextareaChange}
+          disabled={status === 'submitting'}
+        />
+        <br />
+        <button disabled={
+          answer.length === 0 ||
+          status === 'submitting'
+        }>
+          제출
+        </button>
+        {error !== null &&
+          <p className="Error">
+            {error.message}
+          </p>
+        }
+      </form>
+    </>
+  );
+}
+
+function submitForm(answer) {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      let shouldError = answer.toLowerCase() !== 'lima';
+      if (shouldError) {
+        reject(new Error('좋은 추측이지만 틀린 답입니다. 다시 시도해보세요!'));
+      } else {
+        resolve();
+      }
+    }, 1500);
+  });
+}
+```
+
+### Vue와 비교
+
+```html
+<!-- Vue: v-if, v-else로 선언적 UI -->
+<script setup>
+import { ref } from 'vue'
+
+const status = ref('typing')
+const answer = ref('')
+
+async function handleSubmit() {
+  status.value = 'submitting'
+  try {
+    await submitForm(answer.value)
+    status.value = 'success'
+  } catch (err) {
+    status.value = 'typing'
+  }
+}
+</script>
+
+<template>
+  <div v-if="status === 'success'">
+    <h1>정답입니다!</h1>
+  </div>
+  <form v-else @submit.prevent="handleSubmit">
+    <textarea v-model="answer" :disabled="status === 'submitting'" />
+    <button :disabled="answer.length === 0 || status === 'submitting'">
+      제출
+    </button>
+  </form>
+</template>
+```
+
+---
+
+## 다음 단계
+
+이제 State 관리의 기본 개념을 이해했으니, 다음 포스트에서는 **State 구조 선택하기**를 학습합니다.
+
+**배울 내용:**
+- State 구조 설계 원칙
+- 단일 vs 다중 State 변수
+- State 정규화 기법
+
+---
+
+**작성일**: 2025-10-11  
+**출처**: [React Official Documentation](https://react.dev/learn/managing-state)  
+**대상**: React 초급 학습자

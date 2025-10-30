@@ -1,0 +1,230 @@
+---
+title: "📚 [React 기초 4-4/10] Effect로 동기화하기"
+date: "2025-08-03"
+description: "외부 시스템과 동기화하는 useEffect의 개념과 작성법"
+tags: ["React", "학습", "Effect", "초급"]
+series: "React 기초"
+seriesOrder: 30
+---
+
+## Effect로 동기화하기
+
+### Effect란?
+
+일부 컴포넌트는 **외부 시스템과 동기화**해야 합니다.
+
+**예시:**
+
+- React가 아닌 컴포넌트 제어
+- 서버 연결 설정
+- 분석 로그 전송
+
+**Effect는 렌더링 후에 일부 코드를 실행하여 React 외부의 시스템과 동기화합니다.**
+
+### Effect 작성하는 방법
+
+#### 1단계: Effect 선언
+
+```jsx
+import { useEffect } from 'react';
+
+function MyComponent() {
+  useEffect(() => {
+    // 여기에 코드 작성
+  });
+  return <div />;
+}
+```
+
+#### 2단계: Effect 의존성 지정
+
+```jsx
+useEffect(() => {
+  // 이 코드는 모든 렌더링 후에 실행됨
+});
+
+useEffect(() => {
+  // 이 코드는 마운트 시에만 실행됨
+}, []);
+
+useEffect(() => {
+  // 이 코드는 마운트 시 + a나 b가 변경될 때 실행됨
+}, [a, b]);
+```
+
+#### 3단계: 필요하면 클린업 추가
+
+```jsx
+useEffect(() => {
+  const connection = createConnection();
+  connection.connect();
+  
+  return () => {
+    connection.disconnect();
+  };
+}, []);
+```
+
+### 예제: 채팅 연결
+
+```jsx
+import { useState, useEffect } from 'react';
+import { createConnection } from './chat.js';
+
+export default function ChatRoom() {
+  const [serverUrl, setServerUrl] = useState('https://localhost:1234');
+  const [roomId, setRoomId] = useState('general');
+
+  useEffect(() => {
+    const connection = createConnection(serverUrl, roomId);
+    connection.connect();
+    
+    return () => {
+      connection.disconnect();
+    };
+  }, [serverUrl, roomId]);
+
+  return (
+    <>
+      <label>
+        Server URL:{' '}
+        <input
+          value={serverUrl}
+          onChange={e => setServerUrl(e.target.value)}
+        />
+      </label>
+      <label>
+        Choose the chat room:{' '}
+        <select
+          value={roomId}
+          onChange={e => setRoomId(e.target.value)}
+        >
+          <option value="general">general</option>
+          <option value="travel">travel</option>
+          <option value="music">music</option>
+        </select>
+      </label>
+      <hr />
+      <p>Welcome to the {roomId} room!</p>
+    </>
+  );
+}
+```
+
+**동작:**
+
+1. 컴포넌트 마운트 → Effect 실행 → 연결
+2. `serverUrl` 또는 `roomId` 변경 → 클린업 실행 (연결 해제) → Effect 재실행 (새 연결)
+3. 컴포넌트 언마운트 → 클린업 실행 (연결 해제)
+
+### 개발 모드에서 Effect가 두 번 실행되는 이유
+
+**Strict Mode**에서 React는 컴포넌트를 **두 번** 마운트합니다:
+
+```
+마운트 → 클린업 → 재마운트
+```
+
+**이유:** 클린업 로직이 제대로 작동하는지 테스트
+
+```jsx
+useEffect(() => {
+  console.log('✅ 연결 중...');
+  const connection = createConnection();
+  connection.connect();
+  
+  return () => {
+    console.log('❌ 연결 해제 중...');
+    connection.disconnect();
+  };
+}, []);
+```
+
+**콘솔 출력 (개발 모드):**
+
+```
+✅ 연결 중...
+❌ 연결 해제 중...
+✅ 연결 중...
+```
+
+**프로덕션에서는 한 번만 실행됩니다.**
+
+### Effect가 필요하지 않은 경우
+
+**다음과 같은 경우 Effect가 필요하지 않습니다:**
+
+#### 1. **렌더링을 위한 데이터 변환**
+
+```jsx
+// ❌ 나쁨: Effect로 계산
+const [firstName, setFirstName] = useState('');
+const [lastName, setLastName] = useState('');
+const [fullName, setFullName] = useState('');
+
+useEffect(() => {
+  setFullName(firstName + ' ' + lastName);
+}, [firstName, lastName]);
+
+// ✅ 좋음: 렌더링 중 계산
+const [firstName, setFirstName] = useState('');
+const [lastName, setLastName] = useState('');
+const fullName = firstName + ' ' + lastName;
+```
+
+#### 2. **사용자 이벤트 처리**
+
+```jsx
+// ❌ 나쁨: Effect로 처리
+useEffect(() => {
+  if (isSubmitted) {
+    post('/api/register', { email });
+  }
+}, [isSubmitted, email]);
+
+// ✅ 좋음: 이벤트 핸들러에서 처리
+function handleSubmit() {
+  post('/api/register', { email });
+}
+```
+
+### Vue와 비교
+
+```html
+<!-- Vue: onMounted, onUnmounted -->
+<script setup>
+import { onMounted, onUnmounted } from 'vue'
+
+onMounted(() => {
+  const connection = createConnection()
+  connection.connect()
+  
+  onUnmounted(() => {
+    connection.disconnect()
+  })
+})
+</script>
+```
+
+```jsx
+// React: useEffect
+import { useEffect } from 'react'
+
+function ChatRoom() {
+  useEffect(() => {
+    const connection = createConnection()
+    connection.connect()
+    
+    return () => {
+      connection.disconnect()
+    }
+  }, [])
+}
+```
+
+**차이점:**
+
+- Vue: `onMounted`, `onUnmounted` 분리
+- React: `useEffect`에서 클린업 함수 반환
+
+---

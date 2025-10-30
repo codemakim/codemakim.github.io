@@ -1,0 +1,216 @@
+---
+title: "📚 [React 기초 3-4/8] State 보존 및 재설정"
+date: "2025-07-26"
+description: "React에서 State가 보존되고 재설정되는 규칙을 이해하고 key를 활용하는 방법을 학습합니다"
+tags: ["React", "학습", "Vue", "초급", "프론트엔드"]
+series: "React 기초"
+seriesOrder: 22
+---
+
+# React 학습 가이드 - State 보존 및 재설정
+
+> React 공식 문서를 기반으로 한 학습 자료  
+> 원문: [Managing State - React](https://react.dev/learn/managing-state)
+
+---
+
+## State 보존 및 재설정
+
+### React는 트리 구조에서 state를 보존합니다
+
+```jsx
+export default function App() {
+  const [showB, setShowB] = useState(true);
+  
+  return (
+    <div>
+      <Counter />
+      {showB && <Counter />}
+    </div>
+  );
+}
+
+function Counter() {
+  const [count, setCount] = useState(0);
+  return <button onClick={() => setCount(count + 1)}>{count}</button>;
+}
+```
+
+**동작:**
+
+- 두 `<Counter />` 모두 독립적인 state 보유
+- `showB`를 false로 변경 → 두 번째 Counter의 state **사라짐**
+- `showB`를 다시 true로 → 두 번째 Counter는 **0부터 시작**
+
+### 같은 위치의 같은 컴포넌트는 state를 보존합니다
+
+```jsx
+export default function App() {
+  const [isFancy, setIsFancy] = useState(false);
+  
+  return (
+    <div>
+      {isFancy ? (
+        <Counter isFancy={true} />
+      ) : (
+        <Counter isFancy={false} />
+      )}
+      <label>
+        <input
+          type="checkbox"
+          checked={isFancy}
+          onChange={e => setIsFancy(e.target.checked)}
+        />
+        Use fancy styling
+      </label>
+    </div>
+  );
+}
+```
+
+**결과:** `isFancy`를 변경해도 Counter의 state는 **유지됨**!
+
+**이유:**
+
+- 같은 위치에 같은 컴포넌트 (`<Counter />`)
+- React는 동일한 컴포넌트로 인식
+
+### 다른 컴포넌트는 state를 재설정합니다
+
+```jsx
+export default function App() {
+  const [isPaused, setIsPaused] = useState(false);
+  
+  return (
+    <div>
+      {isPaused ? (
+        <p>See you later!</p>
+      ) : (
+        <Counter />
+      )}
+      <label>
+        <input
+          type="checkbox"
+          checked={isPaused}
+          onChange={e => setIsPaused(e.target.checked)}
+        />
+        Take a break
+      </label>
+    </div>
+  );
+}
+```
+
+**결과:** `isPaused`를 변경하면 Counter의 state **재설정됨**!
+
+**이유:**
+
+- 다른 컴포넌트 (`<p>` vs `<Counter />`)
+- React가 트리에서 제거 후 다시 추가
+
+### 같은 위치에서 state 재설정하기
+
+#### 방법 1: 다른 위치에 렌더링
+
+```jsx
+export default function Scoreboard() {
+  const [isPlayerA, setIsPlayerA] = useState(true);
+  
+  return (
+    <div>
+      {isPlayerA && <Counter person="Taylor" />}
+      {!isPlayerA && <Counter person="Sarah" />}
+      <button onClick={() => setIsPlayerA(!isPlayerA)}>
+        다음 플레이어!
+      </button>
+    </div>
+  );
+}
+```
+
+#### 방법 2: key로 state 재설정 (권장)
+
+```jsx
+export default function Scoreboard() {
+  const [isPlayerA, setIsPlayerA] = useState(true);
+  
+  return (
+    <div>
+      {isPlayerA ? (
+        <Counter key="Taylor" person="Taylor" />
+      ) : (
+        <Counter key="Sarah" person="Sarah" />
+      )}
+      <button onClick={() => setIsPlayerA(!isPlayerA)}>
+        다음 플레이어!
+      </button>
+    </div>
+  );
+}
+```
+
+**`key`를 사용하면:**
+
+- 같은 위치더라도 다른 key = 다른 컴포넌트
+- state 완전히 재설정됨
+
+### 실전 예제: 채팅 앱
+
+```jsx
+import { useState } from 'react';
+import Chat from './Chat.js';
+import ContactList from './ContactList.js';
+
+export default function Messenger() {
+  const [to, setTo] = useState(contacts[0]);
+  
+  return (
+    <div>
+      <ContactList
+        contacts={contacts}
+        selectedContact={to}
+        onSelect={contact => setTo(contact)}
+      />
+      <Chat key={to.id} contact={to} />
+    </div>
+  );
+}
+
+const contacts = [
+  { id: 0, name: 'Taylor', email: 'taylor@mail.com' },
+  { id: 1, name: 'Alice', email: 'alice@mail.com' },
+  { id: 2, name: 'Bob', email: 'bob@mail.com' }
+];
+```
+
+**`key={to.id}`를 사용하면:**
+
+- 다른 연락처 선택 시 입력 필드 초기화됨
+- 각 연락처마다 별도의 `Chat` 인스턴스
+
+### Vue와 비교
+
+Vue도 `key`를 사용하여 강제 재렌더링할 수 있습니다:
+
+```html
+<template>
+  <Chat :key="selectedContact.id" :contact="selectedContact" />
+</template>
+```
+
+---
+
+## 다음 단계
+
+이제 State 보존과 재설정을 이해했으니, 다음 포스트에서는 **Reducer로 State 로직 추출하기**를 학습합니다.
+
+**배울 내용:**
+- useReducer Hook 사용법
+- 복잡한 State 로직 관리
+- Reducer 패턴의 장점
+
+---
+
+**작성일**: 2025-10-11  
+**출처**: [React Official Documentation](https://react.dev/learn/managing-state)  
+**대상**: React 초급 학습자

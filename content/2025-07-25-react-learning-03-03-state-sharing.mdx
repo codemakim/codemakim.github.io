@@ -1,0 +1,170 @@
+---
+title: "📚 [React 기초 3-3/8] 컴포넌트 간 State 공유하기"
+date: "2025-07-25"
+description: "React에서 State를 컴포넌트 간에 공유하는 방법과 State 끌어올리기를 학습합니다"
+tags: ["React", "학습", "Vue", "초급", "프론트엔드"]
+series: "React 기초"
+seriesOrder: 21
+---
+
+# React 학습 가이드 - 컴포넌트 간 State 공유하기
+
+> React 공식 문서를 기반으로 한 학습 자료  
+> 원문: [Managing State - React](https://react.dev/learn/managing-state)
+
+---
+
+## 컴포넌트 간 State 공유하기
+
+### State 끌어올리기 (Lifting State Up)
+
+**두 컴포넌트가 항상 함께 변경되기를 원할 때:**
+
+1. 두 컴포넌트에서 state **제거**
+2. 공통 부모로 state **이동**
+3. Props로 state **전달**
+
+### 예제: 아코디언
+
+```jsx
+import { useState } from 'react';
+
+export default function Accordion() {
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  return (
+    <>
+      <h2>알마티, 카자흐스탄</h2>
+      <Panel
+        title="소개"
+        isActive={activeIndex === 0}
+        onShow={() => setActiveIndex(0)}
+      >
+        인구 약 200만의 알마티는 카자흐스탄에서 가장 큰 도시입니다.
+        1929년부터 1997년까지 수도였습니다.
+      </Panel>
+      <Panel
+        title="어원"
+        isActive={activeIndex === 1}
+        onShow={() => setActiveIndex(1)}
+      >
+        이름은 카자흐어로 "사과"를 의미하는 алма에서 유래했으며,
+        "사과로 가득한"을 뜻합니다.
+      </Panel>
+    </>
+  );
+}
+
+function Panel({ title, children, isActive, onShow }) {
+  return (
+    <section className="panel">
+      <h3>{title}</h3>
+      {isActive ? (
+        <p>{children}</p>
+      ) : (
+        <button onClick={onShow}>보기</button>
+      )}
+    </section>
+  );
+}
+```
+
+### 제어 컴포넌트 vs 비제어 컴포넌트
+
+**비제어 컴포넌트 (Uncontrolled):**
+
+- 자체 state로 설정 관리
+- 부모가 영향을 줄 수 없음
+
+```jsx
+function Panel({ title, children }) {
+  const [isActive, setIsActive] = useState(false);  // 자체 state
+  return (
+    <section>
+      <h3>{title}</h3>
+      {isActive ? <p>{children}</p> : <button onClick={() => setIsActive(true)}>보기</button>}
+    </section>
+  );
+}
+```
+
+**제어 컴포넌트 (Controlled):**
+
+- Props로 state 받음
+- 부모가 완전히 제어
+
+```jsx
+function Panel({ title, children, isActive, onShow }) {  // Props로 제어
+  return (
+    <section>
+      <h3>{title}</h3>
+      {isActive ? <p>{children}</p> : <button onClick={onShow}>보기</button>}
+    </section>
+  );
+}
+```
+
+### 단일 진실의 원천 (Single Source of Truth)
+
+각 state마다 **한 곳**에만 저장하세요.
+
+```jsx
+// ✅ 좋음: state는 Accordion에만 존재
+<Accordion>
+  <Panel />  {/* Props로 받기만 함 */}
+  <Panel />
+</Accordion>
+
+// ❌ 나쁨: 각 Panel이 자체 state 보유
+<Panel />  {/* 독립적 state */}
+<Panel />  {/* 독립적 state */}
+```
+
+### Vue와 비교
+
+```html
+<!-- Vue: v-model로 양방향 바인딩 -->
+<script setup>
+import { ref } from 'vue'
+
+const activeIndex = ref(0)
+</script>
+
+<template>
+  <Accordion v-model="activeIndex">
+    <Panel :index="0" />
+    <Panel :index="1" />
+  </Accordion>
+</template>
+```
+
+```jsx
+// React: 명시적 props 전달
+function Accordion() {
+  const [activeIndex, setActiveIndex] = useState(0);
+  
+  return (
+    <>
+      <Panel isActive={activeIndex === 0} onShow={() => setActiveIndex(0)} />
+      <Panel isActive={activeIndex === 1} onShow={() => setActiveIndex(1)} />
+    </>
+  );
+}
+```
+
+---
+
+## 다음 단계
+
+이제 State 공유 방법을 이해했으니, 다음 포스트에서는 **State 보존 및 재설정**을 학습합니다.
+
+**배울 내용:**
+- React의 State 보존 규칙
+- key를 사용한 State 재설정
+- 컴포넌트 트리에서의 State 관리
+
+---
+
+**작성일**: 2025-10-11  
+**출처**: [React Official Documentation](https://react.dev/learn/managing-state)  
+**대상**: React 초급 학습자

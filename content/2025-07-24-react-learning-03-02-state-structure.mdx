@@ -1,0 +1,251 @@
+---
+title: "📚 [React 기초 3-2/8] State 구조 선택하기"
+date: "2025-07-24"
+description: "React에서 State를 효과적으로 구조화하는 원칙과 패턴을 학습합니다"
+tags: ["React", "학습", "Vue", "초급", "프론트엔드"]
+series: "React 기초"
+seriesOrder: 20
+---
+
+# React 학습 가이드 - State 구조 선택하기
+
+> React 공식 문서를 기반으로 한 학습 자료  
+> 원문: [Managing State - React](https://react.dev/learn/managing-state)
+
+---
+
+## State 구조 선택하기
+
+좋은 state 구조는 업데이트와 디버깅을 쉽게 만듭니다.
+
+### State 구조화 원칙
+
+#### 1. **관련 state 그룹화하기**
+
+**항상 함께 업데이트되는 state는 하나로 합치세요.**
+
+```jsx
+// ❌ 나쁨: 두 state가 항상 함께 업데이트됨
+const [x, setX] = useState(0);
+const [y, setY] = useState(0);
+
+// ✅ 좋음: 하나의 객체로
+const [position, setPosition] = useState({ x: 0, y: 0 });
+```
+
+**몇 개의 state 변수가 필요할지 모르는 경우:**
+
+```jsx
+// 동적 폼 필드
+const [fields, setFields] = useState({});
+
+function addField(fieldName) {
+  setFields({
+    ...fields,
+    [fieldName]: ''
+  });
+}
+```
+
+#### 2. **State의 모순 피하기**
+
+```jsx
+// ❌ 나쁨: 모순된 상태 가능
+const [isSending, setIsSending] = useState(false);
+const [isSent, setIsSent] = useState(false);
+
+// 문제: 둘 다 true일 수 있음 (불가능한 상태)
+async function handleSubmit() {
+  setIsSending(true);
+  await post('/api/message');
+  setIsSending(false);
+  setIsSent(true);  // 깜빡하고 setIsSending(false) 안하면?
+}
+
+// ✅ 좋음: 하나의 status로 명확히
+const [status, setStatus] = useState('typing');
+// 가능한 값: 'typing', 'sending', 'sent'
+
+async function handleSubmit() {
+  setStatus('sending');
+  await post('/api/message');
+  setStatus('sent');
+}
+```
+
+#### 3. **중복 state 피하기**
+
+```jsx
+// ❌ 나쁨: fullName은 중복
+const [firstName, setFirstName] = useState('');
+const [lastName, setLastName] = useState('');
+const [fullName, setFullName] = useState('');
+
+function handleFirstNameChange(e) {
+  setFirstName(e.target.value);
+  setFullName(e.target.value + ' ' + lastName);  // 동기화 필요!
+}
+
+// ✅ 좋음: 렌더링 중 계산
+const [firstName, setFirstName] = useState('');
+const [lastName, setLastName] = useState('');
+const fullName = firstName + ' ' + lastName;
+```
+
+#### 4. **깊게 중첩된 state 피하기**
+
+```jsx
+// ❌ 나쁨: 깊은 중첩
+const [state, setState] = useState({
+  user: {
+    profile: {
+      address: {
+        city: 'Seoul',
+        street: 'Gangnam'
+      }
+    }
+  }
+});
+
+// 업데이트가 복잡함
+setState({
+  ...state,
+  user: {
+    ...state.user,
+    profile: {
+      ...state.user.profile,
+      address: {
+        ...state.user.profile.address,
+        city: 'Busan'
+      }
+    }
+  }
+});
+
+// ✅ 좋음: 평탄하게
+const [city, setCity] = useState('Seoul');
+const [street, setStreet] = useState('Gangnam');
+const [userName, setUserName] = useState('');
+
+// 또는 정규화
+const [users, setUsers] = useState({
+  1: { name: 'Kim', addressId: 10 }
+});
+const [addresses, setAddresses] = useState({
+  10: { city: 'Seoul', street: 'Gangnam' }
+});
+```
+
+#### 5. **파생 state 피하기**
+
+```jsx
+// ❌ 나쁨: selectedItem은 items로부터 파생 가능
+const [items, setItems] = useState(initialItems);
+const [selectedItem, setSelectedItem] = useState(items[0]);
+
+function handleItemClick(item) {
+  setSelectedItem(item);  // items가 변경되면 동기화 문제!
+}
+
+// ✅ 좋음: ID만 저장하고 렌더링 시 찾기
+const [items, setItems] = useState(initialItems);
+const [selectedId, setSelectedId] = useState(0);
+const selectedItem = items.find(item => item.id === selectedId);
+```
+
+### 실전 예제: 여행 플래너
+
+```jsx
+import { useState } from 'react';
+
+const initialItems = [
+  { id: 0, title: 'Warm socks', packed: true },
+  { id: 1, title: 'Travel journal', packed: false },
+  { id: 2, title: 'Watercolors', packed: false },
+];
+
+export default function TravelPlan() {
+  const [items, setItems] = useState(initialItems);
+  const total = items.length;
+  const packed = items.filter(item => item.packed).length;
+
+  function handleToggle(itemId, nextPacked) {
+    setItems(items.map(item => {
+      if (item.id === itemId) {
+        return { ...item, packed: nextPacked };
+      }
+      return item;
+    }));
+  }
+
+  function handleDelete(itemId) {
+    setItems(items.filter(item => item.id !== itemId));
+  }
+
+  return (
+    <>
+      <h1>여행 짐 목록</h1>
+      <h2>{packed} / {total} 준비됨</h2>
+      <ItemList
+        items={items}
+        onToggle={handleToggle}
+        onDelete={handleDelete}
+      />
+    </>
+  );
+}
+
+function ItemList({ items, onToggle, onDelete }) {
+  return (
+    <ul>
+      {items.map(item => (
+        <li key={item.id}>
+          <label>
+            <input
+              type="checkbox"
+              checked={item.packed}
+              onChange={e => onToggle(item.id, e.target.checked)}
+            />
+            {item.title}
+          </label>
+          <button onClick={() => onDelete(item.id)}>삭제</button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+```
+
+### Vue와 비교
+
+```html
+<script setup>
+import { ref, computed } from 'vue'
+
+const items = ref([
+  { id: 0, title: 'Warm socks', packed: true },
+  { id: 1, title: 'Travel journal', packed: false },
+])
+
+// ✅ computed로 파생 state
+const total = computed(() => items.value.length)
+const packed = computed(() => items.value.filter(item => item.packed).length)
+</script>
+```
+
+---
+
+## 다음 단계
+
+이제 State 구조화 원칙을 이해했으니, 다음 포스트에서는 **컴포넌트 간 State 공유하기**를 학습합니다.
+
+**배울 내용:**
+- State 끌어올리기 (Lifting State Up)
+- 제어 컴포넌트 vs 비제어 컴포넌트
+- 단일 진실의 원천
+
+---
+
+**작성일**: 2025-10-11  
+**출처**: [React Official Documentation](https://react.dev/learn/managing-state)  
+**대상**: React 초급 학습자

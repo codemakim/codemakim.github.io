@@ -1,0 +1,368 @@
+---
+title: "📚 [React 기초 4-5/10] Effect가 필요하지 않을 수도 있습니다"
+date: "2025-08-04"
+description: "불필요한 Effect를 식별하고 없애는 방법"
+tags: ["React", "학습", "Effect", "최적화"]
+series: "React 기초"
+seriesOrder: 31
+---
+
+## Effect가 필요하지 않을 수도 있습니다
+
+Effect는 React 코드에서 "벗어나" 외부 시스템과 동기화하는 데 사용됩니다. **Effect를 남용하지 마세요!**
+
+### 불필요한 Effect 제거하기
+
+#### 1. **렌더링을 위한 데이터 변환에 Effect 불필요**
+
+```jsx
+// ❌ 불필요한 Effect
+function Form() {
+  const [firstName, setFirstName] = useState('Taylor');
+  const [lastName, setLastName] = useState('Swift');
+  const [fullName, setFullName] = useState('');
+
+  useEffect(() => {
+    setFullName(firstName + ' ' + lastName);
+  }, [firstName, lastName]);
+  // ...
+}
+
+// ✅ 렌더링 중 계산
+function Form() {
+  const [firstName, setFirstName] = useState('Taylor');
+  const [lastName, setLastName] = useState('Swift');
+  const fullName = firstName + ' ' + lastName;
+  // ...
+}
+```
+
+#### 2. **비싼 계산 캐싱에는 useMemo**
+
+```jsx
+// ❌ 느림: 매 렌더링마다 재계산
+function TodoList({ todos, filter }) {
+  const visibleTodos = getFilteredTodos(todos, filter);  // 느린 함수
+  // ...
+}
+
+// ✅ 빠름: todos나 filter가 변경될 때만 재계산
+import { useMemo } from 'react';
+
+function TodoList({ todos, filter }) {
+  const visibleTodos = useMemo(() => {
+    return getFilteredTodos(todos, filter);
+  }, [todos, filter]);
+  // ...
+}
+```
+
+#### 3. **Props 변경 시 모든 state 재설정**
+
+```jsx
+// ❌ 나쁨: Effect로 재설정
+export default function ProfilePage({ userId }) {
+  const [comment, setComment] = useState('');
+
+  useEffect(() => {
+    setComment('');
+  }, [userId]);
+  // ...
+}
+
+// ✅ 좋음: key로 재설정
+export default function ProfilePage({ userId }) {
+  return (
+    <Profile
+      userId={userId}
+      key={userId}
+    />
+  );
+}
+
+function Profile({ userId }) {
+  const [comment, setComment] = useState('');
+  // userId가 변경되면 Profile이 재마운트되어 comment가 ''로 리셋됨
+  // ...
+}
+```
+
+#### 4. **Props 변경 시 일부 state 조정**
+
+```jsx
+// ❌ 나쁨: Effect로 동기화
+function List({ items }) {
+  const [selection, setSelection] = useState(null);
+
+  useEffect(() => {
+    setSelection(null);
+  }, [items]);
+  // ...
+}
+
+// ✅ 좋음: 렌더링 중 조정
+function List({ items }) {
+  const [selectedId, setSelectedId] = useState(null);
+  const [prevItems, setPrevItems] = useState(items);
+  
+  if (items !== prevItems) {
+    setPrevItems(items);
+    setSelectedId(null);
+  }
+  // ...
+}
+
+// ✅ 더 좋음: 모든 것을 렌더링 중 계산
+function List({ items }) {
+  const [selectedId, setSelectedId] = useState(null);
+  const selection = items.find(item => item.id === selectedId) ?? null;
+  // ...
+}
+```
+
+#### 5. **이벤트 핸들러 간 로직 공유**
+
+```jsx
+// ❌ 나쁨: Effect로 처리
+function ProductPage({ product, addToCart }) {
+  useEffect(() => {
+    if (product.isInCart) {
+      showNotification(`Added ${product.name} to the shopping cart!`);
+    }
+  }, [product]);
+
+  function handleBuyClick() {
+    addToCart(product);
+  }
+
+  function handleCheckoutClick() {
+    addToCart(product);
+    navigateTo('/checkout');
+  }
+  // ...
+}
+
+// ✅ 좋음: 이벤트 핸들러에서 호출
+function ProductPage({ product, addToCart }) {
+  function buyProduct() {
+    addToCart(product);
+    showNotification(`Added ${product.name} to the shopping cart!`);
+  }
+
+  function handleBuyClick() {
+    buyProduct();
+  }
+
+  function handleCheckoutClick() {
+    buyProduct();
+    navigateTo('/checkout');
+  }
+  // ...
+}
+```
+
+#### 6. **POST 요청 보내기**
+
+```jsx
+// ❌ 나쁨: 렌더링 시마다 전송
+function Form() {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+
+  useEffect(() => {
+    post('/analytics/event', { eventName: 'visit_form' });
+  }, []);
+
+  useEffect(() => {
+    post('/analytics/event', { eventName: 'edit_form' });
+  }, [firstName, lastName]);
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    post('/api/register', { firstName, lastName });
+  }
+  // ...
+}
+
+// ✅ 좋음: 적절한 시점에 전송
+function Form() {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+
+  useEffect(() => {
+    post('/analytics/event', { eventName: 'visit_form' });
+  }, []);
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    post('/api/register', { firstName, lastName });
+    post('/analytics/event', { eventName: 'submit_form' });
+  }
+
+  function handleChange(e) {
+    setFirstName(e.target.value);
+    post('/analytics/event', { eventName: 'edit_form' });
+  }
+  // ...
+}
+```
+
+#### 7. **연쇄 계산**
+
+```jsx
+// ❌ 나쁨: 연쇄 Effect
+function Game() {
+  const [card, setCard] = useState(null);
+  const [goldCardCount, setGoldCardCount] = useState(0);
+  const [round, setRound] = useState(1);
+  const [isGameOver, setIsGameOver] = useState(false);
+
+  useEffect(() => {
+    if (card !== null && card.gold) {
+      setGoldCardCount(c => c + 1);
+    }
+  }, [card]);
+
+  useEffect(() => {
+    if (goldCardCount > 3) {
+      setRound(r => r + 1);
+      setGoldCardCount(0);
+    }
+  }, [goldCardCount]);
+
+  useEffect(() => {
+    if (round > 5) {
+      setIsGameOver(true);
+    }
+  }, [round]);
+
+  useEffect(() => {
+    alert('Good game!');
+  }, [isGameOver]);
+  // ...
+}
+
+// ✅ 좋음: 렌더링 중 계산 또는 이벤트 핸들러에서 처리
+function Game() {
+  const [card, setCard] = useState(null);
+  const [goldCardCount, setGoldCardCount] = useState(0);
+  const [round, setRound] = useState(1);
+
+  const isGameOver = round > 5;
+
+  function handlePlaceCard(nextCard) {
+    if (isGameOver) {
+      throw Error('Game already ended.');
+    }
+
+    setCard(nextCard);
+    if (nextCard.gold) {
+      if (goldCardCount <= 3) {
+        setGoldCardCount(goldCardCount + 1);
+      } else {
+        setGoldCardCount(0);
+        setRound(round + 1);
+        if (round === 5) {
+          alert('Good game!');
+        }
+      }
+    }
+  }
+  // ...
+}
+```
+
+#### 8. **애플리케이션 초기화**
+
+```jsx
+// ❌ 나쁨: Effect로 초기화 (두 번 실행될 수 있음)
+function App() {
+  useEffect(() => {
+    loadDataFromLocalStorage();
+    checkAuthToken();
+  }, []);
+  // ...
+}
+
+// ✅ 좋음: 최상위에서 한 번만 실행
+if (typeof window !== 'undefined') {
+  loadDataFromLocalStorage();
+  checkAuthToken();
+}
+
+function App() {
+  // ...
+}
+```
+
+#### 9. **부모에게 state 변경 알리기**
+
+```jsx
+// ❌ 나쁨: Effect로 부모에게 알림
+function Toggle({ onChange }) {
+  const [isOn, setIsOn] = useState(false);
+
+  useEffect(() => {
+    onChange(isOn);
+  }, [isOn, onChange]);
+
+  function handleClick() {
+    setIsOn(!isOn);
+  }
+  // ...
+}
+
+// ✅ 좋음: 이벤트 핸들러에서 함께 처리
+function Toggle({ onChange }) {
+  const [isOn, setIsOn] = useState(false);
+
+  function handleClick() {
+    const nextIsOn = !isOn;
+    setIsOn(nextIsOn);
+    onChange(nextIsOn);
+  }
+  // ...
+}
+```
+
+#### 10. **부모에게 데이터 전달**
+
+```jsx
+// ❌ 나쁨: Effect로 전달
+function Parent() {
+  const [data, setData] = useState(null);
+  return <Child onFetched={setData} />;
+}
+
+function Child({ onFetched }) {
+  const data = useSomeAPI();
+  
+  useEffect(() => {
+    if (data) {
+      onFetched(data);
+    }
+  }, [onFetched, data]);
+  // ...
+}
+
+// ✅ 좋음: 부모가 데이터 페칭
+function Parent() {
+  const data = useSomeAPI();
+  return <Child data={data} />;
+}
+
+function Child({ data }) {
+  // ...
+}
+```
+
+### Effect를 사용해야 하는 경우
+
+**외부 시스템과 동기화할 때만 사용하세요:**
+
+- 브라우저 API (타이머, 네트워크 등)
+- 서드파티 위젯
+- 네트워크 연결
+- 브라우저 DOM (포커스, 스크롤 등)
+
+---

@@ -1,0 +1,110 @@
+---
+title: "📚 [React 기초 1-2/10] 컴포넌트 Import/Export"
+date: "2025-07-06"
+description: "React 컴포넌트를 파일로 분리하고 Import/Export하는 방법을 학습합니다"
+tags: ["React", "학습", "Vue", "초급", "프론트엔드"]
+series: "React 기초"
+seriesOrder: 2
+---
+
+# React 학습 가이드 - 컴포넌트 Import/Export
+
+> React 공식 문서를 기반으로 한 학습 자료  
+> 원문: [Describing the UI - React](https://react.dev/learn/describing-the-ui)
+
+---
+
+## 컴포넌트 Import/Export
+
+### 문제 상황
+
+한 파일에 많은 컴포넌트를 선언하면 파일이 커지고 탐색이 어려워집니다.
+
+### 해결책: 파일 분리
+
+**파일 구조:**
+
+```
+src/
+  ├── Gallery.js      # Gallery 컴포넌트
+  └── Profile.js      # Profile 컴포넌트
+```
+
+### Export/Import 예제
+
+```jsx
+// Profile.js
+export default function Profile() {
+  return (
+    <img
+      src="https://i.imgur.com/MK3eW3As.jpg"
+      alt="Katherine Johnson"
+    />
+  );
+}
+```
+
+```jsx
+// Gallery.js
+import Profile from './Profile.js';
+
+export default function Gallery() {
+  return (
+    <section>
+      <h1>Amazing scientists</h1>
+      <Profile />
+      <Profile />
+      <Profile />
+    </section>
+  );
+}
+```
+
+### Export 방식
+
+| 방식 | Export | Import |
+|------|--------|--------|
+| **Default Export** | `export default function Button() {}` | `import Button from './Button.js'` |
+| **Named Export** | `export function Button() {}` | `import { Button } from './Button.js'` |
+
+**권장 사항:**
+
+- 파일당 하나의 컴포넌트 → **Default Export** 사용
+- 파일당 여러 컴포넌트 → **Named Export** 사용
+
+### Vue와 비교
+
+```html
+<!-- Vue: Profile.vue -->
+<template>
+  <img src="..." alt="Katherine Johnson" />
+</template>
+
+<script setup>
+// 자동으로 export됨
+</script>
+```
+
+```jsx
+// React: Profile.js
+export default function Profile() {
+  return <img src="..." alt="Katherine Johnson" />
+}
+```
+
+---
+
+## 다음 단계
+
+이제 컴포넌트를 파일로 분리하는 방법을 배웠으니, 다음 포스트에서는 **JSX로 마크업 작성하기**를 학습합니다.
+
+**배울 내용:**
+- JSX 문법 규칙
+- HTML을 JSX로 변환
+- Fragment 사용법
+
+---
+
+**작성일**: 2025-10-11  
+**출처**: [React Official Documentation](https://react.dev/learn/describing-the-ui)  
+**대상**: React 초급 학습자

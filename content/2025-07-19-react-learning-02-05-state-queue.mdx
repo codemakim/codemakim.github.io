@@ -1,0 +1,214 @@
+---
+title: "📚 [React 기초 2-5/8] State 업데이트 큐"
+date: "2025-07-19"
+description: "React State 업데이트 큐와 업데이터 함수를 사용하는 방법을 학습합니다"
+tags: ["React", "학습", "Vue", "초급", "프론트엔드"]
+series: "React 기초"
+seriesOrder: 15
+---
+
+# React 학습 가이드 - State 업데이트 큐
+
+> React 공식 문서를 기반으로 한 학습 자료  
+> 원문: [Adding Interactivity - React](https://react.dev/learn/adding-interactivity)
+
+---
+
+## State 업데이트 큐
+
+### 한 이벤트에서 여러 State 업데이트
+
+```jsx
+import { useState } from 'react';
+
+export default function Counter() {
+  const [number, setNumber] = useState(0);
+
+  return (
+    <>
+      <h1>{number}</h1>
+      <button onClick={() => {
+        setNumber(number + 1);
+        setNumber(number + 1);
+        setNumber(number + 1);
+      }}>+3</button>
+    </>
+  );
+}
+```
+
+**결과:** `number`는 1만 증가 (3이 아님!)
+
+**이유:** 각 렌더링의 state 값은 고정되어 있기 때문
+
+```jsx
+setNumber(0 + 1);  // setNumber(1)
+setNumber(0 + 1);  // setNumber(1)
+setNumber(0 + 1);  // setNumber(1)
+```
+
+### 다음 렌더링 전에 여러 번 업데이트하기
+
+**업데이터 함수 (Updater Function)**를 전달하세요:
+
+```jsx
+import { useState } from 'react';
+
+export default function Counter() {
+  const [number, setNumber] = useState(0);
+
+  return (
+    <>
+      <h1>{number}</h1>
+      <button onClick={() => {
+        setNumber(n => n + 1);
+        setNumber(n => n + 1);
+        setNumber(n => n + 1);
+      }}>+3</button>
+    </>
+  );
+}
+```
+
+**이제 `number`는 3 증가합니다!**
+
+### 업데이터 함수란?
+
+```jsx
+setNumber(n => n + 1);
+```
+
+- `n => n + 1`: **업데이터 함수**
+- `n`: 이전 state 값
+- 반환값: 다음 state 값
+
+**React의 처리 방식:**
+
+1. `n => n + 1` 함수를 큐에 추가
+2. `n => n + 1` 함수를 큐에 추가
+3. `n => n + 1` 함수를 큐에 추가
+4. 다음 렌더링 시 큐를 순차적으로 실행
+
+**실행 순서:**
+
+| 큐에 추가된 업데이트 | `n` | 반환값 |
+|------------------|-----|--------|
+| `n => n + 1` | `0` | `0 + 1 = 1` |
+| `n => n + 1` | `1` | `1 + 1 = 2` |
+| `n => n + 1` | `2` | `2 + 1 = 3` |
+
+최종 결과: `number = 3`
+
+### 업데이트 값과 업데이터 함수 혼합
+
+```jsx
+<button onClick={() => {
+  setNumber(number + 5);      // 0 + 5 = 5로 설정
+  setNumber(n => n + 1);      // 5 + 1 = 6
+  setNumber(42);              // 42로 설정
+}}>
+```
+
+**실행 순서:**
+
+| 큐에 추가된 업데이트 | `n` | 반환값 |
+|------------------|-----|--------|
+| "5로 대체" | `0` (미사용) | `5` |
+| `n => n + 1` | `5` | `5 + 1 = 6` |
+| "42로 대체" | `6` (미사용) | `42` |
+
+최종 결과: `number = 42`
+
+### 명명 규칙
+
+업데이터 함수 매개변수는 state 변수의 **첫 글자**로 명명하는 것이 관례입니다:
+
+```jsx
+setEnabled(e => !e);
+setLastName(ln => ln.reverse());
+setFriendCount(fc => fc * 2);
+```
+
+또는 전체 이름 반복:
+
+```jsx
+setEnabled(enabled => !enabled);
+setLastName(lastName => lastName.reverse());
+```
+
+### 실전 예제: 복잡한 State 업데이트
+
+```jsx
+import { useState } from 'react';
+
+export default function RequestTracker() {
+  const [pending, setPending] = useState(0);
+  const [completed, setCompleted] = useState(0);
+
+  async function handleClick() {
+    setPending(p => p + 1);
+    await delay(3000);
+    setPending(p => p - 1);
+    setCompleted(c => c + 1);
+  }
+
+  return (
+    <>
+      <h3>대기중: {pending}</h3>
+      <h3>완료됨: {completed}</h3>
+      <button onClick={handleClick}>
+        구매
+      </button>
+    </>
+  );
+}
+
+function delay(ms) {
+  return new Promise(resolve => {
+    setTimeout(resolve, ms);
+  });
+}
+```
+
+**빠르게 3번 클릭 시:**
+
+1. `pending`: 0 → 1 → 2 → 3
+2. 3초 후
+3. `pending`: 3 → 2 → 1 → 0
+4. `completed`: 0 → 1 → 2 → 3
+
+### Vue와 비교
+
+Vue는 자동으로 배치 업데이트를 처리하므로 명시적인 업데이터 함수가 필요 없습니다:
+
+```html
+<script setup>
+import { ref } from 'vue'
+
+const count = ref(0)
+
+function increment() {
+  count.value++  // 자동으로 큐에 추가
+  count.value++
+  count.value++
+  // 3 증가
+}
+</script>
+```
+
+---
+
+## 다음 단계
+
+이제 State 업데이트 큐를 이해했으니, 다음 포스트에서는 **객체 State 업데이트하기**를 학습합니다.
+
+**배울 내용:**
+- 객체 State의 불변성
+- 스프레드 연산자 사용법
+- 중첩 객체 업데이트
+
+---
+
+**작성일**: 2025-10-11  
+**출처**: [React Official Documentation](https://react.dev/learn/adding-interactivity)  
+**대상**: React 초급 학습자
