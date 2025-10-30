@@ -50,11 +50,7 @@ export default function SeriesNav({ seriesInfo }: SeriesNavProps) {
         {prev ? (
           <Link
             href={prev.url}
-            className="
-              glass-tag p-4 rounded-lg
-              hover:scale-105 transition-all
-              text-left
-            "
+            className="btn-primary p-4 rounded-lg transition-transform duration-150 will-change-transform hover:scale-[1.02] text-left"
           >
             <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
               ← 이전 글
@@ -74,11 +70,7 @@ export default function SeriesNav({ seriesInfo }: SeriesNavProps) {
         {next ? (
           <Link
             href={next.url}
-            className="
-              glass-tag p-4 rounded-lg
-              hover:scale-105 transition-all
-              text-right
-            "
+            className="btn-primary p-4 rounded-lg transition-transform duration-150 will-change-transform hover:scale-[1.02] text-right"
           >
             <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
               다음 글 →

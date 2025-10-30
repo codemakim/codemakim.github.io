@@ -51,7 +51,7 @@ export default function PostList({ posts, selectedTag }: PostListProps) {
                 {post.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="glass-tag px-2 py-1 text-xs rounded whitespace-nowrap text-gray-700 dark:text-gray-300"
+                    className="chip px-2 py-1 text-xs rounded whitespace-nowrap"
                   >
                     {tag}
                   </span>

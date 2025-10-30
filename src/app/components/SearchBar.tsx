@@ -101,9 +101,7 @@ export default function SearchBar({
               <button
                 onClick={() => onSearchChange("")}
                 className="
-                  p-1 rounded-full
-                  hover:bg-gray-200 dark:hover:bg-gray-700
-                  transition-colors
+                  chip px-2 py-1 rounded-full transition-all text-xs
                 "
                 aria-label="검색어 지우기"
               >

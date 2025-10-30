@@ -11,11 +11,10 @@ export default function SortOptions({ sortOrder, onSortChange }: SortOptionsProp
       <button
         onClick={() => onSortChange('desc')}
         className={`
-          px-4 py-2 rounded-lg text-sm font-medium
-          transition-all duration-300
+          px-4 py-2 text-sm font-medium transition-all duration-300
           ${sortOrder === 'desc' 
-            ? 'glass-tag active text-white' 
-            : 'glass-tag text-gray-700 dark:text-gray-300'
+            ? 'btn-primary' 
+            : 'chip'
           }
         `}
       >
@@ -30,11 +29,10 @@ export default function SortOptions({ sortOrder, onSortChange }: SortOptionsProp
       <button
         onClick={() => onSortChange('asc')}
         className={`
-          px-4 py-2 rounded-lg text-sm font-medium
-          transition-all duration-300
+          px-4 py-2 text-sm font-medium transition-all duration-300
           ${sortOrder === 'asc' 
-            ? 'glass-tag active text-white' 
-            : 'glass-tag text-gray-700 dark:text-gray-300'
+            ? 'btn-primary' 
+            : 'chip'
           }
         `}
       >

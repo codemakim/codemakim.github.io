@@ -26,8 +26,8 @@ export default function TagFilter({
         <button
           onClick={() => onTagSelect(null)}
           className={`
-            glass-tag px-3 py-1.5 text-sm rounded-full cursor-pointer
-            ${selectedTag === null ? "active" : ""}
+            chip px-3 py-1.5 text-sm rounded-full cursor-pointer
+            ${selectedTag === null ? "chip--active" : ""}
           `}
         >
           전체 <span className="ml-1 text-xs opacity-70">({totalCount})</span>
@@ -39,8 +39,8 @@ export default function TagFilter({
             key={tag.name}
             onClick={() => onTagSelect(tag.name)}
             className={`
-              glass-tag px-3 py-1.5 text-sm rounded-full cursor-pointer
-              ${selectedTag === tag.name ? "active" : ""}
+              chip px-3 py-1.5 text-sm rounded-full cursor-pointer
+              ${selectedTag === tag.name ? "chip--active" : ""}
             `}
           >
             {tag.name}{" "}
