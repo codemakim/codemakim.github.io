@@ -18,6 +18,9 @@ seriesOrder: 25
 
 위에서 이미 다뤘지만, 다시 한번 정리하면:
 
+> 참고: 기초 개념과 마이그레이션 단계는 [Reducer로 State 로직 추출하기](/posts/2025-07-27-react-learning-03-05-reducer),
+> Context 기본 구현 예제는 [Context로 데이터 깊이 전달하기](/posts/2025-07-28-react-learning-03-06-context)에 먼저 수록되어 있습니다.
+
 ### 통합 패턴
 
 1. **Reducer로 복잡한 state 관리**
@@ -62,6 +65,8 @@ src/
 - 값 분리: `TasksContext`(값)와 `TasksDispatchContext`(dispatch) 분리 → 불필요 리렌더 감소
 - Provider를 도메인별로 쪼개기: Auth, Theme, Tasks 등 기능별 Context
 - 커스텀 훅 추상화: `useTasks()`, `useTasksDispatch()`로 null 방지와 사용성 향상
+
+_아래 코드는 03-06의 기본 예제를 토대로, TS/안전성/분리 패턴을 확장한 버전입니다._
 
 ```tsx
 // contexts/TasksContext.tsx
