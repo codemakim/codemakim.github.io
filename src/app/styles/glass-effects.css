@@ -1,5 +1,15 @@
 /* 글래스모피즘 효과 - iOS 18 스타일 */
 
+/* 다크용 유리 톤 토큰 */
+:root {
+  --glass-bg-dark: rgba(36, 48, 68, 0.25);
+  --glass-stroke-dark: rgba(180, 210, 255, 0.12);
+  --glass-hi-top: rgba(255, 255, 255, 0.22);
+  --glass-hi-bottom: rgba(0, 0, 0, 0.30);
+  --glow-purple: rgba(139, 92, 246, 0.14);
+  --glow-cyan: rgba(0, 208, 255, 0.10);
+}
+
 /* 글래스 헤더 - 강화 */
 .glass-header {
   background: rgba(255, 255, 255, 0.5);
@@ -113,56 +123,36 @@
 /* 다크모드 글래스 효과 */
 @media (prefers-color-scheme: dark) {
   .glass-card {
-    background: rgba(255, 255, 255, 0.04);
-    backdrop-filter:
-      blur(20px)
-      saturate(180%)
-      contrast(110%)
-      brightness(105%)
-      hue-rotate(-3deg) !important;
-    -webkit-backdrop-filter:
-      blur(20px)
-      saturate(180%)
-      contrast(110%)
-      brightness(105%)
-      hue-rotate(-3deg) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: var(--glass-bg-dark);
+    border: 1px solid var(--glass-stroke-dark);
+    backdrop-filter: blur(22px) saturate(180%) brightness(108%);
+    -webkit-backdrop-filter: blur(22px) saturate(180%) brightness(108%);
     box-shadow:
-      0 8px 32px 0 rgba(0, 0, 0, 0.6),
-      inset 0 1px 2px rgba(255, 255, 255, 0.4),
-      inset 0 -1px 1px rgba(139, 92, 246, 0.15),
-      inset 0 0 60px rgba(139, 92, 246, 0.08);
+      inset 0 1px 1px var(--glass-hi-top),
+      inset 0 -2px 3px var(--glass-hi-bottom),
+      0 8px 32px rgba(0,0,0,0.5),
+      0 0 20px var(--glow-purple);
   }
 
   /* 본문 전용 글래스 카드 - 다크모드 강화 */
   .glass-card-content {
-    background: rgba(255, 255, 255, 0.03) !important;
-    backdrop-filter:
-      blur(24px)
-      saturate(180%)
-      contrast(110%)
-      brightness(105%)
-      hue-rotate(-2deg) !important;
-    -webkit-backdrop-filter:
-      blur(24px)
-      saturate(180%)
-      contrast(110%)
-      brightness(105%)
-      hue-rotate(-2deg) !important;
-    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    background: rgba(24, 32, 52, 0.20) !important;
+    border: 1px solid rgba(180,210,255,0.15) !important;
     box-shadow:
-      0 8px 32px 0 rgba(0, 0, 0, 0.7),
-      inset 0 2px 4px rgba(255, 255, 255, 0.5),
-      inset 0 -2px 2px rgba(99, 102, 241, 0.25) !important;
+      inset 0 1px 2px rgba(255,255,255,0.18),
+      inset 0 -2px 2px rgba(0,0,0,0.30),
+      0 6px 18px rgba(0,0,0,0.45) !important;
   }
 
   .glass-card::before {
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(139, 92, 246, 0.08),
-      transparent
-    );
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.12), rgba(0,208,255,0.08), transparent);
+    opacity: .7;
+    pointer-events: none;
+    display: block !important;
   }
 
   /* 카드 호버 없음 (모바일 안정성) */
@@ -231,8 +221,8 @@
 
 /* ===== Chips (태그/필터) ===== */
 .chip {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.10);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   color: #334155;
@@ -242,11 +232,12 @@
   .chip { color: #cfd7ff; }
 }
 .chip--active {
-  background: linear-gradient(135deg, rgba(106,75,255,0.25), rgba(0,208,255,0.18));
+  background: linear-gradient(135deg, rgba(106,75,255,.28), rgba(0,208,255,.20));
   border-color: rgba(255, 255, 255, 0.22);
   box-shadow:
-    0 0 0 1px rgba(130,90,255,0.35),
-    0 12px 30px rgba(106,75,255,0.35);
+    0 0 0 1px rgba(130,90,255,.33),
+    0 10px 26px rgba(106,75,255,.28),
+    0 0 24px rgba(0,208,255,.12);
   color: #0f172a;
 }
 @media (prefers-color-scheme: dark) {
@@ -269,7 +260,7 @@
     0 1px 0 rgba(255,255,255,0.3) inset;
   transition: transform .15s ease, box-shadow .15s ease, filter .2s ease;
 }
-.btn-primary:hover { transform: translateY(-1px); filter: brightness(1.06); }
+.btn-primary:hover { transform: translateY(-1px); filter: brightness(1.07); }
 .btn-primary:active { transform: translateY(0); filter: brightness(0.98); }
 
 /* ===== Focus-elevate wrapper (for inputs/search) ===== */
@@ -285,7 +276,7 @@
   .focus-elevate:focus-within {
     box-shadow:
       0 0 0 2px rgba(147, 51, 234, 0.5),
-      0 8px 24px rgba(147, 51, 234, 0.3);
+      0 10px 24px -8px rgba(99, 102, 241, 0.30);
   }
 }
 
