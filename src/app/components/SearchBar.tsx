@@ -37,7 +37,7 @@ export default function SearchBar({
 
   return (
     <div className="mb-6">
-      <div className="relative glass-card p-1 group focus-within:ring-2 focus-within:ring-pink-400/50 dark:focus-within:ring-purple-400/50 focus-within:shadow-lg focus-within:shadow-pink-200/50 dark:focus-within:shadow-purple-500/30 transition-all duration-300">
+      <div className="relative glass-card p-1 group focus-elevate">
         <div className="flex items-center gap-3 px-4 py-3">
           {/* 검색 아이콘 또는 로딩 스피너 */}
           {isSearching ? (

@@ -254,10 +254,16 @@
 }
 
 /* ===== Primary Button (CTA) ===== */
+.btn {
+  border-radius: 14px;
+  transition: transform .15s ease;
+  will-change: transform;
+}
+.btn:hover { transform: scale(1.02); }
+
 .btn-primary {
   background: linear-gradient(135deg, #6a4bff, #00d0ff);
   color: white;
-  border-radius: 14px;
   box-shadow:
     0 10px 30px rgba(106,75,255,0.45),
     0 1px 0 rgba(255,255,255,0.3) inset;
@@ -265,3 +271,49 @@
 }
 .btn-primary:hover { transform: translateY(-1px); filter: brightness(1.06); }
 .btn-primary:active { transform: translateY(0); filter: brightness(0.98); }
+
+/* ===== Focus-elevate wrapper (for inputs/search) ===== */
+.focus-elevate {
+  transition: box-shadow .2s ease, outline-color .2s ease;
+}
+.focus-elevate:focus-within {
+  box-shadow:
+    0 0 0 2px rgba(236, 72, 153, 0.5),
+    0 8px 24px rgba(236, 72, 153, 0.25);
+}
+@media (prefers-color-scheme: dark) {
+  .focus-elevate:focus-within {
+    box-shadow:
+      0 0 0 2px rgba(147, 51, 234, 0.5),
+      0 8px 24px rgba(147, 51, 234, 0.3);
+  }
+}
+
+/* ===== Nav/Button common (reduce inline) ===== */
+.btn-nav {
+  padding: 1rem; /* p-4 */
+  border-radius: 14px;
+  transition: transform 150ms ease;
+  will-change: transform;
+}
+.btn-nav:hover { transform: scale(1.02); }
+
+/* ===== Search card (reduce long inline) ===== */
+.search-card {
+  position: relative;
+  padding: 0.25rem; /* p-1 */
+  transition: box-shadow 300ms ease, transform 300ms ease;
+}
+.search-card:focus-within {
+  /* ring-2 + colored shadow 근사치 */
+  box-shadow:
+    0 0 0 2px rgba(236, 72, 153, 0.5), /* pink-400/50 */
+    0 10px 24px -8px rgba(251, 207, 232, 0.5);
+}
+@media (prefers-color-scheme: dark) {
+  .search-card:focus-within {
+    box-shadow:
+      0 0 0 2px rgba(168, 85, 247, 0.5), /* purple-400/50 */
+      0 10px 24px -8px rgba(139, 92, 246, 0.3);
+  }
+}
