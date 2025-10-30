@@ -58,6 +58,16 @@
   overflow: hidden;
 }
 
+@media (prefers-color-scheme: light) {
+  .glass-card {
+    border: 1px solid rgba(200, 220, 255, 0.3);
+    box-shadow:
+      0 8px 32px 0 rgba(31, 38, 135, 0.15),
+      inset 0 1px 2px rgba(255, 255, 255, 0.9),
+      inset 0 -1px 1px rgba(0, 0, 0, 0.04);
+  }
+}
+
 /* 본문 전용 글래스 카드 - 강화된 유리 효과 */
 .glass-card-content {
   background: rgba(255, 255, 255, 0.6) !important;
@@ -78,6 +88,17 @@
     0 8px 32px 0 rgba(31, 38, 135, 0.15),
     inset 0 2px 4px rgba(255, 255, 255, 0.95),
     inset 0 -2px 2px rgba(0, 0, 0, 0.03) !important;
+}
+
+@media (prefers-color-scheme: light) {
+  .glass-card-content {
+    background: rgba(255, 255, 255, 0.55) !important;
+    border: 1px solid rgba(200, 220, 255, 0.3) !important;
+    box-shadow:
+      0 8px 28px 0 rgba(31, 38, 135, 0.15),
+      inset 0 2px 4px rgba(255, 255, 255, 0.9),
+      inset 0 -2px 2px rgba(0, 0, 0, 0.03) !important;
+  }
 }
 
 /* 모바일 성능 최적화: blur 강도 소폭 감소 */

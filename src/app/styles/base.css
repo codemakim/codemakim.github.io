@@ -47,6 +47,16 @@ body,
     linear-gradient(135deg, #e0f2fe 0%, #fce7f3 50%, #f3e8ff 100%);
 }
 
+@media (prefers-color-scheme: light) {
+  body,
+  .app-wrapper {
+    background:
+      radial-gradient(ellipse at top left, rgba(139,92,246,0.15), transparent 60%),
+      radial-gradient(ellipse at bottom right, rgba(0,208,255,0.12), transparent 65%),
+      linear-gradient(135deg, #eef4ff 0%, #f8f9fb 100%);
+  }
+}
+
 html,
 body {
   background-attachment: fixed;
