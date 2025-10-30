@@ -45,6 +45,111 @@ src/
 - ✅ **테스트 용이**: reducer는 순수 함수
 - ✅ **확장성**: 앱이 커져도 관리 가능
 
+### 언제 useReducer/Context를 쓰나요?
+
+**권장**
+
+- 업데이트 로직이 다수의 핸들러로 흩어져 복잡해짐
+- 여러 컴포넌트가 동일한 상태/로직을 공유해야 함
+
+**지양**
+
+- 단일 컴포넌트, 단순 상태(useState가 더 간단)
+- 전역 Context 하나에 모든 걸 몰아넣기(리렌더 폭발)
+
+### Context 설계 패턴
+
+- 값 분리: `TasksContext`(값)와 `TasksDispatchContext`(dispatch) 분리 → 불필요 리렌더 감소
+- Provider를 도메인별로 쪼개기: Auth, Theme, Tasks 등 기능별 Context
+- 커스텀 훅 추상화: `useTasks()`, `useTasksDispatch()`로 null 방지와 사용성 향상
+
+```tsx
+// contexts/TasksContext.tsx
+import { createContext, useContext, useReducer } from 'react';
+
+type Action =
+  | { type: 'added'; id: number; text: string }
+  | { type: 'changed'; id: number; text: string; done: boolean }
+  | { type: 'deleted'; id: number };
+
+type Task = { id: number; text: string; done: boolean };
+
+function tasksReducer(state: Task[], action: Action): Task[] {
+  switch (action.type) {
+    case 'added':
+      return [...state, { id: action.id, text: action.text, done: false }];
+    case 'changed':
+      return state.map(t => (t.id === action.id ? { ...t, text: action.text, done: action.done } : t));
+    case 'deleted':
+      return state.filter(t => t.id !== action.id);
+    default:
+      return state;
+  }
+}
+
+const TasksContext = createContext<Task[] | undefined>(undefined);
+const TasksDispatchContext = createContext<React.Dispatch<Action> | undefined>(undefined);
+
+export function TasksProvider({ children }: { children: React.ReactNode }) {
+  const [tasks, dispatch] = useReducer(tasksReducer, []);
+  return (
+    <TasksContext.Provider value={tasks}>
+      <TasksDispatchContext.Provider value={dispatch}>{children}</TasksDispatchContext.Provider>
+    </TasksContext.Provider>
+  );
+}
+
+export function useTasks() {
+  const ctx = useContext(TasksContext);
+  if (!ctx) throw new Error('useTasks must be used within TasksProvider');
+  return ctx;
+}
+
+export function useTasksDispatch() {
+  const ctx = useContext(TasksDispatchContext);
+  if (!ctx) throw new Error('useTasksDispatch must be used within TasksProvider');
+  return ctx;
+}
+```
+
+### 성능/리렌더링 팁
+
+- Context 값은 안정적으로 유지: 큰 객체를 매 렌더마다 새로 만들지 않기(useMemo 고려)
+- dispatch 분리: 값과 dispatch 분리로 소비자 리렌더 최소화
+- 리스트는 `React.memo`/key 안정화, 파생 값은 `useMemo`
+
+### TypeScript 안전성
+
+- 액션은 Discriminated Union으로 선언, reducer 반환 타입 명확히
+- Context 기본값 `undefined`로 두고 커스텀 훅에서 에러 처리(Provider 누락 방지)
+
+### 테스트 전략
+
+- Reducer: 입력(Action) → 출력(State) 단위 테스트(순수 함수)
+- Provider: 테스트용 Provider로 감싸서 통합 테스트
+
+### 마이그레이션 체크리스트
+
+1) 액션 정의 → 2) reducer 작성 → 3) useReducer 교체 → 4) Context로 배포 → 5) 커스텀 훅 제공 → 6) 컴포넌트 교체
+
+### 안티패턴
+
+- Reducer 내부에서 부작용(fetch, setTimeout) 수행
+- 거대한 단일 Context 하나에 전역 모든 상태 수용
+- 가변 데이터(원본 배열/객체) 직접 반환
+
+### 확장 가능한 파일 구조 예시
+
+```
+src/
+  features/tasks/
+    contexts/TasksContext.tsx
+    components/TaskList.tsx
+    hooks/useTaskStats.ts
+    reducers/tasksReducer.ts (선택)
+  app/App.tsx
+```
+
 ---
 
 ## 다음 단계
@@ -52,6 +157,7 @@ src/
 이제 Reducer와 Context 통합을 이해했으니, 다음 포스트에서는 **연습문제와 다음 단계**를 학습합니다.
 
 **배울 내용:**
+
 - 실전 연습문제
 - 다음 챕터 소개
 - 학습 체크리스트
