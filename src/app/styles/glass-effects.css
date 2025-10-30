@@ -104,12 +104,12 @@
 /* 모바일 성능 최적화: blur 강도 소폭 감소 */
 @media (max-width: 768px) {
   .glass-card {
-    backdrop-filter: blur(16px) saturate(180%) contrast(115%) brightness(108%) hue-rotate(3deg) !important;
-    -webkit-backdrop-filter: blur(16px) saturate(180%) contrast(115%) brightness(108%) hue-rotate(3deg) !important;
+    backdrop-filter: blur(16px) saturate(180%) contrast(115%) brightness(108%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(180%) contrast(115%) brightness(108%) !important;
   }
   .glass-card-content {
-    backdrop-filter: blur(20px) saturate(180%) contrast(115%) brightness(108%) hue-rotate(2deg) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(180%) contrast(115%) brightness(108%) hue-rotate(2deg) !important;
+    backdrop-filter: blur(20px) saturate(180%) contrast(115%) brightness(108%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) contrast(115%) brightness(108%) !important;
   }
 }
 
