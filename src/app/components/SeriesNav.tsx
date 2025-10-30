@@ -22,26 +22,22 @@ export default function SeriesNav({ seriesInfo }: SeriesNavProps) {
           <span>{seriesName} 시리즈</span>
         </h3>
         
-        {/* 진행률 표시 */}
-        <div className="mt-2">
-          <div className="flex items-center gap-2">
-            <div className="flex gap-1">
-              {Array.from({ length: total }).map((_, index) => (
+        {/* 진행률 게이지 (전 해상도 공통) */}
+        <div className="mt-3" aria-label="시리즈 진행률">
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <div className="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-800 overflow-hidden">
                 <div
-                  key={index}
-                  className={`
-                    w-2 h-2 rounded-full transition-all
-                    ${index + 1 === current
-                      ? 'bg-blue-500 w-3' 
-                      : index + 1 < current
-                      ? 'bg-blue-300 dark:bg-blue-700'
-                      : 'bg-gray-300 dark:bg-gray-600'
-                    }
-                  `}
+                  className="h-2 rounded-full bg-blue-600 dark:bg-blue-400 transition-all"
+                  style={{ width: `${Math.min(100, Math.max(0, (current / total) * 100))}%` }}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={Math.round((current / total) * 100)}
+                  role="progressbar"
                 />
-              ))}
+              </div>
             </div>
-            <span className="text-sm text-gray-600 dark:text-gray-400">
+            <span className="text-sm tabular-nums text-gray-600 dark:text-gray-400">
               {current}/{total}
             </span>
           </div>
