@@ -11,6 +11,8 @@ seriesOrder: 29
 
 ### DOM 노드에 접근하기
 
+React는 선언적으로 UI를 관리하지만, 때로는 DOM에 직접 접근해야 할 때가 있습니다.
+
 React는 자동으로 DOM을 업데이트하므로 직접 조작할 일이 거의 없습니다. 하지만 때로는 필요합니다:
 
 - input에 포커스
@@ -45,6 +47,8 @@ export default function Form() {
 3. React가 `<input>` DOM 노드를 `inputRef.current`에 저장
 
 ### Ref 콜백으로 ref 리스트 관리
+
+동적으로 생성되는 여러 요소에 ref를 연결하려면 어떻게 할까요? Ref 콜백을 사용합니다.
 
 ```jsx
 import { useRef } from 'react';
@@ -123,6 +127,8 @@ for (let i = 0; i < 10; i++) {
 
 ### 다른 컴포넌트의 DOM 노드 접근
 
+기본적으로 컴포넌트는 자신의 DOM을 노출하지 않습니다.
+
 ```jsx
 // ❌ 작동하지 않음
 function MyInput() {
@@ -164,6 +170,8 @@ export default function Form() {
 
 ### useImperativeHandle로 노출되는 기능 제한
 
+DOM 전체를 노출하는 대신, 필요한 메서드만 노출할 수 있습니다.
+
 ```jsx
 import { forwardRef, useRef, useImperativeHandle } from 'react';
 
@@ -201,6 +209,8 @@ export default function Form() {
 
 ### React가 ref를 첨부하는 시점
 
+Ref는 언제 DOM 노드를 참조하게 될까요? React의 렌더링 주기를 이해해야 합니다.
+
 **React에서 모든 업데이트는 두 단계로 분할됩니다:**
 
 1. **렌더**: React가 컴포넌트를 호출하여 화면에 무엇이 있어야 하는지 파악
@@ -212,6 +222,8 @@ export default function Form() {
 - **커밋 전**: React가 `ref.current`를 DOM 노드로 설정
 
 ### flushSync로 state 업데이트 강제
+
+State 업데이트가 비동기적으로 처리되어 DOM이 즉시 업데이트되지 않을 때가 있습니다. `flushSync`로 동기적 업데이트를 강제할 수 있습니다.
 
 ```jsx
 import { useState, useRef } from 'react';
@@ -322,3 +334,5 @@ function Form() {
 ```
 
 ---
+
+**출처**: [React Official Documentation](https://react.dev/learn/escape-hatches)

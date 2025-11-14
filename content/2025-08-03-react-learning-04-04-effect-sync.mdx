@@ -11,6 +11,8 @@ seriesOrder: 30
 
 ### Effect란?
 
+React 컴포넌트는 순수한 함수여야 하지만, 때로는 외부 세계와 상호작용해야 합니다.
+
 일부 컴포넌트는 **외부 시스템과 동기화**해야 합니다.
 
 **예시:**
@@ -22,6 +24,8 @@ seriesOrder: 30
 **Effect는 렌더링 후에 일부 코드를 실행하여 React 외부의 시스템과 동기화합니다.**
 
 ### Effect 작성하는 방법
+
+Effect는 3단계로 작성합니다.
 
 #### 1단계: Effect 선언
 
@@ -37,6 +41,8 @@ function MyComponent() {
 ```
 
 #### 2단계: Effect 의존성 지정
+
+의존성 배열로 Effect가 언제 재실행될지 제어합니다.
 
 ```jsx
 useEffect(() => {
@@ -54,6 +60,8 @@ useEffect(() => {
 
 #### 3단계: 필요하면 클린업 추가
 
+클린업 함수로 Effect가 종료될 때 정리 작업을 수행합니다.
+
 ```jsx
 useEffect(() => {
   const connection = createConnection();
@@ -66,6 +74,8 @@ useEffect(() => {
 ```
 
 ### 예제: 채팅 연결
+
+Effect를 사용하여 채팅 서버에 연결하는 실용적인 예제입니다.
 
 ```jsx
 import { useState, useEffect } from 'react';
@@ -119,6 +129,8 @@ export default function ChatRoom() {
 
 ### 개발 모드에서 Effect가 두 번 실행되는 이유
 
+개발 환경에서 Effect가 두 번 실행되는 것을 보셨나요? 이건 버그가 아닙니다!
+
 **Strict Mode**에서 React는 컴포넌트를 **두 번** 마운트합니다:
 
 ```
@@ -151,6 +163,8 @@ useEffect(() => {
 **프로덕션에서는 한 번만 실행됩니다.**
 
 ### Effect가 필요하지 않은 경우
+
+Effect를 남용하면 코드가 복잡해집니다. Effect 없이 해결할 수 있는지 항상 확인하세요.
 
 **다음과 같은 경우 Effect가 필요하지 않습니다:**
 
@@ -228,3 +242,5 @@ function ChatRoom() {
 - React: `useEffect`에서 클린업 함수 반환
 
 ---
+
+**출처**: [React Official Documentation](https://react.dev/learn/escape-hatches)
