@@ -18,7 +18,7 @@ seriesOrder: 2
 
 ### 문제 상황
 
-한 파일에 컴포넌트를 너무 많이 넣으면 파일이 길어지고 찾기 힘들어져.
+한 파일에 많은 컴포넌트를 선언하면 파일이 커지고 탐색이 어려워집니다.
 
 ### 해결책: 파일 분리
 
@@ -32,7 +32,7 @@ src/
 
 ### Export/Import 예제
 
-Profile 컴포넌트를 별도 파일로 빼내고, Gallery에서 불러와서 쓰는 방법을 보자.
+Profile 컴포넌트를 별도 파일로 분리하고, Gallery에서 불러와 사용하는 방법을 살펴보겠습니다.
 
 **1단계: Profile.js 파일 생성**
 
@@ -48,8 +48,8 @@ export default function Profile() {
 }
 ```
 
-- `export default`를 앞에 붙이면 다른 파일에서도 이 컴포넌트를 가져다 쓸 수 있어.
-- 파일 하나에 메인 컴포넌트가 하나만 있을 때 default export를 써.
+- `export default`를 앞에 붙이면 이 컴포넌트를 다른 파일에서 가져다 쓸 수 있습니다.
+- 파일 하나에 하나의 주요 컴포넌트만 있을 때 default export를 사용합니다.
 
 **2단계: Gallery.js에서 불러오기**
 
@@ -69,13 +69,13 @@ export default function Gallery() {
 }
 ```
 
-- `import Profile from './Profile.js'`: Profile 컴포넌트를 가져와.
-- `'./Profile.js'`: 현재 폴더(`.`)에 있는 Profile.js 파일이라는 뜻이야.
-- 이제 `<Profile />`를 쓸 수 있어.
+- `import Profile from './Profile.js'`: Profile 컴포넌트를 불러옵니다.
+- `'./Profile.js'`: 현재 폴더(`.`)에 있는 Profile.js 파일을 의미합니다.
+- 이제 `<Profile />`를 사용할 수 있습니다.
 
 ### Export 방식
 
-React에서는 두 가지 Export 방식이 있어.
+React에서는 두 가지 Export 방식을 사용합니다.
 
 | 방식 | Export | Import | 설명 |
 |------|--------|--------|------|
@@ -85,19 +85,19 @@ React에서는 두 가지 Export 방식이 있어.
 **차이점:**
 
 1. **Default Export**:
-   - 한 파일에 하나만 가능
-   - Import할 때 중괄호 `{}` 없이 써
-   - Import할 때 이름을 마음대로 바꿀 수 있어: `import MyButton from './Button.js'`
+   - 한 파일에 하나만 사용 가능
+   - Import 시 중괄호 `{}` 없이 사용
+   - Import 시 이름을 자유롭게 변경 가능: `import MyButton from './Button.js'`
 
 2. **Named Export**:
-   - 한 파일에 여러 개 넣을 수 있어
-   - Import할 때 반드시 중괄호 `{}` 써야 해
-   - 정확한 이름으로 Import 해야 돼
+   - 한 파일에 여러 개 사용 가능
+   - Import 시 반드시 중괄호 `{}` 사용
+   - 정확한 이름으로 Import 해야 함
 
-**언제 뭘 써야 할까?**
+**권장 사항:**
 
-- 파일당 컴포넌트 하나 → **Default Export** 써 (대부분의 경우)
-- 파일당 컴포넌트 여러 개 → **Named Export** 써
+- 파일당 하나의 컴포넌트 → **Default Export** 사용 (대부분의 경우)
+- 파일당 여러 컴포넌트 → **Named Export** 사용
 
 ### Vue와 비교
 

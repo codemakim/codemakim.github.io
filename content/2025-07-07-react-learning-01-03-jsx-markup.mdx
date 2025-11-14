@@ -18,19 +18,19 @@ seriesOrder: 3
 
 ### JSX란?
 
-**JSX (JavaScript XML)**는 JavaScript 파일 안에 HTML 비슷한 마크업을 쓸 수 있게 해주는 문법이야.
+**JSX (JavaScript XML)**는 JavaScript 파일 안에 HTML과 유사한 마크업을 작성할 수 있는 문법 확장입니다.
 
 ### 핵심 특징
 
-1. **HTML보다 까다로워**: 태그는 무조건 닫아야 해
-2. **동적 정보 표시 가능**: JavaScript 표현식을 그냥 넣을 수 있어
-3. **React 컴포넌트의 기본**: 렌더링 로직과 마크업을 한 고에 놓고 관리해
+1. **HTML보다 엄격함**: 태그는 반드시 닫아야 함
+2. **동적 정보 표시 가능**: JavaScript 표현식 사용
+3. **React 컴포넌트의 표준**: 렌더링 로직과 마크업을 함께 관리
 
 ### HTML을 JSX로 변환하기
 
-HTML을 그냥 복붙하면 에러가 나. JSX는 HTML보다 규칙이 좋더 엄격하거든.
+HTML을 그대로 복사하면 에러가 발생합니다. JSX는 HTML보다 규칙이 더 엄격하기 때문입니다.
 
-#### ❌ 작동하지 않는 코드 (HTML 그대로 복붙)
+#### ❌ 작동하지 않는 코드 (HTML 그대로)
 
 ```jsx
 export default function TodoList() {
@@ -51,9 +51,7 @@ export default function TodoList() {
 }
 ```
 
-#### ✅ 제대로 고친 JSX 코드
-
-JSX 규칙에 맞게 고친 버전이야.
+#### ✅ 올바른 JSX 코드
 
 ```jsx
 export default function TodoList() {
@@ -77,18 +75,16 @@ export default function TodoList() {
 
 ### JSX 규칙
 
-JSX를 쓸 때 꼭 지켜야 할 규칙들이 있어.
-
-#### 1. **한 개의 부모 태그로 감싸야 해**
+#### 1. **단일 루트 요소 반환**
 
 ```jsx
-// ❌ 여러 요소를 그냥 리턴하면 에러
+// ❌ 여러 요소 반환 불가
 return (
   <h1>Title</h1>
   <p>Content</p>
 )
 
-// ✅ Fragment(<>)로 감싸면 돼 (DOM에 추가 태그 없음)
+// ✅ Fragment(<>)로 감싸기
 return (
   <>
     <h1>Title</h1>
@@ -96,7 +92,7 @@ return (
   </>
 )
 
-// ✅ div로 감싸도 돼 (단, DOM에 div가 추가됨)
+// ✅ div로 감싸기 (DOM 노드 추가됨)
 return (
   <div>
     <h1>Title</h1>
@@ -106,13 +102,13 @@ return (
 ```
 
 **설명:**
-- React는 한 번에 한 가지만 리턴할 수 있어
-- 여러 개를 리턴하려면 무언가로 감싸야 해
-- `<> </>` (Fragment)는 보이지 않는 래퍼로, HTML에 태그가 추가되지 않아
+- React는 한 번에 하나의 요소만 반환할 수 있습니다
+- 여러 요소를 반환하려면 하나의 부모 요소로 감싸야 합니다
+- `<> </>` (Fragment)는 보이지 않는 래퍼로, HTML에 태그가 추가되지 않습니다
 
-#### 2. **모든 태그는 무조건 닫아야 해**
+#### 2. **모든 태그 닫기**
 
-HTML에서는 `<img>`, `<br>` 같은 걸 닫지 않아도 되는데, JSX는 안 돼.
+HTML에서는 일부 태그를 닫지 않아도 되지만, JSX에서는 모든 태그를 반드시 닫아야 합니다.
 
 ```jsx
 // ❌ 잘못된 코드
@@ -124,9 +120,9 @@ HTML에서는 `<img>`, `<br>` 같은 걸 닫지 않아도 되는데, JSX는 안 
 <br />
 ```
 
-#### 3. **속성명은 camelCase로 써야 해**
+#### 3. **camelCase 속성 사용**
 
-JSX는 JavaScript로 변환되기 때문에 HTML 속성명을 그대로 못 써.
+JSX는 JavaScript로 변환되기 때문에 HTML 속성명을 camelCase로 작성해야 합니다.
 
 ```jsx
 // ❌ HTML 속성명
@@ -148,7 +144,7 @@ JSX는 JavaScript로 변환되기 때문에 HTML 속성명을 그대로 못 써.
 
 ### HTML → JSX 변환기 활용
 
-복잡한 HTML을 변환하기 귀찮으면 [변환기](https://transform.tools/html-to-jsx)를 써. 자동으로 바꿔줘.
+복잡한 HTML은 [변환기](https://transform.tools/html-to-jsx)를 사용하면 편리합니다.
 
 ### Vue와 비교
 

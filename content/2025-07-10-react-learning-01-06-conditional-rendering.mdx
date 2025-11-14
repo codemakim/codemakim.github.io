@@ -24,6 +24,8 @@ React에서는 JavaScript 문법(`if`, `&&`, `? :`)을 사용하여 조건부로
 
 ### 방법 1: `if` 문 사용
 
+가장 기본적인 방법으로, 조건에 따라 다른 JSX를 반환합니다.
+
 ```jsx
 function Item({ name, isPacked }) {
   if (isPacked) {
@@ -53,6 +55,8 @@ export default function PackingList() {
 
 ### 방법 2: 조건부로 `null` 반환
 
+아무것도 렌더링하지 않으려면 `null`을 반환합니다.
+
 ```jsx
 function Item({ name, isPacked }) {
   if (isPacked) {
@@ -65,6 +69,8 @@ function Item({ name, isPacked }) {
 **주의:** 실전에서는 `null`을 반환하는 것이 혼란스러울 수 있으므로 신중히 사용하세요.
 
 ### 방법 3: 삼항 연산자 `? :`
+
+JSX 안에서 직접 조건부 표현식을 사용할 때 유용합니다.
 
 ```jsx
 function Item({ name, isPacked }) {
@@ -93,6 +99,8 @@ function Item({ name, isPacked }) {
 ```
 
 ### 방법 4: 논리 AND 연산자 `&&`
+
+조건이 참일 때만 무언가를 보여주고 싶을 때 사용합니다.
 
 ```jsx
 function Item({ name, isPacked }) {
@@ -135,6 +143,8 @@ messageCount > 0 && <p>New messages</p>
 ```
 
 ### 방법 5: 변수에 JSX 할당
+
+복잡한 조건 로직을 깨끗하게 분리하고 싶을 때 사용합니다.
 
 ```jsx
 function Item({ name, isPacked }) {
@@ -218,17 +228,6 @@ function Item({ name, isPacked }) {
 
 - Vue: 템플릿 디렉티브 (`v-if`, `v-else`, `v-show`)
 - React: JavaScript 문법 (`if`, `&&`, `? :`)
-
----
-
-## 다음 단계
-
-이제 조건부 렌더링을 배웠으니, 다음 포스트에서는 **리스트 렌더링**을 학습합니다.
-
-**배울 내용:**
-- map() 메서드 사용
-- key 속성의 중요성
-- 필터링과 렌더링 조합
 
 ---
 
