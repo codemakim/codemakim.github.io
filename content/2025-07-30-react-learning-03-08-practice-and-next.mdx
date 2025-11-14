@@ -105,6 +105,32 @@ export default function SignupForm() {
 
 ### 1. 폼 검증 해답
 
+import CodeOrderingQuiz from '@/app/components/CodeOrderingQuiz';
+
+<CodeOrderingQuiz
+  title="🧩 폼 검증 로직 순서 맞추기"
+  description="드래그해서 handleSubmit 함수의 검증 로직을 올바른 순서로 정렬해보세요!"
+  lines={[
+    "function handleSubmit(e) {",
+    "  e.preventDefault();",
+    "  const newErrors = {};",
+    "  if (!validateEmail(formData.email)) {",
+    "    newErrors.email = '올바른 이메일 형식이 아닙니다.';",
+    "  }",
+    "  if (formData.password.length < 8) {",
+    "    newErrors.password = '비밀번호는 8자 이상이어야 합니다.';",
+    "  }",
+    "  if (formData.password !== formData.confirmPassword) {",
+    "    newErrors.confirmPassword = '비밀번호가 일치하지 않습니다.';",
+    "  }",
+    "  setErrors(newErrors);",
+    "  if (Object.keys(newErrors).length === 0) {",
+    "    alert('회원가입이 완료되었습니다!');",
+    "  }",
+    "}",
+  ]}
+/>
+
 ```jsx
 import { useState } from 'react';
 
