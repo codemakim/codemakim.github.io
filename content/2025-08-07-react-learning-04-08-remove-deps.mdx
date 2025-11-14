@@ -9,7 +9,11 @@ seriesOrder: 34
 
 ## Effect 의존성 제거하기
 
+Effect가 너무 자주 재실행된다면 의존성을 줄일 수 있는지 검토하세요.
+
 ### 불필요한 의존성 제거
+
+가장 흔한 3가지 문제와 해결법입니다.
 
 #### 1. **객체 의존성**
 
@@ -42,6 +46,8 @@ function ChatRoom({ options }) {
 
 #### 2. **함수 의존성**
 
+함수도 객체와 마찬가지로 매 렌더링마다 재생성됩니다.
+
 ```jsx
 // ❌ 나쁨: 함수는 매 렌더링마다 재생성
 function ChatRoom({ getOptions }) {
@@ -70,6 +76,8 @@ function ChatRoom({ roomId }) {
 
 #### 3. **동적 객체/함수 생성**
 
+Effect 내부에서 객체를 생성하면 불필요한 의존성을 피할 수 있습니다.
+
 ```jsx
 // ❌ 나쁨
 function ChatRoom({ roomId }) {
@@ -97,6 +105,8 @@ const serverUrl = 'https://localhost:1234';
 ```
 
 ### State로부터 다음 state 계산
+
+이전 state를 기반으로 새 state를 계산할 때는 업데이터 함수를 사용하세요.
 
 ```jsx
 // ❌ 나쁨: messages가 의존성
@@ -128,6 +138,8 @@ function ChatRoom({ roomId }) {
 
 ### 값을 읽되 "반응"하고 싶지 않을 때
 
+최신 값은 읽고 싶지만 Effect를 재실행하고 싶지 않다면 Effect Event를 사용하세요.
+
 ```jsx
 // ❌ 나쁨: theme 변경 시 재연결
 function ChatRoom({ roomId, theme }) {
@@ -157,3 +169,5 @@ function ChatRoom({ roomId, theme }) {
 ```
 
 ---
+
+**출처**: [React Official Documentation](https://react.dev/learn/escape-hatches)

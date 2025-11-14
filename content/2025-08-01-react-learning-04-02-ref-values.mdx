@@ -11,6 +11,8 @@ seriesOrder: 28
 
 ### State와 Ref의 차이
 
+State는 변경 시 리렌더링을 일으킵니다. 하지만 때로는 리렌더링 없이 값을 저장하고 싶을 때가 있습니다.
+
 컴포넌트가 일부 정보를 "기억"하되, **리렌더링을 트리거하고 싶지 않을 때** `useRef`를 사용합니다.
 
 ```jsx
@@ -37,6 +39,8 @@ const ref = useRef(0);
 | **렌더링 중 읽기/쓰기** | ❌ 불가 | ✅ 가능 |
 
 ### 예제: 스톱워치
+
+Ref의 실용적인 사용 예제를 보겠습니다. interval ID를 저장하는 데 ref를 사용합니다.
 
 ```jsx
 import { useState, useRef } from 'react';
@@ -87,6 +91,8 @@ export default function Stopwatch() {
 
 ### Ref 사용 시기
 
+Ref를 언제 사용해야 할까요? 일반적으로 React 외부 시스템과 상호작용할 때 유용합니다.
+
 **Ref는 다음과 같은 경우에 사용합니다:**
 
 - timeout ID 저장
@@ -131,6 +137,8 @@ function MyComponent() {
 
 ### Ref 내부 동작
 
+Ref가 어떻게 작동하는지 내부를 들여다봅시다.
+
 **직접 구현한다면:**
 
 ```jsx
@@ -142,6 +150,8 @@ function useRef(initialValue) {
 ```
 
 ### 예제: 클릭 카운터
+
+Ref가 리렌더링을 일으키지 않는다는 것을 보여주는 간단한 예제입니다.
 
 ```jsx
 import { useRef } from 'react';
@@ -205,3 +215,5 @@ function Counter() {
 - React: `useRef()`는 비반응형 (화면 업데이트 안됨)
 
 ---
+
+**출처**: [React Official Documentation](https://react.dev/learn/escape-hatches)

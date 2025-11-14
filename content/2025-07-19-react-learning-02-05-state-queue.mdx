@@ -18,6 +18,8 @@ seriesOrder: 15
 
 ### 한 이벤트에서 여러 State 업데이트
 
+동일한 state를 한 번에 여러 번 업데이트하려면 어떻게 해야 할까요?
+
 ```jsx
 import { useState } from 'react';
 
@@ -49,6 +51,8 @@ setNumber(0 + 1);  // setNumber(1)
 
 ### 다음 렌더링 전에 여러 번 업데이트하기
 
+해결책은 **업데이터 함수 (Updater Function)**를 사용하는 것입니다.
+
 **업데이터 함수 (Updater Function)**를 전달하세요:
 
 ```jsx
@@ -73,6 +77,8 @@ export default function Counter() {
 **이제 `number`는 3 증가합니다!**
 
 ### 업데이터 함수란?
+
+state 설정 함수에 값 대신 함수를 전달하는 방식입니다.
 
 ```jsx
 setNumber(n => n + 1);
@@ -121,6 +127,8 @@ setNumber(n => n + 1);
 
 ### 명명 규칙
 
+업데이터 함수의 매개변수 이름은 어떻게 지어야 할까요?
+
 업데이터 함수 매개변수는 state 변수의 **첫 글자**로 명명하는 것이 관례입니다:
 
 ```jsx
@@ -137,6 +145,8 @@ setLastName(lastName => lastName.reverse());
 ```
 
 ### 실전 예제: 복잡한 State 업데이트
+
+비동기 작업에서 업데이터 함수가 유용한 예제를 보겠습니다.
 
 ```jsx
 import { useState } from 'react';
@@ -198,17 +208,4 @@ function increment() {
 
 ---
 
-## 다음 단계
-
-이제 State 업데이트 큐를 이해했으니, 다음 포스트에서는 **객체 State 업데이트하기**를 학습합니다.
-
-**배울 내용:**
-- 객체 State의 불변성
-- 스프레드 연산자 사용법
-- 중첩 객체 업데이트
-
----
-
-**작성일**: 2025-10-11  
-**출처**: [React Official Documentation](https://react.dev/learn/adding-interactivity)  
-**대상**: React 초급 학습자
+**출처**: [React Official Documentation](https://react.dev/learn/adding-interactivity)

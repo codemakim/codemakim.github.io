@@ -9,6 +9,8 @@ seriesOrder: 32
 
 ## 반응형 Effect의 생명주기
 
+Effect의 생명주기를 올바르게 이해하면 많은 버그를 피할 수 있습니다.
+
 ### Effect의 생명주기는 컴포넌트와 다릅니다
 
 **컴포넌트:**
@@ -23,6 +25,8 @@ seriesOrder: 32
 - 동기화 중지 (Stop synchronizing)
 
 ### 예제: 채팅방
+
+Effect 생명주기를 구체적인 예제로 살펴봅시다.
 
 ```jsx
 const serverUrl = 'https://localhost:1234';
@@ -52,6 +56,8 @@ function ChatRoom({ roomId }) {
 
 ### 의존성 배열의 중요성
 
+Effect가 사용하는 모든 반응형 값을 의존성에 포함해야 합니다.
+
 ```jsx
 // ❌ 경고: roomId가 의존성에 없음
 useEffect(() => {
@@ -69,6 +75,8 @@ useEffect(() => {
 ```
 
 ### 각 Effect는 독립적인 동기화 프로세스
+
+관련 없는 로직은 별도의 Effect로 분리하세요.
 
 ```jsx
 // ❌ 나쁨: 관련 없는 로직을 하나의 Effect에
@@ -99,6 +107,8 @@ function ChatRoom({ roomId }) {
 
 ### Effect는 반응형 값에 "반응"합니다
 
+Effect는 props, state 등 반응형 값이 변경될 때마다 재실행됩니다.
+
 ```jsx
 function ChatRoom({ roomId, serverUrl }) {
   useEffect(() => {
@@ -123,6 +133,8 @@ function ChatRoom({ roomId, serverUrl }) {
 
 ### 빈 의존성 배열 `[]`
 
+빈 배열은 "한 번만 실행"을 의미하지만, 조심해서 사용해야 합니다.
+
 ```jsx
 useEffect(() => {
   const connection = createConnection(serverUrl, roomId);
@@ -136,3 +148,5 @@ useEffect(() => {
 ⚠️ **주의:** 반응형 값을 사용하는데 의존성에 없으면 버그 발생!
 
 ---
+
+**출처**: [React Official Documentation](https://react.dev/learn/escape-hatches)

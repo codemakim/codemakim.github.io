@@ -28,12 +28,16 @@ seriesOrder: 5
 
 ### 기본 사용법
 
+**유틸 함수 파일:**
+
 ```jsx
 // utils.js
 export function getImageUrl(person) {
   return `https://i.imgur.com/${person.imageId}s.jpg`;
 }
 ```
+
+**메인 컴포넌트들:**
 
 ```jsx
 // App.js
@@ -75,6 +79,12 @@ function Card({ children }) {
   );
 }
 ```
+
+**코드 설명:**
+
+1. **Profile 컴포넌트**: Avatar에게 `size`와 `person` 객체를 props로 전달합니다.
+2. **Avatar 컴포넌트**: 구조 분해 할당으로 `{ person, size }`를 받아 사용합니다.
+3. **Card 컴포넌트**: `children` prop으로 태그 사이의 내용을 받습니다.
 
 ### Props 전달 단계
 
@@ -233,17 +243,6 @@ function Avatar({ person, size }) {
   return <img width={size} />
 }
 ```
-
----
-
-## 다음 단계
-
-이제 Props를 사용해 데이터를 전달하는 방법을 배웠으니, 다음 포스트에서는 **조건부 렌더링**을 학습합니다.
-
-**배울 내용:**
-- if문, 삼항연산자, && 연산자 사용
-- 조건에 따른 UI 표시
-- null 반환 패턴
 
 ---
 

@@ -16,6 +16,8 @@ seriesOrder: 24
 
 ## Context로 데이터 깊이 전달하기
 
+Props를 여러 레벨을 거쳐 전달해야 할 때 코드가 복잡해집니다.
+
 ### Prop Drilling 문제
 
 ```jsx
@@ -30,6 +32,8 @@ seriesOrder: 24
 ```
 
 ### Context로 해결
+
+Context는 컴포넌트 트리 전체에 데이터를 제공하는 기능입니다.
 
 Context를 사용하면 부모 컴포넌트가 트리 아래 **모든 컴포넌트**에 데이터를 제공할 수 있습니다.
 
@@ -75,6 +79,8 @@ function Button() {
 ```
 
 ### 전체 예제
+
+세 단계를 모두 통합한 예제를 보겠습니다.
 
 ```jsx
 // ThemeContext.js
@@ -139,6 +145,8 @@ function Button() {
 ```
 
 ### Context와 Reducer 결합하기
+
+Context와 Reducer를 함께 사용하면 강력한 state 관리 패턴을 만들 수 있습니다.
 
 복잡한 state 관리는 Context + Reducer를 함께 사용합니다.
 
@@ -277,6 +285,8 @@ let nextId = 3;
 
 ### Context 사용 시 주의사항
 
+Context는 강력하지만 남용하면 오히려 코드가 복잡해집니다.
+
 #### 1. **과도한 사용 피하기**
 
 ```jsx
@@ -332,17 +342,4 @@ const theme = inject('theme')
 
 ---
 
-## 다음 단계
-
-이제 Context를 이해했으니, 다음 포스트에서는 **Reducer와 Context로 확장하기**를 학습합니다.
-
-**배울 내용:**
-- Reducer와 Context 통합 패턴
-- 파일 구조 설계
-- 확장 가능한 State 관리
-
----
-
-**작성일**: 2025-10-11  
-**출처**: [React Official Documentation](https://react.dev/learn/managing-state)  
-**대상**: React 초급 학습자
+**출처**: [React Official Documentation](https://react.dev/learn/managing-state)

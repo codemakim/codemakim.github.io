@@ -9,7 +9,11 @@ seriesOrder: 35
 
 ## 커스텀 Hook으로 로직 재사용하기
 
+동일한 로직을 여러 컴포넌트에서 사용한다면 커스텀 Hook으로 추출하세요.
+
 ### 커스텀 Hook이란?
+
+React는 `useState`, `useEffect` 같은 내장 Hook을 제공하지만, 직접 Hook을 만들 수도 있습니다.
 
 **커스텀 Hook**은 컴포넌트 로직을 재사용 가능한 함수로 추출한 것입니다.
 
@@ -42,6 +46,8 @@ function useOnlineStatus() {
 
 ### 커스텀 Hook 사용
 
+작성한 커스텀 Hook을 여러 컴포넌트에서 사용할 수 있습니다.
+
 ```jsx
 function StatusBar() {
   const isOnline = useOnlineStatus();
@@ -65,6 +71,8 @@ function SaveButton() {
 
 ### 커스텀 Hook은 state를 공유하지 않습니다
 
+중요: 커스텀 Hook은 로직만 공유하고, 각 컴포넌트는 독립적인 state를 가집니다.
+
 ```jsx
 // 각 컴포넌트는 독립적인 isOnline state를 가짐
 function StatusBar() {
@@ -79,6 +87,8 @@ function SaveButton() {
 ```
 
 ### 커스텀 Hook 예제 모음
+
+실무에서 자주 사용되는 6가지 유용한 커스텀 Hook입니다.
 
 #### 1. **useLocalStorage**
 
@@ -292,6 +302,8 @@ function Counter() {
 
 ### 커스텀 Hook 작성 모범 사례
 
+커스텀 Hook을 작성할 때 지켜야 할 4가지 중요한 규칙입니다.
+
 #### 1. **이름은 `use`로 시작**
 
 ```jsx
@@ -398,3 +410,5 @@ export function useOnlineStatus() {
 ```
 
 ---
+
+**출처**: [React Official Documentation](https://react.dev/learn/escape-hatches)

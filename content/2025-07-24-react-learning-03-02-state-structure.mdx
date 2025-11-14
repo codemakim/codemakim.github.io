@@ -16,11 +16,15 @@ seriesOrder: 20
 
 ## State 구조 선택하기
 
+state를 어떻게 구조화하느냐에 따라 코드의 가독성과 유지보수성이 크게 달라집니다.
+
 좋은 state 구조는 업데이트와 디버깅을 쉽게 만듭니다.
 
 ### State 구조화 원칙
 
 #### 1. **관련 state 그룹화하기**
+
+두 개 이상의 state가 항상 함께 변경된다면, 하나로 통합하는 것이 좋습니다.
 
 **항상 함께 업데이트되는 state는 하나로 합치세요.**
 
@@ -49,6 +53,8 @@ function addField(fieldName) {
 
 #### 2. **State의 모순 피하기**
 
+여러 state가 서로 모순되는 상태를 만들면 버그가 발생하기 쉬습니다.
+
 ```jsx
 // ❌ 나쁨: 모순된 상태 가능
 const [isSending, setIsSending] = useState(false);
@@ -75,6 +81,8 @@ async function handleSubmit() {
 
 #### 3. **중복 state 피하기**
 
+다른 state로부터 계산할 수 있는 값은 state로 만들지 마세요.
+
 ```jsx
 // ❌ 나쁨: fullName은 중복
 const [firstName, setFirstName] = useState('');
@@ -93,6 +101,8 @@ const fullName = firstName + ' ' + lastName;
 ```
 
 #### 4. **깊게 중첩된 state 피하기**
+
+중첩이 깊어지면 불변 업데이트가 매우 복잡해집니다.
 
 ```jsx
 // ❌ 나쁨: 깊은 중첩
@@ -138,6 +148,8 @@ const [addresses, setAddresses] = useState({
 
 #### 5. **파생 state 피하기**
 
+다른 state에서 파생되는 값은 렌더링 시 계산하는 것이 좋습니다.
+
 ```jsx
 // ❌ 나쁨: selectedItem은 items로부터 파생 가능
 const [items, setItems] = useState(initialItems);
@@ -154,6 +166,8 @@ const selectedItem = items.find(item => item.id === selectedId);
 ```
 
 ### 실전 예제: 여행 플래너
+
+state 구조화 원칙을 적용한 예제를 보겠습니다.
 
 ```jsx
 import { useState } from 'react';
@@ -235,17 +249,4 @@ const packed = computed(() => items.value.filter(item => item.packed).length)
 
 ---
 
-## 다음 단계
-
-이제 State 구조화 원칙을 이해했으니, 다음 포스트에서는 **컴포넌트 간 State 공유하기**를 학습합니다.
-
-**배울 내용:**
-- State 끌어올리기 (Lifting State Up)
-- 제어 컴포넌트 vs 비제어 컴포넌트
-- 단일 진실의 원천
-
----
-
-**작성일**: 2025-10-11  
-**출처**: [React Official Documentation](https://react.dev/learn/managing-state)  
-**대상**: React 초급 학습자
+**출처**: [React Official Documentation](https://react.dev/learn/managing-state)
