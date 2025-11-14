@@ -16,11 +16,13 @@ seriesOrder: 4
 
 ## JSX에서 JavaScript 사용하기
 
-### 중괄호 `{}` - JavaScript로의 창
+### 중괄호 `{}` - JavaScript로 가는 문
 
-JSX에서 **중괄호 `{}`**를 사용하면 JavaScript 로직이나 동적 속성을 사용할 수 있습니다.
+JSX에서 **중괄호 `{}`**를 쓰면 JavaScript를 바로 넣을 수 있어.
 
 ### 기본 사용법
+
+변수나 객체 속성을 JSX 안에서 그냥 가져다 쓸 수 있어.
 
 ```jsx
 const person = {
@@ -50,30 +52,34 @@ export default function TodoList() {
 }
 ```
 
-**결과:**
+**뭐가 일어나는지:**
 
-- `{person.name}` → "Gregorio Y. Zara" 출력
-- `style={person.theme}` → 동적 스타일 적용
+- `{person.name}` → "Gregorio Y. Zara"가 그대로 출력돼
+- `style={person.theme}` → 객체를 바로 넣어서 스타일 적용해
 
 ### 중괄호 사용 위치
 
-#### 1. **JSX 태그 내부의 텍스트**
+중괄호는 두 곳에서 쓸 수 있어.
+
+#### 1. **태그 사이에 텍스트로**
 
 ```jsx
 <h1>{user.name}'s Profile</h1>
 ```
 
-#### 2. **속성 값**
+#### 2. **속성 값으로**
 
 ```jsx
-// ❌ 따옴표 안에서는 문자열로 취급됨
-<img src="user.imageUrl" />  // 'user.imageUrl' 문자열
+// ❌ 따옴표 안에 넣으면 그냥 문자열이 돼
+<img src="user.imageUrl" />  // 'user.imageUrl' 그 자체가 문자열로 들어가
 
-// ✅ 중괄호로 JavaScript 값 전달
-<img src={user.imageUrl} />  // user.imageUrl 변수
+// ✅ 중괄호를 써야 변수가 들어가
+<img src={user.imageUrl} />  // user.imageUrl 변수의 값이 들어가
 ```
 
 ### 다양한 JavaScript 표현식 사용
+
+중괄호 안에는 JavaScript 표현식을 무엇이든 넣을 수 있어.
 
 ```jsx
 export default function Component() {
@@ -123,9 +129,15 @@ export default function Component() {
   Content
 </div>
 
-// 외부 중괄호: JSX로 JavaScript 전환
+// 외부 중괄호: JSX에서 JavaScript를 쓰기 위해
 // 내부 중괄호: JavaScript 객체 리터럴
 ```
+
+**설명:**
+- `style` 속성에는 객체를 넣어야 해
+- 객체는 `{ key: value }` 형태로 써
+- JSX에서 JavaScript를 쓰려면 `{}`로 감싸야 해
+- 그래서 `{ { key: value } }` 이렇게 이중 중괄호가 돼
 
 ### Vue와 비교
 
@@ -153,19 +165,8 @@ export default function Component() {
 
 **차이점:**
 
-- Vue: `{{ }}` (텍스트), `:속성` (바인딩)
-- React: `{ }` (모든 곳에서 동일)
-
----
-
-## 다음 단계
-
-이제 JSX에서 JavaScript를 사용하는 방법을 배웠으니, 다음 포스트에서는 **Props로 데이터 전달하기**를 학습합니다.
-
-**배울 내용:**
-- Props 개념과 사용법
-- 부모-자식 컴포넌트 통신
-- Children prop 활용
+- Vue: `{{ }}` (텍스트), `:속성` (바인딩) 이렇게 구분해서 써
+- React: `{ }` 모든 곳에 통일하게 써
 
 ---
 
