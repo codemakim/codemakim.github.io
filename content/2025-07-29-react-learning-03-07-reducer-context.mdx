@@ -16,6 +16,8 @@ seriesOrder: 25
 
 ## Reducer와 Context로 확장하기
 
+Reducer와 Context를 결합하면 대규모 애플리케이션에서도 유지보수가 쉬운 state 관리 시스템을 만들 수 있습니다.
+
 위에서 이미 다뤘지만, 다시 한번 정리하면:
 
 > 참고: 기초 개념과 마이그레이션 단계는 [Reducer로 State 로직 추출하기](/posts/2025-07-27-react-learning-03-05-reducer),
@@ -23,11 +25,15 @@ seriesOrder: 25
 
 ### 통합 패턴
 
+세 가지 핵심 요소를 결합합니다.
+
 1. **Reducer로 복잡한 state 관리**
 2. **Context로 깊은 트리에 전달**
 3. **커스텀 Hook으로 사용 편의성 향상**
 
 ### 파일 구조 예시
+
+코드를 어떻게 조직하면 좋을까요?
 
 ```
 src/
@@ -43,12 +49,14 @@ src/
 
 ### 장점
 
-- ✅ **관심사 분리**: state 로직과 UI 분리
-- ✅ **재사용성**: 다른 컴포넌트에서 쉽게 사용
-- ✅ **테스트 용이**: reducer는 순수 함수
-- ✅ **확장성**: 앱이 커져도 관리 가능
+- **관심사 분리**: state 로직과 UI 분리
+- **재사용성**: 다른 컴포넌트에서 쉽게 사용
+- **테스트 용이**: reducer는 순수 함수
+- **확장성**: 앱이 커져도 관리 가능
 
 ### 언제 useReducer/Context를 쓰나요?
+
+모든 상황에 사용하는 것은 아닙니다. 적절한 상황을 판단하세요.
 
 **권장**
 
@@ -61,6 +69,8 @@ src/
 - 전역 Context 하나에 모든 걸 몰아넣기(리렌더 폭발)
 
 ### Context 설계 패턴
+
+성능과 유지보수성을 고려한 설계 패턴입니다.
 
 - 값 분리: `TasksContext`(값)와 `TasksDispatchContext`(dispatch) 분리 → 불필요 리렌더 감소
 - Provider를 도메인별로 쪼개기: Auth, Theme, Tasks 등 기능별 Context
@@ -157,18 +167,4 @@ src/
 
 ---
 
-## 다음 단계
-
-이제 Reducer와 Context 통합을 이해했으니, 다음 포스트에서는 **연습문제와 다음 단계**를 학습합니다.
-
-**배울 내용:**
-
-- 실전 연습문제
-- 다음 챕터 소개
-- 학습 체크리스트
-
----
-
-**작성일**: 2025-10-11  
-**출처**: [React Official Documentation](https://react.dev/learn/managing-state)  
-**대상**: React 초급 학습자
+**출처**: [React Official Documentation](https://react.dev/learn/managing-state)
