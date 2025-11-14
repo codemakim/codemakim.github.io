@@ -28,13 +28,13 @@ React에서는 시간에 따라 변하는 데이터를 **state**라고 부릅니
 
 ### 이 챕터에서 배울 내용
 
-- ✅ 사용자 이벤트 처리 방법
-- ✅ State로 컴포넌트에 정보 기억시키기
-- ✅ React가 UI를 업데이트하는 2단계 (렌더링 & 커밋)
-- ✅ State 변경 직후 업데이트되지 않는 이유
-- ✅ 여러 State 업데이트를 큐에 넣는 방법
-- ✅ State에서 객체를 업데이트하는 방법
-- ✅ State에서 배열을 업데이트하는 방법
+- 사용자 이벤트 처리 방법
+- State로 컴포넌트에 정보 기억시키기
+- React가 UI를 업데이트하는 2단계 (렌더링 & 커밋)
+- State 변경 직후 업데이트되지 않는 이유
+- 여러 State 업데이트를 큐에 넣는 방법
+- State에서 객체를 업데이트하는 방법
+- State에서 배열을 업데이트하는 방법
 
 ---
 
@@ -52,6 +52,8 @@ React에서는 JSX에 **이벤트 핸들러**를 추가하여 사용자 상호�
 - 키보드 입력 등
 
 ### 기본 사용법
+
+버튼 클릭에 반응하는 간단한 예제입니다.
 
 ```jsx
 export default function Button() {
@@ -74,6 +76,8 @@ export default function Button() {
 3. ⚠️ `onClick={handleClick()}` ❌ - 함수를 호출하지 마세요!
 
 ### 이벤트 핸들러 작성 패턴
+
+이벤트 핸들러를 작성하는 여러 방법이 있습니다.
 
 #### 1. **컴포넌트 내부에서 정의 (권장)**
 
@@ -140,6 +144,8 @@ function Button() {
 ### 이벤트 핸들러에서 Props 읽기
 
 이벤트 핸들러는 컴포넌트 내부에 정의되므로 props에 접근할 수 있습니다.
+
+재사용 가능한 버튼을 만들 때 유용한 패턴입니다.
 
 ```jsx
 function AlertButton({ message, children }) {
@@ -361,17 +367,6 @@ function Button() {
 
 - Vue: `@click` (kebab-case)
 - React: `onClick` (camelCase)
-
----
-
-## 다음 단계
-
-이제 이벤트 처리의 기본을 배웠으니, 다음 포스트에서는 **State: 컴포넌트의 메모리**를 학습합니다.
-
-**배울 내용:**
-- useState Hook 사용법
-- State와 일반 변수의 차이
-- State 업데이트 방법
 
 ---
 
