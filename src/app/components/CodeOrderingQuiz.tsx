@@ -47,6 +47,9 @@ function SortableLine({ item }: { item: LineItem }) {
     transition,
     cursor: isDragging ? "grabbing" : "grab",
     userSelect: "none",
+    WebkitUserSelect: "none",
+    MozUserSelect: "none",
+    msUserSelect: "none",
     touchAction: "none",
   };
 
@@ -57,19 +60,20 @@ function SortableLine({ item }: { item: LineItem }) {
       {...attributes}
       {...listeners}
       className={`
-        group relative
-        p-3 md:p-4 rounded-xl
+        group relative w-full
+        p-4 md:p-5 rounded-xl
         bg-white/10 dark:bg-slate-800/40
         border border-white/20 dark:border-white/10
         backdrop-blur-md
         hover:bg-white/15 dark:hover:bg-slate-700/50
         active:scale-[0.98]
         transition-all duration-200
+        select-none
         ${isDragging ? 'opacity-50 scale-105 shadow-2xl z-50' : 'shadow-md'}
       `}
     >
-      {/* 코드 텍스트 - 전체 영역 드래그 가능 */}
-      <code className="block text-sm font-mono text-gray-800 dark:text-gray-200 overflow-x-auto whitespace-pre">
+      {/* 코드 텍스트 - 전체 영역 드래그 가능, 텍스트 선택 불가 */}
+      <code className="block w-full text-sm md:text-base font-mono text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-all select-none pointer-events-none">
         {item.text}
       </code>
     </div>
@@ -153,7 +157,7 @@ export default function CodeOrderingQuiz({
           items={items.map((item) => item.id)}
           strategy={verticalListSortingStrategy}
         >
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {items.map((item) => (
               <SortableLine key={item.id} item={item} />
             ))}
