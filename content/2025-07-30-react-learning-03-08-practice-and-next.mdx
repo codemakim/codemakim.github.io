@@ -50,61 +50,6 @@ export default function SignupForm() {
 - 실시간 에러 메시지 표시
 - State 구조화 원칙 적용
 
-### 2. 장바구니 시스템
-
-```jsx
-// TODO: Context + Reducer로 장바구니 구현
-// - 상품 추가
-// - 수량 증가/감소
-// - 상품 제거
-// - 총액 계산
-```
-
-**요구사항:**
-- Context로 전역 상태 관리
-- Reducer로 복잡한 로직 처리
-- 상품 추가/제거/수량 변경
-- 총 가격 자동 계산
-- localStorage에 데이터 저장
-
-### 3. 다크 모드 토글
-
-```jsx
-// TODO: Context로 전역 테마 관리
-// - 라이트/다크 모드 전환
-// - localStorage에 저장
-// - 모든 컴포넌트에 자동 적용
-```
-
-**요구사항:**
-- Context로 테마 상태 관리
-- localStorage에 테마 설정 저장
-- 페이지 새로고침 시에도 테마 유지
-- 모든 컴포넌트에서 테마 사용 가능
-
-### 4. 고급: 할 일 앱 (Context + Reducer)
-
-```jsx
-// TODO: 완전한 할 일 앱 구현
-// - 할 일 추가/수정/삭제
-// - 완료 상태 토글
-// - 필터링 (전체/완료/미완료)
-// - 검색 기능
-// - 우선순위 설정
-```
-
-**요구사항:**
-- Context + Reducer 패턴 사용
-- 복잡한 State 구조 설계
-- 성능 최적화 고려
-- 사용자 경험 개선
-
----
-
-## 해답 예시
-
-### 1. 폼 검증 해답
-
 import CodeOrderingQuiz from '@/app/components/CodeOrderingQuiz';
 
 <CodeOrderingQuiz
@@ -130,6 +75,9 @@ import CodeOrderingQuiz from '@/app/components/CodeOrderingQuiz';
     "}",
   ]}
 />
+
+<details>
+<summary><strong>💡 정답 전체 코드 보기</strong></summary>
 
 ```jsx
 import { useState } from 'react';
@@ -226,6 +174,61 @@ export default function SignupForm() {
   );
 }
 ```
+
+</details>
+
+### 2. 장바구니 시스템
+
+```jsx
+// TODO: Context + Reducer로 장바구니 구현
+// - 상품 추가
+// - 수량 증가/감소
+// - 상품 제거
+// - 총액 계산
+```
+
+**요구사항:**
+- Context로 전역 상태 관리
+- Reducer로 복잡한 로직 처리
+- 상품 추가/제거/수량 변경
+- 총 가격 자동 계산
+- localStorage에 데이터 저장
+
+### 3. 다크 모드 토글
+
+```jsx
+// TODO: Context로 전역 테마 관리
+// - 라이트/다크 모드 전환
+// - localStorage에 저장
+// - 모든 컴포넌트에 자동 적용
+```
+
+**요구사항:**
+- Context로 테마 상태 관리
+- localStorage에 테마 설정 저장
+- 페이지 새로고침 시에도 테마 유지
+- 모든 컴포넌트에서 테마 사용 가능
+
+### 4. 고급: 할 일 앱 (Context + Reducer)
+
+```jsx
+// TODO: 완전한 할 일 앱 구현
+// - 할 일 추가/수정/삭제
+// - 완료 상태 토글
+// - 필터링 (전체/완료/미완료)
+// - 검색 기능
+// - 우선순위 설정
+```
+
+**요구사항:**
+- Context + Reducer 패턴 사용
+- 복잡한 State 구조 설계
+- 성능 최적화 고려
+- 사용자 경험 개선
+
+---
+
+## 해답 예시
 
 ### 2. 다크 모드 해답
 
