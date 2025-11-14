@@ -9,7 +9,11 @@ seriesOrder: 33
 
 ## Effect에서 이벤트 분리하기
 
+Effect가 불필요하게 자주 재실행되는 문제를 해결하는 패턴입니다.
+
 ### 이벤트 핸들러 vs Effect
+
+먼저 두 개념의 차이를 명확히 이해해야 합니다.
 
 **이벤트 핸들러:**
 
@@ -22,6 +26,8 @@ seriesOrder: 33
 - 자동으로 트리거
 
 ### 문제: Effect가 너무 자주 실행됨
+
+`theme`가 변경될 때마다 채팅 연결을 끊고 다시 연결하는 문제가 발생합니다.
 
 ```jsx
 function ChatRoom({ roomId, theme }) {
@@ -38,6 +44,8 @@ function ChatRoom({ roomId, theme }) {
 ```
 
 ### 해결: useEffectEvent (실험적)
+
+`useEffectEvent`는 Effect 내부의 비반응형 로직을 분리하는 Hook입니다. (현재 실험적 기능)
 
 ```jsx
 import { useEffect, useEffectEvent } from 'react';
@@ -66,6 +74,8 @@ function ChatRoom({ roomId, theme }) {
 - 의존성에 포함하지 않음
 
 ### Effect Event 제한사항
+
+Effect Event는 엄격한 사용 규칙이 있습니다.
 
 - **Effect 내부에서만 호출**
 - **다른 컴포넌트나 Hook에 전달 금지**
@@ -102,3 +112,5 @@ function Timer() {
 ```
 
 ---
+
+**출처**: [React Official Documentation](https://react.dev/learn/escape-hatches)
