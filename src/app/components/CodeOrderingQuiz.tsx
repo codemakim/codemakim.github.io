@@ -58,7 +58,7 @@ function SortableLine({ item }: { item: LineItem }) {
       {...listeners}
       className={`
         group relative
-        p-2 md:p-2.5 rounded-xl
+        p-3 md:p-4 rounded-xl
         bg-white/10 dark:bg-slate-800/40
         border border-white/20 dark:border-white/10
         backdrop-blur-md
@@ -68,19 +68,10 @@ function SortableLine({ item }: { item: LineItem }) {
         ${isDragging ? 'opacity-50 scale-105 shadow-2xl z-50' : 'shadow-md'}
       `}
     >
-      <div className="flex items-center gap-2">
-        {/* 드래그 핸들 아이콘 - 투명하게 */}
-        <div className="flex-shrink-0 text-gray-400/40 dark:text-gray-500/30 group-hover:text-gray-600/60 dark:group-hover:text-gray-400/50 transition-colors">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
-          </svg>
-        </div>
-        
-        {/* 코드 텍스트 */}
-        <code className="flex-1 text-sm font-mono text-gray-800 dark:text-gray-200 overflow-x-auto whitespace-pre">
-          {item.text}
-        </code>
-      </div>
+      {/* 코드 텍스트 - 전체 영역 드래그 가능 */}
+      <code className="block text-sm font-mono text-gray-800 dark:text-gray-200 overflow-x-auto whitespace-pre">
+        {item.text}
+      </code>
     </div>
   );
 }
@@ -109,8 +100,7 @@ export default function CodeOrderingQuiz({
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 3, // 3px로 줄여서 더 민감하게 반응
-        tolerance: 5, // 드래그 중 5px 오차 허용으로 떨림 방지
+        distance: 1, // 1px만 이동해도 드래그 시작
       },
     })
   );
