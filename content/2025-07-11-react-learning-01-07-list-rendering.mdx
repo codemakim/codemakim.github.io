@@ -231,18 +231,29 @@ export default function List() {
 - 성능 저하
 - 컴포넌트 상태 문제
 
-#### 3. **생성 시점에 지정하지 마세요**
+#### 3. **렌더링 중에 key를 생성하지 마세요**
 
 ```jsx
 // ❌ 렌더링할 때마다 새로운 key 생성 (최악!)
-<li key={Math.random()}>...</li>
-<li key={crypto.randomUUID()}>...</li>
+// 컴포넌트가 렌더링될 때마다 다른 key가 생성되어 
+// React가 항목을 추적할 수 없음
+{items.map(item =>
+  <li key={Math.random()}>...</li>
+)}
+
+{items.map(item =>
+  <li key={crypto.randomUUID()}>...</li>
+)}
 
 // ✅ 데이터에 안정적인 ID 포함
+// 데이터 생성 시점에 ID를 할당하여 
+// 렌더링 시마다 동일한 key 사용
 {people.map(person =>
   <li key={person.id}>...</li>
 )}
 ```
+
+**핵심**: key는 **렌더링 중에 생성하면 안 되고**, **데이터를 생성할 때 한 번만 할당**해야 합니다.
 
 ### Key로 사용할 수 있는 값
 
@@ -252,20 +263,45 @@ export default function List() {
 | **로컬에서 생성한 데이터** | UUID 라이브러리 (`crypto.randomUUID()`, `uuid`) |
 | **안정적인 고유 속성** | 이메일 주소, 사용자명 등 |
 
-**UUID 생성 예제:**
+**UUID를 key로 사용하는 올바른 방법:**
 
 ```jsx
 import { v4 as uuidv4 } from 'uuid';
 
+// ✅ 올바른 방법: 데이터 생성 시점에 UUID 할당
 const [items, setItems] = useState([
-  { id: uuidv4(), text: 'Item 1' },
-  { id: uuidv4(), text: 'Item 2' },
+  { id: uuidv4(), text: 'Item 1' },  // 초기화 시 한 번만 생성
+  { id: uuidv4(), text: 'Item 2' },  // 초기화 시 한 번만 생성
 ]);
+
+// 새 아이템 추가 함수
+const addItem = (text) => {
+  setItems([
+    ...items,
+    { id: uuidv4(), text }  // 아이템 추가 시점에 UUID 생성
+  ]);
+};
 
 return (
   <ul>
     {items.map(item =>
-      <li key={item.id}>{item.text}</li>
+      <li key={item.id}>{item.text}</li>  // 이미 할당된 id 사용
+    )}
+  </ul>
+);
+```
+
+**왜 이 방법이 올바른가?**
+- UUID는 **데이터를 생성하는 시점**에 한 번만 생성
+- 생성된 ID는 **데이터 객체에 저장**되어 렌더링 시마다 동일한 값 사용
+- React가 각 항목을 안정적으로 추적할 수 있음
+
+```jsx
+// ❌ 잘못된 방법: 렌더링 중에 UUID 생성
+return (
+  <ul>
+    {items.map(item =>
+      <li key={crypto.randomUUID()}>{item.text}</li>  // 매번 다른 key!
     )}
   </ul>
 );
