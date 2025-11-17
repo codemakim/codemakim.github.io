@@ -1,0 +1,146 @@
+---
+title: "🚀 [React 라이브러리 3/9] React Router - 동적 라우트"
+date: "2025-08-14"
+description: "URL 파라미터, useParams, 쿼리 스트링 처리"
+tags: ["React", "고급", "프론트엔드"]
+series: "React 라이브러리"
+seriesOrder: 39
+---
+
+# React Router 가이드 - 동적 라우트
+
+> React Router v6를 기반으로 한 라우팅 학습 자료  
+> 출처: [React Router Documentation](https://reactrouter.com/)
+
+---
+
+## 동적 라우트
+동적 라우트
+
+중첩 라우트
+
+### 1. Layout 패턴
+
+```jsx
+// App.jsx
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Layout from './components/Layout';
+import Home from './pages/Home';
+import About from './pages/About';
+import Blog from './pages/Blog';
+import Post from './pages/Post';
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Layout />}>
+          <Route index element={<Home />} />
+          <Route path="about" element={<About />} />
+          <Route path="blog" element={<Blog />} />
+          <Route path="blog/:postId" element={<Post />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
+}
+```
+
+### 2. Layout 컴포넌트
+
+```jsx
+// components/Layout.jsx
+import { Outlet, Link } from 'react-router-dom';
+
+export default function Layout() {
+  return (
+    <div>
+      <header>
+        <nav>
+          <Link to="/">Home</Link>
+          <Link to="/about">About</Link>
+          <Link to="/blog">Blog</Link>
+        </nav>
+      </header>
+      
+      <main>
+        <Outlet />  {/* 자식 라우트가 여기에 렌더링됨 */}
+      </main>
+      
+      <footer>
+        <p>© 2025 My App</p>
+      </footer>
+    </div>
+  );
+}
+```
+
+### 3. 다단계 중첩
+
+```jsx
+<Routes>
+  <Route path="/" element={<Layout />}>
+    <Route index element={<Home />} />
+    
+    <Route path="dashboard" element={<DashboardLayout />}>
+      <Route index element={<DashboardHome />} />
+      <Route path="settings" element={<Settings />} />
+      <Route path="profile" element={<Profile />} />
+    </Route>
+    
+    <Route path="admin" element={<AdminLayout />}>
+      <Route index element={<AdminHome />} />
+      <Route path="users" element={<Users />} />
+      <Route path="posts" element={<Posts />} />
+    </Route>
+  </Route>
+</Routes>
+```
+
+### Index Route
+
+```jsx
+// index: 부모 경로와 동일한 경로에 렌더링
+<Route path="/" element={<Layout />}>
+  <Route index element={<Home />} />  {/* / */}
+  <Route path="about" element={<About />} />  {/* /about */}
+</Route>
+```
+
+### Vue Router와 비교
+
+```javascript
+// Vue Router: children
+const routes = [
+  {
+    path: '/',
+    component: Layout,
+    children: [
+      { path: '', component: Home },
+      { path: 'about', component: About },
+      {
+        path: 'dashboard',
+        component: DashboardLayout,
+        children: [
+          { path: '', component: DashboardHome },
+          { path: 'settings', component: Settings }
+        ]
+      }
+    ]
+  }
+]
+```
+
+```jsx
+// React Router: Outlet
+<Route path="/" element={<Layout />}>
+  <Route index element={<Home />} />
+  <Route path="about" element={<About />} />
+  <Route path="dashboard" element={<DashboardLayout />}>
+    <Route index element={<DashboardHome />} />
+    <Route path="settings" element={<Settings />} />
+  </Route>
+</Route>
+```
+
+---

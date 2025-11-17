@@ -1,0 +1,259 @@
+---
+title: "🚀 [React 라이브러리 5/8] React Query - 낙관적 업데이트"
+date: "2025-08-23"
+description: "낙관적 업데이트 패턴과 롤백 처리"
+tags: ["React", "고급", "프론트엔드"]
+series: "React 라이브러리"
+seriesOrder: 50
+---
+
+# React Query 가이드 - 낙관적 업데이트
+
+> TanStack Query v5를 기반으로 한 데이터 페칭 학습 자료  
+> 출처: [TanStack Query Documentation](https://tanstack.com/query/)
+
+---
+
+## 낙관적 업데이트
+낙관적 업데이트
+
+캐싱 전략
+
+### 🔍 React Query 캐싱의 동작 원리
+
+**React Query가 해결하는 문제:**
+
+1. **중복 요청 제거**
+
+   ```jsx
+   // 여러 컴포넌트가 동시에 같은 데이터 요청
+   function Header() {
+     useQuery({ queryKey: ['user'], queryFn: fetchUser });
+   }
+   function Sidebar() {
+     useQuery({ queryKey: ['user'], queryFn: fetchUser });
+   }
+   function Profile() {
+     useQuery({ queryKey: ['user'], queryFn: fetchUser });
+   }
+   
+   // ❌ 일반 방법: 3번 요청!
+   // ✅ React Query: 1번만 요청! (나머지는 캐시 사용)
+   ```
+
+2. **자동 백그라운드 리페칭**
+
+   ```
+   사용자가 탭 전환 후 돌아옴
+     ↓
+   React Query가 감지
+     ↓
+   데이터가 stale이면 자동 리페칭
+     ↓
+   최신 데이터 유지!
+
+   ```
+
+3. **메모리 관리**
+
+   ```
+   컴포넌트 언마운트
+     ↓
+   해당 쿼리 사용자 0명
+     ↓
+   Cache Time 동안 메모리 유지 (다시 마운트될 수 있음)
+     ↓
+   Cache Time 경과 → 가비지 컬렉션
+   ```
+
+### 1. Stale Time vs Cache Time (핵심 개념!)
+
+```javascript
+useQuery({
+  queryKey: ['users'],
+  queryFn: fetchUsers,
+  staleTime: 1000 * 60 * 5,  // 5분 동안 fresh
+  cacheTime: 1000 * 60 * 10, // 10분 동안 캐시 유지
+
+});
+```
+
+**Stale Time (신선도):**
+
+- 데이터가 "fresh"로 간주되는 시간
+- fresh 데이터는 리페치하지 않음
+- **예시**: staleTime이 5분이면, 5분 안에는 캐시에서 즉시 반환
+
+**Cache Time (캐시 유지):**
+
+- 사용되지 않는 데이터를 메모리에 유지하는 시간
+- 이 시간이 지나면 가비지 컬렉션
+- **예시**: cacheTime이 10분이면, 컴포넌트 언마운트 후 10분간 캐시 유지
+
+### 🎯 실무 시나리오로 이해하기
+
+**시나리오**: 사용자 프로필 페이지
+
+```
+1. 00:00 - 페이지 접속
+   → fetchUser() 호출 (네트워크 요청)
+   → 캐시 저장 (fresh 상태)
+
+2. 00:30 - 다른 페이지 이동 후 돌아옴
+   → staleTime 5분 안 → 캐시에서 즉시 반환 (fresh)
+   → 네트워크 요청 없음! (빠름!)
+
+3. 06:00 - 다시 페이지 접속
+   → staleTime 초과 → 캐시 반환 + 백그라운드 리페치 (stale)
+   → 사용자는 즉시 데이터 봄 + 백그라운드에서 최신화
+
+4. 15:00 - 페이지 접속
+   → cacheTime 초과 → 캐시 삭제됨
+   → fetchUser() 다시 호출 (네트워크 요청)
+```
+
+### 💡 실무 TIP: "React Query는 어떻게 캐싱하나요?"
+
+**답변 예시:**
+
+"React Query는 Qury Key를 기반으로 캐시를 관리합니다.
+
+**핵심 메커니즘:**
+
+1. **Query Key 해싱**: `['users', { status: 'active' }]` → 고유 키 생성
+2. **캐시 스토리지**: 메모리에 Map 구조로 저장
+
+3. **State 관리**:
+   - fresh: 신선한 데이터 (리페치 안함)
+   - stale: 오래된 데이터 (백그라운드 리페치)
+   - inactive: 사용 안하는 데이터 (cacheTime 후 삭제)
+
+**최적화 효과:**
+
+- 동일한 Query Key → 단일 요청으로 통합
+- 캐시 히트 시 즉시 반환 (0ms)
+- 백그라운드 리페치로 최신성 유지
+
+**실무 설정:**
+
+```javascript
+// 자주 변하지 않는 데이터 (사용자 정보)
+staleTime: 5분, cacheTime: 10분
+
+// 자주 변하는 데이터 (실시간 댓글)
+staleTime: 0, cacheTime: 0
+
+// 정적 데이터 (국가 목록)
+staleTime: Infinity, cacheTime: Infinity
+```
+
+이를 통해 네트워크 요청을 최소화하면서도 데이터 최신성을 유지할 수 있습니다."
+
+### 2. 리페치 설정
+
+```javascript
+useQuery({
+  queryKey: ['users'],
+  queryFn: fetchUsers,
+  refetchOnWindowFocus: true,    // 윈도우 포커스 시
+  refetchOnReconnect: true,      // 네트워크 재연결 시
+  refetchOnMount: true,          // 마운트 시
+  refetchInterval: 1000 * 30,    // 30초마다 폴링
+  refetchIntervalInBackground: false,  // 백그라운드에서도 폴링
+});
+```
+
+### 3. 수동 리페치
+
+```jsx
+function Users() {
+  const { data, refetch, isRefetching } = useQuery({
+    queryKey: ['users'],
+    queryFn: fetchUsers,
+  });
+
+  return (
+    <div>
+      <button onClick={() => refetch()} disabled={isRefetching}>
+        {isRefetching ? 'Refreshing...' : 'Refresh'}
+      </button>
+      <UserList users={data} />
+    </div>
+  );
+}
+```
+
+### 4. Prefetch (사전 로딩)
+
+```jsx
+import { useQueryClient } from '@tanstack/react-query';
+
+function UserList() {
+  const queryClient = useQueryClient();
+
+  function handleMouseEnter(userId) {
+    // 마우스 호버 시 사용자 상세 정보 미리 로드
+    queryClient.prefetchQuery({
+      queryKey: ['user', userId],
+      queryFn: () => fetchUser(userId),
+    });
+  }
+
+  return (
+    <ul>
+      {users.map(user => (
+        <li 
+          key={user.id}
+          onMouseEnter={() => handleMouseEnter(user.id)}
+        >
+          <Link to={`/users/${user.id}`}>{user.name}</Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+```
+
+### 5. Initial Data
+
+```jsx
+function UserProfile({ userId }) {
+  const queryClient = useQueryClient();
+
+  const { data } = useQuery({
+    queryKey: ['user', userId],
+    queryFn: () => fetchUser(userId),
+    initialData: () => {
+      // 캐시에서 사용자 목록 가져오기
+      const users = queryClient.getQueryData(['users']);
+      // 해당 사용자 찾기
+      return users?.find(user => user.id === userId);
+    },
+  });
+
+  return <div>{data?.name}</div>;
+}
+```
+
+### 6. Placeholder Data
+
+```jsx
+function Users() {
+  const { data } = useQuery({
+    queryKey: ['users'],
+    queryFn: fetchUsers,
+    placeholderData: [],  // 로딩 중 표시할 데이터
+  });
+
+  // 또는 이전 데이터 유지
+  const { data } = useQuery({
+    queryKey: ['users', page],
+    queryFn: () => fetchUsers(page),
+    placeholderData: (previousData) => previousData,
+  });
+
+  return <UserList users={data} />;
+}
+```
+
+---

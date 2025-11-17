@@ -1,0 +1,175 @@
+---
+title: "🚀 [React 라이브러리 4/8] React Query - 캐싱 전략"
+date: "2025-08-22"
+description: "Stale Time, Cache Time, Query Invalidation"
+tags: ["React", "고급", "프론트엔드"]
+series: "React 라이브러리"
+seriesOrder: 49
+---
+
+# React Query 가이드 - 캐싱 전략
+
+> TanStack Query v5를 기반으로 한 데이터 페칭 학습 자료  
+> 출처: [TanStack Query Documentation](https://tanstack.com/query/)
+
+---
+
+## 캐싱 전략
+캐싱 전략
+
+뮤테이션
+
+### 1. useMutation 기본
+
+```jsx
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+
+function CreateUser() {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: (newUser) => {
+      return fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newUser),
+      }).then(res => res.json());
+    },
+    onSuccess: () => {
+      // 쿼리 무효화 (리페치 트리거)
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    mutation.mutate({
+      name: formData.get('name'),
+      email: formData.get('email'),
+    });
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input name="name" placeholder="Name" />
+      <input name="email" placeholder="Email" />
+      <button type="submit" disabled={mutation.isPending}>
+        {mutation.isPending ? 'Creating...' : 'Create User'}
+      </button>
+      {mutation.isError && <div>Error: {mutation.error.message}</div>}
+      {mutation.isSuccess && <div>User created!</div>}
+    </form>
+  );
+}
+```
+
+### 2. 뮤테이션 상태
+
+```jsx
+function DeleteUser({ userId }) {
+  const mutation = useMutation({
+    mutationFn: (id) => fetch(`/api/users/${id}`, { method: 'DELETE' }),
+  });
+
+  const {
+    mutate,         // 뮤테이션 실행 함수
+    isPending,      // 진행 중
+    isError,        // 에러 발생
+    isSuccess,      // 성공
+    error,          // 에러 객체
+    data,           // 응답 데이터
+    reset,          // 상태 초기화
+  } = mutation;
+
+  return (
+    <div>
+      <button onClick={() => mutate(userId)} disabled={isPending}>
+        {isPending ? 'Deleting...' : 'Delete'}
+      </button>
+      
+      {isError && <div>Error: {error.message}</div>}
+      {isSuccess && <div>User deleted successfully!</div>}
+      
+      {(isError || isSuccess) && (
+        <button onClick={reset}>Reset</button>
+      )}
+    </div>
+  );
+}
+```
+
+### 3. 뮤테이션 콜백
+
+```jsx
+const mutation = useMutation({
+  mutationFn: createUser,
+  onMutate: async (newUser) => {
+    // 뮤테이션 시작 전
+    console.log('Creating user:', newUser);
+    
+    // 낙관적 업데이트를 위한 이전 데이터 반환
+    const previousUsers = queryClient.getQueryData(['users']);
+    return { previousUsers };
+  },
+  onError: (error, variables, context) => {
+    // 에러 발생 시
+    console.error('Error creating user:', error);
+    
+    // 롤백
+    if (context?.previousUsers) {
+      queryClient.setQueryData(['users'], context.previousUsers);
+    }
+  },
+  onSuccess: (data, variables, context) => {
+    // 성공 시
+    console.log('User created:', data);
+    toast.success('User created successfully!');
+  },
+  onSettled: (data, error, variables, context) => {
+    // 성공이든 실패든 완료 후
+    queryClient.invalidateQueries({ queryKey: ['users'] });
+  },
+});
+```
+
+### 4. 쿼리 무효화
+
+```jsx
+const queryClient = useQueryClient();
+
+// 특정 쿼리 무효화
+queryClient.invalidateQueries({ queryKey: ['users'] });
+
+// 특정 사용자 쿼리 무효화
+queryClient.invalidateQueries({ queryKey: ['user', userId] });
+
+// 접두사로 무효화 (모든 user 관련 쿼리)
+queryClient.invalidateQueries({ queryKey: ['user'] });
+
+// 정확히 일치하는 쿼리만 무효화
+queryClient.invalidateQueries({ 
+  queryKey: ['users'], 
+  exact: true 
+});
+```
+
+### 5. 캐시 직접 업데이트
+
+```jsx
+const mutation = useMutation({
+  mutationFn: createUser,
+  onSuccess: (newUser) => {
+    // 기존 캐시 가져오기
+    const previousUsers = queryClient.getQueryData(['users']);
+    
+    // 새 사용자 추가
+    queryClient.setQueryData(['users'], (old) => [...old, newUser]);
+    
+    // 또는 invalidateQueries로 리페치
+    // queryClient.invalidateQueries({ queryKey: ['users'] });
+  },
+});
+```
+
+---

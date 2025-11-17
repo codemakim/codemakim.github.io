@@ -1,0 +1,136 @@
+---
+title: "🚀 [React 라이브러리 5/9] React Router - Router Hooks"
+date: "2025-08-16"
+description: "useParams, useSearchParams, useLocation, useNavigate 활용"
+tags: ["React", "고급", "프론트엔드"]
+series: "React 라이브러리"
+seriesOrder: 41
+---
+
+# React Router 가이드 - Router Hooks
+
+> React Router v6를 기반으로 한 라우팅 학습 자료  
+> 출처: [React Router Documentation](https://reactrouter.com/)
+
+---
+
+## Router Hooks
+Router Hooks
+
+프로그래밍 방식 네비게이션
+
+### 1. useNavigate Hook
+
+```jsx
+import { useNavigate } from 'react-router-dom';
+
+export default function LoginForm() {
+  const navigate = useNavigate();
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    // 로그인 로직
+    navigate('/dashboard');
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <button type="submit">Login</button>
+    </form>
+  );
+}
+```
+
+### 2. Navigate 옵션
+
+```jsx
+const navigate = useNavigate();
+
+// 기본 네비게이션
+navigate('/about');
+
+// 상대 경로
+navigate('profile');
+navigate('../settings');
+
+// Replace (히스토리에 추가 안함)
+navigate('/login', { replace: true });
+
+// State 전달
+navigate('/dashboard', { 
+  state: { from: '/login', userId: 123 } 
+});
+
+// 뒤로 가기 / 앞으로 가기
+navigate(-1);  // 뒤로
+navigate(1);   // 앞으로
+navigate(-2);  // 2단계 뒤로
+```
+
+### 3. Navigate 컴포넌트 (리다이렉트)
+
+```jsx
+import { Navigate } from 'react-router-dom';
+
+function ProtectedRoute({ isAuthenticated, children }) {
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return children;
+}
+```
+
+### 4. 조건부 네비게이션
+
+```jsx
+function ProductPage() {
+  const navigate = useNavigate();
+  const [product, setProduct] = useState(null);
+
+  async function deleteProduct() {
+    await api.delete(`/products/${product.id}`);
+    navigate('/products', { 
+      replace: true,
+      state: { message: 'Product deleted successfully' }
+    });
+  }
+
+  return (
+    <div>
+      <h1>{product.name}</h1>
+      <button onClick={deleteProduct}>Delete</button>
+    </div>
+  );
+}
+```
+
+### Vue Router와 비교
+
+```javascript
+// Vue Router
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+// 네비게이션
+router.push('/about')
+router.push({ path: '/user', query: { id: 123 } })
+router.replace('/login')
+router.go(-1)
+```
+
+```jsx
+// React Router
+import { useNavigate } from 'react-router-dom'
+
+const navigate = useNavigate()
+
+// 네비게이션
+navigate('/about')
+navigate('/user?id=123')
+navigate('/login', { replace: true })
+navigate(-1)
+```
+
+---

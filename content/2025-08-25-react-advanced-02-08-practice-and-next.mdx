@@ -1,0 +1,311 @@
+---
+title: "🚀 [React 라이브러리 8/8] React Query - 실전 예제 & 다음 단계"
+date: "2025-08-26"
+description: "블로그 애플리케이션 구현 및 학습 체크리스트"
+tags: ["React", "고급", "프론트엔드"]
+series: "React 라이브러리"
+seriesOrder: 53
+---
+
+# React Query 가이드 - 실전 예제 & 다음 단계
+
+> TanStack Query v5를 기반으로 한 데이터 페칭 학습 자료  
+> 출처: [TanStack Query Documentation](https://tanstack.com/query/)
+
+---
+
+## 실전 예제 & 다음 단계
+실전 예제 & 다음 단계
+
+고급 패턴
+
+### 1. Query Cancellation
+
+```jsx
+function Search() {
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['search', searchTerm],
+    queryFn: async ({ signal }) => {
+      const response = await fetch(`/api/search?q=${searchTerm}`, {
+        signal,  // AbortSignal 전달
+      });
+      return response.json();
+    },
+    enabled: searchTerm.length > 0,
+  });
+
+  return (
+    <div>
+      <input
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        placeholder="Search..."
+      />
+      {isLoading && <div>Searching...</div>}
+      <SearchResults results={data} />
+    </div>
+  );
+}
+```
+
+### 2. Dependent Queries
+
+```jsx
+function UserProjects({ userId }) {
+  const { data: user } = useQuery({
+    queryKey: ['user', userId],
+    queryFn: () => fetchUser(userId),
+  });
+
+  const { data: projects } = useQuery({
+    queryKey: ['projects', user?.id],
+    queryFn: () => fetchProjects(user.id),
+    enabled: !!user?.id,  // user가 로드된 후에만 실행
+  });
+
+  return <ProjectList projects={projects} />;
+}
+```
+
+### 3. Query Keys Factory
+
+```javascript
+// queryKeys.js
+export const userKeys = {
+  all: ['users'],
+  lists: () => [...userKeys.all, 'list'],
+  list: (filters) => [...userKeys.lists(), { filters }],
+  details: () => [...userKeys.all, 'detail'],
+  detail: (id) => [...userKeys.details(), id],
+};
+
+// 사용
+useQuery({
+  queryKey: userKeys.detail(userId),
+  queryFn: () => fetchUser(userId),
+});
+
+// 모든 user 쿼리 무효화
+queryClient.invalidateQueries({ queryKey: userKeys.all });
+
+// 특정 user 무효화
+queryClient.invalidateQueries({ queryKey: userKeys.detail(userId) });
+```
+
+### 4. Suspense Mode
+
+```jsx
+import { Suspense } from 'react';
+
+function App() {
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <Users />
+    </Suspense>
+  );
+}
+
+function Users() {
+  const { data } = useQuery({
+    queryKey: ['users'],
+    queryFn: fetchUsers,
+    suspense: true,  // Suspense 모드 활성화
+  });
+
+  return <UserList users={data} />;
+}
+```
+
+### 5. Retry Logic
+
+```javascript
+useQuery({
+  queryKey: ['users'],
+  queryFn: fetchUsers,
+  retry: 3,  // 3번 재시도
+  retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  // 1초, 2초, 4초... 최대 30초
+});
+
+// 조건부 재시도
+useQuery({
+  queryKey: ['users'],
+  queryFn: fetchUsers,
+  retry: (failureCount, error) => {
+    // 404는 재시도 안함
+    if (error.status === 404) return false;
+    // 최대 3번
+    return failureCount < 3;
+  },
+});
+```
+
+### 6. Query Filters
+
+```javascript
+const queryClient = useQueryClient();
+
+// 모든 쿼리 무효화
+queryClient.invalidateQueries();
+
+// 특정 접두사 쿼리 무효화
+queryClient.invalidateQueries({ queryKey: ['posts'] });
+
+// 조건부 무효화
+queryClient.invalidateQueries({
+  predicate: (query) => 
+    query.queryKey[0] === 'posts' && 
+    query.state.data?.isArchived
+});
+
+// 쿼리 제거
+queryClient.removeQueries({ queryKey: ['posts'] });
+
+// 쿼리 데이터 설정
+queryClient.setQueriesData(
+  { queryKey: ['posts'] },
+  (oldData) => oldData.filter(post => !post.isDeleted)
+);
+```
+
+---
+
+
+## 실전 예제: 블로그 애플리케이션
+
+```jsx
+// api/posts.js
+export const postKeys = {
+  all: ['posts'],
+  lists: () => [...postKeys.all, 'list'],
+  list: (filters) => [...postKeys.lists(), filters],
+  details: () => [...postKeys.all, 'detail'],
+  detail: (id) => [...postKeys.details(), id],
+};
+
+export async function fetchPosts({ page = 1, limit = 10 } = {}) {
+  const response = await fetch(`/api/posts?page=${page}&limit=${limit}`);
+  if (!response.ok) throw new Error('Failed to fetch posts');
+  return response.json();
+}
+
+export async function fetchPost(id) {
+  const response = await fetch(`/api/posts/${id}`);
+  if (!response.ok) throw new Error('Failed to fetch post');
+  return response.json();
+}
+
+export async function createPost(data) {
+  const response = await fetch('/api/posts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error('Failed to create post');
+  return response.json();
+}
+
+export async function updatePost({ id, data }) {
+  const response = await fetch(`/api/posts/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error('Failed to update post');
+  return response.json();
+}
+
+export async function deletePost(id) {
+  const response = await fetch(`/api/posts/${id}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) throw new Error('Failed to delete post');
+}
+```
+
+```jsx
+// components/PostList.jsx
+import { useQuery } from '@tanstack/react-query';
+import { fetchPosts, postKeys } from '../api/posts';
+
+export default function PostList() {
+  const [page, setPage] = useState(1);
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: postKeys.list({ page }),
+    queryFn: () => fetchPosts({ page }),
+    placeholderData: (previousData) => previousData,
+  });
+
+  if (isLoading && !data) return <LoadingSpinner />;
+  if (error) return <ErrorMessage error={error} />;
+
+  return (
+    <div>
+      {data.posts.map(post => (
+        <PostCard key={post.id} post={post} />
+      ))}
+      
+      <Pagination
+        page={page}
+        totalPages={data.totalPages}
+        onPageChange={setPage}
+      />
+    </div>
+  );
+}
+```
+
+```jsx
+// components/CreatePost.jsx
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { createPost, postKeys } from '../api/posts';
+
+export default function CreatePost() {
+  const queryClient = useQueryClient();
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+
+  const mutation = useMutation({
+    mutationFn: createPost,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: postKeys.lists() });
+      setTitle('');
+      setContent('');
+      toast.success('Post created!');
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    mutation.mutate({ title, content });
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Title"
+        required
+      />
+      <textarea
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        placeholder="Content"
+        required
+      />
+      <button type="submit" disabled={mutation.isPending}>
+        {mutation.isPending ? 'Creating...' : 'Create Post'}
+      </button>
+    </form>
+  );
+}
+```
+
+---

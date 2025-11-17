@@ -1,0 +1,78 @@
+---
+title: "🚀 [React 라이브러리 2/8] React Query - 쿼리 기초"
+date: "2025-08-20"
+description: "useQuery, useQueries, 쿼리 상태 관리"
+tags: ["React", "고급", "프론트엔드"]
+series: "React 라이브러리"
+seriesOrder: 47
+---
+
+# React Query 가이드 - 쿼리 기초
+
+> TanStack Query v5를 기반으로 한 데이터 페칭 학습 자료  
+> 출처: [TanStack Query Documentation](https://tanstack.com/query/)
+
+---
+
+## 쿼리 기초
+쿼리 기초
+
+설치 및 설정
+
+### 설치
+
+```bash
+npm install @tanstack/react-query
+npm install @tanstack/react-query-devtools
+```
+
+### 기본 설정
+
+```jsx
+// App.jsx
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5,  // 5분
+      cacheTime: 1000 * 60 * 10, // 10분
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+export default function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <YourApp />
+      <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
+  );
+}
+```
+
+### QueryClient 옵션
+
+```javascript
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5,        // 데이터가 stale되기까지 시간
+      cacheTime: 1000 * 60 * 10,       // 캐시 유지 시간
+      retry: 3,                         // 실패 시 재시도 횟수
+      retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+      refetchOnWindowFocus: true,      // 윈도우 포커스 시 리페치
+      refetchOnReconnect: true,        // 네트워크 재연결 시 리페치
+      refetchOnMount: true,            // 마운트 시 리페치
+    },
+    mutations: {
+      retry: 0,                        // 뮤테이션은 재시도 안함
+    },
+  },
+});
+```
+
+---

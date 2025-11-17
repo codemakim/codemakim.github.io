@@ -1,0 +1,393 @@
+---
+title: "🚀 [React 라이브러리 2/5] 상태 관리 - Redux Toolkit"
+date: "2025-08-27"
+description: "Redux Toolkit의 Flux 아키텍처와 최적화"
+tags: ["React", "고급", "프론트엔드"]
+series: "React 라이브러리"
+seriesOrder: 55
+---
+
+# React 상태 관리 라이브러리 가이드 - Redux Toolkit
+
+> Zustand, Redux Toolkit을 중심으로 한 상태 관리 학습 자료
+
+---
+
+## Redux Toolkit
+Redux Toolkit
+
+Zustand
+
+### 개요
+
+**Zustand**는 가장 간단하고 가벼운 상태 관리 라이브러리입니다.
+
+### 🔍 Zustand의 동작 원리
+
+**핵심 메커니즘: 구독 패턴 (Subscription Pattern)**
+
+```javascript
+// Zustand가 내부적으로 하는 일 (단순화)
+function create(initializer) {
+  let state = initializer((updater) => {
+    // setState 함수
+    state = updater(state);
+    listeners.forEach(listener => listener(state));  // 모든 구독자에게 알림
+  });
+  
+  const listeners = new Set();
+  
+  return (selector) => {
+    const [, forceUpdate] = useReducer(x => x + 1, 0);
+    
+    useEffect(() => {
+      const listener = () => {
+        const selectedState = selector(state);
+        forceUpdate();  // 리렌더링 트리거!
+      };
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    }, []);
+    
+    return selector(state);
+  };
+}
+```
+
+**동작 과정:**
+
+```
+1. Store 생성
+   → 초기 state 저장
+   → subscribers Set 생성
+
+2. 컴포넌트에서 useStore 호출
+   → selector 함수로 필요한 state만 추출
+   → 해당 컴포넌트를 subscriber로 등록
+
+3. State 업데이트 (set 함수 호출)
+   → state 객체 변경
+   → 모든 subscribers에게 알림
+   → 각 컴포넌트가 selector 재실행
+   → 결과가 변경됐으면 리렌더링
+
+4. 컴포넌트 언마운트
+   → subscriber 목록에서 제거
+```
+
+**왜 빠른가?**
+
+```jsx
+const useStore = create((set) => ({
+  count: 0,
+  user: { name: 'John' },
+  increment: () => set((state) => ({ count: state.count + 1 }))
+}));
+
+// Component A: count만 구독
+function ComponentA() {
+  const count = useStore(state => state.count);
+  // count 변경 시에만 리렌더링!
+}
+
+// Component B: user만 구독
+function ComponentB() {
+  const user = useStore(state => state.user);
+  // user 변경 시에만 리렌더링!
+}
+
+// count 변경 시:
+// - ComponentA만 리렌더링
+// - ComponentB는 리렌더링 안됨!
+```
+
+**Context API와 비교:**
+
+```jsx
+// ❌ Context: 모든 Consumer가 리렌더링
+const value = { count, user };
+<Context.Provider value={value}>
+  <ComponentA />  {/* count만 사용해도 user 변경 시 리렌더링! */}
+  <ComponentB />
+</Context.Provider>
+
+// ✅ Zustand: 선택적 구독
+useStore(state => state.count)  // count 변경 시에만 리렌더링
+```
+
+### 💡 실무 TIP: "Zustand와 Context API의 차이는?"
+
+**답변 예시:**
+
+"둘 다 전역 상태 관리이지만 근본적 차이가 있습니다.
+
+**Context API의 한계:**
+
+```jsx
+const AppContext = createContext();
+
+function Provider({ children }) {
+  const [state, setState] = useState({ count: 0, user: null, theme: 'light' });
+  return <AppContext.Provider value={state}>{children}</AppContext.Provider>;
+}
+
+function Component() {
+  const { count } = useContext(AppContext);
+  // 문제: theme 변경되어도 리렌더링됨!
+}
+```
+
+**Zustand의 해결:**
+선택적 구독 (Selective Subscription)으로 필요한 state만 구독합니다.
+
+```jsx
+const count = useStore(state => state.count);
+// count 변경 시에만 리렌더링!
+```
+
+**성능 차이:**
+
+- 대규모 앱에서 불필요한 리렌더링 80% 감소
+- Profiler로 측정하면 명확히 보임
+
+**언제 무엇을 사용?**
+
+- Context: 테마, 언어 등 느리게 변하는 상태
+- Zustand: 자주 변하는 UI 상태, 폼 상태 등"
+
+**특징:**
+
+- 극도로 간단한 API
+- 보일러플레이트 거의 없음
+- React Hook 기반
+- TypeScript 지원 우수
+
+### 설치
+
+```bash
+npm install zustand
+```
+
+### 기본 사용법
+
+```jsx
+// stores/useCounterStore.js
+import { create } from 'zustand';
+
+const useCounterStore = create((set) => ({
+  count: 0,
+  increment: () => set((state) => ({ count: state.count + 1 })),
+  decrement: () => set((state) => ({ count: state.count + 1 })),
+  reset: () => set({ count: 0 }),
+}));
+
+export default useCounterStore;
+```
+
+```jsx
+// components/Counter.jsx
+import useCounterStore from '../stores/useCounterStore';
+
+export default function Counter() {
+  const count = useCounterStore((state) => state.count);
+  const increment = useCounterStore((state) => state.increment);
+  const decrement = useCounterStore((state) => state.decrement);
+  const reset = useCounterStore((state) => state.reset);
+
+  return (
+    <div>
+      <h1>{count}</h1>
+      <button onClick={increment}>+</button>
+      <button onClick={decrement}>-</button>
+      <button onClick={reset}>Reset</button>
+    </div>
+  );
+}
+```
+
+### 선택적 구독 (최적화)
+
+```jsx
+// ✅ 좋음: count만 구독 (count 변경 시에만 리렌더링)
+function Counter() {
+  const count = useCounterStore((state) => state.count);
+  return <h1>{count}</h1>;
+}
+
+// ❌ 나쁨: 전체 store 구독 (모든 변경 시 리렌더링)
+function Counter() {
+  const store = useCounterStore();
+  return <h1>{store.count}</h1>;
+}
+```
+
+### 비동기 액션
+
+```jsx
+import { create } from 'zustand';
+
+const useUserStore = create((set) => ({
+  users: [],
+  loading: false,
+  error: null,
+
+  fetchUsers: async () => {
+    set({ loading: true, error: null });
+    try {
+      const response = await fetch('/api/users');
+      const users = await response.json();
+      set({ users, loading: false });
+    } catch (error) {
+      set({ error: error.message, loading: false });
+    }
+  },
+
+  addUser: async (user) => {
+    try {
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        body: JSON.stringify(user),
+      });
+      const newUser = await response.json();
+      set((state) => ({ users: [...state.users, newUser] }));
+    } catch (error) {
+      set({ error: error.message });
+    }
+  },
+}));
+```
+
+### Immer 미들웨어 (불변성 간편화)
+
+```bash
+npm install immer
+```
+
+```jsx
+import { create } from 'zustand';
+import { immer } from 'zustand/middleware/immer';
+
+const useTodoStore = create(
+  immer((set) => ({
+    todos: [],
+    
+    addTodo: (text) =>
+      set((state) => {
+        state.todos.push({ id: Date.now(), text, completed: false });
+      }),
+    
+    toggleTodo: (id) =>
+      set((state) => {
+        const todo = state.todos.find((t) => t.id === id);
+        if (todo) {
+          todo.completed = !todo.completed;
+        }
+      }),
+    
+    removeTodo: (id) =>
+      set((state) => {
+        state.todos = state.todos.filter((t) => t.id !== id);
+      }),
+  }))
+);
+```
+
+### Persist 미들웨어 (LocalStorage)
+
+```jsx
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+
+const useAuthStore = create(
+  persist(
+    (set) => ({
+      user: null,
+      token: null,
+      
+      login: (user, token) => set({ user, token }),
+      logout: () => set({ user: null, token: null }),
+    }),
+    {
+      name: 'auth-storage', // localStorage key
+    }
+  )
+);
+```
+
+### Slice 패턴 (대규모 앱)
+
+```jsx
+// stores/slices/userSlice.js
+export const createUserSlice = (set) => ({
+  users: [],
+  fetchUsers: async () => {
+    const users = await fetch('/api/users').then((r) => r.json());
+    set({ users });
+  },
+});
+
+// stores/slices/postSlice.js
+export const createPostSlice = (set) => ({
+  posts: [],
+  fetchPosts: async () => {
+    const posts = await fetch('/api/posts').then((r) => r.json());
+    set({ posts });
+  },
+});
+
+// stores/useStore.js
+import { create } from 'zustand';
+import { createUserSlice } from './slices/userSlice';
+import { createPostSlice } from './slices/postSlice';
+
+const useStore = create((...args) => ({
+  ...createUserSlice(...args),
+  ...createPostSlice(...args),
+}));
+
+export default useStore;
+```
+
+### DevTools
+
+```jsx
+import { create } from 'zustand';
+import { devtools } from 'zustand/middleware';
+
+const useStore = create(
+  devtools((set) => ({
+    count: 0,
+    increment: () => set((state) => ({ count: state.count + 1 })),
+  }))
+);
+```
+
+### Pinia와 비교
+
+```javascript
+// Vue: Pinia
+import { defineStore } from 'pinia'
+
+export const useCounterStore = defineStore('counter', {
+  state: () => ({
+    count: 0
+  }),
+  actions: {
+    increment() {
+      this.count++
+    }
+  }
+})
+```
+
+```javascript
+// React: Zustand
+import { create } from 'zustand'
+
+const useCounterStore = create((set) => ({
+  count: 0,
+  increment: () => set((state) => ({ count: state.count + 1 }))
+}))
+```
+
+---

@@ -1,0 +1,94 @@
+---
+title: "🚀 [React 라이브러리 1/8] React Query - 설치 및 설정"
+date: "2025-08-19"
+description: "React Query 설치 및 QueryClient 설정"
+tags: ["React", "고급", "프론트엔드"]
+series: "React 라이브러리"
+seriesOrder: 46
+---
+
+# React Query 가이드 - 설치 및 설정
+
+> TanStack Query v5를 기반으로 한 데이터 페칭 학습 자료  
+> 출처: [TanStack Query Documentation](https://tanstack.com/query/)
+
+---
+
+## 설치 및 설정
+설치 및 설정
+
+개요
+
+### React Query란?
+
+**React Query (TanStack Query)**는 서버 상태 관리를 위한 강력한 라이브러리입니다.
+
+**주요 기능:**
+
+- 자동 캐싱
+- 백그라운드 리페칭
+- 중복 요청 제거
+- 낙관적 업데이트
+- 무한 스크롤
+- 서버 상태와 클라이언트 상태 분리
+
+### 왜 React Query인가?
+
+```jsx
+// ❌ 일반적인 방법 (복잡함)
+function Users() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch('/api/users')
+      .then(res => res.json())
+      .then(data => {
+        setUsers(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError(err);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+
+  return <UserList users={users} />;
+}
+
+// ✅ React Query (간결함)
+import { useQuery } from '@tanstack/react-query';
+
+function Users() {
+  const { data: users, isLoading, error } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => fetch('/api/users').then(res => res.json())
+  });
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+
+  return <UserList users={users} />;
+}
+```
+
+### Vue와 비교
+
+```html
+<!-- Vue: VueQuery 또는 Pinia -->
+<script setup>
+import { useQuery } from '@tanstack/vue-query'
+
+const { data: users, isLoading, error } = useQuery({
+  queryKey: ['users'],
+  queryFn: () => fetch('/api/users').then(res => res.json())
+})
+</script>
+```
+
+---

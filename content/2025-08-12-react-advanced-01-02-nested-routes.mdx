@@ -1,0 +1,131 @@
+---
+title: "🚀 [React 라이브러리 2/9] React Router - 중첩 라우트"
+date: "2025-08-13"
+description: "Outlet, Layout 패턴, Index Route 활용"
+tags: ["React", "고급", "프론트엔드"]
+series: "React 라이브러리"
+seriesOrder: 38
+---
+
+# React Router 가이드 - 중첩 라우트
+
+> React Router v6를 기반으로 한 라우팅 학습 자료  
+> 출처: [React Router Documentation](https://reactrouter.com/)
+
+---
+
+## 중첩 라우트
+
+중첩 라우트
+
+기본 라우팅
+
+### 1. 라우터 설정
+
+```jsx
+// App.jsx
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Home from './pages/Home';
+import About from './pages/About';
+import Contact from './pages/Contact';
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/contact" element={<Contact />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+```
+
+### 2. Link 컴포넌트
+
+```jsx
+import { Link } from 'react-router-dom';
+
+export default function Navigation() {
+  return (
+    <nav>
+      <Link to="/">Home</Link>
+      <Link to="/about">About</Link>
+      <Link to="/contact">Contact</Link>
+    </nav>
+  );
+}
+```
+
+### 3. NavLink (활성 링크)
+
+```jsx
+import { NavLink } from 'react-router-dom';
+
+export default function Navigation() {
+  return (
+    <nav>
+      <NavLink 
+        to="/"
+        className={({ isActive }) => isActive ? 'active' : ''}
+      >
+        Home
+      </NavLink>
+      <NavLink 
+        to="/about"
+        style={({ isActive }) => ({
+          color: isActive ? 'red' : 'black'
+        })}
+      >
+        About
+      </NavLink>
+    </nav>
+  );
+}
+```
+
+### Vue Router와 비교
+
+```html
+<!-- Vue Router -->
+<template>
+  <router-view />
+  <router-link to="/">Home</router-link>
+  <router-link to="/about">About</router-link>
+</template>
+
+<script>
+import { createRouter, createWebHistory } from 'vue-router'
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes: [
+    { path: '/', component: Home },
+    { path: '/about', component: About }
+  ]
+})
+</script>
+```
+
+```jsx
+// React Router
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
+
+function App() {
+  return (
+    <BrowserRouter>
+      <nav>
+        <Link to="/">Home</Link>
+        <Link to="/about">About</Link>
+      </nav>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/about" element={<About />} />
+      </Routes>
+    </BrowserRouter>
+  )
+}
+```
+
+---

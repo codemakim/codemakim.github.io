@@ -1,0 +1,200 @@
+---
+title: "🚀 [React 라이브러리 6/9] React Router - Protected Routes"
+date: "2025-08-17"
+description: "인증 기반 라우트 보호, 리다이렉트 처리"
+tags: ["React", "고급", "프론트엔드"]
+series: "React 라이브러리"
+seriesOrder: 42
+---
+
+# React Router 가이드 - Protected Routes
+
+> React Router v6를 기반으로 한 라우팅 학습 자료  
+> 출처: [React Router Documentation](https://reactrouter.com/)
+
+---
+
+## Protected Routes
+Protected Routes
+
+Router Hooks
+
+### 1. useLocation
+
+```jsx
+import { useLocation } from 'react-router-dom';
+
+export default function Header() {
+  const location = useLocation();
+  
+  return (
+    <div>
+      <p>Current path: {location.pathname}</p>
+      <p>Search: {location.search}</p>
+      <p>Hash: {location.hash}</p>
+      <p>State: {JSON.stringify(location.state)}</p>
+    </div>
+  );
+}
+```
+
+**활용 예시: 이전 페이지 기억**
+
+```jsx
+function LoginPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from || '/';
+
+  function handleLogin() {
+    // 로그인 성공 후 원래 페이지로
+    navigate(from, { replace: true });
+  }
+
+  return <button onClick={handleLogin}>Login</button>;
+}
+```
+
+### 2. useSearchParams
+
+```jsx
+import { useSearchParams } from 'react-router-dom';
+
+export default function ProductList() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  const category = searchParams.get('category');
+  const sort = searchParams.get('sort');
+  
+  function handleFilter(newCategory) {
+    setSearchParams({ category: newCategory, sort });
+  }
+  
+  return (
+    <div>
+      <p>Category: {category}</p>
+      <p>Sort: {sort}</p>
+      <button onClick={() => handleFilter('electronics')}>
+        Electronics
+      </button>
+    </div>
+  );
+}
+```
+
+**URLSearchParams API:**
+
+```jsx
+const [searchParams, setSearchParams] = useSearchParams();
+
+// 읽기
+searchParams.get('category');           // 'books'
+searchParams.getAll('tags');            // ['fiction', 'bestseller']
+searchParams.has('category');           // true
+
+// 쓰기
+setSearchParams({ category: 'movies' });
+setSearchParams(prev => {
+  prev.set('page', '2');
+  return prev;
+});
+```
+
+### 3. useParams (재확인)
+
+```jsx
+import { useParams } from 'react-router-dom';
+
+function BlogPost() {
+  const { postId } = useParams();
+  const [post, setPost] = useState(null);
+  
+  useEffect(() => {
+    fetch(`/api/posts/${postId}`)
+      .then(res => res.json())
+      .then(setPost);
+  }, [postId]);
+  
+  return <article>{post?.title}</article>;
+}
+```
+
+### 4. useMatch
+
+```jsx
+import { useMatch } from 'react-router-dom';
+
+function Navigation() {
+  const match = useMatch('/users/:userId');
+  
+  if (match) {
+    console.log('User ID:', match.params.userId);
+  }
+  
+  return <nav>...</nav>;
+}
+```
+
+### 5. useRoutes (프로그래밍 방식 라우트)
+
+```jsx
+import { useRoutes } from 'react-router-dom';
+
+function App() {
+  const routes = useRoutes([
+    { path: '/', element: <Home /> },
+    { path: '/about', element: <About /> },
+    {
+      path: '/users',
+      element: <UsersLayout />,
+      children: [
+        { index: true, element: <UserList /> },
+        { path: ':userId', element: <UserDetail /> }
+      ]
+    }
+  ]);
+  
+  return routes;
+}
+```
+
+### Vue Router와 비교
+
+```html
+<!-- Vue Router -->
+<script setup>
+import { useRoute, useRouter } from 'vue-router'
+
+const route = useRoute()
+const router = useRouter()
+
+// 현재 경로
+const path = route.path
+const params = route.params
+const query = route.query
+
+// 쿼리 변경
+router.push({ query: { page: 2 } })
+</script>
+```
+
+```jsx
+// React Router
+import { useLocation, useParams, useSearchParams } from 'react-router-dom'
+
+function Component() {
+  const location = useLocation()
+  const params = useParams()
+  const [searchParams, setSearchParams] = useSearchParams()
+  
+  // 현재 경로
+  const path = location.pathname
+  const userId = params.userId
+  const page = searchParams.get('page')
+  
+  // 쿼리 변경
+  setSearchParams({ page: 2 })
+}
+```
+
+---

@@ -1,0 +1,121 @@
+---
+title: "🚀 [React 라이브러리 4/7] Next.js 고급 - Middleware"
+date: "2025-09-04"
+description: "Next.js Middleware로 요청 가로채기"
+tags: ["Next.js", "React", "고급", "프론트엔드"]
+series: "React 라이브러리"
+seriesOrder: 62
+---
+
+# Next.js 고급 기능 가이드 - Middleware
+
+> Next.js 15의 고급 기능을 다루는 학습 자료
+
+---
+
+## Middleware
+
+### 기본 Middleware
+
+```jsx
+// middleware.js
+import { NextResponse } from 'next/server';
+
+export function middleware(request) {
+  // 요청 로깅
+  console.log('Request:', request.nextUrl.pathname);
+
+  // 헤더 추가
+  const response = NextResponse.next();
+  response.headers.set('x-custom-header', 'my-value');
+
+  return response;
+}
+
+export const config = {
+  matcher: ['/dashboard/:path*', '/admin/:path*'],
+};
+```
+
+### 인증 Middleware
+
+```jsx
+// middleware.js
+import { NextResponse } from 'next/server';
+
+export function middleware(request) {
+  const token = request.cookies.get('token');
+
+  if (!token && request.nextUrl.pathname.startsWith('/dashboard')) {
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
+
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: '/dashboard/:path*',
+};
+```
+
+### 국제화 Middleware
+
+```jsx
+// middleware.js
+import { NextResponse } from 'next/server';
+
+const locales = ['en', 'ko', 'ja'];
+const defaultLocale = 'en';
+
+export function middleware(request) {
+  const pathname = request.nextUrl.pathname;
+
+  // 이미 로케일이 있으면 패스
+  const pathnameHasLocale = locales.some(
+    (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
+  );
+
+  if (pathnameHasLocale) return;
+
+  // Accept-Language 헤더에서 로케일 가져오기
+  const locale = request.headers.get('accept-language')?.split(',')[0] || defaultLocale;
+
+  // 로케일 추가하여 리다이렉트
+  return NextResponse.redirect(
+    new URL(`/${locale}${pathname}`, request.url)
+  );
+}
+
+export const config = {
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+};
+```
+
+### A/B 테스트 Middleware
+
+```jsx
+// middleware.js
+import { NextResponse } from 'next/server';
+
+export function middleware(request) {
+  // 쿠키에서 버킷 확인
+  let bucket = request.cookies.get('bucket');
+
+  if (!bucket) {
+    // 랜덤하게 A 또는 B 할당
+    bucket = Math.random() < 0.5 ? 'a' : 'b';
+    const response = NextResponse.next();
+    response.cookies.set('bucket', bucket);
+    return response;
+  }
+
+  // 버킷에 따라 다른 페이지로 리라이트
+  if (bucket === 'b') {
+    return NextResponse.rewrite(new URL('/experiment-b', request.url));
+  }
+
+  return NextResponse.next();
+}
+```
+
+---

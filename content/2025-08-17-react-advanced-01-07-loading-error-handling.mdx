@@ -1,0 +1,208 @@
+---
+title: "🚀 [React 라이브러리 7/9] React Router - 로딩 및 에러 처리"
+date: "2025-08-18"
+description: "Suspense, ErrorBoundary, Lazy Loading 적용"
+tags: ["React", "고급", "프론트엔드"]
+series: "React 라이브러리"
+seriesOrder: 43
+---
+
+# React Router 가이드 - 로딩 및 에러 처리
+
+> React Router v6를 기반으로 한 라우팅 학습 자료  
+> 출처: [React Router Documentation](https://reactrouter.com/)
+
+---
+
+## 로딩 및 에러 처리
+로딩 및 에러 처리
+
+Protected Routes
+
+### 1. 기본 인증 가드
+
+```jsx
+import { Navigate } from 'react-router-dom';
+
+function ProtectedRoute({ children }) {
+  const isAuthenticated = useAuth();
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return children;
+}
+
+// 사용
+<Route 
+  path="/dashboard" 
+  element={
+    <ProtectedRoute>
+      <Dashboard />
+    </ProtectedRoute>
+  } 
+/>
+```
+
+### 2. 로그인 페이지로 리다이렉트 (이전 경로 기억)
+
+```jsx
+import { Navigate, useLocation } from 'react-router-dom';
+
+function ProtectedRoute({ children }) {
+  const isAuthenticated = useAuth();
+  const location = useLocation();
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+  
+  return children;
+}
+```
+
+### 3. 역할 기반 접근 제어 (RBAC)
+
+```jsx
+function ProtectedRoute({ children, requiredRole }) {
+  const { isAuthenticated, user } = useAuth();
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  if (requiredRole && user.role !== requiredRole) {
+    return <Navigate to="/unauthorized" replace />;
+  }
+  
+  return children;
+}
+
+// 사용
+<Route 
+  path="/admin" 
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <AdminPanel />
+    </ProtectedRoute>
+  } 
+/>
+```
+
+### 4. 복수 역할 지원
+
+```jsx
+function ProtectedRoute({ children, allowedRoles = [] }) {
+  const { isAuthenticated, user } = useAuth();
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/unauthorized" replace />;
+  }
+  
+  return children;
+}
+
+// 사용
+<Route 
+  path="/dashboard" 
+  element={
+    <ProtectedRoute allowedRoles={['admin', 'editor']}>
+      <Dashboard />
+    </ProtectedRoute>
+  } 
+/>
+```
+
+### 5. 권한 체크 Hook
+
+```jsx
+function useAuth() {
+  const [auth, setAuth] = useState({
+    isAuthenticated: false,
+    user: null,
+    loading: true
+  });
+  
+  useEffect(() => {
+    checkAuth()
+      .then(user => {
+        setAuth({ isAuthenticated: true, user, loading: false });
+      })
+      .catch(() => {
+        setAuth({ isAuthenticated: false, user: null, loading: false });
+      });
+  }, []);
+  
+  return auth;
+}
+
+function ProtectedRoute({ children }) {
+  const { isAuthenticated, loading } = useAuth();
+  
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return children;
+}
+```
+
+### Vue Router와 비교
+
+```javascript
+// Vue Router: Navigation Guards
+router.beforeEach((to, from, next) => {
+  const isAuthenticated = store.state.isAuthenticated
+  
+  if (to.meta.requiresAuth && !isAuthenticated) {
+    next('/login')
+  } else {
+    next()
+  }
+})
+
+const routes = [
+  {
+    path: '/dashboard',
+    component: Dashboard,
+    meta: { requiresAuth: true, role: 'admin' }
+  }
+]
+```
+
+```jsx
+// React Router: Protected Route Component
+function ProtectedRoute({ children, requiredRole }) {
+  const { isAuthenticated, user } = useAuth()
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+  
+  if (requiredRole && user.role !== requiredRole) {
+    return <Navigate to="/unauthorized" replace />
+  }
+  
+  return children
+}
+
+<Route 
+  path="/dashboard" 
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <Dashboard />
+    </ProtectedRoute>
+  } 
+/>
+```
+
+---
