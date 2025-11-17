@@ -29,11 +29,13 @@ seriesOrder: 3
 ### 왜 상태 관리 라이브러리가 필요한가?
 
 **Context API의 한계:**
+
 - 성능 문제 (불필요한 리렌더링)
 - 복잡한 상태 로직
 - DevTools 부족
 
 **상태 관리 라이브러리의 장점:**
+
 - 최적화된 리렌더링
 - 강력한 DevTools
 - 미들웨어 지원
@@ -89,6 +91,7 @@ function create(initializer) {
 ```
 
 **동작 과정:**
+
 ```
 1. Store 생성
    → 초기 state 저장
@@ -135,6 +138,7 @@ function ComponentB() {
 ```
 
 **Context API와 비교:**
+
 ```jsx
 // ❌ Context: 모든 Consumer가 리렌더링
 const value = { count, user };
@@ -154,6 +158,7 @@ useStore(state => state.count)  // count 변경 시에만 리렌더링
 "둘 다 전역 상태 관리이지만 근본적 차이가 있습니다.
 
 **Context API의 한계:**
+
 ```jsx
 const AppContext = createContext();
 
@@ -170,20 +175,24 @@ function Component() {
 
 **Zustand의 해결:**
 선택적 구독 (Selective Subscription)으로 필요한 state만 구독합니다.
+
 ```jsx
 const count = useStore(state => state.count);
 // count 변경 시에만 리렌더링!
 ```
 
 **성능 차이:**
+
 - 대규모 앱에서 불필요한 리렌더링 80% 감소
 - Profiler로 측정하면 명확히 보임
 
 **언제 무엇을 사용?**
+
 - Context: 테마, 언어 등 느리게 변하는 상태
 - Zustand: 자주 변하는 UI 상태, 폼 상태 등"
 
 **특징:**
+
 - 극도로 간단한 API
 - 보일러플레이트 거의 없음
 - React Hook 기반
@@ -426,6 +435,7 @@ const useCounterStore = create((set) => ({
 **Redux Toolkit**은 Redux의 공식 권장 방법입니다.
 
 **특징:**
+
 - Redux 보일러플레이트 대폭 감소
 - Immer 내장 (불변성 자동 처리)
 - Redux DevTools 내장
@@ -765,6 +775,7 @@ const counterSlice = createSlice({
 **Jotai**는 원자적(atomic) 접근 방식의 상태 관리 라이브러리입니다.
 
 **특징:**
+
 - 원자(atom) 기반
 - 최소한의 보일러플레이트
 - TypeScript 친화적
@@ -929,11 +940,13 @@ const counterSlice = createSlice({
 ### Zustand를 사용하세요
 
 **장점:**
+
 - 매우 간단한 API
 - 보일러플레이트 거의 없음
 - 번들 크기 최소
 
 **사용 사례:**
+
 - 중소형 앱
 - 빠른 프로토타이핑
 - 간단한 전역 상태
@@ -950,11 +963,13 @@ const useAuthStore = create((set) => ({
 ### Redux Toolkit을 사용하세요
 
 **장점:**
+
 - 강력한 DevTools
 - 시간 여행 디버깅
 - 대규모 팀에 검증됨
 
 **사용 사례:**
+
 - 대규모 앱
 - 복잡한 상태 로직
 - 많은 비동기 작업
@@ -973,11 +988,13 @@ const orderSlice = createSlice({
 ### Jotai를 사용하세요
 
 **장점:**
+
 - 원자적 업데이트
 - Suspense 지원
 - 최소 리렌더링
 
 **사용 사례:**
+
 - 세밀한 상태 제어
 - Suspense 활용
 - 원자적 상태 관리
@@ -992,6 +1009,7 @@ const themeAtom = atom('light')
 ### Context API를 사용하세요
 
 **언제:**
+
 - 상태가 적을 때
 - 성능이 중요하지 않을 때
 - 외부 의존성을 피하고 싶을 때
@@ -1152,12 +1170,4 @@ export default cartSlice.reducer;
 - [Redux Toolkit 공식 문서](https://redux-toolkit.js.org/)
 - [Jotai 공식 문서](https://jotai.org/)
 
----
-
-**작성일**: 2025-10-11  
-**대상**: React 중급 개발자
-
----
-
 모든 항목을 체크했다면 다음 주제로 넘어가세요! 🚀
-

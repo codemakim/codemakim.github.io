@@ -37,6 +37,7 @@ seriesOrder: 1
 ### 🔍 클라이언트 사이드 라우팅의 동작 원리
 
 **전통적인 서버 사이드 라우팅:**
+
 ```
 사용자가 /about 클릭
   ↓
@@ -48,6 +49,7 @@ seriesOrder: 1
 ```
 
 **클라이언트 사이드 라우팅 (SPA):**
+
 ```
 사용자가 /about 클릭
   ↓
@@ -61,11 +63,13 @@ React Router가 URL 감지
 ```
 
 **핵심 원리:**
+
 1. **History API 활용**: `pushState()`, `replaceState()`, `popstate` 이벤트
 2. **컴포넌트 매칭**: URL 패턴과 컴포넌트 매핑
 3. **상태 보존**: 페이지 전환 없이 UI만 업데이트
 
 **실제 코드로 보는 원리:**
+
 ```javascript
 // React Router가 내부적으로 하는 일 (단순화)
 window.addEventListener('popstate', () => {
@@ -82,12 +86,14 @@ function navigate(path) {
 ```
 
 **장점:**
+
 - ✅ 빠른 페이지 전환 (네트워크 요청 없음)
 - ✅ 부드러운 UX (깜빡임 없음)
 - ✅ 상태 유지 (전역 state 보존)
 - ✅ 애니메이션 가능
 
 **단점:**
+
 - ❌ 초기 번들 크기 증가 (해결책: 코드 분할)
 - ❌ SEO 어려움 (해결책: SSR - Next.js)
 
@@ -95,7 +101,7 @@ function navigate(path) {
 
 **답변 예시:**
 
-"SPA에서 라우팅은 History API를 활용합니다. 
+"SPA에서 라우팅은 History API를 활용합니다.
 
 사용자가 링크를 클릭하면 React Router가 기본 동작을 막고 (`preventDefault`), `history.pushState`로 URL만 변경합니다. 이때 페이지는 새로고침되지 않습니다.
 
@@ -104,6 +110,7 @@ React Router는 URL 변경을 감지하여 해당 경로에 매핑된 컴포넌�
 다만 초기 번들 크기가 커질 수 있어 코드 분할이 중요하고, SEO를 위해서는 Next.js 같은 SSR 프레임워크를 고려해야 합니다."
 
 **주요 기능:**
+
 - 선언적 라우팅
 - 중첩 라우트
 - 동적 라우트 매칭
@@ -1368,11 +1375,4 @@ export default function App() {
 
 ---
 
-**작성일**: 2025-10-11  
-**출처**: React Router Documentation  
-**대상**: React 중급 개발자
-
----
-
 모든 항목을 체크했다면 다음 주제로 넘어가세요! 🚀
-
