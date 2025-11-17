@@ -682,14 +682,14 @@ Vue의 `computed`나 `v-memo`와 유사하지만, React는 명시적으로 최�
 
 "10,000개 항목 렌더링 시 여러 단계 최적화가 필요합니다.
 
-**1단계: 페이지네이션**
+### 1단계: 페이지네이션
 
+```javascript
 // 가장 간단: 10개씩만 표시
 const displayedItems = items.slice((page - 1) *10, page* 10);
-
 ```
 
-**2단계: 가상화 (Virtualization)**
+### 2단계: 가상화 (Virtualization)
 
 ```jsx
 // react-window 사용
@@ -703,7 +703,7 @@ const displayedItems = items.slice((page - 1) *10, page* 10);
 - 보이는 범위의 항목만 렌더링
 - 나머지는 높이만 차지 (DOM 생성 안함)
 
-**3단계: 메모이제이션**
+### 3단계: 메모이제이션
 
 ```jsx
 // 각 아이템 컴포넌트를 React.memo로
@@ -728,7 +728,7 @@ Vue의 `v-virtual-scroller`와 동일한 원리입니다."
 
 **1. 읽기 → 실습 → 정리 → 질문**
 
-```
+```text
 문서 읽기 (30분)
    ↓
 직접 코드 작성 (1시간)
@@ -882,7 +882,7 @@ React: useState() - 명시적 setter
 
 **기술 스택:**
 
-```
+```text
 Frontend:
 - Next.js 15 (App Router)
 - TypeScript
@@ -937,7 +937,6 @@ Performance:
 >
 > **주의사항:**
 > 객체나 함수 props는 매번 새로 생성되므로 useMemo/useCallback과 함께 사용해야 합니다. 과도한 메모이제이션은 오히려 성능 저하를 일으킬 수 있습니다.
->
 > **실무 경험:**
 
 > 이전 프로젝트에서 1000개 카드 리스트의 각 카드를 React.memo로 감싸고, 부모의 filter state 변경 시 필터링된 카드만 리렌더링되도록 최적화했습니다."
@@ -1061,7 +1060,7 @@ Performance:
 
 ### 일일 루틴
 
-```
+```text
 09:00-10:00  문서 읽기 & 개념 이해
 10:00-11:30  실습 코드 작성
 11:30-12:00  정리 & 실무 질문 만들기
@@ -1069,7 +1068,7 @@ Performance:
 
 ### 주말 집중 학습
 
-```
+```text
 토요일: 주간 프로젝트 (4-6시간)
 일요일: 복습 & 실무 시뮬레이션 (3-4시간)
 ```
