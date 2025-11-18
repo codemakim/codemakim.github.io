@@ -209,14 +209,16 @@
 .chip {
   background: rgba(255, 255, 255, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.3);
-  backdrop-filter: blur(8px) saturate(130%);
-  -webkit-backdrop-filter: blur(8px) saturate(130%);
+  backdrop-filter: blur(3px) saturate(110%);
+  -webkit-backdrop-filter: blur(3px) saturate(110%);
   color: #334155;
   border-radius: 14px;
 }
 @media (prefers-color-scheme: dark) {
   .chip { 
     background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(3px) saturate(110%);
+    -webkit-backdrop-filter: blur(3px) saturate(110%);
     color: #cfd7ff; 
   }
 }
