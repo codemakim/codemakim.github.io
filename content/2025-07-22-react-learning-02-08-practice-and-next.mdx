@@ -269,6 +269,140 @@ export default function ShoppingCart() {
 }
 ```
 
+### 4. 고급: 폼 검증 해답
+
+```jsx
+import { useState } from 'react';
+
+export default function SignupForm() {
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
+  
+  const [errors, setErrors] = useState({});
+
+  function validateEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+
+  function handleChange(field, value) {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // 실시간 검증
+    const newErrors = { ...errors };
+    
+    if (field === 'email') {
+      if (value && !validateEmail(value)) {
+        newErrors.email = '올바른 이메일 형식이 아닙니다';
+      } else {
+        delete newErrors.email;
+      }
+    }
+    
+    if (field === 'password') {
+      if (value && value.length < 8) {
+        newErrors.password = '비밀번호는 최소 8자 이상이어야 합니다';
+      } else {
+        delete newErrors.password;
+      }
+      
+      // 비밀번호 확인도 다시 검증
+      if (formData.confirmPassword && value !== formData.confirmPassword) {
+        newErrors.confirmPassword = '비밀번호가 일치하지 않습니다';
+      } else if (formData.confirmPassword && value === formData.confirmPassword) {
+        delete newErrors.confirmPassword;
+      }
+    }
+    
+    if (field === 'confirmPassword') {
+      if (value && value !== formData.password) {
+        newErrors.confirmPassword = '비밀번호가 일치하지 않습니다';
+      } else {
+        delete newErrors.confirmPassword;
+      }
+    }
+    
+    setErrors(newErrors);
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    
+    // 최종 검증
+    const finalErrors = {};
+    
+    if (!validateEmail(formData.email)) {
+      finalErrors.email = '올바른 이메일 형식이 아닙니다';
+    }
+    
+    if (formData.password.length < 8) {
+      finalErrors.password = '비밀번호는 최소 8자 이상이어야 합니다';
+    }
+    
+    if (formData.password !== formData.confirmPassword) {
+      finalErrors.confirmPassword = '비밀번호가 일치하지 않습니다';
+    }
+    
+    if (Object.keys(finalErrors).length === 0) {
+      alert('회원가입 성공!');
+      // 폼 초기화
+      setFormData({ email: '', password: '', confirmPassword: '' });
+      setErrors({});
+    } else {
+      setErrors(finalErrors);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div>
+        <label>이메일:</label>
+        <input
+          type="email"
+          value={formData.email}
+          onChange={e => handleChange('email', e.target.value)}
+        />
+        {errors.email && <span style={{ color: 'red' }}>{errors.email}</span>}
+      </div>
+      
+      <div>
+        <label>비밀번호:</label>
+        <input
+          type="password"
+          value={formData.password}
+          onChange={e => handleChange('password', e.target.value)}
+        />
+        {errors.password && <span style={{ color: 'red' }}>{errors.password}</span>}
+      </div>
+      
+      <div>
+        <label>비밀번호 확인:</label>
+        <input
+          type="password"
+          value={formData.confirmPassword}
+          onChange={e => handleChange('confirmPassword', e.target.value)}
+        />
+        {errors.confirmPassword && <span style={{ color: 'red' }}>{errors.confirmPassword}</span>}
+      </div>
+      
+      <button type="submit">회원가입</button>
+    </form>
+  );
+}
+```
+
+**핵심 포인트:**
+
+- **실시간 검증**: `onChange` 이벤트에서 즉시 검증 수행
+- **이메일 정규식**: `/^[^\s@]+@[^\s@]+\.[^\s@]+$/` 패턴 사용
+- **비밀번호 길이**: 최소 8자 이상 검증
+- **비밀번호 일치**: `password`와 `confirmPassword` 비교
+- **오류 상태 관리**: `errors` 객체로 각 필드별 오류 메시지 관리
+- **제출 시 최종 검증**: 모든 필드 재검증 후 제출
+
 ---
 
 ## 학습 체크리스트
