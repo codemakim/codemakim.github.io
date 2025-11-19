@@ -35,10 +35,15 @@ JavaScript에서 배열은 변경 가능하지만, state에 저장할 때는 **�
 
 `push()` 대신 spread 문법이나 `concat()`을 사용해야 합니다.
 
+**Spread 문법 사용 예제:**
+
 ```jsx
 import { useState } from 'react';
 
+let nextId = 0;
+
 export default function List() {
+  const [name, setName] = useState('');
   const [artists, setArtists] = useState([]);
 
   return (
@@ -53,6 +58,7 @@ export default function List() {
           ...artists,                    // 기존 배열 복사
           { id: nextId++, name: name }   // 새 요소 추가
         ]);
+        setName('');  // 입력 필드 초기화
       }}>
         Add
       </button>
@@ -66,10 +72,48 @@ export default function List() {
 }
 ```
 
-**Spread 문법:**
+**`concat()` 메서드 사용 예제:**
 
-- `[...artists, newItem]`: 끝에 추가
-- `[newItem, ...artists]`: 시작에 추가
+```jsx
+import { useState } from 'react';
+
+let nextId = 0;
+
+export default function List() {
+  const [name, setName] = useState('');
+  const [artists, setArtists] = useState([]);
+
+  return (
+    <>
+      <h1>Inspiring sculptors:</h1>
+      <input
+        value={name}
+        onChange={e => setName(e.target.value)}
+      />
+      <button onClick={() => {
+        // concat()은 새 배열을 반환하므로 불변성 유지
+        setArtists(
+          artists.concat({ id: nextId++, name: name })
+        );
+        setName('');  // 입력 필드 초기화
+      }}>
+        Add
+      </button>
+      <ul>
+        {artists.map(artist => (
+          <li key={artist.id}>{artist.name}</li>
+        ))}
+      </ul>
+    </>
+  );
+}
+```
+
+**비교:**
+
+- **Spread 문법**: `[...artists, newItem]` - 끝에 추가, `[newItem, ...artists]` - 시작에 추가
+- **`concat()` 메서드**: `artists.concat(newItem)` - 끝에 추가, `[newItem].concat(artists)` - 시작에 추가
+- 두 방법 모두 새 배열을 반환하므로 불변성을 유지합니다
 
 ### 배열에서 요소 제거하기
 
