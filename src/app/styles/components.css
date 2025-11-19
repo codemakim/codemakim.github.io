@@ -1,5 +1,59 @@
 /* 컴포넌트별 스타일 */
 
+/* 포스트 본문 스타일 */
+.post-content {
+  padding: 2rem;
+  border-radius: 1rem;
+}
+
+@media (min-width: 768px) {
+  .post-content {
+    border-radius: 1.5rem;
+  }
+}
+
+.post-content.prose {
+  max-width: none;
+  font-size: 1.125rem;
+}
+
+.post-content.prose :where(h1):not(:where([class~="not-prose"] *)) {
+  font-size: 1.875rem;
+  font-weight: 700;
+}
+
+.post-content.prose :where(h2):not(:where([class~="not-prose"] *)) {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.post-content.prose :where(h3):not(:where([class~="not-prose"] *)) {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.post-content.prose :where(code):not(:where(pre *)) {
+  background-color: rgb(243 244 246);
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+}
+
+.post-content.prose :where(code):not(:where(pre *))::before,
+.post-content.prose :where(code):not(:where(pre *))::after {
+  content: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .post-content.prose {
+    color: #e5e7eb;
+  }
+  
+  .post-content.prose :where(code):not(:where(pre *)) {
+    background-color: rgb(31 41 55);
+    color: #e5e7eb;
+  }
+}
+
 /* 코드 블록 - 플랫 디자인 */
 .hljs {
   display: block;

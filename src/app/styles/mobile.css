@@ -24,7 +24,7 @@
   }
 
   /* 본문 카드 모바일에서 둥근 모서리 제거 */
-  .glass-card-content {
+  .post-content {
     border-radius: 0 !important;
   }
 
