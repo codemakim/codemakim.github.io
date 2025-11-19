@@ -10,49 +10,38 @@
   --glow-cyan: rgba(0, 208, 255, 0.10);
 }
 
-/* 글래스 헤더 - 강화 */
+/* 글래스 헤더 - 경량화 */
 .glass-header {
-  background: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(30px) saturate(180%);
-  -webkit-backdrop-filter: blur(30px) saturate(180%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.6);
   box-shadow: 
-    0 4px 30px rgba(0, 0, 0, 0.1),
-    inset 0 0 30px rgba(255, 255, 255, 0.1);
+    0 4px 20px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 @media (prefers-color-scheme: dark) {
   .glass-header {
-    background: rgba(26, 26, 26, 0.7);
+    background: rgba(26, 26, 26, 0.85);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow:
-      0 4px 30px rgba(0, 0, 0, 0.6),
-      inset 0 1px 0 rgba(255, 255, 255, 0.1),
-      inset 0 0 40px rgba(139, 92, 246, 0.03);
+      0 4px 20px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
 }
 
-/* 글래스 카드 - 강화된 유리 효과 */
+/* 글래스 카드 - 경량 유리 효과 */
 .glass-card {
-  background: rgba(255, 255, 255, 0.18);
-  backdrop-filter: 
-    blur(20px) 
-    saturate(200%) 
-    contrast(120%) 
-    brightness(110%)
-    hue-rotate(5deg) !important;
-  -webkit-backdrop-filter: 
-    blur(20px) 
-    saturate(200%) 
-    contrast(120%) 
-    brightness(110%)
-    hue-rotate(5deg) !important;
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(8px) saturate(140%);
+  -webkit-backdrop-filter: blur(8px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
   border-radius: 1.25rem;
   box-shadow: 
-    0 8px 32px 0 rgba(31, 38, 135, 0.2),
-    inset 0 1px 2px rgba(255, 255, 255, 0.9),
-    inset 0 -1px 1px rgba(0, 0, 0, 0.05);
+    0 4px 16px 0 rgba(31, 38, 135, 0.1),
+    inset 0 1px 1px rgba(255, 255, 255, 0.9),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.03);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
@@ -60,58 +49,40 @@
 
 @media (prefers-color-scheme: light) {
   .glass-card {
-    border: 1px solid rgba(200, 220, 255, 0.3);
+    border: 1px solid rgba(200, 220, 255, 0.4);
     box-shadow:
-      0 8px 32px 0 rgba(31, 38, 135, 0.15),
-      inset 0 1px 2px rgba(255, 255, 255, 0.9),
-      inset 0 -1px 1px rgba(0, 0, 0, 0.04);
+      0 4px 16px 0 rgba(31, 38, 135, 0.12),
+      inset 0 1px 1px rgba(255, 255, 255, 0.9),
+      inset 0 -1px 1px rgba(0, 0, 0, 0.03);
   }
 }
 
-/* 본문 전용 글래스 카드 - 강화된 유리 효과 */
+/* 본문 전용 글래스 카드 - 경량 유리 효과 */
 .glass-card-content {
-  background: rgba(255, 255, 255, 0.6) !important;
-  backdrop-filter: 
-    blur(25px) 
-    saturate(200%) 
-    contrast(120%) 
-    brightness(110%)
-    hue-rotate(3deg) !important;
-  -webkit-backdrop-filter: 
-    blur(25px) 
-    saturate(200%) 
-    contrast(120%) 
-    brightness(110%)
-    hue-rotate(3deg) !important;
-  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.7) !important;
   box-shadow: 
-    0 8px 32px 0 rgba(31, 38, 135, 0.15),
-    inset 0 2px 4px rgba(255, 255, 255, 0.95),
-    inset 0 -2px 2px rgba(0, 0, 0, 0.03) !important;
+    0 4px 16px 0 rgba(31, 38, 135, 0.12),
+    inset 0 1px 2px rgba(255, 255, 255, 0.95),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.03) !important;
 }
 
 @media (prefers-color-scheme: light) {
   .glass-card-content {
-    background: rgba(255, 255, 255, 0.55) !important;
-    border: 1px solid rgba(200, 220, 255, 0.3) !important;
+    background: rgba(255, 255, 255, 0.85) !important;
+    backdrop-filter: blur(10px) saturate(140%);
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
+    border: 1px solid rgba(200, 220, 255, 0.4) !important;
     box-shadow:
-      0 8px 28px 0 rgba(31, 38, 135, 0.15),
-      inset 0 2px 4px rgba(255, 255, 255, 0.9),
-      inset 0 -2px 2px rgba(0, 0, 0, 0.03) !important;
+      0 4px 16px 0 rgba(31, 38, 135, 0.12),
+      inset 0 1px 2px rgba(255, 255, 255, 0.9),
+      inset 0 -1px 1px rgba(0, 0, 0, 0.03) !important;
   }
 }
 
-/* 모바일 성능 최적화: blur 강도 소폭 감소 */
-@media (max-width: 768px) {
-  .glass-card {
-    backdrop-filter: blur(16px) saturate(180%) contrast(115%) brightness(108%) !important;
-    -webkit-backdrop-filter: blur(16px) saturate(180%) contrast(115%) brightness(108%) !important;
-  }
-  .glass-card-content {
-    backdrop-filter: blur(20px) saturate(180%) contrast(115%) brightness(108%) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(180%) contrast(115%) brightness(108%) !important;
-  }
-}
+/* 일관된 디자인 유지 - 디바이스 구분 없이 동일한 경량 효과 적용 */
 
 /* 본문은 호버 효과와 빛 반사 효과 제거 */
 .glass-card-content::before {
@@ -141,28 +112,29 @@
 
 /* 카드 호버 효과 제거: 콘텐츠 안정성 유지 */
 
-/* 다크모드 글래스 효과 */
+/* 다크모드 글래스 효과 - 경량화 */
 @media (prefers-color-scheme: dark) {
   .glass-card {
-    background: var(--glass-bg-dark);
-    border: 1px solid var(--glass-stroke-dark);
-    backdrop-filter: blur(22px) saturate(180%) brightness(108%);
-    -webkit-backdrop-filter: blur(22px) saturate(180%) brightness(108%);
+    background: rgba(26, 26, 26, 0.85);
+    border: 1px solid rgba(180, 210, 255, 0.15);
+    backdrop-filter: blur(8px) saturate(140%);
+    -webkit-backdrop-filter: blur(8px) saturate(140%);
     box-shadow:
-      inset 0 1px 1px var(--glass-hi-top),
-      inset 0 -2px 3px var(--glass-hi-bottom),
-      0 8px 32px rgba(0,0,0,0.5),
-      0 0 20px var(--glow-purple);
+      inset 0 1px 1px rgba(255, 255, 255, 0.15),
+      inset 0 -1px 1px rgba(0, 0, 0, 0.3),
+      0 4px 20px rgba(0,0,0,0.5);
   }
 
-  /* 본문 전용 글래스 카드 - 다크모드 강화 */
+  /* 본문 전용 글래스 카드 - 다크모드 경량화 */
   .glass-card-content {
-    background: rgba(24, 32, 52, 0.20) !important;
-    border: 1px solid rgba(180,210,255,0.15) !important;
+    background: rgba(26, 26, 26, 0.9) !important;
+    backdrop-filter: blur(10px) saturate(140%);
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
+    border: 1px solid rgba(180,210,255,0.2) !important;
     box-shadow:
-      inset 0 1px 2px rgba(255,255,255,0.18),
-      inset 0 -2px 2px rgba(0,0,0,0.30),
-      0 6px 18px rgba(0,0,0,0.45) !important;
+      inset 0 1px 1px rgba(255,255,255,0.15),
+      inset 0 -1px 1px rgba(0,0,0,0.3),
+      0 4px 20px rgba(0,0,0,0.5) !important;
   }
 
   .glass-card::before {
@@ -179,16 +151,15 @@
   /* 카드 호버 없음 (모바일 안정성) */
 }
 
-/* 글래스 태그 - 그라디언트 강화 */
+/* 글래스 태그 - 경량화 */
 .glass-tag {
-  background: linear-gradient(135deg, rgba(147, 197, 253, 0.3), rgba(251, 207, 232, 0.3));
-  backdrop-filter: blur(12px) saturate(180%) brightness(105%);
-  -webkit-backdrop-filter: blur(12px) saturate(180%) brightness(105%);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: linear-gradient(135deg, rgba(147, 197, 253, 0.4), rgba(251, 207, 232, 0.4));
+  backdrop-filter: blur(8px) saturate(140%);
+  -webkit-backdrop-filter: blur(8px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
   box-shadow: 
-    0 2px 8px rgba(147, 197, 253, 0.2),
-    inset 0 1px 1px rgba(255, 255, 255, 0.8),
-    inset 0 -1px 0 rgba(251, 207, 232, 0.3);
+    0 2px 8px rgba(147, 197, 253, 0.15),
+    inset 0 1px 1px rgba(255, 255, 255, 0.8);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
 }
@@ -215,16 +186,14 @@
   box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.9);
 }
 
-/* 글래스 태그 다크모드 - 네온 그라디언트 */
+/* 글래스 태그 다크모드 - 경량화 */
 @media (prefers-color-scheme: dark) {
   .glass-tag {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.18), rgba(99, 102, 241, 0.15));
-    border: 1px solid rgba(139, 92, 246, 0.3);
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(99, 102, 241, 0.2));
+    border: 1px solid rgba(139, 92, 246, 0.4);
     box-shadow: 
-      inset 0 1px 1px rgba(255, 255, 255, 0.2),
-      inset 0 -1px 0 rgba(99, 102, 241, 0.2),
-      0 2px 8px rgba(139, 92, 246, 0.2),
-      0 0 20px rgba(139, 92, 246, 0.1);
+      inset 0 1px 1px rgba(255, 255, 255, 0.15),
+      0 2px 8px rgba(139, 92, 246, 0.15);
   }
 
   .glass-tag::after {
@@ -240,17 +209,22 @@
   }
 }
 
-/* ===== Chips (태그/필터) ===== */
+/* ===== Chips (태그/필터) - 경량화 ===== */
 .chip {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(3px) saturate(110%);
+  -webkit-backdrop-filter: blur(3px) saturate(110%);
   color: #334155;
   border-radius: 14px;
 }
 @media (prefers-color-scheme: dark) {
-  .chip { color: #cfd7ff; }
+  .chip { 
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(3px) saturate(110%);
+    -webkit-backdrop-filter: blur(3px) saturate(110%);
+    color: #cfd7ff; 
+  }
 }
 .chip--active {
   background: linear-gradient(135deg, rgba(106,75,255,.28), rgba(0,208,255,.20));
