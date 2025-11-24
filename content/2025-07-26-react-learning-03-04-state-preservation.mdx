@@ -180,7 +180,7 @@ function Counter() {
 
 #### 방법 1: 다른 위치에 렌더링
 
-같은 컴포넌트를 **물리적으로 다른 위치**에 렌더링하면 state가 재설정됩니다.
+같은 컴포넌트를 **JSX에서 다른 위치**에 렌더링하면 state가 재설정됩니다.
 
 ```jsx
 import { useState } from 'react';
@@ -190,14 +190,8 @@ export default function Scoreboard() {
   
   return (
     <div>
-      <div>
-        <h3>플레이어 A</h3>
-        {isPlayerA && <Counter person="Taylor" />}
-      </div>
-      <div>
-        <h3>플레이어 B</h3>
-        {!isPlayerA && <Counter person="Sarah" />}
-      </div>
+      {isPlayerA && <Counter person="Taylor" />}
+      {!isPlayerA && <Counter person="Sarah" />}
       <button onClick={() => setIsPlayerA(!isPlayerA)}>
         다음 플레이어!
       </button>
@@ -217,9 +211,14 @@ function Counter({ person }) {
 ```
 
 **동작:**
+- 두 개의 **독립적인 표현식**이므로 React는 다른 위치로 인식
 - 플레이어를 전환하면 Counter가 **완전히 새로 생성**됨
 - 각 플레이어는 **독립적인 state**를 가짐
-- 플레이어 A의 점수와 플레이어 B의 점수는 **별도로 관리**됨
+
+**참고:** 삼항연산자(`? :`)를 사용하면 같은 위치로 인식되어 state가 보존됩니다:
+```jsx
+{isPlayerA ? <Counter person="Taylor" /> : <Counter person="Sarah" />}
+```
 
 #### 방법 2: key로 state 재설정 (권장)
 
