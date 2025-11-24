@@ -21,6 +21,8 @@ React는 언제 state를 유지하고 언제 초기화할까요? 이를 이해�
 ### React는 트리 구조에서 state를 보존합니다
 
 ```jsx
+import { useState } from 'react';
+
 export default function App() {
   const [showB, setShowB] = useState(true);
   
@@ -28,27 +30,39 @@ export default function App() {
     <div>
       <Counter />
       {showB && <Counter />}
+      <button onClick={() => setShowB(!showB)}>
+        {showB ? '두 번째 Counter 숨기기' : '두 번째 Counter 보이기'}
+      </button>
     </div>
   );
 }
 
 function Counter() {
   const [count, setCount] = useState(0);
-  return <button onClick={() => setCount(count + 1)}>{count}</button>;
+  return (
+    <div>
+      <button onClick={() => setCount(count + 1)}>
+        Count: {count}
+      </button>
+    </div>
+  );
 }
 ```
 
 **동작:**
 
-- 두 `<Counter />` 모두 독립적인 state 보유
-- `showB`를 false로 변경 → 두 번째 Counter의 state **사라짐**
-- `showB`를 다시 true로 → 두 번째 Counter는 **0부터 시작**
+- 두 `<Counter />` 모두 **독립적인 state** 보유
+- 첫 번째 Counter와 두 번째 Counter는 **별도로 카운트**됨
+- `showB`를 false로 변경 → 두 번째 Counter의 state **사라짐** (컴포넌트가 DOM에서 제거됨)
+- `showB`를 다시 true로 → 두 번째 Counter는 **0부터 시작** (새로운 인스턴스 생성)
 
 ### 같은 위치의 같은 컴포넌트는 state를 보존합니다
 
 React는 컴포넌트의 UI 트리 상 위치로 state를 관리합니다.
 
 ```jsx
+import { useState } from 'react';
+
 export default function App() {
   const [isFancy, setIsFancy] = useState(false);
   
@@ -70,20 +84,48 @@ export default function App() {
     </div>
   );
 }
+
+function Counter({ isFancy }) {
+  const [count, setCount] = useState(0);
+  return (
+    <div>
+      <button
+        onClick={() => setCount(count + 1)}
+        style={isFancy ? {
+          background: 'linear-gradient(45deg, #ff6b6b, #4ecdc4)',
+          color: 'white',
+          padding: '10px 20px',
+          border: 'none',
+          borderRadius: '5px'
+        } : {}}
+      >
+        Count: {count}
+      </button>
+    </div>
+  );
+}
 ```
 
-**결과:** `isFancy`를 변경해도 Counter의 state는 **유지됨**!
+**결과:** `isFancy`를 변경해도 Counter의 state(`count`)는 **유지됨**!
 
 **이유:**
 
 - 같은 위치에 같은 컴포넌트 (`<Counter />`)
-- React는 동일한 컴포넌트로 인식
+- React는 **동일한 컴포넌트**로 인식하여 state를 보존
+- `isFancy` prop만 변경되고 컴포넌트는 재생성되지 않음
+
+**테스트:**
+1. 카운터를 몇 번 클릭하여 count를 증가시킴
+2. 체크박스를 클릭하여 스타일 변경
+3. **count 값이 유지되는지 확인** (0으로 리셋되지 않음)
 
 ### 다른 컴포넌트는 state를 재설정합니다
 
 동일한 위치라도 컴포넌트 타입이 다르면 state가 초기화됩니다.
 
 ```jsx
+import { useState } from 'react';
+
 export default function App() {
   const [isPaused, setIsPaused] = useState(false);
   
@@ -105,6 +147,17 @@ export default function App() {
     </div>
   );
 }
+
+function Counter() {
+  const [count, setCount] = useState(0);
+  return (
+    <div>
+      <button onClick={() => setCount(count + 1)}>
+        Count: {count}
+      </button>
+    </div>
+  );
+}
 ```
 
 **결과:** `isPaused`를 변경하면 Counter의 state **재설정됨**!
@@ -112,7 +165,14 @@ export default function App() {
 **이유:**
 
 - 다른 컴포넌트 (`<p>` vs `<Counter />`)
-- React가 트리에서 제거 후 다시 추가
+- React가 트리에서 **완전히 제거** 후 다시 추가
+- 새로운 인스턴스가 생성되므로 state가 0으로 초기화됨
+
+**테스트:**
+1. 카운터를 몇 번 클릭하여 count를 증가시킴
+2. 체크박스를 클릭하여 "Take a break" 활성화
+3. 다시 체크박스를 클릭하여 Counter 표시
+4. **count가 0으로 리셋되는지 확인** (state가 재설정됨)
 
 ### 같은 위치에서 state 재설정하기
 
@@ -120,25 +180,54 @@ export default function App() {
 
 #### 방법 1: 다른 위치에 렌더링
 
+같은 컴포넌트를 **물리적으로 다른 위치**에 렌더링하면 state가 재설정됩니다.
+
 ```jsx
+import { useState } from 'react';
+
 export default function Scoreboard() {
   const [isPlayerA, setIsPlayerA] = useState(true);
   
   return (
     <div>
-      {isPlayerA && <Counter person="Taylor" />}
-      {!isPlayerA && <Counter person="Sarah" />}
+      <div>
+        <h3>플레이어 A</h3>
+        {isPlayerA && <Counter person="Taylor" />}
+      </div>
+      <div>
+        <h3>플레이어 B</h3>
+        {!isPlayerA && <Counter person="Sarah" />}
+      </div>
       <button onClick={() => setIsPlayerA(!isPlayerA)}>
         다음 플레이어!
       </button>
     </div>
   );
 }
+
+function Counter({ person }) {
+  const [score, setScore] = useState(0);
+  return (
+    <div>
+      <p>{person}: {score}</p>
+      <button onClick={() => setScore(score + 1)}>+1</button>
+    </div>
+  );
+}
 ```
+
+**동작:**
+- 플레이어를 전환하면 Counter가 **완전히 새로 생성**됨
+- 각 플레이어는 **독립적인 state**를 가짐
+- 플레이어 A의 점수와 플레이어 B의 점수는 **별도로 관리**됨
 
 #### 방법 2: key로 state 재설정 (권장)
 
+같은 위치에 렌더링하더라도 **`key` prop을 변경**하면 state가 재설정됩니다.
+
 ```jsx
+import { useState } from 'react';
+
 export default function Scoreboard() {
   const [isPlayerA, setIsPlayerA] = useState(true);
   
@@ -155,12 +244,27 @@ export default function Scoreboard() {
     </div>
   );
 }
+
+function Counter({ person }) {
+  const [score, setScore] = useState(0);
+  return (
+    <div>
+      <p>{person}: {score}</p>
+      <button onClick={() => setScore(score + 1)}>+1</button>
+    </div>
+  );
+}
 ```
 
 **`key`를 사용하면:**
 
-- 같은 위치더라도 다른 key = 다른 컴포넌트
+- 같은 위치더라도 다른 key = 다른 컴포넌트로 인식
 - state 완전히 재설정됨
+- **더 깔끔한 코드** (조건부 렌더링 없이 하나의 위치에 렌더링)
+
+**비교:**
+- **방법 1**: 물리적으로 다른 위치에 렌더링 (코드가 복잡해질 수 있음)
+- **방법 2**: `key`로 강제 재설정 (권장, 더 간결함)
 
 ### 실전 예제: 채팅 앱
 
@@ -168,8 +272,6 @@ export default function Scoreboard() {
 
 ```jsx
 import { useState } from 'react';
-import Chat from './Chat.js';
-import ContactList from './ContactList.js';
 
 export default function Messenger() {
   const [to, setTo] = useState(contacts[0]);
@@ -186,6 +288,46 @@ export default function Messenger() {
   );
 }
 
+function ContactList({ contacts, selectedContact, onSelect }) {
+  return (
+    <ul>
+      {contacts.map(contact => (
+        <li key={contact.id}>
+          <button
+            onClick={() => onSelect(contact)}
+            style={{
+              fontWeight: selectedContact.id === contact.id ? 'bold' : 'normal'
+            }}
+          >
+            {contact.name}
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function Chat({ contact }) {
+  const [text, setText] = useState('');
+  
+  return (
+    <div>
+      <h3>채팅: {contact.name}</h3>
+      <textarea
+        value={text}
+        onChange={e => setText(e.target.value)}
+        placeholder={`${contact.name}에게 메시지를 입력하세요...`}
+      />
+      <button onClick={() => {
+        alert(`메시지 전송: "${text}"`);
+        setText('');
+      }}>
+        전송
+      </button>
+    </div>
+  );
+}
+
 const contacts = [
   { id: 0, name: 'Taylor', email: 'taylor@mail.com' },
   { id: 1, name: 'Alice', email: 'alice@mail.com' },
@@ -195,8 +337,14 @@ const contacts = [
 
 **`key={to.id}`를 사용하면:**
 
-- 다른 연락처 선택 시 입력 필드 초기화됨
-- 각 연락처마다 별도의 `Chat` 인스턴스
+- 다른 연락처 선택 시 입력 필드(`text` state) **자동 초기화**됨
+- 각 연락처마다 별도의 `Chat` 인스턴스 생성
+- **`key` 없이 사용하면**: 연락처를 바꿔도 이전 메시지가 남아있음 (버그!)
+
+**동작 확인:**
+1. Taylor 선택 → 메시지 입력
+2. Alice 선택 → **입력 필드가 비워짐** (state 재설정)
+3. 다시 Taylor 선택 → **입력 필드가 비워짐** (새로운 인스턴스)
 
 ### Vue와 비교
 
