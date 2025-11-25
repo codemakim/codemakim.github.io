@@ -168,6 +168,139 @@ function TaskApp() {
 }
 ```
 
+### useReducer Hook 이해하기
+
+**useReducer는 React에서 제공하는 Hook으로, reducer 함수를 통해 state를 관리합니다.**
+
+#### 기본 사용법
+
+```jsx
+const [state, dispatch] = useReducer(reducer, initialState);
+```
+
+**3개의 요소:**
+
+1. **`reducer`**: state를 업데이트하는 함수
+   ```jsx
+   function reducer(state, action) {
+     // 로직
+     return newState;
+   }
+   ```
+
+2. **`initialState`**: 초기 state 값
+   ```jsx
+   const initialState = { count: 0 };
+   ```
+
+3. **반환값**: `[state, dispatch]` 배열
+   - `state`: 현재 state 값
+   - `dispatch`: action을 전달하는 함수
+
+#### 간단한 예제: Counter
+
+```jsx
+import { useReducer } from 'react';
+
+// 1. reducer 함수 정의
+function counterReducer(state, action) {
+  switch (action.type) {
+    case 'increment':
+      return { count: state.count + 1 };
+    case 'decrement':
+      return { count: state.count - 1 };
+    case 'reset':
+      return { count: 0 };
+    default:
+      throw Error('알 수 없는 액션: ' + action.type);
+  }
+}
+
+// 2. 컴포넌트에서 사용
+function Counter() {
+  const [state, dispatch] = useReducer(counterReducer, { count: 0 });
+
+  return (
+    <>
+      <p>Count: {state.count}</p>
+      <button onClick={() => dispatch({ type: 'increment' })}>+</button>
+      <button onClick={() => dispatch({ type: 'decrement' })}>-</button>
+      <button onClick={() => dispatch({ type: 'reset' })}>Reset</button>
+    </>
+  );
+}
+```
+
+#### dispatch 함수 이해하기
+
+`dispatch`는 **"이런 일이 일어났어요"라고 React에게 알리는 함수**입니다.
+
+```jsx
+// dispatch에 action 객체를 전달
+dispatch({ type: 'increment' });
+
+// action에는 추가 데이터도 담을 수 있음
+dispatch({ 
+  type: 'added', 
+  id: 1, 
+  text: '새 할일' 
+});
+```
+
+**dispatch를 호출하면:**
+1. React가 reducer 함수를 호출
+2. reducer가 새로운 state를 반환
+3. React가 컴포넌트를 리렌더링
+
+#### 초기값 설정하는 3가지 방법
+
+**방법 1: 직접 전달 (가장 일반적)**
+
+```jsx
+const [state, dispatch] = useReducer(reducer, { count: 0 });
+```
+
+**방법 2: 초기화 함수 사용 (계산 비용이 큰 경우)**
+
+```jsx
+function init(initialCount) {
+  return { count: initialCount };
+}
+
+// 세 번째 인자로 초기화 함수 전달
+const [state, dispatch] = useReducer(reducer, 0, init);
+// init(0)이 한 번만 호출됨
+```
+
+**방법 3: 상수로 분리**
+
+```jsx
+const INITIAL_STATE = { 
+  tasks: [], 
+  filter: 'all' 
+};
+
+const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
+```
+
+#### useState vs useReducer 구조 비교
+
+```jsx
+// useState: 값을 직접 설정
+const [count, setCount] = useState(0);
+setCount(1);        // 새 값 직접 전달
+setCount(c => c + 1); // 함수로 계산
+
+// useReducer: action으로 의도 전달
+const [state, dispatch] = useReducer(reducer, { count: 0 });
+dispatch({ type: 'set', value: 1 });      // 의도 전달
+dispatch({ type: 'increment' });          // 의도 전달
+```
+
+**핵심 차이:**
+- **useState**: "이 값으로 바꿔줘" (명령형)
+- **useReducer**: "이런 일이 일어났어" (선언형)
+
 ### useState에서 useReducer로 마이그레이션
 
 Reducer를 도입하는 것은 3단계로 진행됩니다.
