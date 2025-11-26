@@ -1,5 +1,5 @@
 ---
-title: "🚀 [React 라이브러리 1/7] Next.js 고급 - 서버 액션"
+title: "[React 라이브러리 1/7] Next.js 고급 - 서버 액션"
 date: "2025-09-01"
 description: "서버 컴포넌트와 서버 액션의 동작 원리"
 tags: ["Next.js", "React", "고급", "프론트엔드"]
@@ -12,19 +12,12 @@ seriesOrder: 59
 > Next.js 15의 고급 기능을 다루는 학습 자료
 
 ---
-
 ## 서버 액션
-
 ### 개요
-
-**Server Actions**는 서버에서 실행되는 비동기 함수입니다. (Next.js 14+)
-
-### 🔍 서버 컴포넌트와 서버 액션의 동작 원리
-
-**서버 컴포넌트가 해결하는 근본적 문제:**
-
+Server Actions는 서버에서 실행되는 비동기 함수이다. (Next.js 14+)
+###  서버 컴포넌트와 서버 액션의 동작 원리
+서버 컴포넌트가 해결하는 근본적 문제:
 전통적인 React (CSR):
-
 ```
 브라우저가 HTML 받음 (거의 비어있음)
   ↓
@@ -35,12 +28,9 @@ React 실행
 API 호출로 데이터 페칭
   ↓
 화면 렌더링
-
 문제: 번들 크기 ↑, 초기 로딩 ↓, SEO ↓
 ```
-
 서버 컴포넌트 (Next.js):
-
 ```
 서버에서 컴포넌트 실행
   ↓
@@ -51,14 +41,10 @@ DB 직접 접근 (빠름!)
 HTML + 최소한의 JavaScript만 전송
   ↓
 즉시 화면 표시
-
 장점: 번들 크기 ↓, 초기 로딩 ↑, SEO ↑
 ```
-
-### 🎯 서버 컴포넌트 vs 클라이언트 컴포넌트
-
-**번들에 포함되는 것:**
-
+###  서버 컴포넌트 vs 클라이언트 컴포넌트
+번들에 포함되는 것:
 ```jsx
 // 서버 컴포넌트 (기본)
 async function UserList() {
@@ -70,31 +56,24 @@ async function UserList() {
     </ul>
   );
 }
-
 // 브라우저에 전송되는 것:
 // - HTML: <ul><li>John</li><li>Jane</li></ul>
 // - JavaScript: 0KB! (컴포넌트 코드 전송 안됨)
 ```
-
 ```jsx
 // 클라이언트 컴포넌트
 'use client';
-
 function Counter() {
   const [count, setCount] = useState(0);  // 브라우저에서 실행
   
   return <button onClick={() => setCount(count + 1)}>{count}</button>;
 }
-
 // 브라우저에 전송되는 것:
 // - HTML: <button>0</button>
 // - JavaScript: Counter 컴포넌트 전체 코드 + React runtime
 ```
-
-### 🔍 서버 액션의 동작 원리
-
-**기존 방식 (API Route):**
-
+###  서버 액션의 동작 원리
+기존 방식 (API Route):
 ```
 클라이언트 → POST /api/create-post
            ↓
@@ -105,12 +84,9 @@ function Counter() {
        응답 반환
            ↓
      클라이언트가 받음
-
 문제: 타입 안전성 ↓, 보일러플레이트 ↑
 ```
-
-**서버 액션:**
-
+서버 액션:
 ```
 클라이언트 → 서버 액션 호출 (RPC처럼!)
            ↓
@@ -123,67 +99,47 @@ function Counter() {
        자동 캐시 무효화
            ↓
      결과 반환
-
 장점: 타입 안전 ↑, 코드 간결 ↑, 자동 최적화
 ```
-
-**실제 네트워크 요청:**
-
+실제 네트워크 요청:
 ```
 POST /_next/data/XYZ/actions/createPost
 Content-Type: multipart/form-data
-
 {
   "0": "title value",
   "1": "content value"
 }
 ```
-
 Next.js가 자동으로:
-
 1. 폼 데이터를 직렬화
 2. POST 요청 생성
 3. 서버에서 함수 실행
 4. 응답 처리
 5. 캐시 무효화
-
-### 💡 실무 TIP: "서버 컴포넌트의 장점은?"
-
-**답변 예시:**
-
-"서버 컴포넌트의 핵심 장점은 **번들 크기 제로**입니다.
-
-**동작 원리:**
-서버 컴포넌트는 서버에서만 실행되고, 결과 HTML만 클라이언트로 전송됩니다. 컴포넌트 코드 자체는 JavaScript 번들에 포함되지 않습니다.
-
-**실무 효과:**
-
+###  실무 TIP: "서버 컴포넌트의 장점은?"
+답변 예시:
+"서버 컴포넌트의 핵심 장점은 번들 크기 제로이다.
+동작 원리:
+서버 컴포넌트는 서버에서만 실행되고, 결과 HTML만 클라이언트로 전송된다. 컴포넌트 코드 자체는 JavaScript 번들에 포함되지 않다.
+실무 효과:
 - 대시보드 페이지에 차트 라이브러리(1MB) 사용 시
   - CSR: 1MB를 브라우저가 다운로드
   - 서버 컴포넌트: 서버에서 차트 생성 → SVG/HTML만 전송 → 0KB!
-
-**추가 장점:**
-
+추가 장점:
 1. DB 직접 접근: API 레이어 불필요
 2. 민감 정보 보호: API 키가 클라이언트 노출 안됨
 3. SEO 최적화: 완성된 HTML 전송
-
-**주의사항:**
-인터랙티브 필요 시 클라이언트 컴포넌트 사용. 하지만 전체가 아니라 필요한 부분만 `'use client'`로 분리하여 번들 크기 최소화할 수 있습니다."
-
-**특징:**
-
+주의사항:
+인터랙티브 필요 시 클라이언트 컴포넌트 사용. 하지만 전체가 아니라 필요한 부분만 `'use client'`로 분리하여 번들 크기 최소화할 수 있다."
+특징:
 - API 라우트 불필요
 - 타입 안전
 - 폼 제출 최적화
 - 자동 리다이렉트
-
 ### 기본 사용법
-
 ```jsx
 // app/actions.js
 'use server';
-
 export async function createPost(formData) {
   const title = formData.get('title');
   const content = formData.get('content');
@@ -200,11 +156,9 @@ export async function createPost(formData) {
   redirect('/posts');
 }
 ```
-
 ```jsx
 // app/posts/new/page.jsx
 import { createPost } from '../actions';
-
 export default function NewPost() {
   return (
     <form action={createPost}>
@@ -215,24 +169,18 @@ export default function NewPost() {
   );
 }
 ```
-
 ### 클라이언트에서 호출
-
 ```jsx
 'use client';
-
 import { createPost } from './actions';
 import { useState } from 'react';
-
 export default function CreatePostForm() {
   const [pending, setPending] = useState(false);
-
   async function handleSubmit(formData) {
     setPending(true);
     await createPost(formData);
     setPending(false);
   }
-
   return (
     <form action={handleSubmit}>
       <input name="title" />
@@ -243,14 +191,10 @@ export default function CreatePostForm() {
   );
 }
 ```
-
 ### useFormStatus Hook
-
 ```jsx
 'use client';
-
 import { useFormStatus } from 'react-dom';
-
 function SubmitButton() {
   const { pending } = useFormStatus();
   
@@ -260,7 +204,6 @@ function SubmitButton() {
     </button>
   );
 }
-
 export default function Form() {
   return (
     <form action={createPost}>
@@ -270,21 +213,16 @@ export default function Form() {
   );
 }
 ```
-
 ### useFormState Hook
-
 ```jsx
 'use client';
-
 import { useFormState } from 'react-dom';
 import { createPost } from './actions';
-
 export default function Form() {
   const [state, formAction] = useFormState(createPost, {
     message: '',
     errors: {}
   });
-
   return (
     <form action={formAction}>
       <input name="title" />
@@ -299,35 +237,27 @@ export default function Form() {
   );
 }
 ```
-
 ### 서버 액션 검증
-
 ```jsx
 'use server';
-
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
-
 const schema = z.object({
   title: z.string().min(1).max(100),
   content: z.string().min(10),
 });
-
 export async function createPost(prevState, formData) {
   const validatedFields = schema.safeParse({
     title: formData.get('title'),
     content: formData.get('content'),
   });
-
   if (!validatedFields.success) {
     return {
       errors: validatedFields.error.flatten().fieldErrors,
       message: 'Validation failed',
     };
   }
-
   const { title, content } = validatedFields.data;
-
   try {
     await db.posts.create({
       data: { title, content },
@@ -337,10 +267,8 @@ export async function createPost(prevState, formData) {
       message: 'Database error',
     };
   }
-
   revalidatePath('/posts');
   redirect('/posts');
 }
 ```
-
 ---

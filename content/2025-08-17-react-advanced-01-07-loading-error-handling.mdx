@@ -1,5 +1,5 @@
 ---
-title: "🚀 [React 라이브러리 7/9] React Router - 로딩 및 에러 처리"
+title: "[React 라이브러리 7/9] React Router - 로딩 및 에러 처리"
 date: "2025-08-18"
 description: "Suspense, ErrorBoundary, Lazy Loading 적용"
 tags: ["React", "고급", "프론트엔드"]
@@ -13,17 +13,12 @@ seriesOrder: 43
 > 출처: [React Router Documentation](https://reactrouter.com/)
 
 ---
-
 ## 로딩 및 에러 처리
 로딩 및 에러 처리
-
 Protected Routes
-
 ### 1. 기본 인증 가드
-
 ```jsx
 import { Navigate } from 'react-router-dom';
-
 function ProtectedRoute({ children }) {
   const isAuthenticated = useAuth();
   
@@ -33,7 +28,6 @@ function ProtectedRoute({ children }) {
   
   return children;
 }
-
 // 사용
 <Route 
   path="/dashboard" 
@@ -44,12 +38,9 @@ function ProtectedRoute({ children }) {
   } 
 />
 ```
-
 ### 2. 로그인 페이지로 리다이렉트 (이전 경로 기억)
-
 ```jsx
 import { Navigate, useLocation } from 'react-router-dom';
-
 function ProtectedRoute({ children }) {
   const isAuthenticated = useAuth();
   const location = useLocation();
@@ -61,9 +52,7 @@ function ProtectedRoute({ children }) {
   return children;
 }
 ```
-
 ### 3. 역할 기반 접근 제어 (RBAC)
-
 ```jsx
 function ProtectedRoute({ children, requiredRole }) {
   const { isAuthenticated, user } = useAuth();
@@ -78,7 +67,6 @@ function ProtectedRoute({ children, requiredRole }) {
   
   return children;
 }
-
 // 사용
 <Route 
   path="/admin" 
@@ -89,9 +77,7 @@ function ProtectedRoute({ children, requiredRole }) {
   } 
 />
 ```
-
 ### 4. 복수 역할 지원
-
 ```jsx
 function ProtectedRoute({ children, allowedRoles = [] }) {
   const { isAuthenticated, user } = useAuth();
@@ -106,7 +92,6 @@ function ProtectedRoute({ children, allowedRoles = [] }) {
   
   return children;
 }
-
 // 사용
 <Route 
   path="/dashboard" 
@@ -117,9 +102,7 @@ function ProtectedRoute({ children, allowedRoles = [] }) {
   } 
 />
 ```
-
 ### 5. 권한 체크 Hook
-
 ```jsx
 function useAuth() {
   const [auth, setAuth] = useState({
@@ -140,7 +123,6 @@ function useAuth() {
   
   return auth;
 }
-
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
   
@@ -155,9 +137,7 @@ function ProtectedRoute({ children }) {
   return children;
 }
 ```
-
 ### Vue Router와 비교
-
 ```javascript
 // Vue Router: Navigation Guards
 router.beforeEach((to, from, next) => {
@@ -169,7 +149,6 @@ router.beforeEach((to, from, next) => {
     next()
   }
 })
-
 const routes = [
   {
     path: '/dashboard',
@@ -178,7 +157,6 @@ const routes = [
   }
 ]
 ```
-
 ```jsx
 // React Router: Protected Route Component
 function ProtectedRoute({ children, requiredRole }) {
@@ -194,7 +172,6 @@ function ProtectedRoute({ children, requiredRole }) {
   
   return children
 }
-
 <Route 
   path="/dashboard" 
   element={
@@ -204,5 +181,4 @@ function ProtectedRoute({ children, requiredRole }) {
   } 
 />
 ```
-
 ---

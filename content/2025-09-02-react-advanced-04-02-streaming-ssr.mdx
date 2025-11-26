@@ -1,5 +1,5 @@
 ---
-title: "🚀 [React 라이브러리 2/7] Next.js 고급 - 스트리밍 SSR"
+title: "[React 라이브러리 2/7] Next.js 고급 - 스트리밍 SSR"
 date: "2025-09-02"
 description: "Suspense와 Streaming SSR로 초기 로딩 최적화"
 tags: ["Next.js", "React", "고급", "프론트엔드"]
@@ -12,14 +12,10 @@ seriesOrder: 60
 > Next.js 15의 고급 기능을 다루는 학습 자료
 
 ---
-
 ## 스트리밍 SSR
-
 ### Suspense를 사용한 스트리밍
-
 ```jsx
 import { Suspense } from 'react';
-
 export default function Page() {
   return (
     <div>
@@ -37,7 +33,6 @@ export default function Page() {
     </div>
   );
 }
-
 async function Posts() {
   const posts = await fetchPosts();
   return (
@@ -48,7 +43,6 @@ async function Posts() {
     </ul>
   );
 }
-
 async function Comments() {
   const comments = await fetchComments();
   return (
@@ -60,16 +54,13 @@ async function Comments() {
   );
 }
 ```
-
 ### Loading.js
-
 ```jsx
 // app/dashboard/loading.jsx
 export default function Loading() {
   return <DashboardSkeleton />;
 }
 ```
-
 ```jsx
 // app/dashboard/page.jsx
 export default async function Dashboard() {
@@ -77,9 +68,7 @@ export default async function Dashboard() {
   return <DashboardContent data={data} />;
 }
 ```
-
 ### 중첩된 Suspense
-
 ```jsx
 export default function Page() {
   return (
@@ -105,5 +94,4 @@ export default function Page() {
   );
 }
 ```
-
 ---

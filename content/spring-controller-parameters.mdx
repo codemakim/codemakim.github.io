@@ -1,17 +1,17 @@
 ---
 title: "Spring MVC 컨트롤러 파라미터 가이드"
-description: "Spring Framework에서 컨트롤러 메서드 파라미터를 활용하는 다양한 방법과 애노테이션들을 정리했습니다."
+description: "Spring Framework에서 컨트롤러 메서드 파라미터를 활용하는 다양한 방법과 애노테이션들을 정리했다."
 date: "2025-09-07"
 tags: ["Spring", "Java", "백엔드"]
 ---
 
 # Spring MVC 컨트롤러 파라미터 가이드
 
-Spring MVC에서 컨트롤러 메서드의 파라미터를 다루는 다양한 방법과 애노테이션들을 정리했습니다. 각 애노테이션의 특징과 올바른 사용법, 주의사항을 포함하고 있습니다.
+Spring MVC에서 컨트롤러 메서드의 파라미터를 다루는 다양한 방법과 애노테이션들을 정리했다. 각 애노테이션의 특징과 올바른 사용법, 주의사항을 포함하고 있다.
 
 ## @PathVariable
 
-**URL 경로의 변수를 메서드 파라미터로 받는 애노테이션입니다.**
+URL 경로의 변수를 메서드 파라미터로 받는 애노테이션이다.
 
 ### 기본 사용법
 
@@ -50,7 +50,7 @@ public OrderItem getOrderItem(
 
 ### 타입 변환 오류
 
-URL에 일치하지 않는 타입의 값이 들어오면 **HTTP 400 Bad Request**가 발생합니다.
+URL에 일치하지 않는 타입의 값이 들어오면 HTTP 400 Bad Request가 발생한다.
 
 ```java
 // /users/abc 요청시 -> 400 Bad Request (String을 Long으로 변환 불가)
@@ -60,7 +60,7 @@ public User getUser(@PathVariable Long id) { ... }
 
 ## @RequestParam
 
-**HTTP 요청 파라미터(쿼리 스트링, 폼 데이터)를 메서드 파라미터로 받는 애노테이션입니다.**
+HTTP 요청 파라미터(쿼리 스트링, 폼 데이터)를 메서드 파라미터로 받는 애노테이션이다.
 
 ### 기본 사용법
 
@@ -117,7 +117,7 @@ public List<User> searchUsers(@RequestParam Map<String, String> params) {
 
 ## @CookieValue
 
-**HTTP 요청과 함께 전달된 쿠키 값을 받는 애노테이션입니다.**
+HTTP 요청과 함께 전달된 쿠키 값을 받는 애노테이션이다.
 
 ### 기본 사용법
 
@@ -145,7 +145,7 @@ public UserProfile getProfile(
 
 ## @RequestHeader
 
-**HTTP 요청 헤더 정보를 메서드 파라미터로 받는 애노테이션입니다.**
+HTTP 요청 헤더 정보를 메서드 파라미터로 받는 애노테이션이다.
 
 ### 기본 사용법
 
@@ -172,7 +172,7 @@ public Map<String, String> debugHeaders(@RequestHeader Map<String, String> heade
 
 ## Model, ModelMap, ModelAndView
 
-**뷰에 전달할 데이터를 담는 객체들입니다.**
+뷰에 전달할 데이터를 담는 객체들이다.
 
 ### Model 사용법
 
@@ -220,7 +220,7 @@ public ModelAndView generateReport() {
 
 ## @ModelAttribute
 
-**요청 파라미터를 객체에 바인딩하여 받는 애노테이션입니다.**
+요청 파라미터를 객체에 바인딩하여 받는 애노테이션이다.
 
 ### 기본 사용법
 
@@ -266,7 +266,7 @@ public class UserSearchCriteria {
 
 ### @ModelAttribute vs @RequestParam 구분
 
-Spring은 다음 규칙으로 자동 구분합니다:
+Spring은 다음 규칙으로 자동 구분한다:
 
 ```java
 // 단순 타입 -> @RequestParam으로 처리
@@ -284,7 +284,7 @@ public String method(
 
 ## Errors와 BindingResult
 
-**@ModelAttribute와 함께 사용하여 바인딩 오류를 처리합니다.**
+@ModelAttribute와 함께 사용하여 바인딩 오류를 처리한다.
 
 ### 기본 사용법
 
@@ -327,7 +327,7 @@ public String test2(@ModelAttribute User user, BindingResult result) {
 
 ## @RequestBody
 
-**HTTP 요청 본문을 객체로 변환하여 받는 애노테이션입니다.**
+HTTP 요청 본문을 객체로 변환하여 받는 애노테이션이다.
 
 ### JSON 데이터 처리
 
@@ -360,23 +360,23 @@ public ResponseEntity<String> processXml(@RequestBody XmlDataRequest request) {
 
 ## @Valid와 검증
 
-**JSR-303 Bean Validation을 사용하여 객체를 검증합니다.**
+JSR-303 Bean Validation을 사용하여 객체를 검증한다.
 
 ### 기본 검증 애노테이션
 
 ```java
 public class UserCreateRequest {
-    @NotBlank(message = "이름은 필수입니다")
-    @Size(min = 2, max = 50, message = "이름은 2-50자 사이여야 합니다")
+    @NotBlank(message = "이름은 필수이다")
+    @Size(min = 2, max = 50, message = "이름은 2-50자 사이여야 한다")
     private String name;
 
-    @NotBlank(message = "이메일은 필수입니다")
+    @NotBlank(message = "이메일은 필수이다")
     @Email(message = "올바른 이메일 형식이 아닙니다")
     private String email;
 
-    @NotNull(message = "나이는 필수입니다")
-    @Min(value = 1, message = "나이는 1 이상이어야 합니다")
-    @Max(value = 150, message = "나이는 150 이하여야 합니다")
+    @NotNull(message = "나이는 필수이다")
+    @Min(value = 1, message = "나이는 1 이상이어야 한다")
+    @Max(value = 150, message = "나이는 150 이하여야 한다")
     private Integer age;
 
     @Pattern(regexp = "^01[016789]-\\d{3,4}-\\d{4}$", message = "올바른 휴대폰 번호 형식이 아닙니다")
@@ -419,7 +419,7 @@ public ResponseEntity<?> createUser(@Valid @RequestBody UserCreateRequest reques
 
 ## @Value
 
-**프로퍼티 파일의 값을 주입받는 애노테이션입니다.**
+프로퍼티 파일의 값을 주입받는 애노테이션이다.
 
 ### application.properties 값 주입
 

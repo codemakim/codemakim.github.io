@@ -1,7 +1,7 @@
 ---
 title: "⚡ [React 성능 1/3] 최적화 기초 - 렌더링 원리"
 date: "2025-09-29"
-description: "React 렌더링 3단계 프로세스와 React.memo, useMemo, useCallback의 동작 원리를 이해합니다"
+description: "React 렌더링 3단계 프로세스와 React.memo, useMemo, useCallback의 동작 원리를 이해한다"
 tags: ["React", "성능", "중급", "프론트엔드"]
 series: "React 성능"
 seriesOrder: 1
@@ -12,46 +12,43 @@ seriesOrder: 1
 > React 애플리케이션 성능 최적화 학습 자료
 
 ---
-
 ## 📚 목차
-
 1. [개요](#개요)
 2. [React.memo](#reactmemo)
 3. [useMemo](#usememo)
 4. [useCallback](#usecallback)
 5. [성능 측정](#성능-측정)
 6. [최적화 체크리스트](#최적화-체크리스트)
-
 ---
 
 ## 개요
 
 ### 성능 최적화가 필요한 이유
 
-**불필요한 리렌더링:**
+불필요한 리렌더링:
 
 - 부모 컴포넌트가 리렌더링되면 모든 자식도 리렌더링
 - 큰 리스트나 복잡한 계산은 성능 저하
 
-### 🔍 React 렌더링의 동작 원리 (핵심!)
+###  React 렌더링의 동작 원리 (핵심!)
 
-**렌더링이 발생하는 3가지 경우:**
+렌더링이 발생하는 3가지 경우:
 
-1. **State 변경**
+1. State 변경
 
    ```jsx
    const [count, setCount] = useState(0);
    setCount(1);  // 이 컴포넌트 리렌더링 트리거!
    ```
 
-2. **Props 변경**
+2. Props 변경
 
    ```jsx
    <Child name={name} />  // name 변경 → Child 리렌더링
 
    ```
 
-3. **부모 리렌더링**
+3. 부모 리렌더링
 
    ```jsx
    function Parent() {
@@ -67,7 +64,7 @@ seriesOrder: 1
    }
    ```
 
-### 🎯 React의 렌더링 프로세스 (상세)
+###  React의 렌더링 프로세스 (상세)
 
 ```text
 1. 렌더 단계 (Render Phase)
@@ -82,7 +79,7 @@ seriesOrder: 1
    → 브라우저가 화면 페인팅
 ```
 
-**왜 느릴 수 있나?**
+왜 느릴 수 있나?
 
 ```jsx
 // 문제 상황
@@ -109,21 +106,21 @@ function App() {
 // → 불필요한 작업 9,999개!
 ```
 
-### 💡 실무 TIP: "리렌더링은 왜 발생하고 어떻게 방지하나요?"
+###  실무 TIP: "리렌더링은 왜 발생하고 어떻게 방지하나요?"
 
-**답변 예시:**
+답변 예시:
 
-"React에서 리렌더링은 3가지 경우에 발생합니다: State 변경, Props 변경, 부모 리렌더링.
+"React에서 리렌더링은 3가지 경우에 발생한다: State 변경, Props 변경, 부모 리렌더링.
 
-**핵심 문제:**
-부모가 리렌더링되면 기본적으로 **모든 자식 컴포넌트**가 리렌더링됩니다. Props가 변경되지 않았어도요.
+핵심 문제:
+부모가 리렌더링되면 기본적으로 모든 자식 컴포넌트가 리렌더링된다. Props가 변경되지 않았어도요.
 
-**왜 이렇게 설계됐나?**
-안전성 우선입니다. React는 모든 컴포넌트를 리렌더링하여 UI가 항상 최신 state를 반영하도록 보장합니다.
+왜 이렇게 설계됐나?
+안전성 우선이다. React는 모든 컴포넌트를 리렌더링하여 UI가 항상 최신 state를 반영하도록 보장한다.
 
-**최적화 방법:**
+최적화 방법:
 
-1. **React.memo**: Props가 동일하면 리렌더링 스킵
+1. React.memo: Props가 동일하면 리렌더링 스킵
 
    ```jsx
    const Child = React.memo(function Child({ name }) {
@@ -133,32 +130,28 @@ function App() {
 
    동작: 이전 props와 얕은 비교 → 동일하면 이전 결과 재사용
 
-2. **useMemo**: 비싼 계산 결과 캐싱
+2. useMemo: 비싼 계산 결과 캐싱
 
-3. **useCallback**: 함수 참조 유지 (React.memo와 함께 사용)
+3. useCallback: 함수 참조 유지 (React.memo와 함께 사용)
 
-**주의:**
-과도한 최적화는 오히려 성능 저하. Profiler로 측정 후 병목 지점만 최적화해야 합니다."
+주의:
+과도한 최적화는 오히려 성능 저하. Profiler로 측정 후 병목 지점만 최적화해야 한다."
 
-**최적화 도구:**
+최적화 도구:
 
 - `React.memo`: 컴포넌트 메모이제이션
 - `useMemo`: 값 메모이제이션
 - `useCallback`: 함수 메모이제이션
 
 ---
-
 ## React.memo
-
 ### 기본 사용
-
 ```jsx
-// ❌ 최적화 전
+//  최적화 전
 function Child({ name }) {
   console.log('Child rendered');
   return <div>{name}</div>;
 }
-
 function Parent() {
   const [count, setCount] = useState(0);
   
@@ -171,13 +164,11 @@ function Parent() {
     </div>
   );
 }
-
-// ✅ 최적화 후
+//  최적화 후
 const Child = React.memo(function Child({ name }) {
   console.log('Child rendered');
   return <div>{name}</div>;
 });
-
 function Parent() {
   const [count, setCount] = useState(0);
   
@@ -191,9 +182,7 @@ function Parent() {
   );
 }
 ```
-
 ### 커스텀 비교 함수
-
 ```jsx
 const Child = React.memo(
   function Child({ user }) {
@@ -205,7 +194,6 @@ const Child = React.memo(
   }
 );
 ```
-
 ---
 
 ## useMemo
@@ -239,35 +227,29 @@ function TodoList({ todos, filter }) {
 ### 언제 사용하나?
 
 ```jsx
-// ✅ 좋음: 비싼 계산
+//  좋음: 비싼 계산
 const sortedList = useMemo(() => {
   return items.sort((a, b) => a.price - b.price);
 }, [items]);
 
-// ❌ 불필요: 간단한 계산
+//  불필요: 간단한 계산
 const doubled = useMemo(() => count * 2, [count]);  // 오버헤드만 증가
 
-// ✅ 좋음: 참조 동일성이 중요한 경우
+//  좋음: 참조 동일성이 중요한 경우
 const config = useMemo(() => ({ theme, locale }), [theme, locale]);
 ```
 
 ---
-
 ## useCallback
-
 ### 기본 사용
-
 ```jsx
 import { useCallback } from 'react';
-
 function Parent() {
   const [count, setCount] = useState(0);
-
   // 함수 메모이제이션
   const handleClick = useCallback(() => {
     console.log('Clicked!');
   }, []);  // 의존성 없음 = 절대 재생성 안됨
-
   return (
     <div>
       <button onClick={() => setCount(count + 1)}>
@@ -277,32 +259,25 @@ function Parent() {
     </div>
   );
 }
-
 const Child = React.memo(function Child({ onClick }) {
   console.log('Child rendered');
   return <button onClick={onClick}>Click me</button>;
 });
 ```
-
 ### 의존성 배열
-
 ```jsx
 function SearchResults({ query }) {
   const [results, setResults] = useState([]);
-
   const handleSearch = useCallback(async () => {
     const data = await fetch(`/api/search?q=${query}`);
     setResults(data);
   }, [query]);  // query 변경 시에만 재생성
-
   useEffect(() => {
     handleSearch();
   }, [handleSearch]);
-
   return <ResultList results={results} />;
 }
 ```
-
 ---
 
 ## 성능 측정
@@ -348,20 +323,15 @@ console.log(`Duration: ${measure.duration}ms`);
 ```
 
 ---
-
 ## 최적화 체크리스트
-
 ### 필수 최적화
-
 - [ ] 리스트에 `key` 사용
 - [ ] 이미지 최적화 (next/image)
 - [ ] 코드 분할 (React.lazy)
 - [ ] 필요한 곳에만 React.memo
 - [ ] 큰 계산에만 useMemo
 - [ ] Props로 전달되는 함수에 useCallback
-
 ### 고급 최적화
-
 - [ ] 가상화 (react-window)
 - [ ] Web Workers
 - [ ] Service Workers

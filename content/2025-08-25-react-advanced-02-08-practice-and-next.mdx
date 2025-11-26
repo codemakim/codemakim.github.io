@@ -1,5 +1,5 @@
 ---
-title: "🚀 [React 라이브러리 8/8] React Query - 실전 예제 & 다음 단계"
+title: "[React 라이브러리 8/8] React Query - 실전 예제 & 다음 단계"
 date: "2025-08-26"
 description: "블로그 애플리케이션 구현 및 학습 체크리스트"
 tags: ["React", "고급", "프론트엔드"]
@@ -13,18 +13,13 @@ seriesOrder: 53
 > 출처: [TanStack Query Documentation](https://tanstack.com/query/)
 
 ---
-
 ## 실전 예제 & 다음 단계
 실전 예제 & 다음 단계
-
 고급 패턴
-
 ### 1. Query Cancellation
-
 ```jsx
 function Search() {
   const [searchTerm, setSearchTerm] = useState('');
-
   const { data, isLoading } = useQuery({
     queryKey: ['search', searchTerm],
     queryFn: async ({ signal }) => {
@@ -35,7 +30,6 @@ function Search() {
     },
     enabled: searchTerm.length > 0,
   });
-
   return (
     <div>
       <input
@@ -49,28 +43,22 @@ function Search() {
   );
 }
 ```
-
 ### 2. Dependent Queries
-
 ```jsx
 function UserProjects({ userId }) {
   const { data: user } = useQuery({
     queryKey: ['user', userId],
     queryFn: () => fetchUser(userId),
   });
-
   const { data: projects } = useQuery({
     queryKey: ['projects', user?.id],
     queryFn: () => fetchProjects(user.id),
     enabled: !!user?.id,  // user가 로드된 후에만 실행
   });
-
   return <ProjectList projects={projects} />;
 }
 ```
-
 ### 3. Query Keys Factory
-
 ```javascript
 // queryKeys.js
 export const userKeys = {
@@ -80,25 +68,19 @@ export const userKeys = {
   details: () => [...userKeys.all, 'detail'],
   detail: (id) => [...userKeys.details(), id],
 };
-
 // 사용
 useQuery({
   queryKey: userKeys.detail(userId),
   queryFn: () => fetchUser(userId),
 });
-
 // 모든 user 쿼리 무효화
 queryClient.invalidateQueries({ queryKey: userKeys.all });
-
 // 특정 user 무효화
 queryClient.invalidateQueries({ queryKey: userKeys.detail(userId) });
 ```
-
 ### 4. Suspense Mode
-
 ```jsx
 import { Suspense } from 'react';
-
 function App() {
   return (
     <Suspense fallback={<LoadingSpinner />}>
@@ -106,20 +88,16 @@ function App() {
     </Suspense>
   );
 }
-
 function Users() {
   const { data } = useQuery({
     queryKey: ['users'],
     queryFn: fetchUsers,
     suspense: true,  // Suspense 모드 활성화
   });
-
   return <UserList users={data} />;
 }
 ```
-
 ### 5. Retry Logic
-
 ```javascript
 useQuery({
   queryKey: ['users'],
@@ -128,7 +106,6 @@ useQuery({
   retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   // 1초, 2초, 4초... 최대 30초
 });
-
 // 조건부 재시도
 useQuery({
   queryKey: ['users'],
@@ -141,35 +118,27 @@ useQuery({
   },
 });
 ```
-
 ### 6. Query Filters
-
 ```javascript
 const queryClient = useQueryClient();
-
 // 모든 쿼리 무효화
 queryClient.invalidateQueries();
-
 // 특정 접두사 쿼리 무효화
 queryClient.invalidateQueries({ queryKey: ['posts'] });
-
 // 조건부 무효화
 queryClient.invalidateQueries({
   predicate: (query) => 
     query.queryKey[0] === 'posts' && 
     query.state.data?.isArchived
 });
-
 // 쿼리 제거
 queryClient.removeQueries({ queryKey: ['posts'] });
-
 // 쿼리 데이터 설정
 queryClient.setQueriesData(
   { queryKey: ['posts'] },
   (oldData) => oldData.filter(post => !post.isDeleted)
 );
 ```
-
 ---
 
 

@@ -1,7 +1,7 @@
 ---
-title: "🚀 [React 라이브러리 4/4] Next.js 고급 - 서버 컴포넌트"
+title: "[React 라이브러리 4/4] Next.js 고급 - 서버 컴포넌트"
 date: "2025-09-01"
-description: "서버 컴포넌트가 번들을 줄이는 메커니즘, 서버 액션의 RPC 방식을 이해합니다"
+description: "서버 컴포넌트가 번들을 줄이는 메커니즘, 서버 액션의 RPC 방식을 이해한다"
 tags: ["Next.js", "React", "고급", "프론트엔드"]
 series: "React 라이브러리"
 seriesOrder: 4
@@ -13,27 +13,24 @@ draft: true
 > Next.js 15의 고급 기능을 다루는 학습 자료
 
 ---
-
 ## 📚 목차
-
 1. [서버 액션](#서버-액션)
 2. [스트리밍 SSR](#스트리밍-ssr)
 3. [ISR](#isr-incremental-static-regeneration)
 4. [Middleware](#middleware)
 5. [API Routes 고급](#api-routes-고급)
 6. [이미지 최적화](#이미지-최적화)
-
 ---
 
 ## 서버 액션
 
 ### 개요
 
-**Server Actions**는 서버에서 실행되는 비동기 함수입니다. (Next.js 14+)
+Server Actions는 서버에서 실행되는 비동기 함수이다. (Next.js 14+)
 
-### 🔍 서버 컴포넌트와 서버 액션의 동작 원리
+###  서버 컴포넌트와 서버 액션의 동작 원리
 
-**서버 컴포넌트가 해결하는 근본적 문제:**
+서버 컴포넌트가 해결하는 근본적 문제:
 
 전통적인 React (CSR):
 
@@ -67,9 +64,9 @@ HTML + 최소한의 JavaScript만 전송
 장점: 번들 크기 ↓, 초기 로딩 ↑, SEO ↑
 ```
 
-### 🎯 서버 컴포넌트 vs 클라이언트 컴포넌트
+###  서버 컴포넌트 vs 클라이언트 컴포넌트
 
-**번들에 포함되는 것:**
+번들에 포함되는 것:
 
 ```jsx
 // 서버 컴포넌트 (기본)
@@ -103,9 +100,9 @@ function Counter() {
 // - JavaScript: Counter 컴포넌트 전체 코드 + React runtime
 ```
 
-### 🔍 서버 액션의 동작 원리
+###  서버 액션의 동작 원리
 
-**기존 방식 (API Route):**
+기존 방식 (API Route):
 
 ```
 클라이언트 → POST /api/create-post
@@ -121,7 +118,7 @@ function Counter() {
 문제: 타입 안전성 ↓, 보일러플레이트 ↑
 ```
 
-**서버 액션:**
+서버 액션:
 
 ```
 클라이언트 → 서버 액션 호출 (RPC처럼!)
@@ -139,7 +136,7 @@ function Counter() {
 장점: 타입 안전 ↑, 코드 간결 ↑, 자동 최적화
 ```
 
-**실제 네트워크 요청:**
+실제 네트워크 요청:
 
 ```
 POST /_next/data/XYZ/actions/createPost
@@ -159,31 +156,31 @@ Next.js가 자동으로:
 4. 응답 처리
 5. 캐시 무효화
 
-### 💡 실무 TIP: "서버 컴포넌트의 장점은?"
+###  실무 TIP: "서버 컴포넌트의 장점은?"
 
-**답변 예시:**
+답변 예시:
 
-"서버 컴포넌트의 핵심 장점은 **번들 크기 제로**입니다.
+"서버 컴포넌트의 핵심 장점은 번들 크기 제로이다.
 
-**동작 원리:**
-서버 컴포넌트는 서버에서만 실행되고, 결과 HTML만 클라이언트로 전송됩니다. 컴포넌트 코드 자체는 JavaScript 번들에 포함되지 않습니다.
+동작 원리:
+서버 컴포넌트는 서버에서만 실행되고, 결과 HTML만 클라이언트로 전송된다. 컴포넌트 코드 자체는 JavaScript 번들에 포함되지 않다.
 
-**실무 효과:**
+실무 효과:
 
 - 대시보드 페이지에 차트 라이브러리(1MB) 사용 시
   - CSR: 1MB를 브라우저가 다운로드
   - 서버 컴포넌트: 서버에서 차트 생성 → SVG/HTML만 전송 → 0KB!
 
-**추가 장점:**
+추가 장점:
 
 1. DB 직접 접근: API 레이어 불필요
 2. 민감 정보 보호: API 키가 클라이언트 노출 안됨
 3. SEO 최적화: 완성된 HTML 전송
 
-**주의사항:**
-인터랙티브 필요 시 클라이언트 컴포넌트 사용. 하지만 전체가 아니라 필요한 부분만 `'use client'`로 분리하여 번들 크기 최소화할 수 있습니다."
+주의사항:
+인터랙티브 필요 시 클라이언트 컴포넌트 사용. 하지만 전체가 아니라 필요한 부분만 `'use client'`로 분리하여 번들 크기 최소화할 수 있다."
 
-**특징:**
+특징:
 
 - API 라우트 불필요
 - 타입 안전
@@ -356,14 +353,10 @@ export async function createPost(prevState, formData) {
 ```
 
 ---
-
 ## 스트리밍 SSR
-
 ### Suspense를 사용한 스트리밍
-
 ```jsx
 import { Suspense } from 'react';
-
 export default function Page() {
   return (
     <div>
@@ -381,7 +374,6 @@ export default function Page() {
     </div>
   );
 }
-
 async function Posts() {
   const posts = await fetchPosts();
   return (
@@ -392,7 +384,6 @@ async function Posts() {
     </ul>
   );
 }
-
 async function Comments() {
   const comments = await fetchComments();
   return (
@@ -404,16 +395,13 @@ async function Comments() {
   );
 }
 ```
-
 ### Loading.js
-
 ```jsx
 // app/dashboard/loading.jsx
 export default function Loading() {
   return <DashboardSkeleton />;
 }
 ```
-
 ```jsx
 // app/dashboard/page.jsx
 export default async function Dashboard() {
@@ -421,9 +409,7 @@ export default async function Dashboard() {
   return <DashboardContent data={data} />;
 }
 ```
-
 ### 중첩된 Suspense
-
 ```jsx
 export default function Page() {
   return (
@@ -449,7 +435,6 @@ export default function Page() {
   );
 }
 ```
-
 ---
 
 ## ISR (Incremental Static Regeneration)
@@ -550,95 +535,69 @@ export async function createPost(data) {
 ```
 
 ---
-
 ## Middleware
-
 ### 기본 Middleware
-
 ```jsx
 // middleware.js
 import { NextResponse } from 'next/server';
-
 export function middleware(request) {
   // 요청 로깅
   console.log('Request:', request.nextUrl.pathname);
-
   // 헤더 추가
   const response = NextResponse.next();
   response.headers.set('x-custom-header', 'my-value');
-
   return response;
 }
-
 export const config = {
   matcher: ['/dashboard/:path*', '/admin/:path*'],
 };
 ```
-
 ### 인증 Middleware
-
 ```jsx
 // middleware.js
 import { NextResponse } from 'next/server';
-
 export function middleware(request) {
   const token = request.cookies.get('token');
-
   if (!token && request.nextUrl.pathname.startsWith('/dashboard')) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
-
   return NextResponse.next();
 }
-
 export const config = {
   matcher: '/dashboard/:path*',
 };
 ```
-
 ### 국제화 Middleware
-
 ```jsx
 // middleware.js
 import { NextResponse } from 'next/server';
-
 const locales = ['en', 'ko', 'ja'];
 const defaultLocale = 'en';
-
 export function middleware(request) {
   const pathname = request.nextUrl.pathname;
-
   // 이미 로케일이 있으면 패스
   const pathnameHasLocale = locales.some(
     (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
   );
-
   if (pathnameHasLocale) return;
-
   // Accept-Language 헤더에서 로케일 가져오기
   const locale = request.headers.get('accept-language')?.split(',')[0] || defaultLocale;
-
   // 로케일 추가하여 리다이렉트
   return NextResponse.redirect(
     new URL(`/${locale}${pathname}`, request.url)
   );
 }
-
 export const config = {
   matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 };
 ```
-
 ### A/B 테스트 Middleware
-
 ```jsx
 // middleware.js
 import { NextResponse } from 'next/server';
-
 export function middleware(request) {
   // 쿠키에서 버킷 확인
   let bucket = request.cookies.get('bucket');
-
   if (!bucket) {
     // 랜덤하게 A 또는 B 할당
     bucket = Math.random() < 0.5 ? 'a' : 'b';
@@ -646,16 +605,13 @@ export function middleware(request) {
     response.cookies.set('bucket', bucket);
     return response;
   }
-
   // 버킷에 따라 다른 페이지로 리라이트
   if (bucket === 'b') {
     return NextResponse.rewrite(new URL('/experiment-b', request.url));
   }
-
   return NextResponse.next();
 }
 ```
-
 ---
 
 ## API Routes 고급
@@ -793,14 +749,10 @@ export async function OPTIONS(request) {
 ```
 
 ---
-
 ## 이미지 최적화
-
 ### next/image 고급 사용
-
 ```jsx
 import Image from 'next/image';
-
 export default function Gallery() {
   return (
     <div>
@@ -812,7 +764,6 @@ export default function Gallery() {
         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         style={{ objectFit: 'cover' }}
       />
-
       {/* 우선순위 이미지 (LCP 최적화) */}
       <Image
         src="/hero.jpg"
@@ -821,7 +772,6 @@ export default function Gallery() {
         height={600}
         priority
       />
-
       {/* 블러 플레이스홀더 */}
       <Image
         src="/photo.jpg"
@@ -831,7 +781,6 @@ export default function Gallery() {
         placeholder="blur"
         blurDataURL="data:image/jpeg;base64,..."
       />
-
       {/* 외부 이미지 */}
       <Image
         src="https://example.com/photo.jpg"
@@ -844,9 +793,7 @@ export default function Gallery() {
   );
 }
 ```
-
 ### 이미지 로더
-
 ```jsx
 // next.config.js
 module.exports = {
@@ -856,7 +803,6 @@ module.exports = {
   },
 };
 ```
-
 ```jsx
 // image-loader.js
 export default function cloudinaryLoader({ src, width, quality }) {
@@ -864,17 +810,13 @@ export default function cloudinaryLoader({ src, width, quality }) {
   return `https://res.cloudinary.com/demo/image/upload/${params.join(',')}${src}`;
 }
 ```
-
 ### 동적 블러 플레이스홀더
-
 ```jsx
 import { getPlaiceholder } from 'plaiceholder';
-
 export default async function Post({ params }) {
   const post = await fetchPost(params.id);
   
   const { base64 } = await getPlaiceholder(post.imageUrl);
-
   return (
     <Image
       src={post.imageUrl}
@@ -887,7 +829,6 @@ export default async function Post({ params }) {
   );
 }
 ```
-
 ---
 
 ## 실전 예제: 블로그 플랫폼
@@ -966,17 +907,14 @@ export const config = {
 ```
 
 ---
-
 ## Nuxt와 비교
-
 | 기능 | Next.js | Nuxt |
 |------|---------|------|
-| **서버 액션** | Server Actions | Server Routes |
-| **ISR** | revalidate | ISR (Nitro) |
-| **Middleware** | middleware.js | Server Middleware |
-| **이미지 최적화** | next/image | nuxt/image |
-| **API Routes** | app/api | server/api |
-
+| 서버 액션 | Server Actions | Server Routes |
+| ISR | revalidate | ISR (Nitro) |
+| Middleware | middleware.js | Server Middleware |
+| 이미지 최적화 | next/image | nuxt/image |
+| API Routes | app/api | server/api |
 ```javascript
 // Nuxt: Server Routes
 // server/api/posts.post.js
@@ -986,7 +924,6 @@ export default defineEventHandler(async (event) => {
   return post
 })
 ```
-
 ```jsx
 // Next.js: Route Handlers
 // app/api/posts/route.js
@@ -996,7 +933,6 @@ export async function POST(request) {
   return NextResponse.json(post)
 }
 ```
-
 ---
 
 ## 다음 단계
@@ -1017,4 +953,4 @@ export async function POST(request) {
 - [Server Actions](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations)
 - [Caching](https://nextjs.org/docs/app/building-your-application/caching)
 
-모든 항목을 체크했다면 다음 주제로 넘어가세요! 🚀
+모든 항목을 체크했다면 다음 주제로 넘어가세요! 

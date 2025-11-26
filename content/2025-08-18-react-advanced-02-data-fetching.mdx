@@ -1,7 +1,7 @@
 ---
-title: "🚀 [React 라이브러리 2/4] React Query - 캐싱 메커니즘"
+title: "[React 라이브러리 2/4] React Query - 캐싱 메커니즘"
 date: "2025-08-18"
-description: "React Query의 캐싱 원리, Stale/Cache Time, 낙관적 업데이트를 깊이 있게 학습합니다"
+description: "React Query의 캐싱 원리, Stale/Cache Time, 낙관적 업데이트를 깊이 있게 학습한다"
 tags: ["React", "고급", "프론트엔드"]
 series: "React 라이브러리"
 seriesOrder: 2
@@ -14,9 +14,7 @@ draft: true
 > 출처: [TanStack Query Documentation](https://tanstack.com/query/)
 
 ---
-
 ## 📚 목차
-
 1. [개요](#개요)
 2. [설치 및 설정](#설치-및-설정)
 3. [쿼리 기초](#쿼리-기초)
@@ -25,16 +23,15 @@ draft: true
 6. [낙관적 업데이트](#낙관적-업데이트)
 7. [무한 스크롤](#무한-스크롤)
 8. [고급 패턴](#고급-패턴)
-
 ---
 
 ## 개요
 
 ### React Query란?
 
-**React Query (TanStack Query)**는 서버 상태 관리를 위한 강력한 라이브러리입니다.
+React Query (TanStack Query)는 서버 상태 관리를 위한 강력한 라이브러리이다.
 
-**주요 기능:**
+주요 기능:
 
 - 자동 캐싱
 - 백그라운드 리페칭
@@ -46,7 +43,7 @@ draft: true
 ### 왜 React Query인가?
 
 ```jsx
-// ❌ 일반적인 방법 (복잡함)
+//  일반적인 방법 (복잡함)
 function Users() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -72,7 +69,7 @@ function Users() {
   return <UserList users={users} />;
 }
 
-// ✅ React Query (간결함)
+//  React Query (간결함)
 import { useQuery } from '@tanstack/react-query';
 
 function Users() {
@@ -103,23 +100,17 @@ const { data: users, isLoading, error } = useQuery({
 ```
 
 ---
-
 ## 설치 및 설정
-
 ### 설치
-
 ```bash
 npm install @tanstack/react-query
 npm install @tanstack/react-query-devtools
 ```
-
 ### 기본 설정
-
 ```jsx
 // App.jsx
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -130,7 +121,6 @@ const queryClient = new QueryClient({
     },
   },
 });
-
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -140,9 +130,7 @@ export default function App() {
   );
 }
 ```
-
 ### QueryClient 옵션
-
 ```javascript
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -161,7 +149,6 @@ const queryClient = new QueryClient({
   },
 });
 ```
-
 ---
 
 ## 쿼리 기초
@@ -200,7 +187,7 @@ async function fetchUsers() {
 
 ### 2. Query Key
 
-**Query Key는 쿼리를 고유하게 식별합니다.**
+Query Key는 쿼리를 고유하게 식별한다.
 
 ```jsx
 // 단순 키
@@ -354,7 +341,7 @@ function Dashboard() {
 }
 ```
 
-**useQueries로 동적 병렬 쿼리:**
+useQueries로 동적 병렬 쿼리:
 
 ```jsx
 function UserProfiles({ userIds }) {
@@ -382,17 +369,12 @@ function UserProfiles({ userIds }) {
 ```
 
 ---
-
 ## 뮤테이션
-
 ### 1. useMutation 기본
-
 ```jsx
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-
 function CreateUser() {
   const queryClient = useQueryClient();
-
   const mutation = useMutation({
     mutationFn: (newUser) => {
       return fetch('/api/users', {
@@ -406,7 +388,6 @@ function CreateUser() {
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },
   });
-
   function handleSubmit(e) {
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -415,7 +396,6 @@ function CreateUser() {
       email: formData.get('email'),
     });
   }
-
   return (
     <form onSubmit={handleSubmit}>
       <input name="name" placeholder="Name" />
@@ -429,15 +409,12 @@ function CreateUser() {
   );
 }
 ```
-
 ### 2. 뮤테이션 상태
-
 ```jsx
 function DeleteUser({ userId }) {
   const mutation = useMutation({
     mutationFn: (id) => fetch(`/api/users/${id}`, { method: 'DELETE' }),
   });
-
   const {
     mutate,         // 뮤테이션 실행 함수
     isPending,      // 진행 중
@@ -447,7 +424,6 @@ function DeleteUser({ userId }) {
     data,           // 응답 데이터
     reset,          // 상태 초기화
   } = mutation;
-
   return (
     <div>
       <button onClick={() => mutate(userId)} disabled={isPending}>
@@ -464,9 +440,7 @@ function DeleteUser({ userId }) {
   );
 }
 ```
-
 ### 3. 뮤테이션 콜백
-
 ```jsx
 const mutation = useMutation({
   mutationFn: createUser,
@@ -498,30 +472,22 @@ const mutation = useMutation({
   },
 });
 ```
-
 ### 4. 쿼리 무효화
-
 ```jsx
 const queryClient = useQueryClient();
-
 // 특정 쿼리 무효화
 queryClient.invalidateQueries({ queryKey: ['users'] });
-
 // 특정 사용자 쿼리 무효화
 queryClient.invalidateQueries({ queryKey: ['user', userId] });
-
 // 접두사로 무효화 (모든 user 관련 쿼리)
 queryClient.invalidateQueries({ queryKey: ['user'] });
-
 // 정확히 일치하는 쿼리만 무효화
 queryClient.invalidateQueries({ 
   queryKey: ['users'], 
   exact: true 
 });
 ```
-
 ### 5. 캐시 직접 업데이트
-
 ```jsx
 const mutation = useMutation({
   mutationFn: createUser,
@@ -537,16 +503,15 @@ const mutation = useMutation({
   },
 });
 ```
-
 ---
 
 ## 캐싱 전략
 
-### 🔍 React Query 캐싱의 동작 원리
+###  React Query 캐싱의 동작 원리
 
-**React Query가 해결하는 문제:**
+React Query가 해결하는 문제:
 
-1. **중복 요청 제거**
+1. 중복 요청 제거
 
    ```jsx
    // 여러 컴포넌트가 동시에 같은 데이터 요청
@@ -560,11 +525,11 @@ const mutation = useMutation({
      useQuery({ queryKey: ['user'], queryFn: fetchUser });
    }
    
-   // ❌ 일반 방법: 3번 요청!
-   // ✅ React Query: 1번만 요청! (나머지는 캐시 사용)
+   //  일반 방법: 3번 요청!
+   //  React Query: 1번만 요청! (나머지는 캐시 사용)
    ```
 
-2. **자동 백그라운드 리페칭**
+2. 자동 백그라운드 리페칭
 
    ```
    사용자가 탭 전환 후 돌아옴
@@ -577,7 +542,7 @@ const mutation = useMutation({
 
    ```
 
-3. **메모리 관리**
+3. 메모리 관리
 
    ```
    컴포넌트 언마운트
@@ -601,21 +566,21 @@ useQuery({
 });
 ```
 
-**Stale Time (신선도):**
+Stale Time (신선도):
 
 - 데이터가 "fresh"로 간주되는 시간
 - fresh 데이터는 리페치하지 않음
-- **예시**: staleTime이 5분이면, 5분 안에는 캐시에서 즉시 반환
+- 예시: staleTime이 5분이면, 5분 안에는 캐시에서 즉시 반환
 
-**Cache Time (캐시 유지):**
+Cache Time (캐시 유지):
 
 - 사용되지 않는 데이터를 메모리에 유지하는 시간
 - 이 시간이 지나면 가비지 컬렉션
-- **예시**: cacheTime이 10분이면, 컴포넌트 언마운트 후 10분간 캐시 유지
+- 예시: cacheTime이 10분이면, 컴포넌트 언마운트 후 10분간 캐시 유지
 
-### 🎯 실무 시나리오로 이해하기
+###  실무 시나리오로 이해하기
 
-**시나리오**: 사용자 프로필 페이지
+시나리오: 사용자 프로필 페이지
 
 ```
 1. 00:00 - 페이지 접속
@@ -635,29 +600,29 @@ useQuery({
    → fetchUser() 다시 호출 (네트워크 요청)
 ```
 
-### 💡 실무 TIP: "React Query는 어떻게 캐싱하나요?"
+###  실무 TIP: "React Query는 어떻게 캐싱하나요?"
 
-**답변 예시:**
+답변 예시:
 
-"React Query는 Qury Key를 기반으로 캐시를 관리합니다.
+"React Query는 Qury Key를 기반으로 캐시를 관리한다.
 
-**핵심 메커니즘:**
+핵심 메커니즘:
 
-1. **Query Key 해싱**: `['users', { status: 'active' }]` → 고유 키 생성
-2. **캐시 스토리지**: 메모리에 Map 구조로 저장
+1. Query Key 해싱: `['users', { status: 'active' }]` → 고유 키 생성
+2. 캐시 스토리지: 메모리에 Map 구조로 저장
 
-3. **State 관리**:
+3. State 관리:
    - fresh: 신선한 데이터 (리페치 안함)
    - stale: 오래된 데이터 (백그라운드 리페치)
    - inactive: 사용 안하는 데이터 (cacheTime 후 삭제)
 
-**최적화 효과:**
+최적화 효과:
 
 - 동일한 Query Key → 단일 요청으로 통합
 - 캐시 히트 시 즉시 반환 (0ms)
 - 백그라운드 리페치로 최신성 유지
 
-**실무 설정:**
+실무 설정:
 
 ```javascript
 // 자주 변하지 않는 데이터 (사용자 정보)
@@ -670,7 +635,7 @@ staleTime: 0, cacheTime: 0
 staleTime: Infinity, cacheTime: Infinity
 ```
 
-이를 통해 네트워크 요청을 최소화하면서도 데이터 최신성을 유지할 수 있습니다."
+이를 통해 네트워크 요청을 최소화하면서도 데이터 최신성을 유지할 수 있다."
 
 ### 2. 리페치 설정
 
@@ -780,31 +745,24 @@ function Users() {
 ```
 
 ---
-
 ## 낙관적 업데이트
-
 ### 기본 패턴
-
 ```jsx
 function TodoList() {
   const queryClient = useQueryClient();
-
   const mutation = useMutation({
     mutationFn: updateTodo,
     onMutate: async (newTodo) => {
       // 진행 중인 리페치 취소
       await queryClient.cancelQueries({ queryKey: ['todos'] });
-
       // 이전 데이터 스냅샷
       const previousTodos = queryClient.getQueryData(['todos']);
-
       // 낙관적 업데이트
       queryClient.setQueryData(['todos'], (old) =>
         old.map(todo =>
           todo.id === newTodo.id ? newTodo : todo
         )
       );
-
       // 롤백을 위한 컨텍스트 반환
       return { previousTodos };
     },
@@ -818,14 +776,12 @@ function TodoList() {
       queryClient.invalidateQueries({ queryKey: ['todos'] });
     },
   });
-
   function handleToggle(todo) {
     mutation.mutate({
       ...todo,
       completed: !todo.completed,
     });
   }
-
   return (
     <div>
       {todos.map(todo => (
@@ -839,26 +795,20 @@ function TodoList() {
   );
 }
 ```
-
 ### 복잡한 예제: 좋아요 버튼
-
 ```jsx
 function LikeButton({ postId }) {
   const queryClient = useQueryClient();
-
   const likeMutation = useMutation({
     mutationFn: (postId) => fetch(`/api/posts/${postId}/like`, { method: 'POST' }),
     onMutate: async (postId) => {
       await queryClient.cancelQueries({ queryKey: ['post', postId] });
-
       const previousPost = queryClient.getQueryData(['post', postId]);
-
       queryClient.setQueryData(['post', postId], (old) => ({
         ...old,
         likes: old.likes + 1,
         isLiked: true,
       }));
-
       return { previousPost };
     },
     onError: (err, postId, context) => {
@@ -868,32 +818,26 @@ function LikeButton({ postId }) {
       queryClient.invalidateQueries({ queryKey: ['post', postId] });
     },
   });
-
   const unlikeMutation = useMutation({
     mutationFn: (postId) => fetch(`/api/posts/${postId}/unlike`, { method: 'POST' }),
     onMutate: async (postId) => {
       await queryClient.cancelQueries({ queryKey: ['post', postId] });
-
       const previousPost = queryClient.getQueryData(['post', postId]);
-
       queryClient.setQueryData(['post', postId], (old) => ({
         ...old,
         likes: old.likes - 1,
         isLiked: false,
       }));
-
       return { previousPost };
     },
     onError: (err, postId, context) => {
       queryClient.setQueryData(['post', postId], context.previousPost);
     },
   });
-
   const { data: post } = useQuery({
     queryKey: ['post', postId],
     queryFn: () => fetchPost(postId),
   });
-
   function handleClick() {
     if (post.isLiked) {
       unlikeMutation.mutate(postId);
@@ -901,7 +845,6 @@ function LikeButton({ postId }) {
       likeMutation.mutate(postId);
     }
   }
-
   return (
     <button onClick={handleClick}>
       {post.isLiked ? '❤️' : '🤍'} {post.likes}
@@ -909,7 +852,6 @@ function LikeButton({ postId }) {
   );
 }
 ```
-
 ---
 
 ## 무한 스크롤
@@ -1034,15 +976,11 @@ const {
 ```
 
 ---
-
 ## 고급 패턴
-
 ### 1. Query Cancellation
-
 ```jsx
 function Search() {
   const [searchTerm, setSearchTerm] = useState('');
-
   const { data, isLoading } = useQuery({
     queryKey: ['search', searchTerm],
     queryFn: async ({ signal }) => {
@@ -1053,7 +991,6 @@ function Search() {
     },
     enabled: searchTerm.length > 0,
   });
-
   return (
     <div>
       <input
@@ -1067,28 +1004,22 @@ function Search() {
   );
 }
 ```
-
 ### 2. Dependent Queries
-
 ```jsx
 function UserProjects({ userId }) {
   const { data: user } = useQuery({
     queryKey: ['user', userId],
     queryFn: () => fetchUser(userId),
   });
-
   const { data: projects } = useQuery({
     queryKey: ['projects', user?.id],
     queryFn: () => fetchProjects(user.id),
     enabled: !!user?.id,  // user가 로드된 후에만 실행
   });
-
   return <ProjectList projects={projects} />;
 }
 ```
-
 ### 3. Query Keys Factory
-
 ```javascript
 // queryKeys.js
 export const userKeys = {
@@ -1098,25 +1029,19 @@ export const userKeys = {
   details: () => [...userKeys.all, 'detail'],
   detail: (id) => [...userKeys.details(), id],
 };
-
 // 사용
 useQuery({
   queryKey: userKeys.detail(userId),
   queryFn: () => fetchUser(userId),
 });
-
 // 모든 user 쿼리 무효화
 queryClient.invalidateQueries({ queryKey: userKeys.all });
-
 // 특정 user 무효화
 queryClient.invalidateQueries({ queryKey: userKeys.detail(userId) });
 ```
-
 ### 4. Suspense Mode
-
 ```jsx
 import { Suspense } from 'react';
-
 function App() {
   return (
     <Suspense fallback={<LoadingSpinner />}>
@@ -1124,20 +1049,16 @@ function App() {
     </Suspense>
   );
 }
-
 function Users() {
   const { data } = useQuery({
     queryKey: ['users'],
     queryFn: fetchUsers,
     suspense: true,  // Suspense 모드 활성화
   });
-
   return <UserList users={data} />;
 }
 ```
-
 ### 5. Retry Logic
-
 ```javascript
 useQuery({
   queryKey: ['users'],
@@ -1146,7 +1067,6 @@ useQuery({
   retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   // 1초, 2초, 4초... 최대 30초
 });
-
 // 조건부 재시도
 useQuery({
   queryKey: ['users'],
@@ -1159,35 +1079,27 @@ useQuery({
   },
 });
 ```
-
 ### 6. Query Filters
-
 ```javascript
 const queryClient = useQueryClient();
-
 // 모든 쿼리 무효화
 queryClient.invalidateQueries();
-
 // 특정 접두사 쿼리 무효화
 queryClient.invalidateQueries({ queryKey: ['posts'] });
-
 // 조건부 무효화
 queryClient.invalidateQueries({
   predicate: (query) => 
     query.queryKey[0] === 'posts' && 
     query.state.data?.isArchived
 });
-
 // 쿼리 제거
 queryClient.removeQueries({ queryKey: ['posts'] });
-
 // 쿼리 데이터 설정
 queryClient.setQueriesData(
   { queryKey: ['posts'] },
   (oldData) => oldData.filter(post => !post.isDeleted)
 );
 ```
-
 ---
 
 ## 실전 예제: 블로그 애플리케이션
@@ -1326,11 +1238,8 @@ export default function CreatePost() {
 ```
 
 ---
-
 ## 다음 단계
-
 ### 학습 체크리스트
-
 - [ ] useQuery를 사용할 수 있다
 - [ ] useMutation을 사용할 수 있다
 - [ ] 캐싱 전략을 이해한다
@@ -1339,13 +1248,10 @@ export default function CreatePost() {
 - [ ] Query Keys를 효율적으로 관리할 수 있다
 - [ ] 에러 처리를 할 수 있다
 - [ ] DevTools를 활용할 수 있다
-
 ### 추가 학습 자료
-
 - [TanStack Query 공식 문서](https://tanstack.com/query/latest)
 - [React Query vs SWR](https://tanstack.com/query/latest/docs/react/comparison)
 - [Best Practices](https://tanstack.com/query/latest/docs/react/community/tkdodos-blog)
-
 ---
 
-모든 항목을 체크했다면 다음 주제로 넘어가세요! 🚀
+모든 항목을 체크했다면 다음 주제로 넘어가세요! 

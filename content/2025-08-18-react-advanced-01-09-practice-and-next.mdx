@@ -1,5 +1,5 @@
 ---
-title: "🚀 [React 라이브러리 9/9] React Router - 실전 예제 & 다음 단계"
+title: "[React 라이브러리 9/9] React Router - 실전 예제 & 다음 단계"
 date: "2025-08-20"
 description: "블로그 애플리케이션 구현 및 학습 체크리스트"
 tags: ["React", "고급", "프론트엔드"]
@@ -13,22 +13,16 @@ seriesOrder: 45
 > 출처: [React Router Documentation](https://reactrouter.com/)
 
 ---
-
 ## 실전 예제 & 다음 단계
 실전 예제 & 다음 단계
-
 고급 패턴
-
 ### 1. Route 구성 분리
-
 ```jsx
 // routes/index.jsx
 import { lazy } from 'react';
-
 const Home = lazy(() => import('../pages/Home'));
 const About = lazy(() => import('../pages/About'));
 const Dashboard = lazy(() => import('../pages/Dashboard'));
-
 export const routes = [
   {
     path: '/',
@@ -43,22 +37,17 @@ export const routes = [
     ]
   }
 ];
-
 // App.jsx
 import { useRoutes } from 'react-router-dom';
 import { routes } from './routes';
-
 export default function App() {
   const element = useRoutes(routes);
   return element;
 }
 ```
-
 ### 2. Breadcrumbs
-
 ```jsx
 import { useMatches, Link } from 'react-router-dom';
-
 function Breadcrumbs() {
   const matches = useMatches();
   
@@ -77,7 +66,6 @@ function Breadcrumbs() {
     </nav>
   );
 }
-
 // 라우트 설정
 <Route 
   path="/users/:userId" 
@@ -87,13 +75,10 @@ function Breadcrumbs() {
   }}
 />
 ```
-
 ### 3. Scroll Restoration
-
 ```jsx
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-
 function ScrollToTop() {
   const { pathname } = useLocation();
   
@@ -103,7 +88,6 @@ function ScrollToTop() {
   
   return null;
 }
-
 // App.jsx
 <BrowserRouter>
   <ScrollToTop />
@@ -112,12 +96,9 @@ function ScrollToTop() {
   </Routes>
 </BrowserRouter>
 ```
-
 ### 4. Route-based Code Splitting
-
 ```jsx
 import { lazy, Suspense } from 'react';
-
 const routes = [
   {
     path: '/',
@@ -149,21 +130,17 @@ const routes = [
   }
 ];
 ```
-
 ### 5. Modal Routes
-
 ```jsx
 function App() {
   const location = useLocation();
   const state = location.state;
-
   return (
     <>
       <Routes location={state?.backgroundLocation || location}>
         <Route path="/" element={<Home />} />
         <Route path="/gallery" element={<Gallery />} />
       </Routes>
-
       {state?.backgroundLocation && (
         <Routes>
           <Route path="/img/:id" element={<ImageModal />} />
@@ -172,10 +149,8 @@ function App() {
     </>
   );
 }
-
 function Gallery() {
   const location = useLocation();
-
   return (
     <div>
       {images.map(img => (
@@ -191,7 +166,6 @@ function Gallery() {
   );
 }
 ```
-
 ---
 
 

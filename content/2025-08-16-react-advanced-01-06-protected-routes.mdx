@@ -1,5 +1,5 @@
 ---
-title: "🚀 [React 라이브러리 6/9] React Router - Protected Routes"
+title: "[React 라이브러리 6/9] React Router - Protected Routes"
 date: "2025-08-17"
 description: "인증 기반 라우트 보호, 리다이렉트 처리"
 tags: ["React", "고급", "프론트엔드"]
@@ -13,17 +13,12 @@ seriesOrder: 42
 > 출처: [React Router Documentation](https://reactrouter.com/)
 
 ---
-
 ## Protected Routes
 Protected Routes
-
 Router Hooks
-
 ### 1. useLocation
-
 ```jsx
 import { useLocation } from 'react-router-dom';
-
 export default function Header() {
   const location = useLocation();
   
@@ -37,29 +32,22 @@ export default function Header() {
   );
 }
 ```
-
-**활용 예시: 이전 페이지 기억**
-
+활용 예시: 이전 페이지 기억
 ```jsx
 function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from || '/';
-
   function handleLogin() {
     // 로그인 성공 후 원래 페이지로
     navigate(from, { replace: true });
   }
-
   return <button onClick={handleLogin}>Login</button>;
 }
 ```
-
 ### 2. useSearchParams
-
 ```jsx
 import { useSearchParams } from 'react-router-dom';
-
 export default function ProductList() {
   const [searchParams, setSearchParams] = useSearchParams();
   
@@ -81,17 +69,13 @@ export default function ProductList() {
   );
 }
 ```
-
-**URLSearchParams API:**
-
+URLSearchParams API:
 ```jsx
 const [searchParams, setSearchParams] = useSearchParams();
-
 // 읽기
 searchParams.get('category');           // 'books'
 searchParams.getAll('tags');            // ['fiction', 'bestseller']
 searchParams.has('category');           // true
-
 // 쓰기
 setSearchParams({ category: 'movies' });
 setSearchParams(prev => {
@@ -99,12 +83,9 @@ setSearchParams(prev => {
   return prev;
 });
 ```
-
 ### 3. useParams (재확인)
-
 ```jsx
 import { useParams } from 'react-router-dom';
-
 function BlogPost() {
   const { postId } = useParams();
   const [post, setPost] = useState(null);
@@ -118,12 +99,9 @@ function BlogPost() {
   return <article>{post?.title}</article>;
 }
 ```
-
 ### 4. useMatch
-
 ```jsx
 import { useMatch } from 'react-router-dom';
-
 function Navigation() {
   const match = useMatch('/users/:userId');
   
@@ -134,12 +112,9 @@ function Navigation() {
   return <nav>...</nav>;
 }
 ```
-
 ### 5. useRoutes (프로그래밍 방식 라우트)
-
 ```jsx
 import { useRoutes } from 'react-router-dom';
-
 function App() {
   const routes = useRoutes([
     { path: '/', element: <Home /> },
@@ -157,31 +132,24 @@ function App() {
   return routes;
 }
 ```
-
 ### Vue Router와 비교
-
 ```html
 <!-- Vue Router -->
 <script setup>
 import { useRoute, useRouter } from 'vue-router'
-
 const route = useRoute()
 const router = useRouter()
-
 // 현재 경로
 const path = route.path
 const params = route.params
 const query = route.query
-
 // 쿼리 변경
 router.push({ query: { page: 2 } })
 </script>
 ```
-
 ```jsx
 // React Router
 import { useLocation, useParams, useSearchParams } from 'react-router-dom'
-
 function Component() {
   const location = useLocation()
   const params = useParams()
@@ -196,5 +164,4 @@ function Component() {
   setSearchParams({ page: 2 })
 }
 ```
-
 ---

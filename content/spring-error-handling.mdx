@@ -1,17 +1,17 @@
 ---
 title: "Spring Boot 예외 처리 패턴"
-description: "@ControllerAdvice와 @ExceptionHandler를 사용한 글로벌 예외 처리와 실무에서 자주 발생하는 API 에러 핸들링 방법을 정리했습니다."
+description: "@ControllerAdvice와 @ExceptionHandler를 사용한 글로벌 예외 처리와 실무에서 자주 발생하는 API 에러 핸들링 방법을 정리했다."
 date: "2025-10-05"
 tags: ["Spring", "Java", "백엔드"]
 ---
 
 # Spring Boot 예외 처리 패턴
 
-Spring Boot에서 예외를 처리하는 방법은 여러 가지가 있지만, 실무에서는 `@ControllerAdvice`와 `@ExceptionHandler`를 사용한 글로벌 예외 처리가 표준입니다. API 개발 시 일관된 에러 응답을 만들고 중복 코드를 제거할 수 있습니다.
+Spring Boot에서 예외를 처리하는 방법은 여러 가지가 있지만, 실무에서는 `@ControllerAdvice`와 `@ExceptionHandler`를 사용한 글로벌 예외 처리가 표준이다. API 개발 시 일관된 에러 응답을 만들고 중복 코드를 제거할 수 있다.
 
 ## 기본 예외 처리 방식의 문제점
 
-예외 처리를 하지 않으면 Spring이 기본 에러 페이지를 반환합니다.
+예외 처리를 하지 않으면 Spring이 기본 에러 페이지를 반환한다.
 
 ```java
 @RestController
@@ -63,7 +63,7 @@ public class UserService {
 
 ## ExceptionHandler 기본 사용법
 
-컨트롤러 내부에서 예외를 처리할 수 있습니다.
+컨트롤러 내부에서 예외를 처리할 수 있다.
 
 ```java
 @RestController
@@ -105,7 +105,7 @@ public record ErrorResponse(String code, String message) {
 }
 ```
 
-이제 404 상태 코드와 일관된 형식으로 응답합니다.
+이제 404 상태 코드와 일관된 형식으로 응답한다.
 
 ```json
 {
@@ -114,11 +114,11 @@ public record ErrorResponse(String code, String message) {
 }
 ```
 
-하지만 이 방식은 모든 컨트롤러에 반복해서 작성해야 하는 문제가 있습니다.
+하지만 이 방식은 모든 컨트롤러에 반복해서 작성해야 하는 문제가 있다.
 
 ## ControllerAdvice로 글로벌 예외 처리
 
-`@ControllerAdvice`를 사용하면 모든 컨트롤러의 예외를 한 곳에서 처리할 수 있습니다.
+`@ControllerAdvice`를 사용하면 모든 컨트롤러의 예외를 한 곳에서 처리할 수 있다.
 
 ```java
 @RestControllerAdvice
@@ -183,7 +183,7 @@ public class UserController {
 
 ## 표준 에러 응답 설계
 
-실무에서는 더 상세한 에러 정보를 제공하는 것이 좋습니다.
+실무에서는 더 상세한 에러 정보를 제공하는 것이 좋다.
 
 ```java
 public record ErrorResponse(
@@ -198,7 +198,7 @@ public record ErrorResponse(
 }
 ```
 
-필드 검증 에러는 어떤 필드에서 에러가 발생했는지 알려줘야 합니다.
+필드 검증 에러는 어떤 필드에서 에러가 발생했는지 알려줘야 한다.
 
 ```java
 public record ErrorResponse(
@@ -226,7 +226,7 @@ public record ErrorResponse(
 
 ## Validation 에러 처리
 
-`@Valid`를 사용하면 `MethodArgumentNotValidException`이 발생합니다.
+`@Valid`를 사용하면 `MethodArgumentNotValidException`이 발생한다.
 
 ```java
 @PostMapping
@@ -255,7 +255,7 @@ public class UserRequest {
 }
 ```
 
-이 예외를 처리하는 핸들러를 추가합니다.
+이 예외를 처리하는 핸들러를 추가한다.
 
 ```java
 @RestControllerAdvice
@@ -288,7 +288,7 @@ public class GlobalExceptionHandler {
 }
 ```
 
-잘못된 요청이 오면 상세한 정보를 반환합니다.
+잘못된 요청이 오면 상세한 정보를 반환한다.
 
 ```json
 {
@@ -318,7 +318,7 @@ public class GlobalExceptionHandler {
 
 ## ResponseEntityExceptionHandler 확장
 
-Spring MVC가 발생시키는 표준 예외들을 처리하려면 `ResponseEntityExceptionHandler`를 확장합니다.
+Spring MVC가 발생시키는 표준 예외들을 처리하려면 `ResponseEntityExceptionHandler`를 확장한다.
 
 ```java
 @RestControllerAdvice
@@ -513,7 +513,7 @@ public class UnauthorizedException extends BusinessException {
 }
 ```
 
-이제 예외 핸들러를 간단하게 만들 수 있습니다.
+이제 예외 핸들러를 간단하게 만들 수 있다.
 
 ```java
 @RestControllerAdvice
@@ -721,7 +721,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
 ## 로깅
 
-예외가 발생하면 로그를 남기는 것이 좋습니다.
+예외가 발생하면 로그를 남기는 것이 좋다.
 
 ```java
 @RestControllerAdvice
@@ -767,7 +767,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
 ## 프로덕션 환경 설정
 
-개발 환경에서는 상세한 에러 정보를 보여주고, 프로덕션에서는 최소한의 정보만 노출합니다.
+개발 환경에서는 상세한 에러 정보를 보여주고, 프로덕션에서는 최소한의 정보만 노출한다.
 
 ```java
 @RestControllerAdvice
@@ -811,7 +811,7 @@ app:
 
 ## 국제화 지원
 
-에러 메시지를 다국어로 제공할 수 있습니다.
+에러 메시지를 다국어로 제공할 수 있다.
 
 ```properties
 # messages.properties
@@ -821,9 +821,9 @@ error.validation.name.required=Name is required
 error.validation.email.invalid=Invalid email format
 
 # messages_ko.properties
-error.user.not-found=사용자를 찾을 수 없습니다
-error.user.duplicate-email=이미 사용 중인 이메일입니다
-error.validation.name.required=이름은 필수입니다
+error.user.not-found=사용자를 찾을 수 없다
+error.user.duplicate-email=이미 사용 중인 이메일이다
+error.validation.name.required=이름은 필수이다
 error.validation.email.invalid=올바른 이메일 형식이 아닙니다
 ```
 
@@ -857,11 +857,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 }
 ```
 
-요청 헤더에 `Accept-Language: ko`를 넣으면 한글 메시지가 반환됩니다.
+요청 헤더에 `Accept-Language: ko`를 넣으면 한글 메시지가 반환된다.
 
 ## 에러 코드 관리
 
-에러 코드를 enum으로 관리하면 일관성을 유지할 수 있습니다.
+에러 코드를 enum으로 관리하면 일관성을 유지할 수 있다.
 
 ```java
 @Getter
@@ -948,7 +948,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
 ## 테스트
 
-예외 처리가 제대로 동작하는지 테스트해야 합니다.
+예외 처리가 제대로 동작하는지 테스트해야 한다.
 
 ```java
 @WebMvcTest(UserController.class)
@@ -995,6 +995,6 @@ class UserControllerTest {
 
 ## 정리
 
-Spring Boot의 예외 처리는 `@ControllerAdvice`와 `@ExceptionHandler`를 중심으로 구성하는 것이 표준입니다. 비즈니스 예외를 계층화하고 `ErrorCode` enum으로 관리하면 일관된 에러 응답을 만들 수 있습니다.
+Spring Boot의 예외 처리는 `@ControllerAdvice`와 `@ExceptionHandler`를 중심으로 구성하는 것이 표준이다. 비즈니스 예외를 계층화하고 `ErrorCode` enum으로 관리하면 일관된 에러 응답을 만들 수 있다.
 
-실무에서는 Validation 에러, 중복 데이터, 권한 검증, 외부 API 실패 같은 케이스들을 미리 정의해두고, 프로덕션 환경에서는 민감한 정보를 노출하지 않도록 주의해야 합니다. 모든 예외는 로그로 남겨서 나중에 문제를 추적할 수 있게 하는 것도 중요합니다.
+실무에서는 Validation 에러, 중복 데이터, 권한 검증, 외부 API 실패 같은 케이스들을 미리 정의해두고, 프로덕션 환경에서는 민감한 정보를 노출하지 않도록 주의해야 한다. 모든 예외는 로그로 남겨서 나중에 문제를 추적할 수 있게 하는 것도 중요한다.

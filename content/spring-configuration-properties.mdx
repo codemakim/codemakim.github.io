@@ -1,17 +1,17 @@
 ---
 title: "Spring ConfigurationProperties로 설정 관리하기"
-description: "YAML 설정을 타입 안전하게 바인딩하는 방법과 @Value와의 차이, 실무에서 DB/Redis/AWS 설정을 관리하는 패턴을 정리했습니다."
+description: "YAML 설정을 타입 안전하게 바인딩하는 방법과 @Value와의 차이, 실무에서 DB/Redis/AWS 설정을 관리하는 패턴을 정리했다."
 date: "2025-09-28"
 tags: ["Spring", "Java", "백엔드"]
 ---
 
 # Spring ConfigurationProperties로 설정 관리하기
 
-Spring Boot 애플리케이션의 설정을 관리하는 방법은 `@Value`와 `@ConfigurationProperties` 두 가지가 있습니다. 실무에서 DB, Redis, AWS 같은 외부 시스템 설정을 다룰 때는 `@ConfigurationProperties`를 주로 사용합니다. 타입 안전성과 검증 기능을 제공하기 때문입니다.
+Spring Boot 애플리케이션의 설정을 관리하는 방법은 `@Value`와 `@ConfigurationProperties` 두 가지가 있다. 실무에서 DB, Redis, AWS 같은 외부 시스템 설정을 다룰 때는 `@ConfigurationProperties`를 주로 사용한다. 타입 안전성과 검증 기능을 제공하기 때문이다.
 
 ## Value의 한계
 
-간단한 설정은 `@Value`로 충분합니다.
+간단한 설정은 `@Value`로 충분한다.
 
 ```java
 @Service
@@ -80,7 +80,7 @@ public class DatabaseService {
 
 ## ConfigurationProperties 기본 사용법
 
-설정을 클래스로 묶어서 관리할 수 있습니다.
+설정을 클래스로 묶어서 관리할 수 있다.
 
 ```java
 @ConfigurationProperties(prefix = "database")
@@ -119,7 +119,7 @@ database:
     timeout: 30000
 ```
 
-설정 클래스를 활성화하는 방법은 두 가지입니다.
+설정 클래스를 활성화하는 방법은 두 가지이다.
 
 ### 방법 1: Component로 등록
 
@@ -168,7 +168,7 @@ public class DatabaseConfig {
 
 ## Lombok과 함께 사용하기
 
-Lombok을 사용하면 getter/setter 보일러플레이트를 제거할 수 있습니다.
+Lombok을 사용하면 getter/setter 보일러플레이트를 제거할 수 있다.
 
 ```java
 @Data
@@ -191,7 +191,7 @@ public class DatabaseProperties {
 }
 ```
 
-생성자 바인딩을 사용하면 불변 객체로 만들 수 있습니다.
+생성자 바인딩을 사용하면 불변 객체로 만들 수 있다.
 
 ```java
 @Getter
@@ -236,7 +236,7 @@ public class DatabaseProperties {
 }
 ```
 
-Spring Boot 3.0부터는 `@ConstructorBinding`이 자동으로 적용되므로 생략 가능합니다.
+Spring Boot 3.0부터는 `@ConstructorBinding`이 자동으로 적용되므로 생략 가능한다.
 
 ```java
 @Getter
@@ -277,7 +277,7 @@ public class AppProperties {
 }
 ```
 
-단순한 값 하나는 `@Value`가 낫습니다.
+단순한 값 하나는 `@Value`가 낫다.
 
 ### 관련된 설정 여러 개
 
@@ -305,7 +305,7 @@ public class RedisProperties {
 }
 ```
 
-관련된 설정이 여러 개면 `@ConfigurationProperties`가 낫습니다.
+관련된 설정이 여러 개면 `@ConfigurationProperties`가 낫다.
 
 ### 중첩 구조
 
@@ -343,7 +343,7 @@ public class AwsProperties {
 }
 ```
 
-중첩 구조는 `@ConfigurationProperties`가 훨씬 낫습니다.
+중첩 구조는 `@ConfigurationProperties`가 훨씬 낫다.
 
 ### 타입 안전성
 
@@ -394,7 +394,7 @@ security:
 
 ## Validation 적용
 
-JSR-303 Bean Validation을 사용해서 설정값을 검증할 수 있습니다.
+JSR-303 Bean Validation을 사용해서 설정값을 검증할 수 있다.
 
 ```java
 @Validated
@@ -441,7 +441,7 @@ public class DatabaseProperties {
 }
 ```
 
-잘못된 설정이 있으면 애플리케이션 시작이 실패합니다.
+잘못된 설정이 있으면 애플리케이션 시작이 실패한다.
 
 ```yaml
 # application.yml
@@ -454,9 +454,9 @@ database:
 ```
 
 ```
-***************************
+***
 APPLICATION FAILED TO START
-***************************
+***
 
 Description:
 
@@ -792,7 +792,7 @@ public class DataSourceConfig {
 
 ## 커스텀 Validator
 
-복잡한 검증 로직은 커스텀 Validator를 만들 수 있습니다.
+복잡한 검증 로직은 커스텀 Validator를 만들 수 있다.
 
 ```java
 @Target(ElementType.TYPE)
@@ -847,7 +847,7 @@ public static class Pool {
 
 ## 프로필별 설정
 
-환경별로 다른 설정을 사용할 수 있습니다.
+환경별로 다른 설정을 사용할 수 있다.
 
 ```yaml
 # application.yml (공통)
@@ -865,7 +865,6 @@ database:
   username: dev
   password: dev
   database: myapp_dev
-
 ---
 # application-dev.yml
 database:
@@ -891,11 +890,8 @@ database:
     max-size: 50
     timeout: 60000
 ```
-
 ## 설정 파일 분리
-
-설정이 많으면 파일을 나눌 수 있습니다.
-
+설정이 많으면 파일을 나눌 수 있다.
 ```yaml
 # application.yml
 spring:
@@ -905,7 +901,6 @@ spring:
       - redis
       - aws
       - security
-
 ---
 # application-database.yml
 database:
@@ -920,7 +915,6 @@ redis:
   host: ${REDIS_HOST:localhost}
   port: ${REDIS_PORT:6379}
   password: ${REDIS_PASSWORD}
-
 ---
 # application-aws.yml
 aws:
@@ -931,7 +925,7 @@ aws:
 
 ## IDE 자동완성 지원
 
-Spring Boot Configuration Processor를 추가하면 IDE에서 자동완성을 지원합니다.
+Spring Boot Configuration Processor를 추가하면 IDE에서 자동완성을 지원한다.
 
 ```xml
 <!-- Maven -->
@@ -965,10 +959,10 @@ public class CustomProperties {
 }
 ```
 
-주석을 작성하면 IDE에서 설명을 볼 수 있습니다.
+주석을 작성하면 IDE에서 설명을 볼 수 있다.
 
 ## 정리
 
-`@ConfigurationProperties`는 관련된 설정을 그룹화하고 타입 안전하게 관리할 수 있는 방법입니다. 단순한 값 하나는 `@Value`가 낫지만, DB나 Redis 같은 외부 시스템 설정처럼 여러 값이 모여있고 검증이 필요한 경우에는 `@ConfigurationProperties`를 사용하는 것이 좋습니다.
+`@ConfigurationProperties`는 관련된 설정을 그룹화하고 타입 안전하게 관리할 수 있는 방법이다. 단순한 값 하나는 `@Value`가 낫지만, DB나 Redis 같은 외부 시스템 설정처럼 여러 값이 모여있고 검증이 필요한 경우에는 `@ConfigurationProperties`를 사용하는 것이 좋다.
 
-Validation을 함께 사용하면 잘못된 설정으로 애플리케이션이 시작되는 것을 방지할 수 있고, IDE 자동완성 지원으로 개발 경험도 좋아집니다. 실무에서는 설정 클래스를 따로 패키지로 분리해서 관리하고, 환경별로 다른 YAML 파일을 사용하는 것이 일반적입니다.
+Validation을 함께 사용하면 잘못된 설정으로 애플리케이션이 시작되는 것을 방지할 수 있고, IDE 자동완성 지원으로 개발 경험도 좋아집니다. 실무에서는 설정 클래스를 따로 패키지로 분리해서 관리하고, 환경별로 다른 YAML 파일을 사용하는 것이 일반적이다.

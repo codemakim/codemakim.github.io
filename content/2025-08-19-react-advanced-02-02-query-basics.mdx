@@ -1,5 +1,5 @@
 ---
-title: "🚀 [React 라이브러리 2/8] React Query - 쿼리 기초"
+title: "[React 라이브러리 2/8] React Query - 쿼리 기초"
 date: "2025-08-20"
 description: "useQuery, useQueries, 쿼리 상태 관리"
 tags: ["React", "고급", "프론트엔드"]
@@ -13,26 +13,19 @@ seriesOrder: 47
 > 출처: [TanStack Query Documentation](https://tanstack.com/query/)
 
 ---
-
 ## 쿼리 기초
 쿼리 기초
-
 설치 및 설정
-
 ### 설치
-
 ```bash
 npm install @tanstack/react-query
 npm install @tanstack/react-query-devtools
 ```
-
 ### 기본 설정
-
 ```jsx
 // App.jsx
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -43,7 +36,6 @@ const queryClient = new QueryClient({
     },
   },
 });
-
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -53,9 +45,7 @@ export default function App() {
   );
 }
 ```
-
 ### QueryClient 옵션
-
 ```javascript
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -74,5 +64,4 @@ const queryClient = new QueryClient({
   },
 });
 ```
-
 ---

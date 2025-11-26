@@ -1,7 +1,7 @@
 ---
 title: "🧪 [React 테스팅 3/3] E2E - Playwright & Cypress"
 date: "2025-09-22"
-description: "End-to-End 테스팅 전략과 도구 선택 기준을 학습합니다"
+description: "End-to-End 테스팅 전략과 도구 선택 기준을 학습한다"
 tags: ["Testing", "중급", "프론트엔드"]
 series: "React 테스팅"
 seriesOrder: 3
@@ -12,50 +12,40 @@ seriesOrder: 3
 > End-to-End 테스팅 학습 자료
 
 ---
-
 ## 📚 목차
-
 1. [개요](#개요)
 2. [Playwright](#playwright)
 3. [Cypress](#cypress)
 4. [비교 및 선택](#비교-및-선택)
-
 ---
 
 ## 개요
 
 ### E2E 테스팅이란?
 
-실제 사용자처럼 애플리케이션을 테스트하는 방법입니다.
+실제 사용자처럼 애플리케이션을 테스트하는 방법이다.
 
-**특징:**
+특징:
 
 - 전체 시스템 테스트
 - 브라우저 자동화
 - 사용자 플로우 검증
 
 ---
-
 ## Playwright
-
 ### 설치
-
 ```bash
 npm install --save-dev @playwright/test
 npx playwright install
 ```
-
 ### 기본 테스트
-
 ```javascript
 // tests/example.spec.js
 import { test, expect } from '@playwright/test';
-
 test('홈페이지 방문', async ({ page }) => {
   await page.goto('http://localhost:3000');
   await expect(page).toHaveTitle(/My App/);
 });
-
 test('로그인', async ({ page }) => {
   await page.goto('http://localhost:3000/login');
   
@@ -66,28 +56,20 @@ test('로그인', async ({ page }) => {
   await expect(page).toHaveURL(/dashboard/);
 });
 ```
-
 ### Selectors
-
 ```javascript
 // 텍스트로 찾기
 await page.click('text=Submit');
-
 // Role로 찾기
 await page.click('role=button[name="Submit"]');
-
 // CSS Selector
 await page.click('.submit-button');
-
 // XPath
 await page.click('//button[@type="submit"]');
-
 // 복합
 await page.locator('button').filter({ hasText: 'Submit' }).click();
 ```
-
 ### API 테스트
-
 ```javascript
 test('API 호출 테스트', async ({ request }) => {
   const response = await request.post('/api/users', {
@@ -102,16 +84,13 @@ test('API 호출 테스트', async ({ request }) => {
   expect(data.name).toBe('John');
 });
 ```
-
 ### 스크린샷
-
 ```javascript
 test('스크린샷', async ({ page }) => {
   await page.goto('http://localhost:3000');
   await page.screenshot({ path: 'screenshot.png' });
 });
 ```
-
 ---
 
 ## Cypress
@@ -161,12 +140,10 @@ cy.login('test@example.com', 'password123');
 ```
 
 ---
-
 ## 비교 및 선택
-
 | 기능 | Playwright | Cypress |
 |------|-----------|---------|
-| **속도** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
-| **브라우저** | Chrome, Firefox, Safari | Chrome, Firefox, Edge |
-| **병렬 실행** | ✅ | ✅ (유료) |
-| **학습 곡선** | 중간 | 쉬움 |
+| 속도 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
+| 브라우저 | Chrome, Firefox, Safari | Chrome, Firefox, Edge |
+| 병렬 실행 |  |  (유료) |
+| 학습 곡선 | 중간 | 쉬움 |

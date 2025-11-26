@@ -1,17 +1,17 @@
 ---
 title: "Spring Boot 3.x WebMVC 요청 처리 흐름"
-description: "HTTP 요청이 DispatcherServlet을 거쳐 컨트롤러까지 도달하는 과정과 Spring Boot 3.x에서 바뀐 점을 정리했습니다."
+description: "HTTP 요청이 DispatcherServlet을 거쳐 컨트롤러까지 도달하는 과정과 Spring Boot 3.x에서 바뀐 점을 정리했다."
 date: "2025-09-14"
 tags: ["Spring", "Java", "백엔드"]
 ---
 
 # Spring Boot 3.x WebMVC 요청 처리 흐름
 
-이전 글에서 컨트롤러 메서드의 파라미터를 어떻게 받는지 정리했다면, 이번에는 HTTP 요청이 실제로 컨트롤러까지 어떻게 도달하는지 전체 흐름을 정리했습니다. `@PathVariable`이나 `@RequestParam` 같은 애노테이션이 내부적으로 어떻게 처리되는지 이해할 수 있습니다.
+이전 글에서 컨트롤러 메서드의 파라미터를 어떻게 받는지 정리했다면, 이번에는 HTTP 요청이 실제로 컨트롤러까지 어떻게 도달하는지 전체 흐름을 정리했다. `@PathVariable`이나 `@RequestParam` 같은 애노테이션이 내부적으로 어떻게 처리되는지 이해할 수 있다.
 
 ## 전체 흐름 개요
 
-클라이언트의 HTTP 요청이 컨트롤러 메서드를 실행하고 응답을 반환하기까지의 과정은 다음과 같습니다.
+클라이언트의 HTTP 요청이 컨트롤러 메서드를 실행하고 응답을 반환하기까지의 과정은 다음과 같다.
 
 ```
 HTTP 요청
@@ -33,11 +33,11 @@ ViewResolver (뷰 렌더링) 또는 MessageConverter (JSON 변환)
 HTTP 응답
 ```
 
-각 단계를 하나씩 살펴보겠습니다.
+각 단계를 하나씩 살펴보겠다.
 
 ## DispatcherServlet
 
-Spring MVC의 중심이 되는 프론트 컨트롤러입니다. 모든 HTTP 요청을 가장 먼저 받아서 적절한 핸들러로 분배하는 역할을 합니다.
+Spring MVC의 중심이 되는 프론트 컨트롤러이다. 모든 HTTP 요청을 가장 먼저 받아서 적절한 핸들러로 분배하는 역할을 한다.
 
 ### 주요 역할
 
@@ -68,7 +68,7 @@ protected void doDispatch(HttpServletRequest request, HttpServletResponse respon
 
 ### 등록 과정
 
-Spring Boot에서는 자동으로 설정되지만, 내부적으로는 다음과 같이 등록됩니다.
+Spring Boot에서는 자동으로 설정되지만, 내부적으로는 다음과 같이 등록된다.
 
 ```java
 // Spring Boot Auto Configuration
@@ -86,15 +86,15 @@ public class DispatcherServletAutoConfiguration {
 }
 ```
 
-기본적으로 모든 요청 경로에 대해 매핑됩니다.
+기본적으로 모든 요청 경로에 대해 매핑된다.
 
 ## HandlerMapping
 
-요청 URL과 HTTP 메서드를 보고 어떤 컨트롤러 메서드를 실행할지 결정합니다.
+요청 URL과 HTTP 메서드를 보고 어떤 컨트롤러 메서드를 실행할지 결정한다.
 
 ### 매핑 방식
 
-Spring MVC는 여러 HandlerMapping 구현체를 가지고 있습니다.
+Spring MVC는 여러 HandlerMapping 구현체를 가지고 있다.
 
 ```java
 public interface HandlerMapping {
@@ -102,7 +102,7 @@ public interface HandlerMapping {
 }
 ```
 
-주로 사용되는 구현체는 `RequestMappingHandlerMapping`입니다.
+주로 사용되는 구현체는 `RequestMappingHandlerMapping`이다.
 
 ```java
 @RestController
@@ -123,7 +123,7 @@ public class UserController {
 }
 ```
 
-위 컨트롤러가 있을 때 `RequestMappingHandlerMapping`은 애플리케이션 시작 시점에 다음 정보를 수집합니다.
+위 컨트롤러가 있을 때 `RequestMappingHandlerMapping`은 애플리케이션 시작 시점에 다음 정보를 수집한다.
 
 - URL 패턴: `/api/users/{id}`, `/api/users`
 - HTTP 메서드: GET, POST
@@ -132,7 +132,7 @@ public class UserController {
 
 ### 매핑 우선순위
 
-여러 핸들러가 동일한 요청과 매칭될 수 있을 때는 더 구체적인 패턴이 우선됩니다.
+여러 핸들러가 동일한 요청과 매칭될 수 있을 때는 더 구체적인 패턴이 우선된다.
 
 ```java
 @GetMapping("/users/admin")  // 더 구체적 - 우선
@@ -142,11 +142,11 @@ public String admin() { ... }
 public String user(@PathVariable String id) { ... }
 ```
 
-`GET /users/admin` 요청이 오면 첫 번째 메서드가 선택됩니다.
+`GET /users/admin` 요청이 오면 첫 번째 메서드가 선택된다.
 
 ## HandlerAdapter
 
-찾아낸 핸들러를 실제로 실행하는 역할을 합니다. 다양한 형태의 핸들러를 통일된 방식으로 실행할 수 있게 해주는 어댑터 패턴입니다.
+찾아낸 핸들러를 실제로 실행하는 역할을 한다. 다양한 형태의 핸들러를 통일된 방식으로 실행할 수 있게 해주는 어댑터 패턴이다.
 
 ### 주요 구현체
 
@@ -159,7 +159,7 @@ public interface HandlerAdapter {
 }
 ```
 
-`@Controller`나 `@RestController`의 메서드는 `RequestMappingHandlerAdapter`가 처리합니다.
+`@Controller`나 `@RestController`의 메서드는 `RequestMappingHandlerAdapter`가 처리한다.
 
 ```java
 @Component
@@ -188,7 +188,7 @@ public class RequestMappingHandlerAdapter extends AbstractHandlerMethodAdapter {
 
 ## ArgumentResolver
 
-컨트롤러 메서드의 파라미터를 준비하는 역할을 합니다. `@PathVariable`, `@RequestParam`, `@RequestBody` 같은 애노테이션을 보고 실제 값을 생성합니다.
+컨트롤러 메서드의 파라미터를 준비하는 역할을 한다. `@PathVariable`, `@RequestParam`, `@RequestBody` 같은 애노테이션을 보고 실제 값을 생성한다.
 
 ### 동작 방식
 
@@ -207,7 +207,7 @@ public interface HandlerMethodArgumentResolver {
 
 ### 주요 ArgumentResolver
 
-Spring MVC는 30개 이상의 기본 ArgumentResolver를 제공합니다.
+Spring MVC는 30개 이상의 기본 ArgumentResolver를 제공한다.
 
 ```java
 // @PathVariable 처리
@@ -233,7 +233,7 @@ public class PathVariableMethodArgumentResolver implements HandlerMethodArgument
 }
 ```
 
-다른 주요 Resolver들도 비슷한 방식으로 동작합니다.
+다른 주요 Resolver들도 비슷한 방식으로 동작한다.
 
 - `RequestParamMethodArgumentResolver`: `@RequestParam` 처리
 - `RequestResponseBodyMethodProcessor`: `@RequestBody` 처리
@@ -272,7 +272,7 @@ public User getUser(@PathVariable Long id,
 
 ### 커스텀 ArgumentResolver
 
-필요하다면 직접 ArgumentResolver를 만들 수 있습니다.
+필요하다면 직접 ArgumentResolver를 만들 수 있다.
 
 ```java
 // 현재 로그인한 사용자 정보를 주입하는 Resolver
@@ -310,7 +310,7 @@ public UserProfile getProfile(@CurrentUser User user) {
 
 ## Controller 실행
 
-모든 파라미터가 준비되면 리플렉션을 사용해 실제 컨트롤러 메서드를 호출합니다.
+모든 파라미터가 준비되면 리플렉션을 사용해 실제 컨트롤러 메서드를 호출한다.
 
 ```java
 // HandlerMethod 내부 (간략화)
@@ -323,7 +323,7 @@ public Object invoke(Object... args) throws Exception {
 }
 ```
 
-컨트롤러 메서드는 Spring Bean이므로 의존성 주입된 서비스를 사용할 수 있습니다.
+컨트롤러 메서드는 Spring Bean이므로 의존성 주입된 서비스를 사용할 수 있다.
 
 ```java
 @RestController
@@ -364,7 +364,7 @@ public interface HandlerMethodReturnValueHandler {
 
 ### 주요 ReturnValueHandler
 
-반환 타입과 애노테이션에 따라 다른 Handler가 동작합니다.
+반환 타입과 애노테이션에 따라 다른 Handler가 동작한다.
 
 ```java
 // 1. @ResponseBody가 있거나 @RestController인 경우
@@ -402,7 +402,7 @@ public ResponseEntity<User> getUser(@PathVariable Long id) {
 
 ### MessageConverter
 
-`@ResponseBody`나 `@RestController`를 사용하면 객체를 JSON이나 XML로 변환해야 합니다. 이때 `HttpMessageConverter`가 사용됩니다.
+`@ResponseBody`나 `@RestController`를 사용하면 객체를 JSON이나 XML로 변환해야 한다. 이때 `HttpMessageConverter`가 사용된다.
 
 ```java
 public interface HttpMessageConverter<T> {
@@ -439,7 +439,7 @@ public class UserController {
 }
 ```
 
-내부적으로는 이렇게 처리됩니다.
+내부적으로는 이렇게 처리된다.
 
 ```java
 // RequestResponseBodyMethodProcessor 내부
@@ -454,11 +454,11 @@ public void handleReturnValue(Object returnValue, ...) {
 
 ## Spring Boot 3.x 주요 변경사항
 
-Spring Boot 3.0부터 Java 17 최소 요구와 Jakarta EE로 전환되었습니다.
+Spring Boot 3.0부터 Java 17 최소 요구와 Jakarta EE로 전환되었다.
 
 ### Jakarta EE 네임스페이스 변경
 
-가장 큰 변화는 패키지명 변경입니다.
+가장 큰 변화는 패키지명 변경이다.
 
 ```java
 // Spring Boot 2.x (javax.*)
@@ -476,7 +476,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 ```
 
-코드 수정이 필요하지만 IDE의 자동 import 변경 기능으로 쉽게 처리할 수 있습니다.
+코드 수정이 필요하지만 IDE의 자동 import 변경 기능으로 쉽게 처리할 수 있다.
 
 ### 마이그레이션 영향 범위
 
@@ -499,7 +499,7 @@ jakarta.persistence.*
 
 ### 동작 방식은 동일
 
-패키지명만 바뀌었을 뿐 내부 동작 방식은 동일합니다. DispatcherServlet, HandlerMapping, HandlerAdapter, ArgumentResolver, ReturnValueHandler 모두 같은 방식으로 작동합니다.
+패키지명만 바뀌었을 뿐 내부 동작 방식은 동일한다. DispatcherServlet, HandlerMapping, HandlerAdapter, ArgumentResolver, ReturnValueHandler 모두 같은 방식으로 작동한다.
 
 ```java
 // Spring Boot 3.x 컨트롤러 예제
@@ -522,7 +522,7 @@ public class UserController {
 
 ### Spring 6.0 새로운 기능
 
-Spring Boot 3.x는 Spring Framework 6.0 기반이며 몇 가지 새로운 기능이 추가되었습니다.
+Spring Boot 3.x는 Spring Framework 6.0 기반이며 몇 가지 새로운 기능이 추가되었다.
 
 ```java
 // 1. HTTP Interface Client (선언적 HTTP 클라이언트)
@@ -555,11 +555,11 @@ public class GlobalExceptionHandler {
 
 ### Native Image 지원
 
-GraalVM Native Image 빌드가 공식 지원되면서 애플리케이션 시작 시간이 크게 단축되었습니다. WebMVC 동작 방식은 동일하지만 리플렉션과 프록시 사용이 제한됩니다.
+GraalVM Native Image 빌드가 공식 지원되면서 애플리케이션 시작 시간이 크게 단축되었다. WebMVC 동작 방식은 동일하지만 리플렉션과 프록시 사용이 제한된다.
 
 ## 실전 디버깅 팁
 
-요청 처리 과정을 디버깅할 때 유용한 방법들입니다.
+요청 처리 과정을 디버깅할 때 유용한 방법들이다.
 
 ### 로그 레벨 설정
 
@@ -571,7 +571,7 @@ logging:
     org.springframework.web.servlet.mvc: TRACE
 ```
 
-이렇게 설정하면 HandlerMapping, HandlerAdapter, ArgumentResolver, ReturnValueHandler의 동작을 로그로 확인할 수 있습니다.
+이렇게 설정하면 HandlerMapping, HandlerAdapter, ArgumentResolver, ReturnValueHandler의 동작을 로그로 확인할 수 있다.
 
 ### 커스텀 인터셉터로 흐름 추적
 
@@ -617,7 +617,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
 ### HandlerMapping 정보 확인
 
-애플리케이션에 어떤 핸들러들이 등록되었는지 확인하는 방법입니다.
+애플리케이션에 어떤 핸들러들이 등록되었는지 확인하는 방법이다.
 
 ```java
 @RestController
@@ -684,4 +684,4 @@ Spring MVC의 요청 처리 흐름을 정리하면:
 6. `ReturnValueHandler`가 반환값을 HTTP 응답으로 변환
 7. `MessageConverter`가 객체를 JSON이나 XML로 직렬화
 
-Spring Boot 3.x에서는 Jakarta EE로 패키지명이 바뀌었지만 동작 방식은 동일합니다. 이 흐름을 이해하면 컨트롤러의 각종 애노테이션이 어떻게 처리되는지, 커스텀 ArgumentResolver는 어떻게 만드는지, 디버깅은 어떻게 해야 하는지 명확해집니다.
+Spring Boot 3.x에서는 Jakarta EE로 패키지명이 바뀌었지만 동작 방식은 동일한다. 이 흐름을 이해하면 컨트롤러의 각종 애노테이션이 어떻게 처리되는지, 커스텀 ArgumentResolver는 어떻게 만드는지, 디버깅은 어떻게 해야 하는지 명확해집니다.

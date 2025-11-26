@@ -1,7 +1,7 @@
 ---
 title: "🧪 [React 테스팅 2/3] RTL - 사용자 관점 테스트"
 date: "2025-09-15"
-description: "RTL의 핵심 철학과 getByRole을 우선 사용하는 이유를 이해합니다"
+description: "RTL의 핵심 철학과 getByRole을 우선 사용하는 이유를 이해한다"
 tags: ["Testing", "React", "중급", "프론트엔드"]
 series: "React 테스팅"
 seriesOrder: 2
@@ -12,9 +12,7 @@ seriesOrder: 2
 > RTL을 사용한 React 컴포넌트 테스팅 학습 자료
 
 ---
-
 ## 📚 목차
-
 1. [개요](#개요)
 2. [설치 및 설정](#설치-및-설정)
 3. [쿼리 메서드](#쿼리-메서드)
@@ -22,27 +20,26 @@ seriesOrder: 2
 5. [비동기 테스트](#비동기-테스트)
 6. [Mock과 Spy](#mock과-spy)
 7. [고급 패턴](#고급-패턴)
-
 ---
 
 ## 개요
 
 ### React Testing Library란?
 
-**RTL**은 사용자 관점에서 React 컴포넌트를 테스트하는 라이브러리입니다.
+RTL은 사용자 관점에서 React 컴포넌트를 테스트하는 라이브러리이다.
 
-### 🔍 RTL의 핵심 철학 (실무 필수!)
+###  RTL의 핵심 철학 (실무 필수!)
 
-**"The more your tests resemble the way your software is used, the more confidence they can give you."**
+"The more your tests resemble the way your software is used, the more confidence they can give you."
 
-"테스트가 실제 소프트웨어 사용 방식과 유사할수록 더 많은 확신을 줄 수 있습니다."
+"테스트가 실제 소프트웨어 사용 방식과 유사할수록 더 많은 확신을 줄 수 있다."
 
-### 🎯 왜 이 철학이 중요한가?
+###  왜 이 철학이 중요한가?
 
-**잘못된 테스트 (구현 세부사항 테스트):**
+잘못된 테스트 (구현 세부사항 테스트):
 
 ```jsx
-// ❌ 나쁨: 내부 state 테스트
+//  나쁨: 내부 state 테스트
 test('counter state 증가', () => {
   const { result } = renderHook(() => useState(0));
   act(() => {
@@ -57,10 +54,10 @@ test('counter state 증가', () => {
 // - 리팩토링이 어려움
 ```
 
-**올바른 테스트 (사용자 행동 테스트):**
+올바른 테스트 (사용자 행동 테스트):
 
 ```jsx
-// ✅ 좋음: 사용자가 보는 대로 테스트
+//  좋음: 사용자가 보는 대로 테스트
 test('버튼 클릭하면 숫자 증가', async () => {
   render(<Counter />);
   
@@ -76,7 +73,7 @@ test('버튼 클릭하면 숫자 증가', async () => {
 // - 리팩토링 안전
 ```
 
-### 🎯 구현 세부사항 vs 사용자 행동
+###  구현 세부사항 vs 사용자 행동
 
 | 구현 세부사항 (피하기) | 사용자 행동 (추천) |
 |---------------------|-----------------|
@@ -85,25 +82,25 @@ test('버튼 클릭하면 숫자 증가', async () => {
 | 함수 호출 여부 | UI 변경 확인 |
 | class 이름 확인 | role로 요소 찾기 |
 
-### 💡 실무 TIP: "왜 getByRole을 우선 사용하나요?"
+###  실무 TIP: "왜 getByRole을 우선 사용하나요?"
 
-**답변 예시:**
+답변 예시:
 
-"getByRole을 우선 사용하는 이유는 **접근성**과 **안정성** 때문입니다.
+"getByRole을 우선 사용하는 이유는 접근성과 안정성 때문이다.
 
-**1. 접근성:**
-스크린 리더 사용자는 role로 페이지를 탐색합니다.
+1. 접근성:
+스크린 리더 사용자는 role로 페이지를 탐색한다.
 
 ```jsx
-// ✅ 좋음: 스크린 리더가 '제출 버튼'으로 인식
+//  좋음: 스크린 리더가 '제출 버튼'으로 인식
 <button>Submit</button>
 getByRole('button', { name: /submit/i })
 
-// ❌ 나쁨: 스크린 리더가 의미를 모름
+//  나쁨: 스크린 리더가 의미를 모름
 <div className="submit-btn" onClick={...}>Submit</div>
 ```
 
-**2. 리팩토링 안전:**
+2. 리팩토링 안전:
 
 ```jsx
 // 구조 변경해도 테스트 통과
@@ -117,16 +114,16 @@ getByRole('button', { name: /submit/i })
 getByRole('button', { name: /submit/i })
 ```
 
-**3. 올바른 HTML 강제:**
-getByRole('button')을 사용하면 자연스럽게 `<button>` 태그를 사용하게 됩니다. `<div>`로 버튼 만드는 안티패턴을 방지합니다.
+3. 올바른 HTML 강제:
+getByRole('button')을 사용하면 자연스럽게 `<button>` 태그를 사용하게 된다. `<div>`로 버튼 만드는 안티패턴을 방지한다.
 
-**실무 가치:**
+실무 가치:
 
 - 접근성 좋은 코드 = 테스트하기 좋은 코드
 - 사용자 경험 향상
 - 유지보수 용이"
 
-**핵심 원칙:**
+핵심 원칙:
 
 - 구현 세부사항이 아닌 사용자 행동 테스트
 - DOM 쿼리 우선순위
@@ -156,21 +153,16 @@ import '@testing-library/jest-dom';
 ```
 
 ---
-
 ## 설치 및 설정
-
 ### 기본 테스트
-
 ```jsx
 // Button.jsx
 export default function Button({ onClick, children }) {
   return <button onClick={onClick}>{children}</button>;
 }
-
 // Button.test.jsx
 import { render, screen } from '@testing-library/react';
 import Button from './Button';
-
 test('버튼을 렌더링한다', () => {
   render(<Button>Click me</Button>);
   
@@ -178,24 +170,19 @@ test('버튼을 렌더링한다', () => {
   expect(button).toBeInTheDocument();
 });
 ```
-
 ### render 함수
-
 ```jsx
 import { render } from '@testing-library/react';
-
 test('컴포넌트 렌더링', () => {
   const { container, getByText, rerender, unmount } = render(
     <MyComponent />
   );
-
   // container: 렌더링된 DOM 컨테이너
   // getByText: 텍스트로 요소 찾기
   // rerender: 컴포넌트 리렌더링
   // unmount: 컴포넌트 언마운트
 });
 ```
-
 ---
 
 ## 쿼리 메서드
@@ -204,12 +191,12 @@ test('컴포넌트 렌더링', () => {
 
 | 쿼리 | 0개 | 1개 | 1개 이상 | Async |
 |------|-----|-----|---------|-------|
-| **getBy** | 에러 | 반환 | 에러 | ❌ |
-| **queryBy** | null | 반환 | 에러 | ❌ |
-| **findBy** | 에러 | 반환 | 에러 | ✅ |
-| **getAllBy** | 에러 | 배열 | 배열 | ❌ |
-| **queryAllBy** | [] | 배열 | 배열 | ❌ |
-| **findAllBy** | 에러 | 배열 | 배열 | ✅ |
+| getBy | 에러 | 반환 | 에러 |  |
+| queryBy | null | 반환 | 에러 |  |
+| findBy | 에러 | 반환 | 에러 |  |
+| getAllBy | 에러 | 배열 | 배열 |  |
+| queryAllBy | [] | 배열 | 배열 |  |
+| findAllBy | 에러 | 배열 | 배열 |  |
 
 ### Role 쿼리 (최우선)
 
@@ -294,23 +281,19 @@ test('testid로 찾기', () => {
 
 ### 쿼리 우선순위
 
-1. ✅ **getByRole** (가장 권장)
-2. ✅ **getByLabelText** (폼 요소)
-3. ✅ **getByPlaceholderText** (폼 요소)
-4. ✅ **getByText** (텍스트 콘텐츠)
-5. ✅ **getByAltText** (이미지)
-6. ⚠️ **getByTestId** (최후의 수단)
+1.  getByRole (가장 권장)
+2.  getByLabelText (폼 요소)
+3.  getByPlaceholderText (폼 요소)
+4.  getByText (텍스트 콘텐츠)
+5.  getByAltText (이미지)
+6.  getByTestId (최후의 수단)
 
 ---
-
 ## 사용자 이벤트 시뮬레이션
-
 ### user-event (권장)
-
 ```jsx
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-
 test('버튼 클릭', async () => {
   const user = userEvent.setup();
   const handleClick = jest.fn();
@@ -323,9 +306,7 @@ test('버튼 클릭', async () => {
   expect(handleClick).toHaveBeenCalledTimes(1);
 });
 ```
-
 ### 입력 이벤트
-
 ```jsx
 test('텍스트 입력', async () => {
   const user = userEvent.setup();
@@ -338,9 +319,7 @@ test('텍스트 입력', async () => {
   expect(input).toHaveValue('John Doe');
 });
 ```
-
 ### 체크박스
-
 ```jsx
 test('체크박스 토글', async () => {
   const user = userEvent.setup();
@@ -356,9 +335,7 @@ test('체크박스 토글', async () => {
   expect(checkbox).not.toBeChecked();
 });
 ```
-
 ### Select
-
 ```jsx
 test('select 선택', async () => {
   const user = userEvent.setup();
@@ -377,9 +354,7 @@ test('select 선택', async () => {
   expect(screen.getByRole('option', { name: 'Apple' }).selected).toBe(true);
 });
 ```
-
 ### 키보드 이벤트
-
 ```jsx
 test('키보드 입력', async () => {
   const user = userEvent.setup();
@@ -397,17 +372,13 @@ test('키보드 입력', async () => {
   expect(handleSubmit).toHaveBeenCalled();
 });
 ```
-
 ### fireEvent vs userEvent
-
 ```jsx
-// ❌ fireEvent (낮은 수준)
+//  fireEvent (낮은 수준)
 fireEvent.change(input, { target: { value: 'Hello' } });
-
-// ✅ userEvent (사용자 행동 시뮬레이션)
+//  userEvent (사용자 행동 시뮬레이션)
 await user.type(input, 'Hello');
 ```
-
 ---
 
 ## 비동기 테스트
@@ -459,22 +430,17 @@ test('요소 제거 대기', async () => {
 ```
 
 ---
-
 ## Mock과 Spy
-
 ### API Mock
-
 ```jsx
 // UserList.jsx
 export default function UserList() {
   const [users, setUsers] = useState([]);
-
   useEffect(() => {
     fetch('/api/users')
       .then(res => res.json())
       .then(setUsers);
   }, []);
-
   return (
     <ul>
       {users.map(user => (
@@ -483,10 +449,8 @@ export default function UserList() {
     </ul>
   );
 }
-
 // UserList.test.jsx
 global.fetch = jest.fn();
-
 test('사용자 목록 표시', async () => {
   fetch.mockResolvedValueOnce({
     json: async () => [
@@ -494,68 +458,52 @@ test('사용자 목록 표시', async () => {
       { id: 2, name: 'Jane' },
     ],
   });
-
   render(<UserList />);
-
   expect(await screen.findByText('John')).toBeInTheDocument();
   expect(screen.getByText('Jane')).toBeInTheDocument();
 });
 ```
-
 ### React Query Mock
-
 ```jsx
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-
 test('React Query 컴포넌트 테스트', async () => {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
     },
   });
-
   render(
     <QueryClientProvider client={queryClient}>
       <UserProfile userId="1" />
     </QueryClientProvider>
   );
-
   expect(await screen.findByText(/john/i)).toBeInTheDocument();
 });
 ```
-
 ### Context Mock
-
 ```jsx
 import { ThemeContext } from './ThemeContext';
-
 test('Context 테스트', () => {
   render(
     <ThemeContext.Provider value={{ theme: 'dark' }}>
       <MyComponent />
     </ThemeContext.Provider>
   );
-
   expect(screen.getByTestId('theme')).toHaveTextContent('dark');
 });
 ```
-
 ### Router Mock
-
 ```jsx
 import { MemoryRouter } from 'react-router-dom';
-
 test('Router 테스트', () => {
   render(
     <MemoryRouter initialEntries={['/profile']}>
       <App />
     </MemoryRouter>
   );
-
   expect(screen.getByText(/profile page/i)).toBeInTheDocument();
 });
 ```
-
 ---
 
 ## 고급 패턴
@@ -643,34 +591,27 @@ test('컴포넌트 스냅샷', () => {
 ```
 
 ---
-
 ## 실전 예제
-
 ### TodoList 컴포넌트 테스트
-
 ```jsx
 // TodoList.jsx
 export default function TodoList() {
   const [todos, setTodos] = useState([]);
   const [input, setInput] = useState('');
-
   function addTodo() {
     if (input.trim()) {
       setTodos([...todos, { id: Date.now(), text: input, done: false }]);
       setInput('');
     }
   }
-
   function toggleTodo(id) {
     setTodos(todos.map(todo =>
       todo.id === id ? { ...todo, done: !todo.done } : todo
     ));
   }
-
   function deleteTodo(id) {
     setTodos(todos.filter(todo => todo.id !== id));
   }
-
   return (
     <div>
       <input
@@ -679,7 +620,6 @@ export default function TodoList() {
         placeholder="Add todo"
       />
       <button onClick={addTodo}>Add</button>
-
       <ul>
         {todos.map(todo => (
           <li key={todo.id}>
@@ -698,58 +638,44 @@ export default function TodoList() {
     </div>
   );
 }
-
 // TodoList.test.jsx
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import TodoList from './TodoList';
-
 describe('TodoList', () => {
   test('할 일을 추가할 수 있다', async () => {
     const user = userEvent.setup();
     render(<TodoList />);
-
     const input = screen.getByPlaceholderText(/add todo/i);
     const addButton = screen.getByRole('button', { name: /add/i });
-
     await user.type(input, 'Buy milk');
     await user.click(addButton);
-
     expect(screen.getByText('Buy milk')).toBeInTheDocument();
     expect(input).toHaveValue('');
   });
-
   test('할 일을 완료 처리할 수 있다', async () => {
     const user = userEvent.setup();
     render(<TodoList />);
-
     // 할 일 추가
     await user.type(screen.getByPlaceholderText(/add todo/i), 'Buy milk');
     await user.click(screen.getByRole('button', { name: /add/i }));
-
     // 체크박스 클릭
     const checkbox = screen.getByRole('checkbox');
     await user.click(checkbox);
-
     expect(checkbox).toBeChecked();
   });
-
   test('할 일을 삭제할 수 있다', async () => {
     const user = userEvent.setup();
     render(<TodoList />);
-
     // 할 일 추가
     await user.type(screen.getByPlaceholderText(/add todo/i), 'Buy milk');
     await user.click(screen.getByRole('button', { name: /add/i }));
-
     // 삭제
     await user.click(screen.getByRole('button', { name: /delete/i }));
-
     expect(screen.queryByText('Buy milk')).not.toBeInTheDocument();
   });
 });
 ```
-
 ---
 
 ## Vue Test Utils와 비교
@@ -782,21 +708,15 @@ test('button click', async () => {
 ```
 
 ---
-
 ## 다음 단계
-
 ### 학습 체크리스트
-
 - [ ] 쿼리 메서드를 올바르게 선택할 수 있다
 - [ ] 사용자 이벤트를 시뮬레이션할 수 있다
 - [ ] 비동기 작업을 테스트할 수 있다
 - [ ] API를 Mock할 수 있다
 - [ ] Context와 Router를 테스트할 수 있다
 - [ ] Custom render를 작성할 수 있다
-
 ### 추가 학습 자료
-
 - [RTL 공식 문서](https://testing-library.com/react)
 - [Common Mistakes](https://kentcdodds.com/blog/common-mistakes-with-react-testing-library)
-
-모든 항목을 체크했다면 다음 주제로 넘어가세요! 🚀
+모든 항목을 체크했다면 다음 주제로 넘어가세요! 
