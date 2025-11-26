@@ -273,17 +273,126 @@ function Button() {
 </ThemeContext.Provider>
 ```
 
-**실무 팁:**
+**실무 팁: Provider를 필수로 만드는 패턴**
+
+기본값을 설정하면 Provider 없이도 동작하는데, 이게 오히려 버그의 원인이 될 수 있습니다.
+
+**문제 상황:**
+
 ```jsx
-// null로 초기화하고 Provider 필수로 만들기
+// 기본값 설정
+const UserContext = createContext({ name: 'Guest', id: 0 });
+
+function UserProfile() {
+  const user = useContext(UserContext);
+  return <div>{user.name}</div>;  // 'Guest' 출력
+}
+
+// ❌ Provider를 깜빡함 - 그런데 에러가 안 남!
+function App() {
+  return <UserProfile />;  // 'Guest' 표시 - 버그인지 의도인지 모름
+}
+```
+
+**해결 방법: null로 초기화**
+
+```jsx
+// 1. null로 초기화 (Provider 없으면 에러 내기 위해)
 const UserContext = createContext(null);
 
+// 2. 커스텀 Hook 만들기
 function useUser() {
   const user = useContext(UserContext);
+  
+  // Provider 없으면 user가 null → 에러 발생
   if (user === null) {
     throw new Error('useUser는 UserProvider 안에서만 사용 가능합니다');
   }
+  
   return user;
+}
+
+// 3. 사용하기
+function UserProfile() {
+  const user = useUser();  // Provider 없으면 에러!
+  return <div>{user.name}</div>;
+}
+```
+
+**전체 예제로 이해하기:**
+
+```jsx
+// UserContext.js
+import { createContext, useContext, useState } from 'react';
+
+// 1. null로 초기화
+const UserContext = createContext(null);
+
+// 2. Provider 컴포넌트 만들기
+export function UserProvider({ children }) {
+  const [user, setUser] = useState({ name: 'Alice', id: 1 });
+  
+  return (
+    <UserContext.Provider value={user}>
+      {children}
+    </UserContext.Provider>
+  );
+}
+
+// 3. 안전한 커스텀 Hook
+export function useUser() {
+  const user = useContext(UserContext);
+  
+  if (user === null) {
+    throw new Error('useUser는 UserProvider 안에서만 사용 가능합니다');
+  }
+  
+  return user;
+}
+```
+
+```jsx
+// App.js
+import { UserProvider, useUser } from './UserContext.js';
+
+function UserProfile() {
+  const user = useUser();  // 안전하게 사용
+  return <div>Hello, {user.name}!</div>;
+}
+
+// ✅ 올바른 사용
+function App() {
+  return (
+    <UserProvider>
+      <UserProfile />  {/* 정상 동작 */}
+    </UserProvider>
+  );
+}
+
+// ❌ 잘못된 사용 - 명확한 에러 발생
+function WrongApp() {
+  return <UserProfile />;  // 에러: "useUser는 UserProvider 안에서만 사용 가능합니다"
+}
+```
+
+**이 패턴의 장점:**
+
+1. **버그 조기 발견**: Provider 빠뜨리면 즉시 에러
+2. **명확한 에러 메시지**: 어떻게 고쳐야 하는지 알려줌
+3. **TypeScript와 궁합 좋음**: null 체크로 타입 안전성 확보
+
+**요약:**
+
+```jsx
+// ❌ 나쁨: 기본값 설정 → Provider 없어도 동작 → 버그 발견 어려움
+const Context = createContext('default');
+
+// ✅ 좋음: null 초기화 → 커스텀 Hook → Provider 필수화
+const Context = createContext(null);
+function useMyContext() {
+  const value = useContext(Context);
+  if (value === null) throw new Error('Provider 필요!');
+  return value;
 }
 ```
 
