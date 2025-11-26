@@ -1,7 +1,7 @@
 ---
-title: "📚 [React 기초 2-6/8] 객체 State 업데이트하기"
+title: "[React 기초 2-6/8] 객체 State 업데이트하기"
 date: "2025-07-20"
-description: "React에서 객체 State를 불변성 원칙에 따라 업데이트하는 방법을 학습합니다"
+description: "React에서 객체 State를 불변성 원칙에 따라 업데이트하는 방법을 학습한다"
 tags: ["React", "학습", "Vue", "초급", "프론트엔드"]
 series: "React 기초"
 seriesOrder: 16
@@ -9,73 +9,54 @@ seriesOrder: 16
 
 # React 학습 가이드 - 객체 State 업데이트하기
 
-> React 공식 문서를 기반으로 한 학습 자료  
-> 원문: [Adding Interactivity - React](https://react.dev/learn/adding-interactivity)
 
 ---
-
 ## 객체 State 업데이트하기
-
-### State는 불변으로 취급하세요
-
-React에서 state는 읽기 전용으로 취급해야 합니다. 직접 수정하면 리렌더링이 일어나지 않습니다.
-
-**잘못된 방법:**
-
+### State는 불변으로 취급하라
+React에서 state는 읽기 전용으로 취급해야 한다. 직접 수정하면 리렌더링이 일어나지 않다.
+잘못된 방법:
 ```jsx
 const [position, setPosition] = useState({ x: 0, y: 0 });
-
-// ❌ 직접 수정 (돌연변이)
+//  직접 수정 (돌연변이)
 position.x = 5;
 ```
-
-기술적으로는 가능하지만, **React는 이 변경을 감지하지 못합니다!**
-
-**올바른 방법:**
-
+기술적으로는 가능하지만, React는 이 변경을 감지하지 못한다!
+올바른 방법:
 ```jsx
-// ✅ 새 객체 생성
+//  새 객체 생성
 setPosition({
   x: 5,
   y: 0
 });
 ```
-
 ### 예제: 폼 입력
-
-여러 필드를 가진 객체 state를 어떻게 업데이트하는지 보겠습니다.
-
+여러 필드를 가진 객체 state를 어떻게 업데이트하는지 보겠다.
 ```jsx
 import { useState } from 'react';
-
 export default function Form() {
   const [person, setPerson] = useState({
     firstName: 'Barbara',
     lastName: 'Hepworth',
     email: 'bhepworth@sculpture.com'
   });
-
   function handleFirstNameChange(e) {
     setPerson({
       ...person,            // 기존 필드 복사
       firstName: e.target.value  // firstName만 업데이트
     });
   }
-
   function handleLastNameChange(e) {
     setPerson({
       ...person,
       lastName: e.target.value
     });
   }
-
   function handleEmailChange(e) {
     setPerson({
       ...person,
       email: e.target.value
     });
   }
-
   return (
     <>
       <label>
@@ -108,51 +89,38 @@ export default function Form() {
   );
 }
 ```
-
 ### Spread 문법 `...` 사용하기
-
 객체의 일부 속성만 변경하고 나머지는 유지하려면 어떻게 할까요?
-
-**Spread 문법**은 객체를 복사할 때 유용합니다:
-
+Spread 문법은 객체를 복사할 때 유용한다:
 ```jsx
 setPerson({
   ...person,       // 모든 기존 필드 복사
   firstName: 'Kim' // firstName만 덮어쓰기
 });
 ```
-
-**동작 원리:**
-
+동작 원리:
 ```jsx
 // 이전
 { firstName: 'Barbara', lastName: 'Hepworth', email: 'bhepworth@sculpture.com' }
-
 // Spread 후
 { firstName: 'Kim', lastName: 'Hepworth', email: 'bhepworth@sculpture.com' }
 ```
-
 ### 단일 이벤트 핸들러로 여러 필드 처리
-
-필드마다 별도 함수를 만들면 코드가 길어집니다. 하나의 함수로 통합할 수 있습니다.
-
+필드마다 별도 함수를 만들면 코드가 길어집니다. 하나의 함수로 통합할 수 있다.
 ```jsx
 import { useState } from 'react';
-
 export default function Form() {
   const [person, setPerson] = useState({
     firstName: 'Barbara',
     lastName: 'Hepworth',
     email: 'bhepworth@sculpture.com'
   });
-
   function handleChange(e) {
     setPerson({
       ...person,
       [e.target.name]: e.target.value  // 계산된 속성명
     });
   }
-
   return (
     <>
       <label>
@@ -188,15 +156,10 @@ export default function Form() {
   );
 }
 ```
-
-**`[e.target.name]`** - 계산된 속성명 사용
-
-`[ ]` 괄호를 사용하면 변수의 값을 속성 이름으로 사용할 수 있습니다.
-
+`[e.target.name]` - 계산된 속성명 사용
+`[ ]` 괄호를 사용하면 변수의 값을 속성 이름으로 사용할 수 있다.
 ### 중첩된 객체 업데이트
-
 객체 안에 또 다른 객체가 있는 경우는 어떻게 할까요?
-
 ```jsx
 const [person, setPerson] = useState({
   name: 'Niki de Saint Phalle',
@@ -207,16 +170,12 @@ const [person, setPerson] = useState({
   }
 });
 ```
-
-**`artwork.city` 업데이트:**
-
-중첩된 각 레벨을 모두 새 객체로 만들어야 합니다.
-
+`artwork.city` 업데이트:
+중첩된 각 레벨을 모두 새 객체로 만들어야 한다.
 ```jsx
-// ❌ 돌연변이
+//  돌연변이
 person.artwork.city = 'New Delhi';
-
-// ✅ 새 객체 생성
+//  새 객체 생성
 setPerson({
   ...person,
   artwork: {
@@ -225,20 +184,14 @@ setPerson({
   }
 });
 ```
-
 ### Immer로 간결한 업데이트 로직
-
-중첩이 깊어지면 spread 문법도 복잡해집니다. 이럴 때 **Immer** 라이브러리가 유용합니다.
-
-중첩된 객체 업데이트는 복잡해질 수 있습니다. **Immer** 라이브러리를 사용하면 간결하게 작성할 수 있습니다:
-
+중첩이 깊어지면 spread 문법도 복잡해집니다. 이럴 때 Immer 라이브러리가 유용한다.
+중첩된 객체 업데이트는 복잡해질 수 있다. Immer 라이브러리를 사용하면 간결하게 작성할 수 있다:
 ```bash
 npm install use-immer
 ```
-
 ```jsx
 import { useImmer } from 'use-immer';
-
 export default function Form() {
   const [person, updatePerson] = useImmer({
     name: 'Niki de Saint Phalle',
@@ -248,45 +201,35 @@ export default function Form() {
       image: 'https://i.imgur.com/Sd1AgUOm.jpg',
     }
   });
-
   function handleCityChange(e) {
     updatePerson(draft => {
       draft.artwork.city = e.target.value;  // 직접 수정처럼 보임!
     });
   }
-
   // ...
 }
 ```
-
-**Immer는 내부적으로 불변 업데이트를 처리합니다.**
-
+Immer는 내부적으로 불변 업데이트를 처리한다.
 ### Vue와 비교
-
 ```html
 <script setup>
 import { reactive } from 'vue'
-
 const person = reactive({
   firstName: 'Barbara',
   lastName: 'Hepworth'
 })
-
-// ✅ Vue는 직접 수정 가능 (반응형)
+//  Vue는 직접 수정 가능 (반응형)
 person.firstName = 'Kim'
 </script>
 ```
-
 ```jsx
 // React: 불변 업데이트 필요
 const [person, setPerson] = useState({
   firstName: 'Barbara',
   lastName: 'Hepworth'
 })
-
-// ❌ 직접 수정 불가
+//  직접 수정 불가
 person.firstName = 'Kim'
-
-// ✅ 새 객체 생성
+//  새 객체 생성
 setPerson({ ...person, firstName: 'Kim' })
 ```
