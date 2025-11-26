@@ -9,14 +9,11 @@ seriesOrder: 3
 
 # React 학습 가이드 - JSX로 마크업 작성하기
 
-React 공식 문서를 기반으로 한 학습 자료입니다.
-원문: [Describing the UI - React](https://react.dev/learn/describing-the-ui)
-
 ## JSX로 마크업 작성하기
 
 ### JSX란?
 
-`JSX (JavaScript XML)`는 JavaScript 파일 안에 HTML과 유사한 마크업을 작성할 수 있는 문법 확장입니다.
+`JSX (JavaScript XML)`는 JavaScript 파일 안에 HTML과 유사한 마크업을 작성할 수 있는 문법 확장이다.
 
 ### 핵심 특징
 
@@ -26,14 +23,14 @@ React 공식 문서를 기반으로 한 학습 자료입니다.
 
 ### HTML을 JSX로 변환하기
 
-HTML을 그대로 복사하면 에러가 발생합니다. JSX는 HTML보다 규칙이 더 엄격하기 때문입니다.
+HTML을 그대로 복사하면 에러가 발생한다. JSX는 HTML보다 규칙이 더 엄격하기 때문이다.
 
 #### 작동하지 않는 코드 (HTML 그대로)
 
 ```jsx
 export default function TodoList() {
   return (
-    // 여러 요소를 반환할 수 없음!
+    // 여러 요소를 반환할 수 없음
     <h1>Hedy Lamarr's Todos</h1>
     <img
       src="https://i.imgur.com/yXOvdOSs.jpg"
@@ -101,13 +98,13 @@ return (
 
 설명:
 
-- React는 한 번에 하나의 요소만 반환할 수 있습니다
-- 여러 요소를 반환하려면 하나의 부모 요소로 감싸야 합니다
-- `<> </>` (Fragment)는 보이지 않는 래퍼로, HTML에 태그가 추가되지 않습니다
+- React는 한 번에 하나의 요소만 반환할 수 있다
+- 여러 요소를 반환하려면 하나의 부모 요소로 감싸야 한다
+- `<> </>` (Fragment)는 보이지 않는 래퍼로, HTML에 태그가 추가되지 않는다
 
 #### 2. 모든 태그 닫기
 
-HTML에서는 일부 태그를 닫지 않아도 되지만, JSX에서는 모든 태그를 반드시 닫아야 합니다.
+HTML에서는 일부 태그를 닫지 않아도 되지만, JSX에서는 모든 태그를 반드시 닫아야 한다.
 
 ```jsx
 // 잘못된 코드
@@ -121,7 +118,7 @@ HTML에서는 일부 태그를 닫지 않아도 되지만, JSX에서는 모든 �
 
 #### 3. camelCase 속성 사용
 
-JSX는 JavaScript로 변환되기 때문에 HTML 속성명을 camelCase로 작성해야 합니다.
+JSX는 JavaScript로 변환되기 때문에 HTML 속성명을 camelCase로 작성해야 한다.
 
 ```jsx
 // HTML 속성명
@@ -143,7 +140,7 @@ JSX는 JavaScript로 변환되기 때문에 HTML 속성명을 camelCase로 작�
 
 ### HTML → JSX 변환기 활용
 
-복잡한 HTML은 [변환기](https://transform.tools/html-to-jsx)를 사용하면 편리합니다.
+복잡한 HTML은 [변환기](https://transform.tools/html-to-jsx)를 사용하면 편리하다.
 
 ### Vue와 비교
 

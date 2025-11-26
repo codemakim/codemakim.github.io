@@ -9,9 +9,6 @@ seriesOrder: 10
 
 # React 학습 가이드 - 연습문제 & 다음 단계
 
-React 공식 문서를 기반으로 한 학습 자료입니다.
-원문: [Describing the UI - React](https://react.dev/learn/describing-the-ui)
-
 ## 이 챕터에서 배운 내용 요약
 
 첫 번째 컴포넌트: 함수로 작성, JSX 반환
@@ -28,7 +25,7 @@ UI 트리: 렌더 트리와 모듈 의존성 트리 이해
 
 ### 1. 프로필 카드 컴포넌트
 
-목표: Props와 리스트 렌더링을 활용하여 재사용 가능한 컴포넌트를 만듭니다.
+목표: Props와 리스트 렌더링을 활용하여 재사용 가능한 컴포넌트를 만든다.
 
 ```jsx
 // 목표: 재사용 가능한 프로필 카드 만들기
@@ -58,7 +55,7 @@ export default function App() {
 
 ### 2. 할 일 목록 (Todo List)
 
-목표: 조건부 렌더링을 사용하여 완료/미완료 상태를 표시합니다.
+목표: 조건부 렌더링을 사용하여 완료/미완료 상태를 표시한다.
 
 ```jsx
 // 목표: 조건부 렌더링 연습
@@ -82,13 +79,13 @@ export default function TodoList() {
 
 요구사항:
 
-- `completed`가 `true`면 `✅` 표시하고 텍스트에 취소선
+- `completed`가 `true`면 체크마크 표시하고 텍스트에 취소선
 - `completed`가 `false`면 일반 텍스트
 - 삼항 연산자 또는 `&&` 연산자 사용
 
 ### 3. 상품 필터링
 
-목표: `filter()`와 `map()`을 연결하여 데이터를 필터링하고 표시합니다.
+목표: `filter()`와 `map()`을 연결하여 데이터를 필터링하고 표시한다.
 
 ```jsx
 // 목표: filter()와 map() 연습
@@ -124,62 +121,6 @@ export default function App() {
 - `map()`으로 상품 리스트 렌더링
 - 상품명과 가격 표시
 - 적절한 `key` 사용
-
-### 4. 고급: 사용자 대시보드
-
-목표: 여러 개념을 결합하여 복잡한 컴포넌트 구조를 만듭니다.
-
-```jsx
-// 목표: 복합 컴포넌트 구조 만들기
-const users = [
-  {
-    id: 1,
-    name: 'John Doe',
-    email: 'john@example.com',
-    role: 'Admin',
-    isActive: true,
-    lastLogin: '2025-10-11'
-  },
-  {
-    id: 2,
-    name: 'Jane Smith',
-    email: 'jane@example.com',
-    role: 'User',
-    isActive: false,
-    lastLogin: '2025-10-09'
-  },
-  {
-    id: 3,
-    name: 'Bob Johnson',
-    email: 'bob@example.com',
-    role: 'User',
-    isActive: true,
-    lastLogin: '2025-10-10'
-  }
-];
-
-// TODO: UserCard 컴포넌트 작성
-function UserCard({ user }) {
-  // 여기에 코드 작성
-  // - 사용자 정보 표시
-  // - isActive에 따라 다른 스타일 적용
-  // - 역할에 따라 다른 색상 표시
-}
-
-// TODO: UserDashboard 컴포넌트 작성
-export default function UserDashboard() {
-  // 여기에 코드 작성
-  // - 활성 사용자와 비활성 사용자 분리
-  // - 각 그룹별로 렌더링
-}
-```
-
-요구사항:
-
-- 활성/비활성 사용자를 분리해서 표시
-- `isActive`에 따라 다른 배경색 적용
-- 역할에 따라 다른 태그 색상 사용
-- 마지막 로그인 날짜 표시
 
 ## 해답 예시
 
@@ -255,7 +196,7 @@ function ProductList({ category }) {
 
 ## 다음에 학습할 내용
 
-이제 UI를 표현하는 방법을 배웠으니, 다음 챕터에서는 인터랙티비티 추가하기 (Adding Interactivity)를 학습합니다.
+이제 UI를 표현하는 방법을 배웠으니, 다음 챕터에서는 인터랙티비티 추가하기 (Adding Interactivity)를 학습한다.
 
 배울 내용:
 
@@ -292,7 +233,7 @@ function ProductList({ category }) {
 - [ ] 순수 컴포넌트를 작성할 수 있다
 - [ ] UI를 트리 구조로 이해할 수 있다
 
-모든 항목을 체크했다면 다음 챕터로 넘어가세요.
+모든 항목을 체크했다면 다음 챕터로 넘어간다.
 
 ## 참고 자료
 

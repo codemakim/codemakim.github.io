@@ -9,14 +9,11 @@ seriesOrder: 9
 
 # React 학습 가이드 - UI를 트리로 이해하기
 
-React 공식 문서를 기반으로 한 학습 자료입니다.
-원문: [Describing the UI - React](https://react.dev/learn/describing-the-ui)
-
 ## UI를 트리로 이해하기
 
 ### 트리 구조란?
 
-React는 트리를 사용하여 컴포넌트와 모듈 간의 관계를 모델링합니다.
+React는 트리를 사용하여 컴포넌트와 모듈 간의 관계를 모델링한다.
 
 트리 개념:
 
@@ -27,9 +24,9 @@ React는 트리를 사용하여 컴포넌트와 모듈 간의 관계를 모델�
 
 ### 1. 렌더 트리 (Render Tree)
 
-렌더 트리는 컴포넌트 간의 부모-자식 관계를 나타냅니다.
+렌더 트리는 컴포넌트 간의 부모-자식 관계를 나타낸다.
 
-React가 실제로 컴포넌트를 렌더링하는 순서와 구조를 보여줍니다.
+React가 실제로 컴포넌트를 렌더링하는 순서와 구조를 보여준다.
 
 ```
 Root Component
@@ -92,9 +89,9 @@ App (Root)
 
 ### 2. 모듈 의존성 트리 (Module Dependency Tree)
 
-모듈 의존성 트리는 JavaScript 모듈 간의 import 관계를 나타냅니다.
+모듈 의존성 트리는 JavaScript 모듈 간의 import 관계를 나타낸다.
 
-파일들이 서로를 어떻게 참조하는지 보여주며, 번들 크기를 분석하는 데 사용됩니다.
+파일들이 서로를 어떻게 참조하는지 보여주며, 번들 크기를 분석하는 데 사용된다.
 
 #### 예제 코드
 
@@ -167,7 +164,7 @@ const Header = React.memo(function Header() {
 
 #### 3. 번들 크기 최적화
 
-모듈 의존성 트리를 분석하여 불필요한 의존성을 제거합니다.
+모듈 의존성 트리를 분석하여 불필요한 의존성을 제거한다.
 
 ```jsx
 // 전체 라이브러리 import (번들 크기 증가)
@@ -203,77 +200,6 @@ RootModule.js
 └── Home.js
 ```
 
-### 실전 예제: 컴포넌트 계층 구조
-
-```jsx
-// 블로그 애플리케이션 트리
-function BlogApp() {
-  return (
-    <div>
-      <Header>
-        <Logo />
-        <Navigation>
-          <NavItem />
-          <NavItem />
-          <NavItem />
-        </Navigation>
-      </Header>
-      <Main>
-        <Sidebar>
-          <SearchBox />
-          <CategoryList>
-            <Category />
-            <Category />
-          </CategoryList>
-        </Sidebar>
-        <Content>
-          <PostList>
-            <Post>
-              <PostHeader />
-              <PostBody />
-              <PostFooter>
-                <CommentCount />
-                <ShareButton />
-              </PostFooter>
-            </Post>
-          </PostList>
-        </Content>
-      </Main>
-      <Footer>
-        <Copyright />
-        <SocialLinks />
-      </Footer>
-    </div>
-  );
-}
-```
-
-렌더 트리 (간소화):
-
-```
-BlogApp
-├── Header
-│   ├── Logo
-│   └── Navigation
-│       └── NavItem (x3)
-├── Main
-│   ├── Sidebar
-│   │   ├── SearchBox
-│   │   └── CategoryList
-│   │       └── Category (x2)
-│   └── Content
-│       └── PostList
-│           └── Post
-│               ├── PostHeader
-│               ├── PostBody
-│               └── PostFooter
-│                   ├── CommentCount
-│                   └── ShareButton
-└── Footer
-    ├── Copyright
-    └── SocialLinks
-```
-
 ### 트리 구조의 이점
 
 1. 멘탈 모델: UI 구조를 쉽게 이해
@@ -284,7 +210,7 @@ BlogApp
 
 ### Vue와 비교
 
-Vue도 동일하게 컴포넌트 트리 구조를 사용하지만, 템플릿 기반이라 시각적으로 더 명확합니다.
+Vue도 동일하게 컴포넌트 트리 구조를 사용하지만, 템플릿 기반이라 시각적으로 더 명확하다.
 
 ```html
 <!-- Vue: 템플릿에서 트리 구조가 명확 -->
