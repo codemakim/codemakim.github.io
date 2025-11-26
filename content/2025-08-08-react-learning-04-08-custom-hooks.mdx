@@ -1,5 +1,5 @@
 ---
-title: "📚 [React 기초 4-8/9] 커스텀 Hook으로 로직 재사용하기"
+title: "[React 기초 4-8/9] 커스텀 Hook으로 로직 재사용하기"
 date: "2025-08-08"
 description: "커스텀 Hook을 만들고 사용하는 방법과 모범 사례"
 tags: ["React", "학습", "Hook", "중급"]
@@ -7,19 +7,103 @@ series: "React 기초"
 seriesOrder: 34
 ---
 
-## 커스텀 Hook으로 로직 재사용하기
+# 커스텀 Hook으로 로직 재사용하기
 
-동일한 로직을 여러 컴포넌트에서 사용한다면 커스텀 Hook으로 추출하세요.
+동일한 로직을 여러 컴포넌트에서 사용한다면 커스텀 Hook으로 추출해야 한다.
 
-### 커스텀 Hook이란?
+## 커스텀 Hook이란?
 
-React는 `useState`, `useEffect` 같은 내장 Hook을 제공하지만, 직접 Hook을 만들 수도 있습니다.
+React는 `useState`, `useEffect` 같은 내장 Hook을 제공하지만, 직접 Hook을 만들 수도 있다.
 
-**커스텀 Hook**은 컴포넌트 로직을 재사용 가능한 함수로 추출한 것입니다.
+**커스텀 Hook**은 컴포넌트 로직을 재사용 가능한 함수로 추출한 것이다.
 
-**명명 규칙:** `use`로 시작
+### 기본 규칙
+
+**명명 규칙:** `use`로 시작해야 한다
 
 ```jsx
+// 좋은 예
+function useOnlineStatus() { }
+function useFormInput() { }
+function useFetch() { }
+
+// 나쁜 예
+function getOnlineStatus() { }  // Hook이 아님
+function formInput() { }  // Hook이 아님
+```
+
+**왜 `use`로 시작해야 하나?**
+
+React는 함수 이름으로 Hook인지 판단한다. `use`로 시작하지 않으면 Hook의 규칙을 검증할 수 없다.
+
+## 첫 번째 커스텀 Hook: useOnlineStatus
+
+온라인/오프라인 상태를 감지하는 로직을 여러 컴포넌트에서 사용한다고 가정한다.
+
+### Before: 중복된 로직
+
+```jsx
+// StatusBar 컴포넌트
+function StatusBar() {
+  const [isOnline, setIsOnline] = useState(true);
+  
+  useEffect(() => {
+    function handleOnline() {
+      setIsOnline(true);
+    }
+    function handleOffline() {
+      setIsOnline(false);
+    }
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+  
+  return <h1>{isOnline ? 'Online' : 'Disconnected'}</h1>;
+}
+
+// SaveButton 컴포넌트
+function SaveButton() {
+  const [isOnline, setIsOnline] = useState(true);
+  
+  useEffect(() => {
+    function handleOnline() {
+      setIsOnline(true);
+    }
+    function handleOffline() {
+      setIsOnline(false);
+    }
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  return (
+    <button disabled={!isOnline}>
+      {isOnline ? 'Save progress' : 'Reconnecting...'}
+    </button>
+  );
+}
+```
+
+두 컴포넌트가 같은 로직을 중복해서 사용한다.
+
+### After: 커스텀 Hook으로 추출
+
+```jsx
+// useOnlineStatus.js
+import { useState, useEffect } from 'react';
+
 function useOnlineStatus() {
   const [isOnline, setIsOnline] = useState(true);
   
@@ -42,65 +126,72 @@ function useOnlineStatus() {
   
   return isOnline;
 }
+
+export default useOnlineStatus;
 ```
 
-### 커스텀 Hook 사용
-
-작성한 커스텀 Hook을 여러 컴포넌트에서 사용할 수 있습니다.
+이제 컴포넌트에서 간단하게 사용할 수 있다:
 
 ```jsx
+// StatusBar 컴포넌트
 function StatusBar() {
   const isOnline = useOnlineStatus();
-  return <h1>{isOnline ? '✅ Online' : '❌ Disconnected'}</h1>;
+  return <h1>{isOnline ? 'Online' : 'Disconnected'}</h1>;
 }
 
+// SaveButton 컴포넌트
 function SaveButton() {
   const isOnline = useOnlineStatus();
 
-  function handleSaveClick() {
-    console.log('✅ Progress saved');
-  }
-
   return (
-    <button disabled={!isOnline} onClick={handleSaveClick}>
+    <button disabled={!isOnline}>
       {isOnline ? 'Save progress' : 'Reconnecting...'}
     </button>
   );
 }
 ```
 
-### 커스텀 Hook은 state를 공유하지 않습니다
+훨씬 간결하고 이해하기 쉽다.
 
-중요: 커스텀 Hook은 로직만 공유하고, 각 컴포넌트는 독립적인 state를 가집니다.
+## 커스텀 Hook은 state를 공유하지 않는다
+
+**중요:** 커스텀 Hook은 로직만 공유하고, 각 컴포넌트는 독립적인 state를 가진다.
 
 ```jsx
-// 각 컴포넌트는 독립적인 isOnline state를 가짐
 function StatusBar() {
-  const isOnline = useOnlineStatus();  // 독립적
+  const isOnline = useOnlineStatus();  // 독립적인 state
   // ...
 }
 
 function SaveButton() {
-  const isOnline = useOnlineStatus();  // 독립적
+  const isOnline = useOnlineStatus();  // 독립적인 state
   // ...
 }
 ```
 
-### 커스텀 Hook 예제 모음
+`StatusBar`와 `SaveButton`은 각각 자신만의 `isOnline` state를 가진다. 하나가 변경되어도 다른 하나에 영향을 주지 않는다.
 
-실무에서 자주 사용되는 6가지 유용한 커스텀 Hook입니다.
+**커스텀 Hook의 동작:**
 
-#### 1. **useLocalStorage**
+- `useOnlineStatus()`를 호출할 때마다 새로운 `useState`와 `useEffect`가 실행된다
+- 각 컴포넌트는 독립적인 state와 Effect를 가진다
+- 로직(코드)은 공유하지만, 데이터(state)는 공유하지 않는다
+
+## 실전 커스텀 Hook 예제 6가지
+
+### 1. useLocalStorage - localStorage 동기화
 
 ```jsx
 import { useState, useEffect } from 'react';
 
 function useLocalStorage(key, initialValue) {
+  // localStorage에서 초기값 읽기
   const [value, setValue] = useState(() => {
     const saved = localStorage.getItem(key);
     return saved !== null ? JSON.parse(saved) : initialValue;
   });
 
+  // value가 변경되면 localStorage에 저장
   useEffect(() => {
     localStorage.setItem(key, JSON.stringify(value));
   }, [key, value]);
@@ -108,7 +199,7 @@ function useLocalStorage(key, initialValue) {
   return [value, setValue];
 }
 
-// 사용
+// 사용 예
 function App() {
   const [name, setName] = useLocalStorage('name', '');
   
@@ -116,12 +207,15 @@ function App() {
     <input
       value={name}
       onChange={e => setName(e.target.value)}
+      placeholder="Your name"
     />
   );
 }
 ```
 
-#### 2. **useWindowSize**
+**장점:** 자동으로 localStorage와 동기화된다.
+
+### 2. useWindowSize - 창 크기 추적
 
 ```jsx
 import { useState, useEffect } from 'react';
@@ -147,14 +241,16 @@ function useWindowSize() {
   return size;
 }
 
-// 사용
+// 사용 예
 function App() {
   const { width, height } = useWindowSize();
   return <p>Window size: {width} x {height}</p>;
 }
 ```
 
-#### 3. **useFetch**
+**용도:** 반응형 레이아웃, 모바일/데스크톱 분기 처리
+
+### 3. useFetch - 데이터 페칭
 
 ```jsx
 import { useState, useEffect } from 'react';
@@ -183,7 +279,7 @@ function useFetch(url) {
   return { data, loading, error };
 }
 
-// 사용
+// 사용 예
 function UserProfile({ userId }) {
   const { data, loading, error } = useFetch(`/api/users/${userId}`);
 
@@ -193,7 +289,9 @@ function UserProfile({ userId }) {
 }
 ```
 
-#### 4. **useDebounce**
+**개선점:** 실제로는 cleanup과 race condition 처리가 필요하다.
+
+### 4. useDebounce - 입력 지연
 
 ```jsx
 import { useState, useEffect } from 'react';
@@ -214,14 +312,14 @@ function useDebounce(value, delay) {
   return debouncedValue;
 }
 
-// 사용
+// 사용 예
 function SearchBar() {
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
   useEffect(() => {
     if (debouncedSearchTerm) {
-      // API 호출
+      // API 호출 (사용자가 타이핑을 멈춘 후 500ms 후에 실행)
       searchAPI(debouncedSearchTerm);
     }
   }, [debouncedSearchTerm]);
@@ -230,12 +328,15 @@ function SearchBar() {
     <input
       value={searchTerm}
       onChange={e => setSearchTerm(e.target.value)}
+      placeholder="Search..."
     />
   );
 }
 ```
 
-#### 5. **usePrevious**
+**용도:** 검색, 자동완성, API 호출 최적화
+
+### 5. usePrevious - 이전 값 기억
 
 ```jsx
 import { useRef, useEffect } from 'react';
@@ -250,7 +351,7 @@ function usePrevious(value) {
   return ref.current;
 }
 
-// 사용
+// 사용 예
 function Counter() {
   const [count, setCount] = useState(0);
   const prevCount = usePrevious(count);
@@ -264,7 +365,9 @@ function Counter() {
 }
 ```
 
-#### 6. **useInterval**
+**용도:** 애니메이션, 변경 감지, 비교 로직
+
+### 6. useInterval - 안전한 타이머
 
 ```jsx
 import { useEffect, useRef } from 'react';
@@ -272,10 +375,12 @@ import { useEffect, useRef } from 'react';
 function useInterval(callback, delay) {
   const savedCallback = useRef();
 
+  // 최신 callback을 저장
   useEffect(() => {
     savedCallback.current = callback;
   }, [callback]);
 
+  // interval 설정
   useEffect(() => {
     function tick() {
       savedCallback.current();
@@ -288,7 +393,7 @@ function useInterval(callback, delay) {
   }, [delay]);
 }
 
-// 사용
+// 사용 예
 function Counter() {
   const [count, setCount] = useState(0);
 
@@ -300,32 +405,37 @@ function Counter() {
 }
 ```
 
-### 커스텀 Hook 작성 모범 사례
+**특징:** callback이 변경되어도 interval이 재시작되지 않는다.
 
-커스텀 Hook을 작성할 때 지켜야 할 4가지 중요한 규칙입니다.
+## 커스텀 Hook 작성 모범 사례
 
-#### 1. **이름은 `use`로 시작**
+### 1. 이름은 use로 시작
 
 ```jsx
-// ✅ 좋음
-function useOnlineStatus() { }
-function useFormInput() { }
-function useFetch() { }
+// 좋은 예
+function useFormInput(initialValue) { }
+function useFetch(url) { }
 
-// ❌ 나쁨
-function getOnlineStatus() { }
-function formInput() { }
+// 나쁜 예
+function getFormInput(initialValue) { }
+function fetchData(url) { }
 ```
 
-#### 2. **높은 수준의 사용 사례에 집중**
+### 2. 높은 수준의 사용 사례에 집중
+
+**나쁜 예: 너무 일반적**
 
 ```jsx
-// ❌ 나쁨: 너무 일반적
+// 너무 일반적이고 추상적
 function useEffect2(fn, deps) {
-  // ...
+  // useEffect를 감싸기만 함
 }
+```
 
-// ✅ 좋음: 구체적인 목적
+**좋은 예: 구체적인 목적**
+
+```jsx
+// 구체적이고 목적이 명확
 function useChatRoom({ serverUrl, roomId }) {
   useEffect(() => {
     const connection = createConnection(serverUrl, roomId);
@@ -335,10 +445,11 @@ function useChatRoom({ serverUrl, roomId }) {
 }
 ```
 
-#### 3. **Hook은 순수해야 합니다**
+### 3. Hook은 순수해야 한다
+
+**좋은 예: 순수 함수**
 
 ```jsx
-// ✅ 좋음: 순수 함수
 function useFormInput(initialValue) {
   const [value, setValue] = useState(initialValue);
   
@@ -351,8 +462,11 @@ function useFormInput(initialValue) {
     onChange: handleChange
   };
 }
+```
 
-// ❌ 나쁨: 부작용
+**나쁜 예: 부작용**
+
+```jsx
 function useFormInput(initialValue) {
   console.log('Rendering!');  // 순수하지 않음
   const [value, setValue] = useState(initialValue);
@@ -360,51 +474,51 @@ function useFormInput(initialValue) {
 }
 ```
 
-#### 4. **이벤트 핸들러를 Hook으로 추출하지 마세요**
+### 4. 이벤트 핸들러를 Hook으로 추출하지 말 것
+
+**나쁜 예**
 
 ```jsx
-// ❌ 나쁨
+// 이벤트 핸들러를 Hook으로
 function useSubmit(onSubmit) {
   return (e) => {
     e.preventDefault();
     onSubmit();
   };
 }
+```
 
-// ✅ 좋음: 일반 함수로
+**좋은 예**
+
+```jsx
+// 일반 함수로
 function handleSubmit(e, onSubmit) {
   e.preventDefault();
   onSubmit();
 }
 ```
 
-### Vue와 비교
+이벤트 핸들러는 Hook의 규칙을 따를 필요가 없으므로 일반 함수로 작성한다.
 
-```javascript
-// Vue: Composables (커스텀 Hook과 유사)
-import { ref, onMounted, onUnmounted } from 'vue'
+## 언제 커스텀 Hook을 만들어야 하나?
 
-export function useOnlineStatus() {
-  const isOnline = ref(true)
+**커스텀 Hook을 만들어야 할 때:**
 
-  function handleOnline() {
-    isOnline.value = true
-  }
+- 동일한 로직을 2개 이상의 컴포넌트에서 사용할 때
+- Effect 로직이 복잡하고 이해하기 어려울 때
+- 재사용 가능한 라이브러리를 만들 때
 
-  function handleOffline() {
-    isOnline.value = false
-  }
+**커스텀 Hook을 만들지 말아야 할 때:**
 
-  onMounted(() => {
-    window.addEventListener('online', handleOnline)
-    window.addEventListener('offline', handleOffline)
-  })
+- 한 컴포넌트에서만 사용하는 로직
+- 단순한 이벤트 핸들러
+- 너무 추상적이고 일반적인 로직
 
-  onUnmounted(() => {
-    window.removeEventListener('online', handleOnline)
-    window.removeEventListener('offline', handleOffline)
-  })
+## 정리
 
-  return { isOnline }
-}
-```
+- 커스텀 Hook은 `use`로 시작하는 함수다
+- 로직을 재사용 가능하게 만든다
+- state는 공유하지 않는다 (각 컴포넌트가 독립적)
+- 구체적인 목적을 가져야 한다
+- 순수 함수로 작성해야 한다
+- 동일한 로직을 여러 곳에서 사용할 때 추출한다

@@ -1,5 +1,5 @@
 ---
-title: "📚 [React 기초 4-2/9] Ref로 DOM 조작하기"
+title: "[React 기초 4-2/9] Ref로 DOM 조작하기"
 date: "2025-08-02"
 description: "DOM 노드 접근과 ref 콜백, forwardRef, useImperativeHandle 사용법"
 tags: ["React", "학습", "Ref", "DOM", "초급"]
@@ -7,17 +7,50 @@ series: "React 기초"
 seriesOrder: 28
 ---
 
-## Ref로 DOM 조작하기
+# Ref로 DOM 조작하기
 
-### DOM 노드에 접근하기
+## DOM 노드에 접근하기
 
-React는 선언적으로 UI를 관리하지만, 때로는 DOM에 직접 접근해야 할 때가 있습니다.
+React는 선언적으로 UI를 관리한다. 컴포넌트가 어떻게 보여야 하는지 설명하면, React가 알아서 DOM을 업데이트한다. 하지만 때로는 React가 관리하는 DOM 요소에 직접 접근해야 할 때가 있다.
 
-React는 자동으로 DOM을 업데이트하므로 직접 조작할 일이 거의 없습니다. 하지만 때로는 필요합니다:
+### 왜 DOM에 직접 접근하나?
 
-- input에 포커스
-- 요소로 스크롤
-- 크기와 위치 측정
+React가 자동으로 DOM을 관리하므로 직접 조작할 일은 거의 없다. 하지만 다음과 같은 경우에는 필요하다:
+
+- **input 요소에 포커스** 주기
+- **요소로 스크롤**하기
+- **요소의 크기와 위치** 측정하기
+- **비디오 재생/일시정지** 제어하기
+
+이런 기능들은 React가 자동으로 처리해주지 않으므로 DOM에 직접 접근해야 한다.
+
+### 기본 사용법
+
+DOM 노드에 접근하는 방법은 3단계다:
+
+**1단계: ref 선언**
+
+```jsx
+import { useRef } from 'react';
+
+const inputRef = useRef(null);
+```
+
+**2단계: JSX의 ref 속성에 전달**
+
+```jsx
+<input ref={inputRef} />
+```
+
+**3단계: ref.current로 DOM 노드 접근**
+
+React가 렌더링 후 `<input>` DOM 노드를 `inputRef.current`에 저장한다. 이제 브라우저 API를 사용할 수 있다.
+
+```jsx
+inputRef.current.focus();
+```
+
+### 완전한 예제: input 포커스
 
 ```jsx
 import { useRef } from 'react';
@@ -40,15 +73,32 @@ export default function Form() {
 }
 ```
 
-**단계:**
+**동작 과정:**
 
-1. `useRef`로 ref 선언
-2. JSX의 `ref` 속성에 전달
-3. React가 `<input>` DOM 노드를 `inputRef.current`에 저장
+1. React가 `<input>` 요소를 DOM에 추가한다
+2. React가 `inputRef.current`를 `<input>` DOM 노드로 설정한다
+3. 버튼 클릭 시 `inputRef.current.focus()`가 호출된다
+4. input이 포커스를 받는다
 
-### Ref 콜백으로 ref 리스트 관리
+### 여러 요소에 ref 사용하기: ref 콜백
 
-동적으로 생성되는 여러 요소에 ref를 연결하려면 어떻게 할까요? Ref 콜백을 사용합니다.
+만약 리스트의 각 항목에 ref를 연결하려면 어떻게 해야 할까? 배열의 길이를 미리 알 수 없다면 `useRef`를 여러 번 호출할 수도 없다.
+
+이럴 때 **ref 콜백**을 사용한다.
+
+#### ref 콜백이란?
+
+`ref` 속성에 함수를 전달할 수 있다. React는 DOM 노드를 설정하거나 제거할 때 이 함수를 호출한다.
+
+```jsx
+<li ref={(node) => {
+  // node: DOM 노드 (마운트 시) 또는 null (언마운트 시)
+}}>
+```
+
+#### 실전 예제: 스크롤 리스트
+
+여러 고양이 사진 중 하나를 클릭하면 해당 항목으로 스크롤하는 예제다.
 
 ```jsx
 import { useRef } from 'react';
@@ -77,15 +127,9 @@ export default function CatFriends() {
   return (
     <>
       <nav>
-        <button onClick={() => scrollToId(0)}>
-          Tom
-        </button>
-        <button onClick={() => scrollToId(5)}>
-          Maru
-        </button>
-        <button onClick={() => scrollToId(9)}>
-          Jellylorum
-        </button>
+        <button onClick={() => scrollToId(0)}>Tom</button>
+        <button onClick={() => scrollToId(5)}>Maru</button>
+        <button onClick={() => scrollToId(9)}>Jellylorum</button>
       </nav>
       <div>
         <ul>
@@ -95,8 +139,10 @@ export default function CatFriends() {
               ref={(node) => {
                 const map = getMap();
                 if (node) {
+                  // DOM 노드가 추가될 때
                   map.set(cat.id, node);
                 } else {
+                  // DOM 노드가 제거될 때
                   map.delete(cat.id);
                 }
               }}
@@ -114,38 +160,56 @@ const catList = [];
 for (let i = 0; i < 10; i++) {
   catList.push({
     id: i,
+    name: `Cat ${i}`,
     imageUrl: 'https://placekitten.com/250/200?image=' + i
   });
 }
 ```
 
-**Ref 콜백:**
+**ref 콜백의 동작:**
 
-- `ref={(node) => { ... }}`
-- React가 DOM 노드를 생성할 때 `node`로 호출
-- DOM 노드가 제거될 때 `null`로 호출
+1. **요소가 DOM에 추가될 때**: React가 `node` 인자와 함께 ref 콜백을 호출한다
+2. **요소가 DOM에서 제거될 때**: React가 `null`과 함께 ref 콜백을 호출한다
 
-### 다른 컴포넌트의 DOM 노드 접근
+이 예제에서는:
+- ref 하나(`itemsRef`)에 Map을 저장한다
+- 각 항목이 마운트될 때 Map에 추가한다
+- 각 항목이 언마운트될 때 Map에서 제거한다
 
-기본적으로 컴포넌트는 자신의 DOM을 노출하지 않습니다.
+### 다른 컴포넌트의 DOM 노드 접근하기
+
+기본적으로 컴포넌트는 자신의 DOM을 노출하지 않는다. 이것은 의도된 동작이다.
 
 ```jsx
-// ❌ 작동하지 않음
+// 작동하지 않음
 function MyInput() {
   return <input />;
 }
 
 export default function Form() {
   const inputRef = useRef(null);
-  return <MyInput ref={inputRef} />;  // 에러!
+  return <MyInput ref={inputRef} />;  // 에러 발생
 }
 ```
 
-**해결책: `forwardRef` 사용**
+**왜 에러가 발생하나?**
+
+기본적으로 React는 컴포넌트가 다른 컴포넌트의 DOM 노드에 접근하는 것을 허용하지 않는다. 자식 컴포넌트의 DOM을 수동으로 조작하면 코드가 깨지기 쉽다.
+
+### forwardRef로 DOM 노출하기
+
+하지만 의도적으로 DOM을 노출하고 싶을 때가 있다. 예를 들어 input 컴포넌트를 만들 때, 부모가 포커스를 줄 수 있게 하고 싶다면?
+
+`forwardRef`를 사용하면 된다.
+
+#### forwardRef란?
+
+`forwardRef`는 컴포넌트가 ref를 받아서 자식 요소로 "전달(forward)"할 수 있게 해주는 함수다.
 
 ```jsx
 import { forwardRef, useRef } from 'react';
 
+// forwardRef로 감싸기
 const MyInput = forwardRef((props, ref) => {
   return <input {...props} ref={ref} />;
 });
@@ -168,9 +232,31 @@ export default function Form() {
 }
 ```
 
-### useImperativeHandle로 노출되는 기능 제한
+**동작 과정:**
 
-DOM 전체를 노출하는 대신, 필요한 메서드만 노출할 수 있습니다.
+1. `<MyInput ref={inputRef} />`는 React에게 `inputRef.current`에 해당 DOM 노드를 넣으라고 한다
+2. `MyInput` 컴포넌트는 `forwardRef`로 선언되어 있어서 `ref`를 두 번째 인자로 받는다
+3. `MyInput`은 받은 `ref`를 내부의 `<input>`으로 전달한다
+4. React가 `inputRef.current`를 `<input>` DOM 노드로 설정한다
+
+### useImperativeHandle로 노출 제한하기
+
+DOM 전체를 노출하는 대신, 특정 메서드만 노출하고 싶을 때가 있다. `useImperativeHandle`을 사용하면 된다.
+
+#### 왜 노출을 제한하나?
+
+DOM 노드를 통째로 노출하면 부모 컴포넌트가 예상치 못한 방식으로 DOM을 조작할 수 있다. 예를 들어:
+
+```jsx
+// DOM 전체를 노출하면...
+inputRef.current.style.color = 'red';  // CSS 변경 가능
+inputRef.current.remove();  // 요소 삭제 가능
+inputRef.current.value = 'hacked';  // 값 직접 수정 가능
+```
+
+이런 위험을 막기 위해 필요한 메서드만 노출한다.
+
+#### useImperativeHandle 사용법
 
 ```jsx
 import { forwardRef, useRef, useImperativeHandle } from 'react';
@@ -178,10 +264,15 @@ import { forwardRef, useRef, useImperativeHandle } from 'react';
 const MyInput = forwardRef((props, ref) => {
   const realInputRef = useRef(null);
   
+  // ref로 노출할 객체를 직접 정의
   useImperativeHandle(ref, () => ({
     // focus만 노출
     focus() {
       realInputRef.current.focus();
+    },
+    // scrollIntoView도 노출
+    scrollIntoView() {
+      realInputRef.current.scrollIntoView();
     },
   }));
   
@@ -192,8 +283,8 @@ export default function Form() {
   const inputRef = useRef(null);
 
   function handleClick() {
-    inputRef.current.focus();  // ✅ 가능
-    // inputRef.current.value = 'Hi';  // ❌ 불가능 (노출 안됨)
+    inputRef.current.focus();  // 가능
+    // inputRef.current.value = 'Hi';  // 불가능 (노출 안 됨)
   }
 
   return (
@@ -207,23 +298,81 @@ export default function Form() {
 }
 ```
 
-### React가 ref를 첨부하는 시점
+**동작 원리:**
 
-Ref는 언제 DOM 노드를 참조하게 될까요? React의 렌더링 주기를 이해해야 합니다.
+1. `realInputRef`는 실제 `<input>` DOM 노드를 가리킨다
+2. `useImperativeHandle`은 `ref`를 통해 노출할 값을 커스터마이즈한다
+3. 부모 컴포넌트는 `focus()`, `scrollIntoView()` 메서드만 호출할 수 있다
+4. 다른 DOM 프로퍼티(예: `value`, `style`)에는 접근할 수 없다
 
-**React에서 모든 업데이트는 두 단계로 분할됩니다:**
+이 패턴은 재사용 가능한 디자인 시스템 컴포넌트에서 자주 사용된다.
 
-1. **렌더**: React가 컴포넌트를 호출하여 화면에 무엇이 있어야 하는지 파악
-2. **커밋**: React가 변경사항을 DOM에 적용
+### React가 ref를 설정하는 시점
 
-**Ref 첨부 시점:**
+React의 업데이트는 두 단계로 나뉜다:
 
-- **렌더 중**: `ref.current = null`
-- **커밋 전**: React가 `ref.current`를 DOM 노드로 설정
+1. **렌더(Render)**: React가 컴포넌트를 호출해서 화면에 무엇을 표시할지 파악한다
+2. **커밋(Commit)**: React가 변경사항을 DOM에 적용한다
 
-### flushSync로 state 업데이트 강제
+**ref 설정 시점:**
 
-State 업데이트가 비동기적으로 처리되어 DOM이 즉시 업데이트되지 않을 때가 있습니다. `flushSync`로 동기적 업데이트를 강제할 수 있습니다.
+- **렌더 단계**: `ref.current = null`
+- **커밋 단계**: React가 `ref.current`를 DOM 노드로 설정한다
+
+그래서 일반적으로 Effect나 이벤트 핸들러에서 ref에 접근한다.
+
+```jsx
+function MyComponent() {
+  const divRef = useRef(null);
+  
+  // 렌더링 중에는 null일 수 있음
+  console.log(divRef.current);  // null (첫 렌더링)
+  
+  useEffect(() => {
+    // 커밋 후에는 DOM 노드가 설정됨
+    console.log(divRef.current);  // <div> DOM 노드
+  });
+  
+  return <div ref={divRef}>Hello</div>;
+}
+```
+
+### flushSync로 state 업데이트를 동기적으로 처리하기
+
+React는 일반적으로 state 업데이트를 배치 처리한다. 즉, 여러 state 업데이트를 모아서 한 번에 처리한다. 이는 성능에 좋지만, 때로는 문제가 된다.
+
+#### 문제 상황
+
+Todo를 추가하고 즉시 마지막 항목으로 스크롤하려고 한다:
+
+```jsx
+function TodoList() {
+  const listRef = useRef(null);
+  const [todos, setTodos] = useState(initialTodos);
+
+  function handleAdd() {
+    const newTodo = { id: nextId++, text: text };
+    setTodos([...todos, newTodo]);
+    
+    // 스크롤하려고 하지만...
+    listRef.current.lastChild.scrollIntoView();
+  }
+
+  return (
+    <ul ref={listRef}>
+      {todos.map(todo => (
+        <li key={todo.id}>{todo.text}</li>
+      ))}
+    </ul>
+  );
+}
+```
+
+문제: `setTodos`를 호출해도 DOM이 즉시 업데이트되지 않는다. 그래서 `lastChild`가 여전히 이전 마지막 항목을 가리킨다.
+
+#### 해결: flushSync
+
+`flushSync`를 사용하면 React가 DOM을 동기적으로 업데이트하도록 강제할 수 있다.
 
 ```jsx
 import { useState, useRef } from 'react';
@@ -231,16 +380,19 @@ import { flushSync } from 'react-dom';
 
 export default function TodoList() {
   const listRef = useRef(null);
+  const [text, setText] = useState('');
   const [todos, setTodos] = useState(initialTodos);
 
   function handleAdd() {
     const newTodo = { id: nextId++, text: text };
     
+    // flushSync로 감싸서 DOM을 즉시 업데이트
     flushSync(() => {
       setText('');
       setTodos([...todos, newTodo]);
     });
     
+    // 이제 lastChild는 새로 추가된 항목
     listRef.current.lastChild.scrollIntoView({
       behavior: 'smooth',
       block: 'nearest'
@@ -270,65 +422,92 @@ for (let i = 0; i < 20; i++) {
 }
 ```
 
+**flushSync 동작:**
+
+1. `flushSync` 내부의 state 업데이트가 즉시 처리된다
+2. React가 DOM을 동기적으로 업데이트한다
+3. `flushSync` 밖의 코드가 실행될 때는 이미 DOM이 업데이트된 상태다
+
+**주의:** `flushSync`는 성능에 영향을 줄 수 있으므로 꼭 필요할 때만 사용한다.
+
 ### ref로 DOM 조작 시 모범 사례
 
-**Ref는 탈출구입니다.** "React 밖으로 벗어나야" 할 때만 사용하세요.
+Ref는 "탈출구"다. React의 일반적인 흐름 밖으로 나가야 할 때만 사용해야 한다.
 
-**좋은 예:**
+#### 좋은 예
 
 - 포커스 관리
-- 스크롤 위치
-- React가 노출하지 않는 브라우저 API 호출
+- 스크롤 위치 제어
+- React가 노출하지 않는 브라우저 API 호출 (예: `getBoundingClientRect()`)
+- 비디오 재생/일시정지
 
-**나쁜 예:**
+#### 나쁜 예
+
+React가 관리하는 DOM을 수정하면 React와 충돌이 발생한다.
 
 ```jsx
-// ❌ 나쁨: React가 관리하는 DOM 수정
+// 나쁜 예: React가 관리하는 DOM 수정
 const divRef = useRef(null);
-divRef.current.remove();  // React와 충돌!
-divRef.current.appendChild(child);  // React가 혼란스러워함
 
-// ✅ 좋음: React가 업데이트하지 않는 부분만 수정
-divRef.current.scrollIntoView();
-divRef.current.focus();
+// 이런 조작은 피해야 함
+divRef.current.remove();  // React가 관리하는 요소를 삭제
+divRef.current.appendChild(child);  // React 모르게 자식 추가
+divRef.current.innerHTML = '<p>New content</p>';  // 내용 직접 변경
+
+// 좋은 예: React가 업데이트하지 않는 부분만 수정
+divRef.current.scrollIntoView();  // 스크롤 위치 변경
+divRef.current.focus();  // 포커스 제어
+divRef.current.play();  // 비디오 재생 제어
 ```
+
+**원칙:** React가 관리하는 DOM 구조나 내용을 변경하지 않는다. 스크롤, 포커스, 크기 측정 같은 것만 조작한다.
 
 ### Vue와 비교
 
 ```html
 <!-- Vue: template ref -->
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 
 const inputRef = ref(null)
 
-function focus() {
+onMounted(() => {
   inputRef.value.focus()
-}
+})
 </script>
 
 <template>
   <input ref="inputRef" />
-  <button @click="focus">Focus</button>
+  <button @click="inputRef.focus()">Focus</button>
 </template>
 ```
 
 ```jsx
 // React: useRef + ref 속성
-import { useRef } from 'react'
+import { useRef, useEffect } from 'react'
 
 function Form() {
   const inputRef = useRef(null)
   
-  function focus() {
+  useEffect(() => {
     inputRef.current.focus()
-  }
+  }, [])
   
   return (
     <>
       <input ref={inputRef} />
-      <button onClick={focus}>Focus</button>
+      <button onClick={() => inputRef.current.focus()}>Focus</button>
     </>
   )
 }
 ```
+
+## 정리
+
+- `useRef`로 DOM 노드에 접근할 수 있다
+- `ref` 속성으로 React에게 DOM 노드를 `ref.current`에 넣으라고 한다
+- ref 콜백으로 여러 요소를 관리할 수 있다
+- `forwardRef`로 컴포넌트의 DOM을 노출할 수 있다
+- `useImperativeHandle`로 노출되는 API를 제한할 수 있다
+- `flushSync`로 state 업데이트를 동기적으로 처리할 수 있다
+- React가 관리하는 DOM을 직접 변경하면 안 된다

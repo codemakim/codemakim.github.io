@@ -1,5 +1,5 @@
 ---
-title: "📚 [React 기초 4-6/9] Effect에서 이벤트 분리하기"
+title: "[React 기초 4-6/9] Effect에서 이벤트 분리하기"
 date: "2025-08-06"
 description: "Effect 재실행을 줄이기 위한 이벤트 분리 패턴"
 tags: ["React", "학습", "Effect", "최적화"]
@@ -7,81 +7,210 @@ series: "React 기초"
 seriesOrder: 32
 ---
 
-## Effect에서 이벤트 분리하기
+# Effect에서 이벤트 분리하기
 
-Effect가 불필요하게 자주 재실행되는 문제를 해결하는 패턴입니다.
+Effect가 불필요하게 자주 재실행되는 문제를 해결하는 패턴을 알아본다.
 
-### 이벤트 핸들러 vs Effect
+## 이벤트 핸들러 vs Effect
 
-먼저 두 개념의 차이를 명확히 이해해야 합니다.
+먼저 두 개념의 차이를 명확히 이해해야 한다.
+
+### 이벤트 핸들러
 
 **이벤트 핸들러:**
 
-- 특정 상호작용에 응답
-- 수동으로 트리거
+- 특정 상호작용에 응답한다 (클릭, 타이핑 등)
+- 수동으로 트리거된다
+- 사용자가 행동할 때만 실행된다
+
+```jsx
+function Button() {
+  function handleClick() {
+    // 버튼을 클릭할 때만 실행
+    console.log('Button clicked');
+  }
+  
+  return <button onClick={handleClick}>Click me</button>;
+}
+```
+
+### Effect
 
 **Effect:**
 
-- 동기화가 필요할 때마다 실행
-- 자동으로 트리거
+- 동기화가 필요할 때마다 실행된다
+- 자동으로 트리거된다
+- 의존성이 변경될 때마다 실행된다
 
-### 문제: Effect가 너무 자주 실행됨
+```jsx
+function ChatRoom({ roomId }) {
+  useEffect(() => {
+    // roomId가 변경될 때마다 실행
+    const connection = createConnection(roomId);
+    connection.connect();
+    return () => connection.disconnect();
+  }, [roomId]);
+  
+  return <h1>Welcome!</h1>;
+}
+```
 
-`theme`가 변경될 때마다 채팅 연결을 끊고 다시 연결하는 문제가 발생합니다.
+## 문제: Effect가 너무 자주 실행됨
+
+다음 코드의 문제를 살펴본다.
 
 ```jsx
 function ChatRoom({ roomId, theme }) {
   useEffect(() => {
     const connection = createConnection(serverUrl, roomId);
+    
     connection.on('connected', () => {
+      // 연결되면 알림 표시 (현재 테마 사용)
       showNotification('Connected!', theme);
     });
+    
     connection.connect();
+    
     return () => connection.disconnect();
-  }, [roomId, theme]);  // theme 변경 시에도 재연결! 😱
-  // ...
+  }, [roomId, theme]);  // theme 변경 시에도 재연결됨
+  
+  return <div className={theme}>{/* ... */}</div>;
 }
 ```
 
-### 해결: useEffectEvent (실험적)
+**문제점:**
 
-`useEffectEvent`는 Effect 내부의 비반응형 로직을 분리하는 Hook입니다. (현재 실험적 기능)
+- `theme`가 변경될 때마다 Effect가 재실행된다
+- 채팅 연결이 끊기고 다시 연결된다
+- 하지만 실제로는 `theme`가 변경될 때 재연결할 필요가 없다
+- `theme`는 연결된 후 알림을 표시할 때만 필요하다
+
+**이상적인 동작:**
+
+- `roomId`가 변경될 때만 재연결
+- `theme`는 최신 값을 읽되, Effect를 재실행하지 않음
+
+## 해결 방법 1: useEffectEvent (실험적 기능)
+
+`useEffectEvent`는 Effect 내부의 비반응형 로직을 분리하는 Hook이다.
+
+**주의: 이 기능은 아직 안정 버전 React에 포함되지 않았다.** 실험적 빌드에서만 사용할 수 있다. 개념을 이해하는 것이 중요하다.
 
 ```jsx
 import { useEffect, useEffectEvent } from 'react';
 
 function ChatRoom({ roomId, theme }) {
+  // Effect Event: 반응형이 아닌 로직
   const onConnected = useEffectEvent(() => {
     showNotification('Connected!', theme);
   });
 
   useEffect(() => {
     const connection = createConnection(serverUrl, roomId);
+    
     connection.on('connected', () => {
-      onConnected();
+      onConnected(); // 최신 theme를 사용하지만 의존성이 아님
     });
+    
     connection.connect();
+    
     return () => connection.disconnect();
-  }, [roomId]);  // theme은 의존성 아님!
-  // ...
+  }, [roomId]);  // theme은 의존성이 아님
+  
+  return <div className={theme}>{/* ... */}</div>;
 }
 ```
 
-**`useEffectEvent`:**
+**useEffectEvent의 동작:**
 
-- Effect에서 비반응형 로직 추출
-- 항상 최신 props와 state 사용
-- 의존성에 포함하지 않음
+1. Effect 내부의 비반응형 로직을 추출한다
+2. 항상 최신 props와 state를 사용한다
+3. Effect의 의존성에 포함하지 않는다
 
-### Effect Event 제한사항
+**개념적 이해:**
 
-Effect Event는 엄격한 사용 규칙이 있습니다.
+`useEffectEvent`는 이벤트 핸들러와 비슷하게 동작한다. 의존성 규칙을 따르지 않지만, 항상 최신 값을 읽는다.
 
-- **Effect 내부에서만 호출**
-- **다른 컴포넌트나 Hook에 전달 금지**
+## useEffectEvent가 없다면? 현실적인 해결책
+
+`useEffectEvent`는 아직 안정 버전에 없으므로, 현재 사용할 수 있는 방법들을 알아본다.
+
+### 해결 방법 2: ref 사용
 
 ```jsx
-// ❌ 잘못됨
+import { useEffect, useRef } from 'react';
+
+function ChatRoom({ roomId, theme }) {
+  const themeRef = useRef(theme);
+  
+  // 렌더링마다 최신 theme를 ref에 저장
+  useEffect(() => {
+    themeRef.current = theme;
+  });
+
+  useEffect(() => {
+    const connection = createConnection(serverUrl, roomId);
+    
+    connection.on('connected', () => {
+      // ref로 최신 theme 읽기
+      showNotification('Connected!', themeRef.current);
+    });
+    
+    connection.connect();
+    
+    return () => connection.disconnect();
+  }, [roomId]);  // theme은 의존성이 아님
+  
+  return <div className={theme}>{/* ... */}</div>;
+}
+```
+
+**동작 원리:**
+
+1. `themeRef`는 항상 최신 `theme` 값을 가진다
+2. ref는 반응형이 아니므로 의존성에 포함하지 않는다
+3. Effect는 `roomId`가 변경될 때만 재실행된다
+
+### 해결 방법 3: Effect를 분리
+
+때로는 Effect를 두 개로 나누는 것이 더 명확할 수 있다.
+
+```jsx
+function ChatRoom({ roomId, theme }) {
+  // Effect 1: 채팅 연결 (roomId에만 반응)
+  useEffect(() => {
+    const connection = createConnection(serverUrl, roomId);
+    connection.connect();
+    
+    // 연결 성공 시 이벤트 발행
+    window.dispatchEvent(new CustomEvent('chatConnected'));
+    
+    return () => connection.disconnect();
+  }, [roomId]);
+
+  // Effect 2: 알림 표시 (theme 사용 가능)
+  useEffect(() => {
+    function handleConnected() {
+      showNotification('Connected!', theme);
+    }
+    
+    window.addEventListener('chatConnected', handleConnected);
+    return () => window.removeEventListener('chatConnected', handleConnected);
+  }, [theme]);
+  
+  return <div className={theme}>{/* ... */}</div>;
+}
+```
+
+이 방법은 복잡하므로 대부분의 경우 ref를 사용하는 것이 더 낫다.
+
+## Effect Event의 제한사항 (useEffectEvent를 사용한다면)
+
+Effect Event는 엄격한 사용 규칙이 있다.
+
+### 규칙 1: Effect 내부에서만 호출
+
+```jsx
 function Timer() {
   const [count, setCount] = useState(0);
 
@@ -89,24 +218,91 @@ function Timer() {
     setCount(count + 1);
   });
 
-  useTimer(() => {
-    onTick();  // 다른 Hook에서 호출 불가!
-  }, 1000);
-  // ...
+  // 좋은 예: Effect 내부에서 호출
+  useEffect(() => {
+    const id = setInterval(() => {
+      onTick();
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+  
+  // 나쁜 예: 이벤트 핸들러에서 호출하지 말 것
+  function handleClick() {
+    onTick(); // 작동하지 않음
+  }
+  
+  return <div>{count}</div>;
 }
+```
 
-// ✅ 올바름
+### 규칙 2: 다른 컴포넌트나 Hook에 전달 금지
+
+```jsx
+// 나쁜 예: Effect Event를 다른 Hook에 전달
 function Timer() {
   const [count, setCount] = useState(0);
 
-  useEffect(() => {
-    const onTick = () => {
-      setCount(count + 1);
-    };
+  const onTick = useEffectEvent(() => {
+    setCount(count + 1);
+  });
 
-    const id = setInterval(onTick, 1000);
-    return () => clearInterval(id);
-  }, [count]);
+  // 작동하지 않음
+  useTimer(onTick, 1000);
+  
+  return <div>{count}</div>;
+}
+```
+
+**왜 이런 제한이 있나?**
+
+Effect Event는 Effect의 "일부"로 설계되었다. Effect 밖에서 사용하면 의도치 않은 동작이 발생할 수 있다.
+
+## 실전 예제: 분석 이벤트
+
+페이지 방문을 추적하는데, 현재 장바구니 항목 수도 함께 전송하고 싶다.
+
+```jsx
+function Page({ url, shoppingCart }) {
+  const onVisit = useEffectEvent((url, shoppingCart) => {
+    logVisit(url, shoppingCart.length);
+  });
+
+  useEffect(() => {
+    onVisit(url, shoppingCart);
+  }, [url]); // shoppingCart는 의존성이 아님
+  
   // ...
 }
 ```
+
+**동작:**
+
+- `url`이 변경될 때만 방문 기록
+- `shoppingCart`가 변경되어도 방문 기록하지 않음
+- 하지만 기록할 때는 최신 `shoppingCart` 값을 사용
+
+## 언제 이 패턴을 사용하나?
+
+**사용해야 할 때:**
+
+- Effect의 일부 로직은 반응형이어야 하고
+- 다른 일부 로직은 비반응형이어야 할 때
+
+**예시:**
+
+- 채팅 연결: `roomId`에는 반응, `theme`에는 반응하지 않음
+- 분석: `url`에는 반응, `shoppingCart`에는 반응하지 않음
+
+**사용하지 말아야 할 때:**
+
+- 모든 로직이 같은 의존성을 가질 때 → 그냥 하나의 Effect로
+- 로직이 완전히 다를 때 → 별도의 Effect로 분리
+
+## 정리
+
+- 이벤트 핸들러는 사용자 행동에 반응한다
+- Effect는 동기화가 필요할 때 자동으로 실행된다
+- `useEffectEvent`는 Effect 내부의 비반응형 로직을 분리한다 (실험적 기능)
+- 현재는 ref를 사용하여 비슷한 효과를 얻을 수 있다
+- Effect Event는 Effect 내부에서만 호출해야 한다
+- 일부 로직은 반응형, 다른 로직은 비반응형일 때 이 패턴을 사용한다

@@ -1,5 +1,5 @@
 ---
-title: "📚 [React 기초 4-4/9] Effect가 필요하지 않을 수도 있습니다"
+title: "[React 기초 4-4/9] Effect가 필요하지 않을 수도 있다"
 date: "2025-08-04"
 description: "불필요한 Effect를 식별하고 없애는 방법"
 tags: ["React", "학습", "Effect", "최적화"]
@@ -7,128 +7,267 @@ series: "React 기초"
 seriesOrder: 30
 ---
 
-## Effect가 필요하지 않을 수도 있습니다
+# Effect가 필요하지 않을 수도 있다
 
-Effect는 강력하지만 잘못 사용하면 코드가 복잡해지고 성능이 떨어집니다.
+## Effect를 남용하지 말아야 하는 이유
 
-Effect는 React 코드에서 "벗어나" 외부 시스템과 동기화하는 데 사용됩니다. **Effect를 남용하지 마세요!**
+Effect는 강력하지만 잘못 사용하면 코드가 복잡해지고 성능이 떨어진다.
 
-### 불필요한 Effect 제거하기
+Effect는 React 코드에서 "벗어나" 외부 시스템과 동기화하는 데 사용된다. 하지만 많은 경우 Effect 없이 해결할 수 있다.
 
-Effect가 정말 필요한지 항상 미심쩍게 판단하세요. 다음은 흔히 볼 수 있는 10가지 안티패턴입니다.
+### Effect가 정말 필요한가?
 
-#### 1. **렌더링을 위한 데이터 변환에 Effect 불필요**
+Effect를 작성하기 전에 항상 질문해야 한다: "이 코드가 정말 외부 시스템과 동기화하나?" 만약 아니라면, Effect가 필요하지 않을 수 있다.
+
+**Effect가 필요한 경우:** (다음 챕터에서 자세히 다룸)
+- 서버 연결
+- 브라우저 API (타이머, 이벤트 리스너)
+- 서드파티 라이브러리
+
+**Effect가 필요하지 않은 경우:**
+- 렌더링을 위한 데이터 변환
+- 사용자 이벤트 처리
+
+## 불필요한 Effect 제거하기 - 10가지 안티패턴
+
+흔히 볼 수 있는 10가지 안티패턴과 올바른 해결 방법을 살펴본다.
+
+### 1. 렌더링을 위한 데이터 변환에 Effect 불필요
+
+**나쁜 예: Effect로 state 업데이트**
 
 ```jsx
-// ❌ 불필요한 Effect
 function Form() {
   const [firstName, setFirstName] = useState('Taylor');
   const [lastName, setLastName] = useState('Swift');
   const [fullName, setFullName] = useState('');
 
+  // 불필요한 Effect
   useEffect(() => {
     setFullName(firstName + ' ' + lastName);
   }, [firstName, lastName]);
-  // ...
-}
-
-// ✅ 렌더링 중 계산
-function Form() {
-  const [firstName, setFirstName] = useState('Taylor');
-  const [lastName, setLastName] = useState('Swift');
-  const fullName = firstName + ' ' + lastName;
-  // ...
+  
+  return <h1>{fullName}</h1>;
 }
 ```
 
-#### 2. **비싼 계산 캐싱에는 useMemo**
+**왜 나쁜가?**
+
+이 코드는 불필요하게 두 번 렌더링된다:
+1. 첫 렌더링: `fullName`이 빈 문자열
+2. Effect 실행: `setFullName` 호출
+3. 두 번째 렌더링: `fullName`이 계산된 값
+
+**좋은 예: 렌더링 중 계산**
 
 ```jsx
-// ❌ 느림: 매 렌더링마다 재계산
+function Form() {
+  const [firstName, setFirstName] = useState('Taylor');
+  const [lastName, setLastName] = useState('Swift');
+  
+  // 그냥 계산하면 된다
+  const fullName = firstName + ' ' + lastName;
+  
+  return <h1>{fullName}</h1>;
+}
+```
+
+이렇게 하면:
+1. 렌더링: `fullName`이 바로 계산됨
+
+한 번의 렌더링으로 끝난다.
+
+### 2. 비싼 계산 캐싱에는 useMemo
+
+위 예제에서는 문자열 결합이 매우 빠르므로 매번 계산해도 괜찮다. 하지만 계산 비용이 큰 경우는 어떨까?
+
+#### 문제 상황
+
+```jsx
 function TodoList({ todos, filter }) {
-  const visibleTodos = getFilteredTodos(todos, filter);  // 느린 함수
-  // ...
+  // 이 함수가 매우 느리다고 가정 (수천 개의 항목을 처리)
+  const visibleTodos = getFilteredTodos(todos, filter);
+  
+  return (
+    <ul>
+      {visibleTodos.map(todo => (
+        <li key={todo.id}>{todo.text}</li>
+      ))}
+    </ul>
+  );
 }
 
-// ✅ 빠름: todos나 filter가 변경될 때만 재계산
+function getFilteredTodos(todos, filter) {
+  console.log('Filtering... (느린 작업)');
+  
+  // 복잡한 필터링과 정렬 작업
+  return todos
+    .filter(todo => {
+      // 복잡한 로직...
+    })
+    .sort((a, b) => {
+      // 복잡한 정렬...
+    });
+}
+```
+
+**문제:** 컴포넌트가 리렌더링될 때마다 `getFilteredTodos`가 실행된다. `todos`나 `filter`가 변경되지 않았는데도.
+
+#### useMemo로 해결
+
+`useMemo`는 값을 메모이제이션(캐싱)한다. 의존성이 변경될 때만 다시 계산한다.
+
+```jsx
 import { useMemo } from 'react';
 
 function TodoList({ todos, filter }) {
   const visibleTodos = useMemo(() => {
+    console.log('Filtering... (느린 작업)');
     return getFilteredTodos(todos, filter);
   }, [todos, filter]);
-  // ...
+  
+  return (
+    <ul>
+      {visibleTodos.map(todo => (
+        <li key={todo.id}>{todo.text}</li>
+      ))}
+    </ul>
+  );
 }
 ```
 
-#### 3. **Props 변경 시 모든 state 재설정**
+**useMemo의 동작:**
+
+1. 첫 렌더링: 계산을 실행하고 결과를 저장
+2. 다음 렌더링:
+   - `todos`나 `filter`가 변경되지 않았다면 → 저장된 결과를 반환 (계산하지 않음)
+   - `todos`나 `filter`가 변경되었다면 → 다시 계산하고 결과를 저장
+
+**useMemo vs useEffect의 차이:**
 
 ```jsx
-// ❌ 나쁨: Effect로 재설정
+// useEffect는 이 문제를 해결하지 못함
+useEffect(() => {
+  setVisibleTodos(getFilteredTodos(todos, filter));
+}, [todos, filter]);
+// → 렌더링이 두 번 발생 (첫 렌더링 + Effect 후 렌더링)
+
+// useMemo는 렌더링 중에 계산
+const visibleTodos = useMemo(() => {
+  return getFilteredTodos(todos, filter);
+}, [todos, filter]);
+// → 렌더링이 한 번만 발생
+```
+
+**언제 useMemo를 사용하나?**
+
+- 계산이 눈에 띄게 느릴 때 (수천 개의 항목 처리, 복잡한 알고리즘 등)
+- 의존성이 자주 변경되지 않을 때
+
+**언제 useMemo를 사용하지 않나?**
+
+- 계산이 빠를 때 (간단한 덧셈, 문자열 결합 등)
+- 매번 계산해도 성능에 문제가 없을 때
+
+### 3. Props 변경 시 모든 state 재설정
+
+**나쁜 예: Effect로 재설정**
+
+```jsx
 export default function ProfilePage({ userId }) {
   const [comment, setComment] = useState('');
 
+  // userId가 변경되면 comment를 리셋
   useEffect(() => {
     setComment('');
   }, [userId]);
-  // ...
+  
+  return <CommentBox comment={comment} onChange={setComment} />;
 }
+```
 
-// ✅ 좋음: key로 재설정
+**좋은 예: key로 재설정**
+
+```jsx
 export default function ProfilePage({ userId }) {
   return (
     <Profile
       userId={userId}
-      key={userId}
+      key={userId}  // userId가 변경되면 새 컴포넌트로 취급
     />
   );
 }
 
 function Profile({ userId }) {
   const [comment, setComment] = useState('');
-  // userId가 변경되면 Profile이 재마운트되어 comment가 ''로 리셋됨
-  // ...
+  // userId가 변경되면 Profile이 재마운트되어 comment가 자동으로 ''로 리셋됨
+  
+  return <CommentBox comment={comment} onChange={setComment} />;
 }
 ```
 
-#### 4. **Props 변경 시 일부 state 조정**
+**key의 동작:**
+
+React는 `key`가 변경되면 이전 컴포넌트를 파괴하고 새 컴포넌트를 생성한다. 모든 state가 자동으로 초기화된다.
+
+### 4. Props 변경 시 일부 state 조정
+
+**나쁜 예: Effect로 동기화**
 
 ```jsx
-// ❌ 나쁨: Effect로 동기화
 function List({ items }) {
   const [selection, setSelection] = useState(null);
 
+  // items가 변경되면 selection을 리셋
   useEffect(() => {
     setSelection(null);
   }, [items]);
-  // ...
+  
+  return <ItemList items={items} selection={selection} />;
 }
+```
 
-// ✅ 좋음: 렌더링 중 조정
+**좋은 예: 렌더링 중 조정**
+
+```jsx
 function List({ items }) {
   const [selectedId, setSelectedId] = useState(null);
   const [prevItems, setPrevItems] = useState(items);
   
+  // items가 변경되었는지 확인
   if (items !== prevItems) {
     setPrevItems(items);
     setSelectedId(null);
   }
-  // ...
-}
-
-// ✅ 더 좋음: 모든 것을 렌더링 중 계산
-function List({ items }) {
-  const [selectedId, setSelectedId] = useState(null);
+  
   const selection = items.find(item => item.id === selectedId) ?? null;
-  // ...
+  
+  return <ItemList items={items} selection={selection} />;
 }
 ```
 
-#### 5. **이벤트 핸들러 간 로직 공유**
+**더 좋은 예: 모든 것을 렌더링 중 계산**
 
 ```jsx
-// ❌ 나쁨: Effect로 처리
+function List({ items }) {
+  const [selectedId, setSelectedId] = useState(null);
+  
+  // ID만 저장하고, 항목은 items에서 찾기
+  const selection = items.find(item => item.id === selectedId) ?? null;
+  
+  return <ItemList items={items} selection={selection} />;
+}
+```
+
+이 방법이 가장 깔끔하다. Effect도 필요 없고, 렌더링 중 state 조정도 필요 없다.
+
+### 5. 이벤트 핸들러 간 로직 공유
+
+**나쁜 예: Effect로 처리**
+
+```jsx
 function ProductPage({ product, addToCart }) {
+  // product.isInCart가 변경될 때마다 알림 표시
   useEffect(() => {
     if (product.isInCart) {
       showNotification(`Added ${product.name} to the shopping cart!`);
@@ -143,10 +282,16 @@ function ProductPage({ product, addToCart }) {
     addToCart(product);
     navigateTo('/checkout');
   }
-  // ...
+  
+  return <>{/* UI */}</>;
 }
+```
 
-// ✅ 좋음: 이벤트 핸들러에서 호출
+**문제:** `product`가 변경될 때마다 (예: 가격 변경) 불필요한 알림이 표시된다.
+
+**좋은 예: 이벤트 핸들러에서 호출**
+
+```jsx
 function ProductPage({ product, addToCart }) {
   function buyProduct() {
     addToCart(product);
@@ -161,22 +306,28 @@ function ProductPage({ product, addToCart }) {
     buyProduct();
     navigateTo('/checkout');
   }
-  // ...
+  
+  return <>{/* UI */}</>;
 }
 ```
 
-#### 6. **POST 요청 보내기**
+이제 사용자가 실제로 구매할 때만 알림이 표시된다.
+
+### 6. POST 요청 보내기
+
+**나쁜 예: 렌더링마다 전송**
 
 ```jsx
-// ❌ 나쁨: 렌더링 시마다 전송
 function Form() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
 
+  // 마운트 시 분석 이벤트
   useEffect(() => {
     post('/analytics/event', { eventName: 'visit_form' });
   }, []);
 
+  // firstName이나 lastName이 변경될 때마다 분석 이벤트
   useEffect(() => {
     post('/analytics/event', { eventName: 'edit_form' });
   }, [firstName, lastName]);
@@ -185,14 +336,21 @@ function Form() {
     e.preventDefault();
     post('/api/register', { firstName, lastName });
   }
-  // ...
+  
+  return <form onSubmit={handleSubmit}>{/* ... */}</form>;
 }
+```
 
-// ✅ 좋음: 적절한 시점에 전송
+**문제:** 사용자가 입력할 때마다 분석 이벤트가 전송된다. 너무 많은 요청이 발생한다.
+
+**좋은 예: 적절한 시점에 전송**
+
+```jsx
 function Form() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
 
+  // 마운트 시 한 번만
   useEffect(() => {
     post('/analytics/event', { eventName: 'visit_form' });
   }, []);
@@ -203,30 +361,37 @@ function Form() {
     post('/analytics/event', { eventName: 'submit_form' });
   }
 
-  function handleChange(e) {
-    setFirstName(e.target.value);
+  function handleChange(field, value) {
+    if (field === 'firstName') setFirstName(value);
+    else setLastName(value);
+    
+    // 입력 시작 시에만 한 번 전송하려면 추가 로직 필요
     post('/analytics/event', { eventName: 'edit_form' });
   }
-  // ...
+  
+  return <form onSubmit={handleSubmit}>{/* ... */}</form>;
 }
 ```
 
-#### 7. **연쇄 계산**
+### 7. 연쇄 계산
+
+**나쁜 예: 연쇄 Effect**
 
 ```jsx
-// ❌ 나쁨: 연쇄 Effect
 function Game() {
   const [card, setCard] = useState(null);
   const [goldCardCount, setGoldCardCount] = useState(0);
   const [round, setRound] = useState(1);
   const [isGameOver, setIsGameOver] = useState(false);
 
+  // Effect 1: 카드가 골드면 카운트 증가
   useEffect(() => {
     if (card !== null && card.gold) {
       setGoldCardCount(c => c + 1);
     }
   }, [card]);
 
+  // Effect 2: 골드 카드 3개 이상이면 라운드 증가
   useEffect(() => {
     if (goldCardCount > 3) {
       setRound(r => r + 1);
@@ -234,24 +399,35 @@ function Game() {
     }
   }, [goldCardCount]);
 
+  // Effect 3: 라운드 5 이상이면 게임 종료
   useEffect(() => {
     if (round > 5) {
       setIsGameOver(true);
     }
   }, [round]);
 
+  // Effect 4: 게임 종료 시 알림
   useEffect(() => {
-    alert('Good game!');
+    if (isGameOver) {
+      alert('Good game!');
+    }
   }, [isGameOver]);
+  
   // ...
 }
+```
 
-// ✅ 좋음: 렌더링 중 계산 또는 이벤트 핸들러에서 처리
+**문제:** 한 번의 사용자 행동으로 4번의 렌더링이 발생한다.
+
+**좋은 예: 렌더링 중 계산 + 이벤트 핸들러에서 처리**
+
+```jsx
 function Game() {
   const [card, setCard] = useState(null);
   const [goldCardCount, setGoldCardCount] = useState(0);
   const [round, setRound] = useState(1);
 
+  // 렌더링 중 계산
   const isGameOver = round > 5;
 
   function handlePlaceCard(nextCard) {
@@ -260,52 +436,69 @@ function Game() {
     }
 
     setCard(nextCard);
+    
     if (nextCard.gold) {
       if (goldCardCount <= 3) {
         setGoldCardCount(goldCardCount + 1);
       } else {
         setGoldCardCount(0);
         setRound(round + 1);
+        
         if (round === 5) {
           alert('Good game!');
         }
       }
     }
   }
+  
   // ...
 }
 ```
 
-#### 8. **애플리케이션 초기화**
+한 번의 렌더링으로 끝난다.
+
+### 8. 애플리케이션 초기화
+
+**나쁜 예: Effect로 초기화 (두 번 실행될 수 있음)**
 
 ```jsx
-// ❌ 나쁨: Effect로 초기화 (두 번 실행될 수 있음)
 function App() {
   useEffect(() => {
     loadDataFromLocalStorage();
     checkAuthToken();
   }, []);
-  // ...
+  
+  return <Main />;
 }
+```
 
-// ✅ 좋음: 최상위에서 한 번만 실행
+**문제:** 개발 모드에서 두 번 실행된다.
+
+**좋은 예: 최상위에서 한 번만 실행**
+
+```jsx
+// App.js 최상단
 if (typeof window !== 'undefined') {
   loadDataFromLocalStorage();
   checkAuthToken();
 }
 
 function App() {
-  // ...
+  return <Main />;
 }
 ```
 
-#### 9. **부모에게 state 변경 알리기**
+컴포넌트가 import될 때 한 번만 실행된다.
+
+### 9. 부모에게 state 변경 알리기
+
+**나쁜 예: Effect로 부모에게 알림**
 
 ```jsx
-// ❌ 나쁨: Effect로 부모에게 알림
 function Toggle({ onChange }) {
   const [isOn, setIsOn] = useState(false);
 
+  // isOn이 변경될 때마다 부모에게 알림
   useEffect(() => {
     onChange(isOn);
   }, [isOn, onChange]);
@@ -313,26 +506,32 @@ function Toggle({ onChange }) {
   function handleClick() {
     setIsOn(!isOn);
   }
-  // ...
+  
+  return <button onClick={handleClick}>{isOn ? 'On' : 'Off'}</button>;
 }
+```
 
-// ✅ 좋음: 이벤트 핸들러에서 함께 처리
+**좋은 예: 이벤트 핸들러에서 함께 처리**
+
+```jsx
 function Toggle({ onChange }) {
   const [isOn, setIsOn] = useState(false);
 
   function handleClick() {
     const nextIsOn = !isOn;
     setIsOn(nextIsOn);
-    onChange(nextIsOn);
+    onChange(nextIsOn);  // 동시에 부모에게 알림
   }
-  // ...
+  
+  return <button onClick={handleClick}>{isOn ? 'On' : 'Off'}</button>;
 }
 ```
 
-#### 10. **부모에게 데이터 전달**
+### 10. 부모에게 데이터 전달
+
+**나쁜 예: 자식이 데이터를 페칭해서 부모에게 전달**
 
 ```jsx
-// ❌ 나쁨: Effect로 전달
 function Parent() {
   const [data, setData] = useState(null);
   return <Child onFetched={setData} />;
@@ -346,25 +545,42 @@ function Child({ onFetched }) {
       onFetched(data);
     }
   }, [onFetched, data]);
-  // ...
+  
+  return <div>{/* ... */}</div>;
 }
+```
 
-// ✅ 좋음: 부모가 데이터 페칭
+**좋은 예: 부모가 데이터 페칭**
+
+```jsx
 function Parent() {
   const data = useSomeAPI();
   return <Child data={data} />;
 }
 
 function Child({ data }) {
-  // ...
+  return <div>{/* ... */}</div>;
 }
 ```
 
-### Effect를 사용해야 하는 경우
+React에서는 데이터가 위에서 아래로 흐른다. 부모가 데이터를 관리하고 자식에게 전달하는 것이 자연스럽다.
 
-**외부 시스템과 동기화할 때만 사용하세요:**
+## Effect를 사용해야 하는 경우
+
+**외부 시스템과 동기화할 때만 Effect를 사용한다:**
 
 - 브라우저 API (타이머, 네트워크 등)
-- 서드파티 위젯
-- 네트워크 연결
+- 서드파티 위젯 (지도, 채팅 등)
+- 네트워크 연결 (WebSocket, SSE 등)
 - 브라우저 DOM (포커스, 스크롤 등)
+
+이런 경우가 아니라면, 아마도 Effect가 필요하지 않을 것이다.
+
+## 정리
+
+- 렌더링을 위한 데이터 변환에는 Effect를 사용하지 않는다
+- 비싼 계산 캐싱에는 `useMemo`를 사용한다
+- 사용자 이벤트 처리에는 이벤트 핸들러를 사용한다
+- Props 변경 시 state 재설정에는 `key`를 사용한다
+- 연쇄 Effect 대신 렌더링 중 계산이나 이벤트 핸들러를 사용한다
+- Effect는 외부 시스템과 동기화할 때만 사용한다
