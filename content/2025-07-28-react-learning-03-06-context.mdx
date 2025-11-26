@@ -16,38 +16,392 @@ seriesOrder: 24
 
 ## Context로 데이터 깊이 전달하기
 
-Props를 여러 레벨을 거쳐 전달해야 할 때 코드가 복잡해집니다.
+### Context란 무엇인가?
 
-### Prop Drilling 문제
+**Context는 React 컴포넌트 트리에서 "텔레포트"처럼 데이터를 전달하는 기능입니다.**
 
-```jsx
-// ❌ Prop Drilling: 중간 컴포넌트들이 theme을 사용하지 않는데도 전달해야 함
-<Page theme={theme}>
-  <Layout theme={theme}>
-    <Header theme={theme}>
-      <Button theme={theme} />
-    </Header>
-  </Layout>
-</Page>
+일반적으로 React는 부모에서 자식으로 props를 통해 데이터를 전달합니다. 하지만 여러 단계를 거쳐야 하거나 많은 컴포넌트가 같은 데이터를 필요로 할 때, props 전달은 불편해집니다.
+
+```
+일반 Props 전달:
+App → Layout → Header → Button
+(모든 단계를 거쳐 전달)
+
+Context 사용:
+App ········→ Button
+(중간 단계를 건너뛰고 직접 전달)
 ```
 
-### Context로 해결
+#### React의 데이터 흐름 철학
 
-Context는 컴포넌트 트리 전체에 데이터를 제공하는 기능입니다.
+React는 **"단방향 데이터 흐름"**을 기본 철학으로 합니다:
 
-Context를 사용하면 부모 컴포넌트가 트리 아래 **모든 컴포넌트**에 데이터를 제공할 수 있습니다.
+1. **명시적 props 전달**: 데이터가 어디서 오는지 명확함
+2. **예측 가능한 흐름**: 부모 → 자식 방향으로만 흐름
+3. **컴포넌트 독립성**: 각 컴포넌트는 props만 알면 됨
+
+하지만 이런 철학에도 **예외가 필요한 경우**가 있습니다:
+
+- 테마 (모든 UI가 사용)
+- 현재 사용자 정보 (어디서든 필요)
+- 언어 설정 (전체 앱에 영향)
+
+이런 **"전역적인 데이터"**를 위해 Context가 등장했습니다.
+
+#### Context의 핵심 개념
+
+Context는 3가지 요소로 구성됩니다:
+
+```
+1. Context 생성 (createContext)
+   ↓
+2. Provider로 데이터 제공
+   ↓
+3. useContext로 데이터 소비
+```
+
+**비유로 이해하기:**
+
+Context는 **"무선 충전기"**와 같습니다:
+
+- **Provider**: 무선 충전 패드 (전력 공급)
+- **Context**: 전력이 흐르는 공간
+- **useContext**: 휴대폰 (전력 수신)
+
+중간에 케이블(props)이 없어도 전력(데이터)이 전달됩니다!
+
+### Props Drilling 문제
+
+Props를 여러 레벨을 거쳐 전달해야 할 때 코드가 복잡해집니다.
+
+#### 실제 시나리오: 사용자 정보 전달
+
+```jsx
+// ❌ Props Drilling: 5단계 컴포넌트 트리
+function App() {
+  const user = { name: 'Alice', avatar: 'alice.jpg' };
+  
+  return <Dashboard user={user} />;
+}
+
+function Dashboard({ user }) {
+  // Dashboard는 user를 사용하지 않지만 전달해야 함
+  return (
+    <div>
+      <Sidebar user={user} />
+      <MainContent user={user} />
+    </div>
+  );
+}
+
+function Sidebar({ user }) {
+  // Sidebar도 user를 사용하지 않지만 전달해야 함
+  return (
+    <nav>
+      <Menu user={user} />
+    </nav>
+  );
+}
+
+function Menu({ user }) {
+  // Menu도 user를 사용하지 않지만 전달해야 함
+  return (
+    <ul>
+      <UserProfile user={user} />
+    </ul>
+  );
+}
+
+function UserProfile({ user }) {
+  // 여기서 비로소 user를 사용!
+  return <div>{user.name}</div>;
+}
+```
+
+**데이터 흐름 시각화:**
+
+```
+App (user 생성)
+ ↓ props
+Dashboard (통과만 함)
+ ↓ props
+Sidebar (통과만 함)
+ ↓ props
+Menu (통과만 함)
+ ↓ props
+UserProfile (드디어 사용!)
+```
+
+#### Props Drilling의 3가지 문제
+
+**1. 코드 중복 (Boilerplate)**
+
+```jsx
+// 모든 중간 컴포넌트에서 반복
+function Component({ user }) {
+  return <ChildComponent user={user} />;
+}
+```
+
+**2. 유지보수 어려움**
+
+```jsx
+// user를 profile로 이름 변경하려면?
+// 5개 컴포넌트를 모두 수정해야 함!
+function App() {
+  const profile = { name: 'Alice' };
+  return <Dashboard profile={profile} />;
+}
+
+function Dashboard({ profile }) {
+  return <Sidebar profile={profile} />;
+}
+// ... 모든 컴포넌트 수정 필요
+```
+
+**3. 컴포넌트 오염**
+
+```jsx
+// Dashboard는 user를 사용하지 않는데
+// props 인터페이스가 오염됨
+function Dashboard({ user, theme, language, settings }) {
+  // 실제로는 아무것도 사용하지 않음
+  return <Sidebar user={user} theme={theme} ... />;
+}
+```
+
+### Context가 해결하는 방법
+
+Context를 사용하면 중간 컴포넌트를 거치지 않고 데이터를 전달할 수 있습니다.
+
+#### Props vs Context 비교
+
+**Props 방식:**
+
+```jsx
+// 모든 컴포넌트가 theme을 전달해야 함
+<App theme="dark">
+  <Dashboard theme="dark">
+    <Sidebar theme="dark">
+      <Menu theme="dark">
+        <Button theme="dark" />  ← 여기서 사용
+      </Menu>
+    </Sidebar>
+  </Dashboard>
+</App>
+```
+
+**Context 방식:**
+
+```jsx
+// Provider만 설정하면 끝!
+<ThemeContext.Provider value="dark">
+  <App>
+    <Dashboard>
+      <Sidebar>
+        <Menu>
+          <Button />  ← useContext로 직접 접근
+        </Menu>
+      </Sidebar>
+    </Dashboard>
+  </App>
+</ThemeContext.Provider>
+```
+
+#### Context의 3가지 장점
+
+1. **중간 컴포넌트 간소화**: props 전달 불필요
+2. **유지보수 용이**: Provider만 수정하면 모든 곳에 반영
+3. **명확한 의도**: "이건 전역 데이터입니다" 선언
+
+### Context 사용 방법
+
+Context를 사용하려면 3단계를 거칩니다.
+
+#### 0단계: 언제 Context를 사용할까?
+
+**Context를 사용하면 좋은 경우:**
+
+- 🎨 **테마**: 다크/라이트 모드
+- 👤 **현재 사용자**: 로그인 정보
+- 🌍 **언어/지역**: i18n 설정
+- 🧭 **라우팅**: 현재 경로 정보
+- 📱 **앱 설정**: 전역 설정값
+
+**Context를 피해야 하는 경우:**
+
+- 단순히 props 2-3단계 전달
+- 자주 변경되는 데이터 (성능 문제)
+- 컴포넌트 재사용성이 중요한 경우
+
+**판단 기준:**
+```
+✅ 5개 이상 컴포넌트가 같은 데이터 필요 → Context
+✅ props를 5단계 이상 전달 → Context
+✅ "전역적인" 성격의 데이터 → Context
+
+❌ props 1-2단계 전달 → 그냥 props 사용
+❌ 한두 개 컴포넌트만 사용 → props 사용
+```
 
 #### 1단계: Context 생성
+
+**createContext로 Context 객체를 만듭니다.**
 
 ```jsx
 import { createContext } from 'react';
 
+// 기본값 'light'를 가진 Context 생성
 export const ThemeContext = createContext('light');
+```
+
+**기본값의 역할:**
+
+```jsx
+// 기본값은 Provider 없을 때만 사용됨
+const ThemeContext = createContext('light');
+
+// Provider 없이 사용 → 기본값 'light' 사용
+function Button() {
+  const theme = useContext(ThemeContext); // 'light'
+  return <button>{theme}</button>;
+}
+
+// Provider 있으면 → Provider의 value 사용
+<ThemeContext.Provider value="dark">
+  <Button />  {/* 'dark' 사용 */}
+</ThemeContext.Provider>
+```
+
+**실무 팁: Provider를 필수로 만드는 패턴**
+
+기본값을 설정하면 Provider 없이도 동작하는데, 이게 오히려 버그의 원인이 될 수 있습니다.
+
+**문제 상황:**
+
+```jsx
+// 기본값 설정
+const UserContext = createContext({ name: 'Guest', id: 0 });
+
+function UserProfile() {
+  const user = useContext(UserContext);
+  return <div>{user.name}</div>;  // 'Guest' 출력
+}
+
+// ❌ Provider를 깜빡함 - 그런데 에러가 안 남!
+function App() {
+  return <UserProfile />;  // 'Guest' 표시 - 버그인지 의도인지 모름
+}
+```
+
+**해결 방법: null로 초기화**
+
+```jsx
+// 1. null로 초기화 (Provider 없으면 에러 내기 위해)
+const UserContext = createContext(null);
+
+// 2. 커스텀 Hook 만들기
+function useUser() {
+  const user = useContext(UserContext);
+  
+  // Provider 없으면 user가 null → 에러 발생
+  if (user === null) {
+    throw new Error('useUser는 UserProvider 안에서만 사용 가능합니다');
+  }
+  
+  return user;
+}
+
+// 3. 사용하기
+function UserProfile() {
+  const user = useUser();  // Provider 없으면 에러!
+  return <div>{user.name}</div>;
+}
+```
+
+**전체 예제로 이해하기:**
+
+```jsx
+// UserContext.js
+import { createContext, useContext, useState } from 'react';
+
+// 1. null로 초기화
+const UserContext = createContext(null);
+
+// 2. Provider 컴포넌트 만들기
+export function UserProvider({ children }) {
+  const [user, setUser] = useState({ name: 'Alice', id: 1 });
+  
+  return (
+    <UserContext.Provider value={user}>
+      {children}
+    </UserContext.Provider>
+  );
+}
+
+// 3. 안전한 커스텀 Hook
+export function useUser() {
+  const user = useContext(UserContext);
+  
+  if (user === null) {
+    throw new Error('useUser는 UserProvider 안에서만 사용 가능합니다');
+  }
+  
+  return user;
+}
+```
+
+```jsx
+// App.js
+import { UserProvider, useUser } from './UserContext.js';
+
+function UserProfile() {
+  const user = useUser();  // 안전하게 사용
+  return <div>Hello, {user.name}!</div>;
+}
+
+// ✅ 올바른 사용
+function App() {
+  return (
+    <UserProvider>
+      <UserProfile />  {/* 정상 동작 */}
+    </UserProvider>
+  );
+}
+
+// ❌ 잘못된 사용 - 명확한 에러 발생
+function WrongApp() {
+  return <UserProfile />;  // 에러: "useUser는 UserProvider 안에서만 사용 가능합니다"
+}
+```
+
+**이 패턴의 장점:**
+
+1. **버그 조기 발견**: Provider 빠뜨리면 즉시 에러
+2. **명확한 에러 메시지**: 어떻게 고쳐야 하는지 알려줌
+3. **TypeScript와 궁합 좋음**: null 체크로 타입 안전성 확보
+
+**요약:**
+
+```jsx
+// ❌ 나쁨: 기본값 설정 → Provider 없어도 동작 → 버그 발견 어려움
+const Context = createContext('default');
+
+// ✅ 좋음: null 초기화 → 커스텀 Hook → Provider 필수화
+const Context = createContext(null);
+function useMyContext() {
+  const value = useContext(Context);
+  if (value === null) throw new Error('Provider 필요!');
+  return value;
+}
 ```
 
 #### 2단계: Context 제공 (Provider)
 
+**Provider로 컴포넌트 트리에 데이터를 제공합니다.**
+
 ```jsx
+import { useState } from 'react';
 import { ThemeContext } from './ThemeContext.js';
 
 export default function App() {
@@ -61,7 +415,42 @@ export default function App() {
 }
 ```
 
+**Provider의 핵심 개념:**
+
+1. **범위 설정**: Provider 하위 컴포넌트만 접근 가능
+   ```jsx
+   <div>
+     <ComponentA />  {/* ❌ Context 접근 불가 */}
+     <ThemeContext.Provider value="dark">
+       <ComponentB />  {/* ✅ Context 접근 가능 */}
+     </ThemeContext.Provider>
+   </div>
+   ```
+
+2. **동적 값**: state를 value로 전달 가능
+   ```jsx
+   const [theme, setTheme] = useState('light');
+   
+   // theme이 변경되면 모든 useContext가 자동 업데이트
+   <ThemeContext.Provider value={theme}>
+     <App />
+   </ThemeContext.Provider>
+   ```
+
+3. **중첩 가능**: 가장 가까운 Provider 값 사용
+   ```jsx
+   <ThemeContext.Provider value="light">
+     <ComponentA />  {/* 'light' 사용 */}
+     
+     <ThemeContext.Provider value="dark">
+       <ComponentB />  {/* 'dark' 사용 (재정의됨) */}
+     </ThemeContext.Provider>
+   </ThemeContext.Provider>
+   ```
+
 #### 3단계: Context 사용 (Consumer)
+
+**useContext Hook으로 데이터를 읽습니다.**
 
 ```jsx
 import { useContext } from 'react';
@@ -76,6 +465,60 @@ function Button() {
     </button>
   );
 }
+```
+
+**useContext의 핵심 개념:**
+
+1. **자동 구독**: Context 값이 바뀌면 자동 리렌더링
+   ```jsx
+   function Button() {
+     const theme = useContext(ThemeContext);
+     // theme이 변경되면 Button이 자동으로 리렌더링됨
+     return <button className={theme}>Click</button>;
+   }
+   ```
+
+2. **트리 탐색**: 가장 가까운 Provider 찾기
+   ```jsx
+   // React가 컴포넌트 트리를 위로 올라가며 Provider 탐색
+   <ThemeContext.Provider value="light">
+     <div>
+       <div>
+         <div>
+           <Button />  {/* 3단계 위의 Provider 찾아서 사용 */}
+         </div>
+       </div>
+     </div>
+   </ThemeContext.Provider>
+   ```
+
+3. **여러 Context 사용 가능**
+   ```jsx
+   function UserProfile() {
+     const theme = useContext(ThemeContext);
+     const user = useContext(UserContext);
+     const language = useContext(LanguageContext);
+     
+     // 여러 Context를 동시에 사용 가능
+     return <div className={theme}>{user.name}</div>;
+   }
+   ```
+
+**주의사항:**
+
+```jsx
+// ❌ 나쁨: Provider 밖에서 사용
+function Button() {
+  const theme = useContext(ThemeContext);  // undefined 또는 기본값
+  return <button>{theme}</button>;
+}
+
+<Button />  // Provider 없음!
+
+// ✅ 좋음: Provider 안에서 사용
+<ThemeContext.Provider value="dark">
+  <Button />  // 'dark' 사용
+</ThemeContext.Provider>
 ```
 
 ### 전체 예제
