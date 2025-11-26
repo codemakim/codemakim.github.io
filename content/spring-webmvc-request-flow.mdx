@@ -1,0 +1,687 @@
+---
+title: "Spring Boot 3.x WebMVC 요청 처리 흐름"
+description: "HTTP 요청이 DispatcherServlet을 거쳐 컨트롤러까지 도달하는 과정과 Spring Boot 3.x에서 바뀐 점을 정리했습니다."
+date: "2025-09-13"
+tags: ["Spring", "Java", "백엔드"]
+---
+
+# Spring Boot 3.x WebMVC 요청 처리 흐름
+
+이전 글에서 컨트롤러 메서드의 파라미터를 어떻게 받는지 정리했다면, 이번에는 HTTP 요청이 실제로 컨트롤러까지 어떻게 도달하는지 전체 흐름을 정리했습니다. `@PathVariable`이나 `@RequestParam` 같은 애노테이션이 내부적으로 어떻게 처리되는지 이해할 수 있습니다.
+
+## 전체 흐름 개요
+
+클라이언트의 HTTP 요청이 컨트롤러 메서드를 실행하고 응답을 반환하기까지의 과정은 다음과 같습니다.
+
+```
+HTTP 요청
+    ↓
+DispatcherServlet (프론트 컨트롤러)
+    ↓
+HandlerMapping (어떤 컨트롤러를 실행할지 결정)
+    ↓
+HandlerAdapter (컨트롤러 실행 준비)
+    ↓
+ArgumentResolver (메서드 파라미터 준비)
+    ↓
+Controller Method (비즈니스 로직 실행)
+    ↓
+ReturnValueHandler (반환값 처리)
+    ↓
+ViewResolver (뷰 렌더링) 또는 MessageConverter (JSON 변환)
+    ↓
+HTTP 응답
+```
+
+각 단계를 하나씩 살펴보겠습니다.
+
+## DispatcherServlet
+
+Spring MVC의 중심이 되는 프론트 컨트롤러입니다. 모든 HTTP 요청을 가장 먼저 받아서 적절한 핸들러로 분배하는 역할을 합니다.
+
+### 주요 역할
+
+```java
+// DispatcherServlet의 핵심 로직 (간략화)
+protected void doDispatch(HttpServletRequest request, HttpServletResponse response) {
+    // 1. 요청을 처리할 핸들러 찾기
+    HandlerExecutionChain handler = getHandler(request);
+    
+    // 2. 핸들러를 실행할 어댑터 찾기
+    HandlerAdapter adapter = getHandlerAdapter(handler);
+    
+    // 3. 인터셉터 전처리
+    if (!handler.applyPreHandle(request, response)) {
+        return;
+    }
+    
+    // 4. 실제 핸들러 실행
+    ModelAndView mv = adapter.handle(request, response, handler);
+    
+    // 5. 인터셉터 후처리
+    handler.applyPostHandle(request, response, mv);
+    
+    // 6. 뷰 렌더링
+    processDispatchResult(request, response, handler, mv);
+}
+```
+
+### 등록 과정
+
+Spring Boot에서는 자동으로 설정되지만, 내부적으로는 다음과 같이 등록됩니다.
+
+```java
+// Spring Boot Auto Configuration
+@Configuration
+@ConditionalOnWebApplication(type = Type.SERVLET)
+@ConditionalOnClass(DispatcherServlet.class)
+public class DispatcherServletAutoConfiguration {
+    
+    @Bean
+    public DispatcherServlet dispatcherServlet() {
+        DispatcherServlet servlet = new DispatcherServlet();
+        // 기본 설정 적용
+        return servlet;
+    }
+}
+```
+
+기본적으로 모든 요청 경로에 대해 매핑됩니다.
+
+## HandlerMapping
+
+요청 URL과 HTTP 메서드를 보고 어떤 컨트롤러 메서드를 실행할지 결정합니다.
+
+### 매핑 방식
+
+Spring MVC는 여러 HandlerMapping 구현체를 가지고 있습니다.
+
+```java
+public interface HandlerMapping {
+    HandlerExecutionChain getHandler(HttpServletRequest request) throws Exception;
+}
+```
+
+주로 사용되는 구현체는 `RequestMappingHandlerMapping`입니다.
+
+```java
+@RestController
+@RequestMapping("/api/users")
+public class UserController {
+    
+    // GET /api/users/{id}
+    @GetMapping("/{id}")
+    public User getUser(@PathVariable Long id) {
+        return userService.findById(id);
+    }
+    
+    // POST /api/users
+    @PostMapping
+    public User createUser(@RequestBody UserRequest request) {
+        return userService.create(request);
+    }
+}
+```
+
+위 컨트롤러가 있을 때 `RequestMappingHandlerMapping`은 애플리케이션 시작 시점에 다음 정보를 수집합니다.
+
+- URL 패턴: `/api/users/{id}`, `/api/users`
+- HTTP 메서드: GET, POST
+- 매핑 조건: consumes, produces, params, headers 등
+- 실행할 메서드 정보
+
+### 매핑 우선순위
+
+여러 핸들러가 동일한 요청과 매칭될 수 있을 때는 더 구체적인 패턴이 우선됩니다.
+
+```java
+@GetMapping("/users/admin")  // 더 구체적 - 우선
+public String admin() { ... }
+
+@GetMapping("/users/{id}")   // 덜 구체적
+public String user(@PathVariable String id) { ... }
+```
+
+`GET /users/admin` 요청이 오면 첫 번째 메서드가 선택됩니다.
+
+## HandlerAdapter
+
+찾아낸 핸들러를 실제로 실행하는 역할을 합니다. 다양한 형태의 핸들러를 통일된 방식으로 실행할 수 있게 해주는 어댑터 패턴입니다.
+
+### 주요 구현체
+
+```java
+public interface HandlerAdapter {
+    boolean supports(Object handler);
+    ModelAndView handle(HttpServletRequest request, 
+                       HttpServletResponse response, 
+                       Object handler) throws Exception;
+}
+```
+
+`@Controller`나 `@RestController`의 메서드는 `RequestMappingHandlerAdapter`가 처리합니다.
+
+```java
+@Component
+public class RequestMappingHandlerAdapter extends AbstractHandlerMethodAdapter {
+    
+    private List<HandlerMethodArgumentResolver> argumentResolvers;
+    private List<HandlerMethodReturnValueHandler> returnValueHandlers;
+    
+    @Override
+    protected ModelAndView handleInternal(HttpServletRequest request,
+                                         HttpServletResponse response,
+                                         HandlerMethod handlerMethod) {
+        // ArgumentResolver로 파라미터 준비
+        Object[] args = getMethodArgumentValues(request, handlerMethod);
+        
+        // 컨트롤러 메서드 실행
+        Object returnValue = handlerMethod.invoke(args);
+        
+        // ReturnValueHandler로 반환값 처리
+        handleReturnValue(returnValue, request, response);
+        
+        return null;
+    }
+}
+```
+
+## ArgumentResolver
+
+컨트롤러 메서드의 파라미터를 준비하는 역할을 합니다. `@PathVariable`, `@RequestParam`, `@RequestBody` 같은 애노테이션을 보고 실제 값을 생성합니다.
+
+### 동작 방식
+
+```java
+public interface HandlerMethodArgumentResolver {
+    // 이 Resolver가 해당 파라미터를 처리할 수 있는지 확인
+    boolean supportsParameter(MethodParameter parameter);
+    
+    // 실제 파라미터 값을 생성
+    Object resolveArgument(MethodParameter parameter,
+                          ModelAndViewContainer mavContainer,
+                          NativeWebRequest webRequest,
+                          WebDataBinderFactory binderFactory) throws Exception;
+}
+```
+
+### 주요 ArgumentResolver
+
+Spring MVC는 30개 이상의 기본 ArgumentResolver를 제공합니다.
+
+```java
+// @PathVariable 처리
+public class PathVariableMethodArgumentResolver implements HandlerMethodArgumentResolver {
+    
+    @Override
+    public boolean supportsParameter(MethodParameter parameter) {
+        return parameter.hasParameterAnnotation(PathVariable.class);
+    }
+    
+    @Override
+    public Object resolveArgument(...) {
+        PathVariable annotation = parameter.getParameterAnnotation(PathVariable.class);
+        String name = annotation.value();
+        
+        // URI 템플릿 변수에서 값 추출
+        Map<String, String> uriVariables = getUriVariables(request);
+        Object value = uriVariables.get(name);
+        
+        // 타입 변환
+        return convertValue(value, parameter.getParameterType());
+    }
+}
+```
+
+다른 주요 Resolver들도 비슷한 방식으로 동작합니다.
+
+- `RequestParamMethodArgumentResolver`: `@RequestParam` 처리
+- `RequestResponseBodyMethodProcessor`: `@RequestBody` 처리
+- `ModelAttributeMethodProcessor`: `@ModelAttribute` 처리
+- `ServletRequestMethodArgumentResolver`: `HttpServletRequest` 처리
+- `SessionAttributeMethodArgumentResolver`: `@SessionAttribute` 처리
+
+### 파라미터 준비 과정
+
+```java
+@GetMapping("/users/{id}")
+public User getUser(@PathVariable Long id, 
+                   @RequestParam(required = false) String detail,
+                   HttpServletRequest request) {
+    // 메서드 본문
+}
+```
+
+이 메서드가 실행되기 전에 다음 과정을 거칩니다.
+
+```
+1. id 파라미터
+   - PathVariableMethodArgumentResolver가 처리
+   - URI에서 "id" 값 추출
+   - String → Long 타입 변환
+
+2. detail 파라미터
+   - RequestParamMethodArgumentResolver가 처리
+   - 쿼리 스트링에서 "detail" 값 추출
+   - required=false이므로 없어도 null 할당
+
+3. request 파라미터
+   - ServletRequestMethodArgumentResolver가 처리
+   - 현재 HttpServletRequest 객체 전달
+```
+
+### 커스텀 ArgumentResolver
+
+필요하다면 직접 ArgumentResolver를 만들 수 있습니다.
+
+```java
+// 현재 로그인한 사용자 정보를 주입하는 Resolver
+public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolver {
+    
+    @Override
+    public boolean supportsParameter(MethodParameter parameter) {
+        return parameter.hasParameterAnnotation(CurrentUser.class);
+    }
+    
+    @Override
+    public Object resolveArgument(...) {
+        // 세션이나 JWT에서 사용자 정보 추출
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return userService.findByUsername(auth.getName());
+    }
+}
+
+// 등록
+@Configuration
+public class WebMvcConfig implements WebMvcConfigurer {
+    
+    @Override
+    public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
+        resolvers.add(new CurrentUserArgumentResolver());
+    }
+}
+
+// 사용
+@GetMapping("/profile")
+public UserProfile getProfile(@CurrentUser User user) {
+    return user.getProfile();
+}
+```
+
+## Controller 실행
+
+모든 파라미터가 준비되면 리플렉션을 사용해 실제 컨트롤러 메서드를 호출합니다.
+
+```java
+// HandlerMethod 내부 (간략화)
+public Object invoke(Object... args) throws Exception {
+    Method method = getBridgedMethod();
+    Object bean = getBean(); // 컨트롤러 인스턴스
+    
+    // 리플렉션으로 메서드 실행
+    return method.invoke(bean, args);
+}
+```
+
+컨트롤러 메서드는 Spring Bean이므로 의존성 주입된 서비스를 사용할 수 있습니다.
+
+```java
+@RestController
+public class UserController {
+    
+    private final UserService userService;
+    
+    // 생성자 주입
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+    
+    @GetMapping("/users/{id}")
+    public User getUser(@PathVariable Long id) {
+        return userService.findById(id); // 주입된 서비스 사용
+    }
+}
+```
+
+## ReturnValueHandler
+
+컨트롤러 메서드의 반환값을 처리해서 최종 응답을 만듭니다.
+
+### 동작 방식
+
+```java
+public interface HandlerMethodReturnValueHandler {
+    // 이 Handler가 해당 반환 타입을 처리할 수 있는지 확인
+    boolean supportsReturnType(MethodParameter returnType);
+    
+    // 반환값을 처리
+    void handleReturnValue(Object returnValue,
+                          MethodParameter returnType,
+                          ModelAndViewContainer mavContainer,
+                          NativeWebRequest webRequest) throws Exception;
+}
+```
+
+### 주요 ReturnValueHandler
+
+반환 타입과 애노테이션에 따라 다른 Handler가 동작합니다.
+
+```java
+// 1. @ResponseBody가 있거나 @RestController인 경우
+@GetMapping("/users/{id}")
+public User getUser(@PathVariable Long id) {
+    return user; // RequestResponseBodyMethodProcessor 처리
+}
+// → MessageConverter로 JSON 변환 → HttpServletResponse에 작성
+
+// 2. String을 반환하는 경우 (뷰 이름)
+@GetMapping("/home")
+public String home(Model model) {
+    return "home"; // ViewNameMethodReturnValueHandler 처리
+}
+// → ViewResolver로 뷰 찾기 → 뷰 렌더링
+
+// 3. ModelAndView를 반환하는 경우
+@GetMapping("/users")
+public ModelAndView list() {
+    ModelAndView mav = new ModelAndView("user-list");
+    mav.addObject("users", users);
+    return mav; // ModelAndViewMethodReturnValueHandler 처리
+}
+// → 뷰와 모델이 모두 포함되어 있어서 바로 렌더링
+
+// 4. ResponseEntity를 반환하는 경우
+@GetMapping("/api/users/{id}")
+public ResponseEntity<User> getUser(@PathVariable Long id) {
+    User user = userService.findById(id);
+    return ResponseEntity.ok(user);
+}
+// → HttpEntityMethodProcessor 처리
+// → 상태 코드, 헤더, 바디를 모두 설정
+```
+
+### MessageConverter
+
+`@ResponseBody`나 `@RestController`를 사용하면 객체를 JSON이나 XML로 변환해야 합니다. 이때 `HttpMessageConverter`가 사용됩니다.
+
+```java
+public interface HttpMessageConverter<T> {
+    // 읽기 가능 여부 확인
+    boolean canRead(Class<?> clazz, MediaType mediaType);
+    
+    // 쓰기 가능 여부 확인
+    boolean canWrite(Class<?> clazz, MediaType mediaType);
+    
+    // 요청 본문 읽기 (@RequestBody)
+    T read(Class<? extends T> clazz, HttpInputMessage inputMessage);
+    
+    // 응답 본문 쓰기 (@ResponseBody)
+    void write(T t, MediaType contentType, HttpOutputMessage outputMessage);
+}
+```
+
+주요 MessageConverter:
+
+- `MappingJackson2HttpMessageConverter`: JSON 변환 (Jackson 사용)
+- `Jaxb2RootElementHttpMessageConverter`: XML 변환
+- `StringHttpMessageConverter`: String 변환
+- `ByteArrayHttpMessageConverter`: byte[] 변환
+
+```java
+@RestController
+public class UserController {
+    
+    @GetMapping("/api/users/{id}")
+    public User getUser(@PathVariable Long id) {
+        User user = userService.findById(id);
+        return user; // MappingJackson2HttpMessageConverter가 JSON으로 변환
+    }
+}
+```
+
+내부적으로는 이렇게 처리됩니다.
+
+```java
+// RequestResponseBodyMethodProcessor 내부
+public void handleReturnValue(Object returnValue, ...) {
+    // Accept 헤더와 반환 타입을 보고 적절한 Converter 선택
+    HttpMessageConverter converter = selectConverter(returnValue, acceptHeader);
+    
+    // 객체를 JSON으로 변환해서 응답에 작성
+    converter.write(returnValue, MediaType.APPLICATION_JSON, response);
+}
+```
+
+## Spring Boot 3.x 주요 변경사항
+
+Spring Boot 3.0부터 Java 17 최소 요구와 Jakarta EE로 전환되었습니다.
+
+### Jakarta EE 네임스페이스 변경
+
+가장 큰 변화는 패키지명 변경입니다.
+
+```java
+// Spring Boot 2.x (javax.*)
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.persistence.Entity;
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
+
+// Spring Boot 3.x (jakarta.*)
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.persistence.Entity;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+```
+
+코드 수정이 필요하지만 IDE의 자동 import 변경 기능으로 쉽게 처리할 수 있습니다.
+
+### 마이그레이션 영향 범위
+
+WebMVC 관련해서 영향받는 주요 부분:
+
+```java
+// 1. 서블릿 관련
+jakarta.servlet.http.HttpServletRequest
+jakarta.servlet.http.HttpServletResponse
+jakarta.servlet.ServletException
+jakarta.servlet.Filter
+
+// 2. Validation 관련
+jakarta.validation.Valid
+jakarta.validation.constraints.*
+
+// 3. JPA 관련
+jakarta.persistence.*
+```
+
+### 동작 방식은 동일
+
+패키지명만 바뀌었을 뿐 내부 동작 방식은 동일합니다. DispatcherServlet, HandlerMapping, HandlerAdapter, ArgumentResolver, ReturnValueHandler 모두 같은 방식으로 작동합니다.
+
+```java
+// Spring Boot 3.x 컨트롤러 예제
+@RestController
+@RequestMapping("/api/users")
+public class UserController {
+    
+    @GetMapping("/{id}")
+    public User getUser(@PathVariable Long id, 
+                       HttpServletRequest request) { // jakarta.servlet
+        return userService.findById(id);
+    }
+    
+    @PostMapping
+    public User createUser(@Valid @RequestBody UserRequest request) { // jakarta.validation
+        return userService.create(request);
+    }
+}
+```
+
+### Spring 6.0 새로운 기능
+
+Spring Boot 3.x는 Spring Framework 6.0 기반이며 몇 가지 새로운 기능이 추가되었습니다.
+
+```java
+// 1. HTTP Interface Client (선언적 HTTP 클라이언트)
+@HttpExchange("/api/users")
+public interface UserClient {
+    
+    @GetExchange("/{id}")
+    User getUser(@PathVariable Long id);
+    
+    @PostExchange
+    User createUser(@RequestBody UserRequest request);
+}
+
+// 2. ProblemDetail (RFC 7807 표준 에러 응답)
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+    
+    @ExceptionHandler(UserNotFoundException.class)
+    public ProblemDetail handleUserNotFound(UserNotFoundException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.NOT_FOUND,
+            ex.getMessage()
+        );
+        problem.setTitle("User Not Found");
+        problem.setProperty("timestamp", Instant.now());
+        return problem;
+    }
+}
+```
+
+### Native Image 지원
+
+GraalVM Native Image 빌드가 공식 지원되면서 애플리케이션 시작 시간이 크게 단축되었습니다. WebMVC 동작 방식은 동일하지만 리플렉션과 프록시 사용이 제한됩니다.
+
+## 실전 디버깅 팁
+
+요청 처리 과정을 디버깅할 때 유용한 방법들입니다.
+
+### 로그 레벨 설정
+
+```yaml
+# application.yml
+logging:
+  level:
+    org.springframework.web: DEBUG
+    org.springframework.web.servlet.mvc: TRACE
+```
+
+이렇게 설정하면 HandlerMapping, HandlerAdapter, ArgumentResolver, ReturnValueHandler의 동작을 로그로 확인할 수 있습니다.
+
+### 커스텀 인터셉터로 흐름 추적
+
+```java
+@Component
+public class RequestLoggingInterceptor implements HandlerInterceptor {
+    
+    private static final Logger log = LoggerFactory.getLogger(RequestLoggingInterceptor.class);
+    
+    @Override
+    public boolean preHandle(HttpServletRequest request,
+                            HttpServletResponse response,
+                            Object handler) {
+        HandlerMethod method = (HandlerMethod) handler;
+        log.info("Request URI: {}", request.getRequestURI());
+        log.info("Handler: {}.{}", 
+            method.getBeanType().getSimpleName(),
+            method.getMethod().getName());
+        return true;
+    }
+    
+    @Override
+    public void postHandle(HttpServletRequest request,
+                          HttpServletResponse response,
+                          Object handler,
+                          ModelAndView modelAndView) {
+        log.info("Response Status: {}", response.getStatus());
+    }
+}
+
+@Configuration
+public class WebMvcConfig implements WebMvcConfigurer {
+    
+    @Autowired
+    private RequestLoggingInterceptor loggingInterceptor;
+    
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(loggingInterceptor);
+    }
+}
+```
+
+### HandlerMapping 정보 확인
+
+애플리케이션에 어떤 핸들러들이 등록되었는지 확인하는 방법입니다.
+
+```java
+@RestController
+public class MappingController {
+    
+    @Autowired
+    private RequestMappingHandlerMapping handlerMapping;
+    
+    @GetMapping("/debug/mappings")
+    public Map<String, String> getMappings() {
+        Map<String, String> mappings = new HashMap<>();
+        
+        handlerMapping.getHandlerMethods().forEach((key, value) -> {
+            String path = key.getPatternValues().toString();
+            String method = value.getMethod().getName();
+            mappings.put(path, method);
+        });
+        
+        return mappings;
+    }
+}
+```
+
+### ArgumentResolver 동작 확인
+
+특정 파라미터가 어떤 Resolver에 의해 처리되는지 확인하려면:
+
+```java
+@Component
+public class ArgumentResolverLogger implements HandlerMethodArgumentResolver {
+    
+    private static final Logger log = LoggerFactory.getLogger(ArgumentResolverLogger.class);
+    private final HandlerMethodArgumentResolver delegate;
+    
+    @Override
+    public boolean supportsParameter(MethodParameter parameter) {
+        boolean supports = delegate.supportsParameter(parameter);
+        if (supports) {
+            log.info("Parameter {} will be resolved by {}", 
+                parameter.getParameterName(),
+                delegate.getClass().getSimpleName());
+        }
+        return supports;
+    }
+    
+    @Override
+    public Object resolveArgument(MethodParameter parameter, ...) throws Exception {
+        Object result = delegate.resolveArgument(parameter, ...);
+        log.info("Parameter {} resolved to: {}", parameter.getParameterName(), result);
+        return result;
+    }
+}
+```
+
+## 정리
+
+Spring MVC의 요청 처리 흐름을 정리하면:
+
+1. `DispatcherServlet`이 모든 요청을 받아서 중앙에서 처리
+2. `HandlerMapping`이 URL과 HTTP 메서드를 보고 실행할 컨트롤러 메서드 결정
+3. `HandlerAdapter`가 컨트롤러 실행을 준비
+4. `ArgumentResolver`가 메서드 파라미터의 실제 값을 준비
+5. 컨트롤러 메서드가 비즈니스 로직 실행
+6. `ReturnValueHandler`가 반환값을 HTTP 응답으로 변환
+7. `MessageConverter`가 객체를 JSON이나 XML로 직렬화
+
+Spring Boot 3.x에서는 Jakarta EE로 패키지명이 바뀌었지만 동작 방식은 동일합니다. 이 흐름을 이해하면 컨트롤러의 각종 애노테이션이 어떻게 처리되는지, 커스텀 ArgumentResolver는 어떻게 만드는지, 디버깅은 어떻게 해야 하는지 명확해집니다.
