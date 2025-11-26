@@ -1,5 +1,5 @@
 ---
-title: "📚 [React 기초 1-7/10] 리스트 렌더링"
+title: "[React 기초 1-7/10] 리스트 렌더링"
 date: "2025-07-11"
 description: "React에서 배열 데이터를 컴포넌트 리스트로 렌더링하는 방법을 학습합니다"
 tags: ["React", "학습", "Vue", "초급", "프론트엔드"]
@@ -9,24 +9,22 @@ seriesOrder: 7
 
 # React 학습 가이드 - 리스트 렌더링
 
-> React 공식 문서를 기반으로 한 학습 자료  
-> 원문: [Describing the UI - React](https://react.dev/learn/describing-the-ui)
-
----
+React 공식 문서를 기반으로 한 학습 자료입니다.
+원문: [Describing the UI - React](https://react.dev/learn/describing-the-ui)
 
 ## 리스트 렌더링
 
 ### 리스트 렌더링이란?
 
-**데이터 컬렉션(배열)을 여러 개의 유사한 컴포넌트로 표시**하는 것입니다.
+데이터 컬렉션(배열)을 여러 개의 유사한 컴포넌트로 표시하는 것입니다.
 
 React에서는 JavaScript의 `filter()`와 `map()`을 사용하여 데이터 배열을 컴포넌트 배열로 변환합니다.
 
 ### 기본 예제
 
-배열 데이터를 컴포넌트 목록으로 변환하는 방법을 살펴보겠습니다.
+배열 데이터를 컴포넌트 목록으로 변환하는 방법입니다.
 
-**데이터 파일:**
+데이터 파일:
 
 ```jsx
 // data.js
@@ -55,7 +53,7 @@ export const people = [
 ];
 ```
 
-**유틸 함수:**
+유틸 함수:
 
 ```jsx
 // utils.js
@@ -64,7 +62,7 @@ export function getImageUrl(person) {
 }
 ```
 
-**메인 컴포넌트:**
+메인 컴포넌트:
 
 ```jsx
 // App.js
@@ -111,7 +109,7 @@ const listItems = numbers.map(number =>
 return <ul>{listItems}</ul>;
 ```
 
-**인라인 버전:**
+인라인 버전:
 
 ```jsx
 return (
@@ -152,7 +150,7 @@ export default function List() {
 }
 ```
 
-**체이닝 버전:**
+체이닝 버전:
 
 ```jsx
 export default function List() {
@@ -176,19 +174,19 @@ export default function List() {
 
 ### Key의 중요성
 
-**`key`는 React가 각 항목을 고유하게 식별하는 데 사용됩니다.**
+`key`는 React가 각 항목을 고유하게 식별하는 데 사용됩니다.
 
 항목이 추가되거나 삭제되거나 순서가 바뀔 때, React는 key를 보고 어떤 항목이 변경되었는지 파악합니다.
 
 ```jsx
-// ✅ 올바른 코드: key 사용
+// 올바른 코드: key 사용
 {people.map(person =>
   <li key={person.id}>
     {person.name}
   </li>
 )}
 
-// ❌ 잘못된 코드: key 없음
+// 잘못된 코드: key 없음
 {people.map(person =>
   <li>
     {person.name}
@@ -198,10 +196,10 @@ export default function List() {
 
 ### Key 규칙
 
-#### 1. **형제 간에 고유해야 함**
+#### 1. 형제 간에 고유해야 함
 
 ```jsx
-// ✅ 각 리스트 내에서 고유하면 됨
+// 각 리스트 내에서 고유하면 됨
 <ul>
   {people.map(person => <li key={person.id}>{person.name}</li>)}
 </ul>
@@ -211,32 +209,30 @@ export default function List() {
 </ul>
 ```
 
-#### 2. **변경되지 않아야 함**
+#### 2. 변경되지 않아야 함
 
 ```jsx
-// ❌ 배열 인덱스를 key로 사용 (비추천)
+// 배열 인덱스를 key로 사용 (비추천)
 {people.map((person, index) =>
   <li key={index}>{person.name}</li>
 )}
 
-// ✅ 고유한 ID 사용
+// 고유한 ID 사용
 {people.map(person =>
   <li key={person.id}>{person.name}</li>
 )}
 ```
 
-**배열 인덱스를 사용하면 안 되는 이유:**
+배열 인덱스를 사용하면 안 되는 이유:
 
 - 항목 순서가 변경되면 버그 발생 가능
 - 성능 저하
 - 컴포넌트 상태 문제
 
-#### 3. **렌더링 중에 key를 생성하지 마세요**
+#### 3. 렌더링 중에 key를 생성하지 마세요
 
 ```jsx
-// ❌ 렌더링할 때마다 새로운 key 생성 (최악!)
-// 컴포넌트가 렌더링될 때마다 다른 key가 생성되어 
-// React가 항목을 추적할 수 없음
+// 렌더링할 때마다 새로운 key 생성 (최악!)
 {items.map(item =>
   <li key={Math.random()}>...</li>
 )}
@@ -245,63 +241,61 @@ export default function List() {
   <li key={crypto.randomUUID()}>...</li>
 )}
 
-// ✅ 데이터에 안정적인 ID 포함
-// 데이터 생성 시점에 ID를 할당하여 
-// 렌더링 시마다 동일한 key 사용
+// 데이터에 안정적인 ID 포함
 {people.map(person =>
   <li key={person.id}>...</li>
 )}
 ```
 
-**핵심**: key는 **렌더링 중에 생성하면 안 되고**, **데이터를 생성할 때 한 번만 할당**해야 합니다.
+핵심: key는 렌더링 중에 생성하면 안 되고, 데이터를 생성할 때 한 번만 할당해야 합니다.
 
 ### Key로 사용할 수 있는 값
 
 | 상황 | 추천 Key |
 |------|---------|
-| **데이터베이스에서 가져온 데이터** | 데이터베이스 ID (`user.id`, `post.id`) |
-| **로컬에서 생성한 데이터** | UUID 라이브러리 (`crypto.randomUUID()`, `uuid`) |
-| **안정적인 고유 속성** | 이메일 주소, 사용자명 등 |
+| 데이터베이스에서 가져온 데이터 | 데이터베이스 ID (`user.id`, `post.id`) |
+| 로컬에서 생성한 데이터 | UUID 라이브러리 (`crypto.randomUUID()`, `uuid`) |
+| 안정적인 고유 속성 | 이메일 주소, 사용자명 등 |
 
-**UUID를 key로 사용하는 올바른 방법:**
+UUID를 key로 사용하는 올바른 방법:
 
 ```jsx
 import { v4 as uuidv4 } from 'uuid';
 
-// ✅ 올바른 방법: 데이터 생성 시점에 UUID 할당
+// 올바른 방법: 데이터 생성 시점에 UUID 할당
 const [items, setItems] = useState([
-  { id: uuidv4(), text: 'Item 1' },  // 초기화 시 한 번만 생성
-  { id: uuidv4(), text: 'Item 2' },  // 초기화 시 한 번만 생성
+  { id: uuidv4(), text: 'Item 1' },
+  { id: uuidv4(), text: 'Item 2' },
 ]);
 
 // 새 아이템 추가 함수
 const addItem = (text) => {
   setItems([
     ...items,
-    { id: uuidv4(), text }  // 아이템 추가 시점에 UUID 생성
+    { id: uuidv4(), text }
   ]);
 };
 
 return (
   <ul>
     {items.map(item =>
-      <li key={item.id}>{item.text}</li>  // 이미 할당된 id 사용
+      <li key={item.id}>{item.text}</li>
     )}
   </ul>
 );
 ```
 
-**왜 이 방법이 올바른가?**
-- UUID는 **데이터를 생성하는 시점**에 한 번만 생성
-- 생성된 ID는 **데이터 객체에 저장**되어 렌더링 시마다 동일한 값 사용
+왜 이 방법이 올바른가?
+- UUID는 데이터를 생성하는 시점에 한 번만 생성
+- 생성된 ID는 데이터 객체에 저장되어 렌더링 시마다 동일한 값 사용
 - React가 각 항목을 안정적으로 추적할 수 있음
 
 ```jsx
-// ❌ 잘못된 방법: 렌더링 중에 UUID 생성
+// 잘못된 방법: 렌더링 중에 UUID 생성
 return (
   <ul>
     {items.map(item =>
-      <li key={crypto.randomUUID()}>{item.text}</li>  // 매번 다른 key!
+      <li key={crypto.randomUUID()}>{item.text}</li>
     )}
   </ul>
 );
@@ -328,16 +322,16 @@ export default function List() {
 }
 ```
 
-**주의:** `<Fragment>`는 `key`를 전달할 수 있지만, 짧은 문법 `<>`는 불가능합니다.
+주의: `<Fragment>`는 `key`를 전달할 수 있지만, 짧은 문법 `<>`는 불가능합니다.
 
 ```jsx
-// ❌ key를 전달할 수 없음
+// key를 전달할 수 없음
 <>
   <h2>{person.name}</h2>
   <p>{person.bio}</p>
 </>
 
-// ✅ Fragment 사용
+// Fragment 사용
 <Fragment key={person.id}>
   <h2>{person.name}</h2>
   <p>{person.bio}</p>
@@ -409,7 +403,7 @@ export default function List() {
 }
 ```
 
-**차이점:**
+차이점:
 
 - Vue: `v-for` 디렉티브
 - React: JavaScript `map()` 메서드

@@ -1,5 +1,5 @@
 ---
-title: "📚 [React 기초 1-5/10] Props로 데이터 전달하기"
+title: "[React 기초 1-5/10] Props로 데이터 전달하기"
 date: "2025-07-09"
 description: "React Props를 사용해 컴포넌트 간 데이터를 전달하는 방법을 학습합니다"
 tags: ["React", "학습", "Vue", "초급", "프론트엔드"]
@@ -9,26 +9,24 @@ seriesOrder: 5
 
 # React 학습 가이드 - Props로 데이터 전달하기
 
-> React 공식 문서를 기반으로 한 학습 자료  
-> 원문: [Describing the UI - React](https://react.dev/learn/describing-the-ui)
-
----
+React 공식 문서를 기반으로 한 학습 자료입니다.
+원문: [Describing the UI - React](https://react.dev/learn/describing-the-ui)
 
 ## Props로 데이터 전달하기
 
 ### Props란?
 
-**Props (Properties)**는 React 컴포넌트가 서로 통신하는 방법입니다.
+`Props (Properties)`는 React 컴포넌트가 서로 통신하는 방법입니다.
 
-**핵심 개념:**
+핵심 개념:
 
 - 부모 컴포넌트가 자식 컴포넌트에게 정보를 전달
-- HTML 속성과 유사하지만 **모든 JavaScript 값** 전달 가능
+- HTML 속성과 유사하지만 모든 JavaScript 값 전달 가능
 - 객체, 배열, 함수, 심지어 JSX도 전달 가능
 
 ### 기본 사용법
 
-**유틸 함수 파일:**
+유틸 함수 파일:
 
 ```jsx
 // utils.js
@@ -37,7 +35,7 @@ export function getImageUrl(person) {
 }
 ```
 
-**메인 컴포넌트들:**
+메인 컴포넌트들:
 
 ```jsx
 // App.js
@@ -80,15 +78,15 @@ function Card({ children }) {
 }
 ```
 
-**코드 설명:**
+코드 설명:
 
-1. **Profile 컴포넌트**: Avatar에게 `size`와 `person` 객체를 props로 전달합니다.
-2. **Avatar 컴포넌트**: 구조 분해 할당으로 `{ person, size }`를 받아 사용합니다.
-3. **Card 컴포넌트**: `children` prop으로 태그 사이의 내용을 받습니다.
+1. Profile 컴포넌트: Avatar에게 `size`와 `person` 객체를 props로 전달합니다.
+2. Avatar 컴포넌트: 구조 분해 할당으로 `{ person, size }`를 받아 사용합니다.
+3. Card 컴포넌트: `children` prop으로 태그 사이의 내용을 받습니다.
 
 ### Props 전달 단계
 
-#### 1. **자식 컴포넌트에 Props 전달**
+#### 1. 자식 컴포넌트에 Props 전달
 
 ```jsx
 <Avatar
@@ -97,7 +95,7 @@ function Card({ children }) {
 />
 ```
 
-#### 2. **자식 컴포넌트에서 Props 읽기**
+#### 2. 자식 컴포넌트에서 Props 읽기
 
 ```jsx
 // 방법 1: 구조 분해 할당 (권장)
@@ -141,11 +139,11 @@ function Profile({ person, size }) {
 }
 ```
 
-**주의:** Spread 문법은 편리하지만 남용하지 마세요. 필요한 props만 명시적으로 전달하는 것이 좋습니다.
+주의: Spread 문법은 편리하지만 남용하지 마세요. 필요한 props만 명시적으로 전달하는 것이 좋습니다.
 
 ### Children Prop - 특별한 Props
 
-**`children`**은 컴포넌트 태그 사이의 내용을 전달하는 특별한 prop입니다.
+`children`은 컴포넌트 태그 사이의 내용을 전달하는 특별한 prop입니다.
 
 ```jsx
 function Card({ children }) {
@@ -163,7 +161,7 @@ function Card({ children }) {
 </Card>
 ```
 
-**Vue의 `<slot>`과 동일:**
+Vue의 `<slot>`과 동일:
 
 ```html
 <!-- Vue -->
@@ -176,17 +174,17 @@ function Card({ children }) {
 
 ### Props는 읽기 전용 (Immutable)
 
-**중요:** Props는 절대 수정할 수 없습니다!
+Props는 절대 수정할 수 없습니다.
 
 ```jsx
-// ❌ 잘못된 코드
+// 잘못된 코드
 function Avatar({ person, size }) {
   person.name = 'New Name';  // Props 수정 불가!
   size = 200;                // Props 수정 불가!
   return <img />;
 }
 
-// ✅ 올바른 코드
+// 올바른 코드
 function Avatar({ person, size }) {
   // Props는 읽기만 가능
   const displayName = person.name.toUpperCase();
@@ -194,7 +192,7 @@ function Avatar({ person, size }) {
 }
 ```
 
-**상태 변경이 필요하다면:**
+상태 변경이 필요하다면:
 
 - `useState` Hook 사용 (다음 챕터에서 학습)
 

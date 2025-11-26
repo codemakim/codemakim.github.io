@@ -1,5 +1,5 @@
 ---
-title: "📚 [React 기초 1-2/10] 컴포넌트 Import/Export"
+title: "[React 기초 1-2/10] 컴포넌트 Import/Export"
 date: "2025-07-06"
 description: "React 컴포넌트를 파일로 분리하고 Import/Export하는 방법을 학습합니다"
 tags: ["React", "학습", "Vue", "초급", "프론트엔드"]
@@ -9,10 +9,8 @@ seriesOrder: 2
 
 # React 학습 가이드 - 컴포넌트 Import/Export
 
-> React 공식 문서를 기반으로 한 학습 자료  
-> 원문: [Describing the UI - React](https://react.dev/learn/describing-the-ui)
-
----
+React 공식 문서를 기반으로 한 학습 자료입니다.
+원문: [Describing the UI - React](https://react.dev/learn/describing-the-ui)
 
 ## 컴포넌트 Import/Export
 
@@ -22,7 +20,7 @@ seriesOrder: 2
 
 ### 해결책: 파일 분리
 
-**파일 구조:**
+파일 구조:
 
 ```
 src/
@@ -32,9 +30,9 @@ src/
 
 ### Export/Import 예제
 
-Profile 컴포넌트를 별도 파일로 분리하고, Gallery에서 불러와 사용하는 방법을 살펴보겠습니다.
+Profile 컴포넌트를 별도 파일로 분리하고, Gallery에서 불러와 사용하는 방법입니다.
 
-**1단계: Profile.js 파일 생성**
+1단계: Profile.js 파일 생성
 
 ```jsx
 // Profile.js
@@ -51,7 +49,7 @@ export default function Profile() {
 - `export default`를 앞에 붙이면 이 컴포넌트를 다른 파일에서 가져다 쓸 수 있습니다.
 - 파일 하나에 하나의 주요 컴포넌트만 있을 때 default export를 사용합니다.
 
-**2단계: Gallery.js에서 불러오기**
+2단계: Gallery.js에서 불러오기
 
 ```jsx
 // Gallery.js
@@ -79,25 +77,25 @@ React에서는 두 가지 Export 방식을 사용합니다.
 
 | 방식 | Export | Import | 설명 |
 |------|--------|--------|------|
-| **Default Export** | `export default function Button() {}` | `import Button from './Button.js'` | 파일당 하나의 주요 컴포넌트 |
-| **Named Export** | `export function Button() {}` | `import { Button } from './Button.js'` | 파일당 여러 컴포넌트 |
+| Default Export | `export default function Button() {}` | `import Button from './Button.js'` | 파일당 하나의 주요 컴포넌트 |
+| Named Export | `export function Button() {}` | `import { Button } from './Button.js'` | 파일당 여러 컴포넌트 |
 
-**차이점:**
+차이점:
 
-1. **Default Export**:
+1. Default Export:
    - 한 파일에 하나만 사용 가능
    - Import 시 중괄호 `{}` 없이 사용
    - Import 시 이름을 자유롭게 변경 가능: `import MyButton from './Button.js'`
 
-2. **Named Export**:
+2. Named Export:
    - 한 파일에 여러 개 사용 가능
    - Import 시 반드시 중괄호 `{}` 사용
    - 정확한 이름으로 Import 해야 함
 
-**권장 사항:**
+권장 사항:
 
-- 파일당 하나의 컴포넌트 → **Default Export** 사용 (대부분의 경우)
-- 파일당 여러 컴포넌트 → **Named Export** 사용
+- 파일당 하나의 컴포넌트 → Default Export 사용 (대부분의 경우)
+- 파일당 여러 컴포넌트 → Named Export 사용
 
 ### Vue와 비교
 
