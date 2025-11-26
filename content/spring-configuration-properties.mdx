@@ -1,0 +1,974 @@
+---
+title: "Spring ConfigurationProperties로 설정 관리하기"
+description: "YAML 설정을 타입 안전하게 바인딩하는 방법과 @Value와의 차이, 실무에서 DB/Redis/AWS 설정을 관리하는 패턴을 정리했습니다."
+date: "2025-09-28"
+tags: ["Spring", "Java", "백엔드"]
+---
+
+# Spring ConfigurationProperties로 설정 관리하기
+
+Spring Boot 애플리케이션의 설정을 관리하는 방법은 `@Value`와 `@ConfigurationProperties` 두 가지가 있습니다. 실무에서 DB, Redis, AWS 같은 외부 시스템 설정을 다룰 때는 `@ConfigurationProperties`를 주로 사용합니다. 타입 안전성과 검증 기능을 제공하기 때문입니다.
+
+## Value의 한계
+
+간단한 설정은 `@Value`로 충분합니다.
+
+```java
+@Service
+public class EmailService {
+    
+    @Value("${email.from}")
+    private String from;
+    
+    @Value("${email.timeout:5000}")
+    private int timeout;
+    
+    public void send(String to, String message) {
+        // from, timeout 사용
+    }
+}
+```
+
+```yaml
+# application.yml
+email:
+  from: noreply@example.com
+  timeout: 3000
+```
+
+하지만 설정이 많아지면 문제가 생깁니다.
+
+```java
+@Service
+public class DatabaseService {
+    
+    @Value("${database.host}")
+    private String host;
+    
+    @Value("${database.port}")
+    private int port;
+    
+    @Value("${database.username}")
+    private String username;
+    
+    @Value("${database.password}")
+    private String password;
+    
+    @Value("${database.database}")
+    private String database;
+    
+    @Value("${database.pool.min-size}")
+    private int minPoolSize;
+    
+    @Value("${database.pool.max-size}")
+    private int maxPoolSize;
+    
+    @Value("${database.pool.timeout}")
+    private long timeout;
+    
+    // 설정이 많아질수록 관리가 어려움
+}
+```
+
+문제점:
+
+- 반복적인 `@Value` 애노테이션
+- 타입 안전성이 약함 (SpEL 문자열 오타 가능)
+- 설정 그룹화가 안 됨
+- 검증 로직을 추가하기 어려움
+- IDE 자동완성 지원이 약함
+
+## ConfigurationProperties 기본 사용법
+
+설정을 클래스로 묶어서 관리할 수 있습니다.
+
+```java
+@ConfigurationProperties(prefix = "database")
+public class DatabaseProperties {
+    
+    private String host;
+    private int port;
+    private String username;
+    private String password;
+    private String database;
+    private Pool pool;
+    
+    public static class Pool {
+        private int minSize;
+        private int maxSize;
+        private long timeout;
+        
+        // getters and setters
+    }
+    
+    // getters and setters
+}
+```
+
+```yaml
+# application.yml
+database:
+  host: localhost
+  port: 5432
+  username: admin
+  password: secret
+  database: myapp
+  pool:
+    min-size: 5
+    max-size: 20
+    timeout: 30000
+```
+
+설정 클래스를 활성화하는 방법은 두 가지입니다.
+
+### 방법 1: Component로 등록
+
+```java
+@Component
+@ConfigurationProperties(prefix = "database")
+public class DatabaseProperties {
+    // ...
+}
+```
+
+### 방법 2: EnableConfigurationProperties 사용
+
+```java
+@Configuration
+@EnableConfigurationProperties(DatabaseProperties.class)
+public class DatabaseConfig {
+    
+    private final DatabaseProperties properties;
+    
+    public DatabaseConfig(DatabaseProperties properties) {
+        this.properties = properties;
+    }
+    
+    @Bean
+    public DataSource dataSource() {
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl(
+            String.format("jdbc:postgresql://%s:%d/%s",
+                properties.getHost(),
+                properties.getPort(),
+                properties.getDatabase())
+        );
+        config.setUsername(properties.getUsername());
+        config.setPassword(properties.getPassword());
+        config.setMinimumIdle(properties.getPool().getMinSize());
+        config.setMaximumPoolSize(properties.getPool().getMaxSize());
+        config.setConnectionTimeout(properties.getPool().getTimeout());
+        
+        return new HikariDataSource(config);
+    }
+}
+```
+
+두 번째 방법이 설정 클래스의 용도를 명확하게 해줍니다.
+
+## Lombok과 함께 사용하기
+
+Lombok을 사용하면 getter/setter 보일러플레이트를 제거할 수 있습니다.
+
+```java
+@Data
+@ConfigurationProperties(prefix = "database")
+public class DatabaseProperties {
+    
+    private String host;
+    private int port;
+    private String username;
+    private String password;
+    private String database;
+    private Pool pool = new Pool();
+    
+    @Data
+    public static class Pool {
+        private int minSize = 5;
+        private int maxSize = 20;
+        private long timeout = 30000;
+    }
+}
+```
+
+생성자 바인딩을 사용하면 불변 객체로 만들 수 있습니다.
+
+```java
+@Getter
+@ConfigurationProperties(prefix = "database")
+@ConstructorBinding
+public class DatabaseProperties {
+    
+    private final String host;
+    private final int port;
+    private final String username;
+    private final String password;
+    private final String database;
+    private final Pool pool;
+    
+    public DatabaseProperties(
+            String host,
+            int port,
+            String username,
+            String password,
+            String database,
+            Pool pool) {
+        this.host = host;
+        this.port = port;
+        this.username = username;
+        this.password = password;
+        this.database = database;
+        this.pool = pool;
+    }
+    
+    @Getter
+    public static class Pool {
+        private final int minSize;
+        private final int maxSize;
+        private final long timeout;
+        
+        public Pool(int minSize, int maxSize, long timeout) {
+            this.minSize = minSize;
+            this.maxSize = maxSize;
+            this.timeout = timeout;
+        }
+    }
+}
+```
+
+Spring Boot 3.0부터는 `@ConstructorBinding`이 자동으로 적용되므로 생략 가능합니다.
+
+```java
+@Getter
+@RequiredArgsConstructor
+@ConfigurationProperties(prefix = "database")
+public class DatabaseProperties {
+    
+    private final String host;
+    private final int port;
+    private final String username;
+    private final String password;
+    private final String database;
+    private final Pool pool;
+    
+    @Getter
+    @RequiredArgsConstructor
+    public static class Pool {
+        private final int minSize;
+        private final int maxSize;
+        private final long timeout;
+    }
+}
+```
+
+## Value와 ConfigurationProperties 비교
+
+### 단순 값 하나
+
+```java
+// @Value: 간단함
+@Value("${app.name}")
+private String appName;
+
+// @ConfigurationProperties: 과함
+@ConfigurationProperties(prefix = "app")
+public class AppProperties {
+    private String name;
+}
+```
+
+단순한 값 하나는 `@Value`가 낫습니다.
+
+### 관련된 설정 여러 개
+
+```java
+// @Value: 반복적임
+@Value("${redis.host}")
+private String redisHost;
+
+@Value("${redis.port}")
+private int redisPort;
+
+@Value("${redis.password}")
+private String redisPassword;
+
+@Value("${redis.timeout}")
+private long redisTimeout;
+
+// @ConfigurationProperties: 구조적임
+@ConfigurationProperties(prefix = "redis")
+public class RedisProperties {
+    private String host;
+    private int port;
+    private String password;
+    private long timeout;
+}
+```
+
+관련된 설정이 여러 개면 `@ConfigurationProperties`가 낫습니다.
+
+### 중첩 구조
+
+```java
+// @Value: 복잡함
+@Value("${aws.s3.bucket}")
+private String s3Bucket;
+
+@Value("${aws.s3.region}")
+private String s3Region;
+
+@Value("${aws.sqs.queue-url}")
+private String sqsQueueUrl;
+
+@Value("${aws.sqs.region}")
+private String sqsRegion;
+
+// @ConfigurationProperties: 명확함
+@ConfigurationProperties(prefix = "aws")
+public class AwsProperties {
+    private S3 s3;
+    private Sqs sqs;
+    
+    @Data
+    public static class S3 {
+        private String bucket;
+        private String region;
+    }
+    
+    @Data
+    public static class Sqs {
+        private String queueUrl;
+        private String region;
+    }
+}
+```
+
+중첩 구조는 `@ConfigurationProperties`가 훨씬 낫습니다.
+
+### 타입 안전성
+
+```java
+// @Value: 오타 가능
+@Value("${databse.host}") // 오타: database → databse
+private String host;
+
+// @ConfigurationProperties: 컴파일 타임에 확인
+@ConfigurationProperties(prefix = "databse") // IDE가 경고
+public class DatabaseProperties {
+    private String host; // YAML과 안 맞으면 애플리케이션 시작 실패
+}
+```
+
+### 리스트와 맵
+
+```java
+// @Value: SpEL 필요
+@Value("#{${allowed.ips}}")
+private List<String> allowedIps;
+
+@Value("#{${role.permissions}}")
+private Map<String, List<String>> permissions;
+
+// @ConfigurationProperties: 자연스러움
+@ConfigurationProperties(prefix = "security")
+public class SecurityProperties {
+    private List<String> allowedIps;
+    private Map<String, List<String>> rolePermissions;
+}
+```
+
+```yaml
+security:
+  allowed-ips:
+    - 192.168.1.1
+    - 192.168.1.2
+    - 10.0.0.1
+  role-permissions:
+    ADMIN:
+      - READ
+      - WRITE
+      - DELETE
+    USER:
+      - READ
+```
+
+## Validation 적용
+
+JSR-303 Bean Validation을 사용해서 설정값을 검증할 수 있습니다.
+
+```java
+@Validated
+@ConfigurationProperties(prefix = "database")
+public class DatabaseProperties {
+    
+    @NotBlank(message = "Database host is required")
+    private String host;
+    
+    @Min(value = 1, message = "Port must be greater than 0")
+    @Max(value = 65535, message = "Port must be less than 65536")
+    private int port;
+    
+    @NotBlank(message = "Username is required")
+    private String username;
+    
+    @NotBlank(message = "Password is required")
+    private String password;
+    
+    @NotBlank(message = "Database name is required")
+    private String database;
+    
+    @Valid
+    @NotNull(message = "Pool configuration is required")
+    private Pool pool;
+    
+    @Data
+    public static class Pool {
+        
+        @Min(value = 1, message = "Min pool size must be at least 1")
+        private int minSize;
+        
+        @Min(value = 1, message = "Max pool size must be at least 1")
+        private int maxSize;
+        
+        @Min(value = 1000, message = "Timeout must be at least 1000ms")
+        private long timeout;
+        
+        @AssertTrue(message = "Max pool size must be greater than or equal to min pool size")
+        public boolean isValidPoolSize() {
+            return maxSize >= minSize;
+        }
+    }
+}
+```
+
+잘못된 설정이 있으면 애플리케이션 시작이 실패합니다.
+
+```yaml
+# application.yml
+database:
+  host: ""  # 실패: NotBlank
+  port: 99999  # 실패: Max 65535
+  pool:
+    min-size: 10
+    max-size: 5  # 실패: maxSize >= minSize
+```
+
+```
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Binding to target org.springframework.boot.context.properties.bind.BindException: 
+Failed to bind properties under 'database' to DatabaseProperties failed:
+
+    Property: database.host
+    Value: ""
+    Reason: Database host is required
+
+    Property: database.port
+    Value: 99999
+    Reason: Port must be less than 65536
+
+    Property: database.pool
+    Reason: Max pool size must be greater than or equal to min pool size
+```
+
+## 실무 패턴
+
+### Redis 설정
+
+```java
+@Data
+@Validated
+@ConfigurationProperties(prefix = "redis")
+public class RedisProperties {
+    
+    @NotBlank
+    private String host = "localhost";
+    
+    @Min(1)
+    @Max(65535)
+    private int port = 6379;
+    
+    private String password;
+    
+    @Min(0)
+    private int database = 0;
+    
+    @Valid
+    @NotNull
+    private Pool pool = new Pool();
+    
+    @Valid
+    @NotNull
+    private Timeout timeout = new Timeout();
+    
+    @Data
+    public static class Pool {
+        @Min(1)
+        private int minIdle = 5;
+        
+        @Min(1)
+        private int maxIdle = 10;
+        
+        @Min(1)
+        private int maxActive = 20;
+        
+        @Min(0)
+        private long maxWait = 3000;
+    }
+    
+    @Data
+    public static class Timeout {
+        @Min(1000)
+        private long connection = 5000;
+        
+        @Min(1000)
+        private long read = 3000;
+        
+        @Min(1000)
+        private long write = 3000;
+    }
+}
+```
+
+```yaml
+redis:
+  host: redis.example.com
+  port: 6379
+  password: ${REDIS_PASSWORD}
+  database: 0
+  pool:
+    min-idle: 5
+    max-idle: 10
+    max-active: 20
+    max-wait: 3000
+  timeout:
+    connection: 5000
+    read: 3000
+    write: 3000
+```
+
+```java
+@Configuration
+@EnableConfigurationProperties(RedisProperties.class)
+public class RedisConfig {
+    
+    private final RedisProperties properties;
+    
+    public RedisConfig(RedisProperties properties) {
+        this.properties = properties;
+    }
+    
+    @Bean
+    public RedisConnectionFactory redisConnectionFactory() {
+        RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
+        config.setHostName(properties.getHost());
+        config.setPort(properties.getPort());
+        config.setPassword(properties.getPassword());
+        config.setDatabase(properties.getDatabase());
+        
+        LettucePoolingClientConfiguration pooling = LettucePoolingClientConfiguration.builder()
+            .poolConfig(poolConfig())
+            .commandTimeout(Duration.ofMillis(properties.getTimeout().getConnection()))
+            .build();
+        
+        return new LettuceConnectionFactory(config, pooling);
+    }
+    
+    private GenericObjectPoolConfig poolConfig() {
+        GenericObjectPoolConfig config = new GenericObjectPoolConfig();
+        config.setMinIdle(properties.getPool().getMinIdle());
+        config.setMaxIdle(properties.getPool().getMaxIdle());
+        config.setMaxTotal(properties.getPool().getMaxActive());
+        config.setMaxWaitMillis(properties.getPool().getMaxWait());
+        return config;
+    }
+}
+```
+
+### AWS 설정
+
+```java
+@Data
+@Validated
+@ConfigurationProperties(prefix = "aws")
+public class AwsProperties {
+    
+    @NotBlank
+    private String region = "ap-northeast-2";
+    
+    @NotBlank
+    private String accessKey;
+    
+    @NotBlank
+    private String secretKey;
+    
+    @Valid
+    @NotNull
+    private S3 s3 = new S3();
+    
+    @Valid
+    @NotNull
+    private Sqs sqs = new Sqs();
+    
+    @Data
+    public static class S3 {
+        @NotBlank
+        private String bucket;
+        
+        @NotBlank
+        private String baseUrl;
+        
+        @Min(1)
+        private int maxConnections = 50;
+        
+        @Min(1000)
+        private long connectionTimeout = 5000;
+        
+        @Min(1000)
+        private long socketTimeout = 10000;
+    }
+    
+    @Data
+    public static class Sqs {
+        @NotBlank
+        private String queueUrl;
+        
+        @Min(1)
+        @Max(10)
+        private int maxNumberOfMessages = 10;
+        
+        @Min(0)
+        @Max(20)
+        private int visibilityTimeout = 30;
+        
+        @Min(0)
+        @Max(20)
+        private int waitTimeSeconds = 20;
+    }
+}
+```
+
+```yaml
+aws:
+  region: ap-northeast-2
+  access-key: ${AWS_ACCESS_KEY}
+  secret-key: ${AWS_SECRET_KEY}
+  s3:
+    bucket: my-app-bucket
+    base-url: https://my-app-bucket.s3.ap-northeast-2.amazonaws.com
+    max-connections: 50
+    connection-timeout: 5000
+    socket-timeout: 10000
+  sqs:
+    queue-url: https://sqs.ap-northeast-2.amazonaws.com/123456789/my-queue
+    max-number-of-messages: 10
+    visibility-timeout: 30
+    wait-time-seconds: 20
+```
+
+### 다중 데이터소스
+
+```java
+@Data
+@Validated
+@ConfigurationProperties(prefix = "datasources")
+public class DataSourcesProperties {
+    
+    @Valid
+    @NotNull
+    private DataSourceConfig primary = new DataSourceConfig();
+    
+    @Valid
+    @NotNull
+    private DataSourceConfig secondary = new DataSourceConfig();
+    
+    @Data
+    public static class DataSourceConfig {
+        @NotBlank
+        private String url;
+        
+        @NotBlank
+        private String username;
+        
+        @NotBlank
+        private String password;
+        
+        @NotBlank
+        private String driverClassName = "org.postgresql.Driver";
+        
+        @Valid
+        @NotNull
+        private Pool pool = new Pool();
+    }
+    
+    @Data
+    public static class Pool {
+        @Min(1)
+        private int minimumIdle = 5;
+        
+        @Min(1)
+        private int maximumPoolSize = 20;
+        
+        @Min(1000)
+        private long connectionTimeout = 30000;
+        
+        @Min(1000)
+        private long idleTimeout = 600000;
+        
+        @Min(1000)
+        private long maxLifetime = 1800000;
+    }
+}
+```
+
+```yaml
+datasources:
+  primary:
+    url: jdbc:postgresql://primary-db:5432/myapp
+    username: admin
+    password: ${PRIMARY_DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    pool:
+      minimum-idle: 10
+      maximum-pool-size: 30
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+  secondary:
+    url: jdbc:postgresql://secondary-db:5432/myapp
+    username: readonly
+    password: ${SECONDARY_DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    pool:
+      minimum-idle: 5
+      maximum-pool-size: 10
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+```
+
+```java
+@Configuration
+@EnableConfigurationProperties(DataSourcesProperties.class)
+public class DataSourceConfig {
+    
+    private final DataSourcesProperties properties;
+    
+    public DataSourceConfig(DataSourcesProperties properties) {
+        this.properties = properties;
+    }
+    
+    @Bean
+    @Primary
+    public DataSource primaryDataSource() {
+        return createDataSource(properties.getPrimary());
+    }
+    
+    @Bean
+    public DataSource secondaryDataSource() {
+        return createDataSource(properties.getSecondary());
+    }
+    
+    private DataSource createDataSource(DataSourcesProperties.DataSourceConfig config) {
+        HikariConfig hikariConfig = new HikariConfig();
+        hikariConfig.setJdbcUrl(config.getUrl());
+        hikariConfig.setUsername(config.getUsername());
+        hikariConfig.setPassword(config.getPassword());
+        hikariConfig.setDriverClassName(config.getDriverClassName());
+        hikariConfig.setMinimumIdle(config.getPool().getMinimumIdle());
+        hikariConfig.setMaximumPoolSize(config.getPool().getMaximumPoolSize());
+        hikariConfig.setConnectionTimeout(config.getPool().getConnectionTimeout());
+        hikariConfig.setIdleTimeout(config.getPool().getIdleTimeout());
+        hikariConfig.setMaxLifetime(config.getPool().getMaxLifetime());
+        
+        return new HikariDataSource(hikariConfig);
+    }
+}
+```
+
+## 커스텀 Validator
+
+복잡한 검증 로직은 커스텀 Validator를 만들 수 있습니다.
+
+```java
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+@Constraint(validatedBy = PoolSizeValidator.class)
+public @interface ValidPoolSize {
+    String message() default "Invalid pool size configuration";
+    Class<?>[] groups() default {};
+    Class<? extends Payload>[] payload() default {};
+}
+```
+
+```java
+public class PoolSizeValidator implements ConstraintValidator<ValidPoolSize, DatabaseProperties.Pool> {
+    
+    @Override
+    public boolean isValid(DatabaseProperties.Pool pool, ConstraintValidatorContext context) {
+        if (pool == null) {
+            return true;
+        }
+        
+        if (pool.getMaxSize() < pool.getMinSize()) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate(
+                "Max pool size must be greater than or equal to min pool size"
+            ).addConstraintViolation();
+            return false;
+        }
+        
+        if (pool.getMinSize() > 100) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate(
+                "Min pool size should not exceed 100"
+            ).addConstraintViolation();
+            return false;
+        }
+        
+        return true;
+    }
+}
+```
+
+```java
+@Data
+@ValidPoolSize
+public static class Pool {
+    private int minSize;
+    private int maxSize;
+    private long timeout;
+}
+```
+
+## 프로필별 설정
+
+환경별로 다른 설정을 사용할 수 있습니다.
+
+```yaml
+# application.yml (공통)
+database:
+  pool:
+    min-size: 5
+    max-size: 20
+    timeout: 30000
+
+---
+# application-local.yml
+database:
+  host: localhost
+  port: 5432
+  username: dev
+  password: dev
+  database: myapp_dev
+
+---
+# application-dev.yml
+database:
+  host: dev-db.example.com
+  port: 5432
+  username: ${DB_USERNAME}
+  password: ${DB_PASSWORD}
+  database: myapp_dev
+  pool:
+    min-size: 10
+    max-size: 30
+
+---
+# application-prod.yml
+database:
+  host: prod-db.example.com
+  port: 5432
+  username: ${DB_USERNAME}
+  password: ${DB_PASSWORD}
+  database: myapp
+  pool:
+    min-size: 20
+    max-size: 50
+    timeout: 60000
+```
+
+## 설정 파일 분리
+
+설정이 많으면 파일을 나눌 수 있습니다.
+
+```yaml
+# application.yml
+spring:
+  profiles:
+    include:
+      - database
+      - redis
+      - aws
+      - security
+
+---
+# application-database.yml
+database:
+  host: ${DB_HOST:localhost}
+  port: ${DB_PORT:5432}
+  username: ${DB_USERNAME}
+  password: ${DB_PASSWORD}
+
+---
+# application-redis.yml
+redis:
+  host: ${REDIS_HOST:localhost}
+  port: ${REDIS_PORT:6379}
+  password: ${REDIS_PASSWORD}
+
+---
+# application-aws.yml
+aws:
+  region: ${AWS_REGION:ap-northeast-2}
+  access-key: ${AWS_ACCESS_KEY}
+  secret-key: ${AWS_SECRET_KEY}
+```
+
+## IDE 자동완성 지원
+
+Spring Boot Configuration Processor를 추가하면 IDE에서 자동완성을 지원합니다.
+
+```xml
+<!-- Maven -->
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-configuration-processor</artifactId>
+    <optional>true</optional>
+</dependency>
+```
+
+```gradle
+// Gradle
+annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+```
+
+빌드하면 `META-INF/spring-configuration-metadata.json` 파일이 생성되고, IDE가 YAML 파일에서 자동완성과 문서를 보여줍니다.
+
+```java
+@ConfigurationProperties(prefix = "custom")
+public class CustomProperties {
+    
+    /**
+     * 서버 호스트 주소
+     */
+    private String host;
+    
+    /**
+     * 서버 포트 번호 (기본값: 8080)
+     */
+    private int port = 8080;
+}
+```
+
+주석을 작성하면 IDE에서 설명을 볼 수 있습니다.
+
+## 정리
+
+`@ConfigurationProperties`는 관련된 설정을 그룹화하고 타입 안전하게 관리할 수 있는 방법입니다. 단순한 값 하나는 `@Value`가 낫지만, DB나 Redis 같은 외부 시스템 설정처럼 여러 값이 모여있고 검증이 필요한 경우에는 `@ConfigurationProperties`를 사용하는 것이 좋습니다.
+
+Validation을 함께 사용하면 잘못된 설정으로 애플리케이션이 시작되는 것을 방지할 수 있고, IDE 자동완성 지원으로 개발 경험도 좋아집니다. 실무에서는 설정 클래스를 따로 패키지로 분리해서 관리하고, 환경별로 다른 YAML 파일을 사용하는 것이 일반적입니다.
