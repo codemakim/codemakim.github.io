@@ -1,17 +1,17 @@
 ---
 title: "React Hooks 가이드"
-description: "React 함수형 컴포넌트에서 사용하는 주요 Hook들의 특징과 사용법을 정리했습니다."
+description: "React 함수형 컴포넌트에서 사용하는 주요 Hook들의 특징과 사용법을 정리했다."
 date: "2020-01-23"
 tags: ["React", "중급", "프론트엔드"]
 ---
 
 # React Hooks 가이드
 
-React 16.8에서 도입된 Hooks는 함수형 컴포넌트에서 상태 관리와 생명주기 기능을 사용할 수 있게 해주는 강력한 기능입니다. 주요 Hook들의 특징과 실제 사용법을 정리했습니다.
+React 16.8에서 도입된 Hooks는 함수형 컴포넌트에서 상태 관리와 생명주기 기능을 사용할 수 있게 해주는 강력한 기능이다. 주요 Hook들의 특징과 실제 사용법을 정리했다.
 
 ## useState
 
-**함수형 컴포넌트에서 상태를 관리할 수 있게 해주는 가장 기본적인 Hook입니다.**
+함수형 컴포넌트에서 상태를 관리할 수 있게 해주는 가장 기본적인 Hook이다.
 
 ### 기본 사용법
 
@@ -37,7 +37,7 @@ const Counter = () => {
 
 ### 여러 상태 관리하기
 
-하나의 `useState`는 하나의 상태값만 관리할 수 있으므로, 여러 상태가 필요하다면 여러 번 사용해야 합니다.
+하나의 `useState`는 하나의 상태값만 관리할 수 있으므로, 여러 상태가 필요하다면 여러 번 사용해야 한다.
 
 ```javascript
 const UserForm = () => {
@@ -76,7 +76,7 @@ const UserForm = () => {
 
 ### 함수형 업데이트
 
-상태 업데이트가 이전 상태에 의존할 때는 함수형 업데이트를 사용하는 것이 좋습니다.
+상태 업데이트가 이전 상태에 의존할 때는 함수형 업데이트를 사용하는 것이 좋다.
 
 ```javascript
 const [count, setCount] = useState(0);
@@ -90,9 +90,9 @@ const increment = () => setCount((prevCount) => prevCount + 1);
 
 ## useEffect
 
-**컴포넌트가 렌더링될 때마다 특정 작업을 수행하도록 설정할 수 있는 Hook입니다.**
+컴포넌트가 렌더링될 때마다 특정 작업을 수행하도록 설정할 수 있는 Hook이다.
 
-클래스형 컴포넌트의 `componentDidMount`, `componentDidUpdate`, `componentWillUnmount`를 합친 형태입니다.
+클래스형 컴포넌트의 `componentDidMount`, `componentDidUpdate`, `componentWillUnmount`를 합친 형태이다.
 
 ### 기본 사용법
 
@@ -104,7 +104,7 @@ const Timer = () => {
 
   // 매 렌더링마다 실행
   useEffect(() => {
-    console.log("컴포넌트가 렌더링되었습니다!");
+    console.log("컴포넌트가 렌더링되었다!");
   });
 
   return <div>타이머: {seconds}초</div>;
@@ -113,11 +113,11 @@ const Timer = () => {
 
 ### 마운트시에만 실행
 
-두 번째 파라미터로 빈 배열 `[]`을 전달하면 컴포넌트가 마운트될 때만 실행됩니다.
+두 번째 파라미터로 빈 배열 `[]`을 전달하면 컴포넌트가 마운트될 때만 실행된다.
 
 ```javascript
 useEffect(() => {
-  console.log("컴포넌트가 마운트되었습니다!");
+  console.log("컴포넌트가 마운트되었다!");
 
   // API 호출 등의 초기화 작업
   fetchUserData();
@@ -126,21 +126,21 @@ useEffect(() => {
 
 ### 특정 값이 변경될 때만 실행
 
-의존성 배열에 특정 값을 넣으면 해당 값이 변경될 때만 실행됩니다.
+의존성 배열에 특정 값을 넣으면 해당 값이 변경될 때만 실행된다.
 
 ```javascript
 const [name, setName] = useState("");
 const [email, setEmail] = useState("");
 
 useEffect(() => {
-  console.log("name이 변경되었습니다:", name);
+  console.log("name이 변경되었다:", name);
   // name이 변경될 때만 실행되는 로직
 }, [name]); // name이 변경될 때만 실행
 ```
 
 ### 정리(Cleanup) 함수
 
-컴포넌트가 언마운트되거나 의존성이 변경되기 전에 정리 작업을 수행해야 할 때 사용합니다.
+컴포넌트가 언마운트되거나 의존성이 변경되기 전에 정리 작업을 수행해야 할 때 사용한다.
 
 ```javascript
 useEffect(() => {
@@ -157,7 +157,7 @@ useEffect(() => {
 
 ## useReducer
 
-**복잡한 상태 로직을 관리할 때 `useState`보다 더 적합한 Hook입니다.**
+복잡한 상태 로직을 관리할 때 `useState`보다 더 적합한 Hook이다.
 
 ### 기본 개념
 
@@ -253,9 +253,9 @@ const UserForm = () => {
 
 ## useMemo
 
-**연산 결과를 메모이제이션하여 성능을 최적화하는 Hook입니다.**
+연산 결과를 메모이제이션하여 성능을 최적화하는 Hook이다.
 
-특정 값이 변경되었을 때만 연산을 다시 실행하고, 그렇지 않으면 이전 결과를 재사용합니다.
+특정 값이 변경되었을 때만 연산을 다시 실행하고, 그렇지 않으면 이전 결과를 재사용한다.
 
 ### 기본 사용법
 
@@ -305,7 +305,7 @@ const ExpensiveCalculation = () => {
 
 ## useCallback
 
-**함수를 메모이제이션하여 불필요한 재생성을 방지하는 Hook입니다.**
+함수를 메모이제이션하여 불필요한 재생성을 방지하는 Hook이다.
 
 ### 기본 사용법
 
@@ -372,14 +372,14 @@ const memoizedCallback2 = useMemo(() => {
 }, []);
 ```
 
-**사용 구분:**
+사용 구분:
 
-- **useMemo**: 값을 메모이제이션 (숫자, 문자열, 객체, 배열 등)
-- **useCallback**: 함수를 메모이제이션
+- useMemo: 값을 메모이제이션 (숫자, 문자열, 객체, 배열 등)
+- useCallback: 함수를 메모이제이션
 
 ## useRef
 
-**DOM 요소에 직접 접근하거나 렌더링과 관계없는 값을 저장할 때 사용하는 Hook입니다.**
+DOM 요소에 직접 접근하거나 렌더링과 관계없는 값을 저장할 때 사용하는 Hook이다.
 
 ### DOM 요소 참조
 
@@ -402,7 +402,7 @@ const FocusInput = () => {
 
   return (
     <div>
-      <input ref={inputRef} type="text" placeholder="텍스트를 입력하세요" />
+      <input ref={inputRef} type="text" placeholder="텍스트를 입력하라" />
       <button onClick={handleFocus}>포커스</button>
       <button onClick={handleClear}>초기화</button>
     </div>
@@ -412,7 +412,7 @@ const FocusInput = () => {
 
 ### 로컬 변수로 사용하기
 
-`useRef`는 렌더링과 관계없이 값을 저장하고 싶을 때도 사용할 수 있습니다.
+`useRef`는 렌더링과 관계없이 값을 저장하고 싶을 때도 사용할 수 있다.
 
 ```javascript
 const Timer = () => {

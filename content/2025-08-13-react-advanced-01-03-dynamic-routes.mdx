@@ -1,5 +1,5 @@
 ---
-title: "🚀 [React 라이브러리 3/9] React Router - 동적 라우트"
+title: "[React 라이브러리 3/9] React Router - 동적 라우트"
 date: "2025-08-14"
 description: "URL 파라미터, useParams, 쿼리 스트링 처리"
 tags: ["React", "고급", "프론트엔드"]
@@ -13,14 +13,10 @@ seriesOrder: 39
 > 출처: [React Router Documentation](https://reactrouter.com/)
 
 ---
-
 ## 동적 라우트
 동적 라우트
-
 중첩 라우트
-
 ### 1. Layout 패턴
-
 ```jsx
 // App.jsx
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
@@ -29,7 +25,6 @@ import Home from './pages/Home';
 import About from './pages/About';
 import Blog from './pages/Blog';
 import Post from './pages/Post';
-
 export default function App() {
   return (
     <BrowserRouter>
@@ -45,13 +40,10 @@ export default function App() {
   );
 }
 ```
-
 ### 2. Layout 컴포넌트
-
 ```jsx
 // components/Layout.jsx
 import { Outlet, Link } from 'react-router-dom';
-
 export default function Layout() {
   return (
     <div>
@@ -74,9 +66,7 @@ export default function Layout() {
   );
 }
 ```
-
 ### 3. 다단계 중첩
-
 ```jsx
 <Routes>
   <Route path="/" element={<Layout />}>
@@ -96,9 +86,7 @@ export default function Layout() {
   </Route>
 </Routes>
 ```
-
 ### Index Route
-
 ```jsx
 // index: 부모 경로와 동일한 경로에 렌더링
 <Route path="/" element={<Layout />}>
@@ -106,9 +94,7 @@ export default function Layout() {
   <Route path="about" element={<About />} />  {/* /about */}
 </Route>
 ```
-
 ### Vue Router와 비교
-
 ```javascript
 // Vue Router: children
 const routes = [
@@ -130,7 +116,6 @@ const routes = [
   }
 ]
 ```
-
 ```jsx
 // React Router: Outlet
 <Route path="/" element={<Layout />}>
@@ -142,5 +127,4 @@ const routes = [
   </Route>
 </Route>
 ```
-
 ---

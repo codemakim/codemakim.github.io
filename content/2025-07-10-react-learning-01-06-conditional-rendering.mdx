@@ -1,5 +1,5 @@
 ---
-title: "📚 [React 기초 1-6/10] 조건부 렌더링"
+title: "[React 기초 1-6/10] 조건부 렌더링"
 date: "2025-07-10"
 description: "React에서 조건에 따라 다른 UI를 렌더링하는 방법을 학습합니다"
 tags: ["React", "학습", "Vue", "초급", "프론트엔드"]
@@ -9,22 +9,17 @@ seriesOrder: 6
 
 # React 학습 가이드 - 조건부 렌더링
 
-> React 공식 문서를 기반으로 한 학습 자료  
-> 원문: [Describing the UI - React](https://react.dev/learn/describing-the-ui)
-
----
-
 ## 조건부 렌더링
 
 ### 조건부 렌더링이란?
 
-컴포넌트가 **다른 조건에 따라 다른 내용을 표시**하는 것입니다.
+컴포넌트가 다른 조건에 따라 다른 내용을 표시하는 것이다.
 
-React에서는 JavaScript 문법(`if`, `&&`, `? :`)을 사용하여 조건부로 JSX를 렌더링합니다.
+React에서는 JavaScript 문법(`if`, `&&`, `? :`)을 사용하여 조건부로 JSX를 렌더링한다.
 
 ### 방법 1: `if` 문 사용
 
-가장 기본적인 방법으로, 조건에 따라 다른 JSX를 반환합니다.
+가장 기본적인 방법으로, 조건에 따라 다른 JSX를 반환한다.
 
 ```jsx
 function Item({ name, isPacked }) {
@@ -48,14 +43,14 @@ export default function PackingList() {
 }
 ```
 
-**결과:**
+결과:
 
 - `isPacked={true}` → "Space suit ✅"
 - `isPacked={false}` → "Photo of Tam"
 
 ### 방법 2: 조건부로 `null` 반환
 
-아무것도 렌더링하지 않으려면 `null`을 반환합니다.
+아무것도 렌더링하지 않으려면 `null`을 반환한다.
 
 ```jsx
 function Item({ name, isPacked }) {
@@ -66,11 +61,11 @@ function Item({ name, isPacked }) {
 }
 ```
 
-**주의:** 실전에서는 `null`을 반환하는 것이 혼란스러울 수 있으므로 신중히 사용하세요.
+주의: 실전에서는 `null`을 반환하는 것이 혼란스러울 수 있으므로 신중히 사용해야 한다.
 
 ### 방법 3: 삼항 연산자 `? :`
 
-JSX 안에서 직접 조건부 표현식을 사용할 때 유용합니다.
+JSX 안에서 직접 조건부 표현식을 사용할 때 유용하다.
 
 ```jsx
 function Item({ name, isPacked }) {
@@ -82,16 +77,16 @@ function Item({ name, isPacked }) {
 }
 ```
 
-**더 명확한 버전:**
+더 명확한 버전:
 
 ```jsx
 function Item({ name, isPacked }) {
   return (
     <li className="item">
       {isPacked ? (
-        <del>{name} ✅</del>  // 패킹됨: 취소선
+        <del>{name} ✅</del>
       ) : (
-        name                   // 패킹 안됨: 일반 텍스트
+        name
       )}
     </li>
   );
@@ -100,7 +95,7 @@ function Item({ name, isPacked }) {
 
 ### 방법 4: 논리 AND 연산자 `&&`
 
-조건이 참일 때만 무언가를 보여주고 싶을 때 사용합니다.
+조건이 참일 때만 무언가를 보여주고 싶을 때 사용한다.
 
 ```jsx
 function Item({ name, isPacked }) {
@@ -112,12 +107,12 @@ function Item({ name, isPacked }) {
 }
 ```
 
-**해석:**
+해석:
 
 - `isPacked`이 `true`면 `'✅'` 렌더링
 - `isPacked`이 `false`면 아무것도 렌더링하지 않음
 
-**동작 원리:**
+동작 원리:
 
 ```jsx
 // JavaScript 논리 연산
@@ -125,17 +120,17 @@ true && 'hello'   // 'hello'
 false && 'hello'  // false (React는 false를 렌더링하지 않음)
 ```
 
-### ⚠️ 주의: `&&` 왼쪽에 숫자를 두지 마세요
+### 주의: `&&` 왼쪽에 숫자를 두지 말아야 한다
 
 ```jsx
-// ❌ 잘못된 코드
+// 잘못된 코드
 messageCount && <p>New messages</p>
 
-// messageCount가 0이면 0이 렌더링됨! (빈 것이 아님)
+// messageCount가 0이면 0이 렌더링됨 (빈 것이 아님)
 ```
 
 ```jsx
-// ✅ 올바른 코드
+// 올바른 코드
 messageCount > 0 && <p>New messages</p>
 
 // 또는
@@ -144,7 +139,7 @@ messageCount > 0 && <p>New messages</p>
 
 ### 방법 5: 변수에 JSX 할당
 
-복잡한 조건 로직을 깨끗하게 분리하고 싶을 때 사용합니다.
+복잡한 조건 로직을 깨끗하게 분리하고 싶을 때 사용한다.
 
 ```jsx
 function Item({ name, isPacked }) {
@@ -162,7 +157,7 @@ function Item({ name, isPacked }) {
 }
 ```
 
-**복잡한 조건일 때 유용:**
+복잡한 조건일 때 유용:
 
 ```jsx
 function Item({ name, isPacked, priority }) {
@@ -224,7 +219,7 @@ function Item({ name, isPacked }) {
 }
 ```
 
-**차이점:**
+차이점:
 
 - Vue: 템플릿 디렉티브 (`v-if`, `v-else`, `v-show`)
 - React: JavaScript 문법 (`if`, `&&`, `? :`)

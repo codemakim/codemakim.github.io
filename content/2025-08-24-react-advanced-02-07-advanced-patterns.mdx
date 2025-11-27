@@ -1,5 +1,5 @@
 ---
-title: "🚀 [React 라이브러리 7/8] React Query - 고급 패턴"
+title: "[React 라이브러리 7/8] React Query - 고급 패턴"
 date: "2025-08-25"
 description: "Prefetching, Preloading, Query Keys 최적화"
 tags: ["React", "고급", "프론트엔드"]
@@ -13,17 +13,12 @@ seriesOrder: 52
 > 출처: [TanStack Query Documentation](https://tanstack.com/query/)
 
 ---
-
 ## 고급 패턴
 고급 패턴
-
 무한 스크롤
-
 ### useInfiniteQuery
-
 ```jsx
 import { useInfiniteQuery } from '@tanstack/react-query';
-
 function Posts() {
   const {
     data,
@@ -40,9 +35,7 @@ function Posts() {
     },
     initialPageParam: 0,
   });
-
   if (isLoading) return <div>Loading...</div>;
-
   return (
     <div>
       {data.pages.map((page, i) => (
@@ -52,7 +45,6 @@ function Posts() {
           ))}
         </div>
       ))}
-
       <button
         onClick={() => fetchNextPage()}
         disabled={!hasNextPage || isFetchingNextPage}
@@ -66,22 +58,17 @@ function Posts() {
     </div>
   );
 }
-
 async function fetchPosts(pageParam) {
   const response = await fetch(`/api/posts?cursor=${pageParam}`);
   return response.json();
 }
 ```
-
 ### 자동 무한 스크롤
-
 ```jsx
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useInView } from 'react-intersection-observer';
-
 function Posts() {
   const { ref, inView } = useInView();
-
   const {
     data,
     fetchNextPage,
@@ -93,14 +80,12 @@ function Posts() {
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     initialPageParam: 0,
   });
-
   // 화면에 보이면 자동으로 다음 페이지 로드
   useEffect(() => {
     if (inView && hasNextPage) {
       fetchNextPage();
     }
   }, [inView, hasNextPage, fetchNextPage]);
-
   return (
     <div>
       {data?.pages.map((page, i) => (
@@ -110,7 +95,6 @@ function Posts() {
           ))}
         </div>
       ))}
-
       {/* 감지 영역 */}
       <div ref={ref}>
         {isFetchingNextPage && <LoadingSpinner />}
@@ -119,9 +103,7 @@ function Posts() {
   );
 }
 ```
-
 ### 양방향 무한 스크롤
-
 ```jsx
 const {
   data,
@@ -137,5 +119,4 @@ const {
   initialPageParam: 0,
 });
 ```
-
 ---

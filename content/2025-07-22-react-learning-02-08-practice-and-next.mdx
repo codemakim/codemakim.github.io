@@ -1,5 +1,5 @@
 ---
-title: "📚 [React 기초 2-8/8] 연습문제 & 다음 단계"
+title: "[React 기초 2-8/8] 연습문제 & 다음 단계"
 date: "2025-07-22"
 description: "React 상호작용 학습을 마무리하는 연습문제와 다음 단계 안내"
 tags: ["React", "학습", "Vue", "초급", "프론트엔드"]
@@ -9,21 +9,16 @@ seriesOrder: 18
 
 # React 학습 가이드 - 연습문제 & 다음 단계
 
-> React 공식 문서를 기반으로 한 학습 자료  
-> 원문: [Adding Interactivity - React](https://react.dev/learn/adding-interactivity)
 
 ---
-
 ## 이 챕터에서 배운 내용 요약
-
-**이벤트 핸들러**: `onClick`, `onChange` 등으로 사용자 입력에 응답  
-**useState Hook**: 컴포넌트에 메모리(state) 추가  
-**렌더와 커밋**: React의 3단계 UI 업데이트 과정  
-**State 스냅샷**: State는 렌더링 시점에 고정됨  
-**State 업데이트 큐**: 업데이터 함수로 여러 업데이트 배치  
-**객체 업데이트**: Spread 문법으로 불변 업데이트  
-**배열 업데이트**: `map`, `filter` 등으로 새 배열 생성
-
+이벤트 핸들러: `onClick`, `onChange` 등으로 사용자 입력에 응답  
+useState Hook: 컴포넌트에 메모리(state) 추가  
+렌더와 커밋: React의 3단계 UI 업데이트 과정  
+State 스냅샷: State는 렌더링 시점에 고정됨  
+State 업데이트 큐: 업데이터 함수로 여러 업데이트 배치  
+객체 업데이트: Spread 문법으로 불변 업데이트  
+배열 업데이트: `map`, `filter` 등으로 새 배열 생성
 ---
 
 ## 연습 문제
@@ -39,7 +34,7 @@ export default function Counter() {
 }
 ```
 
-**요구사항:**
+요구사항:
 
 - `+1`, `-1`, `Reset` 버튼 구현
 - `useState`로 카운트 상태 관리
@@ -58,7 +53,7 @@ export default function TodoList() {
 }
 ```
 
-**요구사항:**
+요구사항:
 
 - 할 일 추가 기능
 - 완료/미완료 토글 기능
@@ -85,7 +80,7 @@ export default function ShoppingCart() {
 }
 ```
 
-**요구사항:**
+요구사항:
 
 - 상품을 카트에 추가
 - 수량 증가/감소
@@ -113,7 +108,7 @@ export default function SignupForm() {
 
 ```
 
-**요구사항:**
+요구사항:
 
 - 이메일 형식 검증
 - 비밀번호 길이 검증
@@ -121,17 +116,12 @@ export default function SignupForm() {
 - 실시간 오류 표시
 
 ---
-
 ## 해답 예시
-
 ### 1. 카운터 해답
-
 ```jsx
 import { useState } from 'react';
-
 export default function Counter() {
   const [count, setCount] = useState(0);
-
   return (
     <div>
       <h1>Count: {count}</h1>
@@ -142,16 +132,12 @@ export default function Counter() {
   );
 }
 ```
-
 ### 2. 할 일 목록 해답
-
 ```jsx
 import { useState } from 'react';
-
 export default function TodoList() {
   const [todos, setTodos] = useState([]);
   const [inputValue, setInputValue] = useState('');
-
   function addTodo() {
     if (inputValue.trim()) {
       setTodos([...todos, {
@@ -162,17 +148,14 @@ export default function TodoList() {
       setInputValue('');
     }
   }
-
   function toggleTodo(id) {
     setTodos(todos.map(todo =>
       todo.id === id ? { ...todo, completed: !todo.completed } : todo
     ));
   }
-
   function deleteTodo(id) {
     setTodos(todos.filter(todo => todo.id !== id));
   }
-
   return (
     <div>
       <input
@@ -201,21 +184,16 @@ export default function TodoList() {
   );
 }
 ```
-
 ### 3. 쇼핑 카트 해답
-
 ```jsx
 import { useState } from 'react';
-
 const products = [
   { id: 1, name: 'Laptop', price: 1200 },
   { id: 2, name: 'Phone', price: 800 },
   { id: 3, name: 'Headphones', price: 100 },
 ];
-
 export default function ShoppingCart() {
   const [cart, setCart] = useState([]);
-
   function addToCart(product) {
     setCart(prevCart => {
       const existingItem = prevCart.find(item => item.id === product.id);
@@ -230,7 +208,6 @@ export default function ShoppingCart() {
       }
     });
   }
-
   function updateQuantity(id, quantity) {
     if (quantity <= 0) {
       setCart(cart.filter(item => item.id !== id));
@@ -240,9 +217,7 @@ export default function ShoppingCart() {
       ));
     }
   }
-
   const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
   return (
     <div>
       <h2>Products</h2>
@@ -252,7 +227,6 @@ export default function ShoppingCart() {
           <button onClick={() => addToCart(product)}>Add to Cart</button>
         </div>
       ))}
-
       <h2>Cart</h2>
       {cart.map(item => (
         <div key={item.id}>
@@ -268,12 +242,9 @@ export default function ShoppingCart() {
   );
 }
 ```
-
 ### 4. 고급: 폼 검증 해답
-
 ```jsx
 import { useState } from 'react';
-
 export default function SignupForm() {
   const [formData, setFormData] = useState({
     email: '',
@@ -282,12 +253,10 @@ export default function SignupForm() {
   });
   
   const [errors, setErrors] = useState({});
-
   function validateEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   }
-
   function handleChange(field, value) {
     setFormData(prev => ({ ...prev, [field]: value }));
     
@@ -304,14 +273,14 @@ export default function SignupForm() {
     
     if (field === 'password') {
       if (value && value.length < 8) {
-        newErrors.password = '비밀번호는 최소 8자 이상이어야 합니다';
+        newErrors.password = '비밀번호는 최소 8자 이상이어야 한다';
       } else {
         delete newErrors.password;
       }
       
       // 비밀번호 확인도 다시 검증
       if (formData.confirmPassword && value !== formData.confirmPassword) {
-        newErrors.confirmPassword = '비밀번호가 일치하지 않습니다';
+        newErrors.confirmPassword = '비밀번호가 일치하지 않다';
       } else if (formData.confirmPassword && value === formData.confirmPassword) {
         delete newErrors.confirmPassword;
       }
@@ -319,7 +288,7 @@ export default function SignupForm() {
     
     if (field === 'confirmPassword') {
       if (value && value !== formData.password) {
-        newErrors.confirmPassword = '비밀번호가 일치하지 않습니다';
+        newErrors.confirmPassword = '비밀번호가 일치하지 않다';
       } else {
         delete newErrors.confirmPassword;
       }
@@ -327,7 +296,6 @@ export default function SignupForm() {
     
     setErrors(newErrors);
   }
-
   function handleSubmit(e) {
     e.preventDefault();
     
@@ -339,11 +307,11 @@ export default function SignupForm() {
     }
     
     if (formData.password.length < 8) {
-      finalErrors.password = '비밀번호는 최소 8자 이상이어야 합니다';
+      finalErrors.password = '비밀번호는 최소 8자 이상이어야 한다';
     }
     
     if (formData.password !== formData.confirmPassword) {
-      finalErrors.confirmPassword = '비밀번호가 일치하지 않습니다';
+      finalErrors.confirmPassword = '비밀번호가 일치하지 않다';
     }
     
     if (Object.keys(finalErrors).length === 0) {
@@ -355,7 +323,6 @@ export default function SignupForm() {
       setErrors(finalErrors);
     }
   }
-
   return (
     <form onSubmit={handleSubmit}>
       <div>
@@ -393,16 +360,13 @@ export default function SignupForm() {
   );
 }
 ```
-
-**핵심 포인트:**
-
-- **실시간 검증**: `onChange` 이벤트에서 즉시 검증 수행
-- **이메일 정규식**: `/^[^\s@]+@[^\s@]+\.[^\s@]+$/` 패턴 사용
-- **비밀번호 길이**: 최소 8자 이상 검증
-- **비밀번호 일치**: `password`와 `confirmPassword` 비교
-- **오류 상태 관리**: `errors` 객체로 각 필드별 오류 메시지 관리
-- **제출 시 최종 검증**: 모든 필드 재검증 후 제출
-
+핵심 포인트:
+- 실시간 검증: `onChange` 이벤트에서 즉시 검증 수행
+- 이메일 정규식: `/^[^\s@]+@[^\s@]+\.[^\s@]+$/` 패턴 사용
+- 비밀번호 길이: 최소 8자 이상 검증
+- 비밀번호 일치: `password`와 `confirmPassword` 비교
+- 오류 상태 관리: `errors` 객체로 각 필드별 오류 메시지 관리
+- 제출 시 최종 검증: 모든 필드 재검증 후 제출
 ---
 
 ## 학습 체크리스트
@@ -419,9 +383,7 @@ export default function SignupForm() {
 모든 항목을 체크했다면 다음 챕터로 넘어가세요! 🚀
 
 ---
-
 ## 참고 자료
-
 - [React 공식 문서 - Adding Interactivity](https://react.dev/learn/adding-interactivity)
 - [React 공식 문서 - Managing State](https://react.dev/learn/managing-state)
 - [useState Hook](https://react.dev/reference/react/useState)

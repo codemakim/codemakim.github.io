@@ -1,5 +1,5 @@
 ---
-title: "📚 [React 기초 1-9/10] UI를 트리로 이해하기"
+title: "[React 기초 1-9/10] UI를 트리로 이해하기"
 date: "2025-07-13"
 description: "React의 트리 구조를 이해하고 컴포넌트 계층을 분석하는 방법을 학습합니다"
 tags: ["React", "학습", "Vue", "초급", "프론트엔드"]
@@ -9,29 +9,24 @@ seriesOrder: 9
 
 # React 학습 가이드 - UI를 트리로 이해하기
 
-> React 공식 문서를 기반으로 한 학습 자료  
-> 원문: [Describing the UI - React](https://react.dev/learn/describing-the-ui)
-
----
-
 ## UI를 트리로 이해하기
 
 ### 트리 구조란?
 
-React는 **트리**를 사용하여 컴포넌트와 모듈 간의 관계를 모델링합니다.
+React는 트리를 사용하여 컴포넌트와 모듈 간의 관계를 모델링한다.
 
-**트리 개념:**
+트리 개념:
 
-- **루트 (Root)**: 최상위 노드
-- **부모/자식 관계**: 컴포넌트 포함 관계
-- **형제 (Sibling)**: 같은 부모를 가진 노드
-- **리프 (Leaf)**: 자식이 없는 노드
+- 루트 (Root): 최상위 노드
+- 부모/자식 관계: 컴포넌트 포함 관계
+- 형제 (Sibling): 같은 부모를 가진 노드
+- 리프 (Leaf): 자식이 없는 노드
 
 ### 1. 렌더 트리 (Render Tree)
 
-**렌더 트리**는 컴포넌트 간의 부모-자식 관계를 나타냅니다.
+렌더 트리는 컴포넌트 간의 부모-자식 관계를 나타낸다.
 
-React가 실제로 컴포넌트를 렌더링하는 순서와 구조를 보여줍니다.
+React가 실제로 컴포넌트를 렌더링하는 순서와 구조를 보여준다.
 
 ```
 Root Component
@@ -88,15 +83,15 @@ App (Root)
 
 | 용어 | 설명 | 예제 |
 |------|------|------|
-| **Root Component** | 최상위 컴포넌트 | `App` |
-| **Top-level Component** | 루트에 가까운 컴포넌트 | `Header`, `Main` |
-| **Leaf Component** | 자식이 없는 컴포넌트 | `Logo`, `Nav`, `Sidebar`, `Content` |
+| Root Component | 최상위 컴포넌트 | `App` |
+| Top-level Component | 루트에 가까운 컴포넌트 | `Header`, `Main` |
+| Leaf Component | 자식이 없는 컴포넌트 | `Logo`, `Nav`, `Sidebar`, `Content` |
 
 ### 2. 모듈 의존성 트리 (Module Dependency Tree)
 
-**모듈 의존성 트리**는 JavaScript 모듈 간의 import 관계를 나타냅니다.
+모듈 의존성 트리는 JavaScript 모듈 간의 import 관계를 나타낸다.
 
-파일들이 서로를 어떻게 참조하는지 보여주며, 번들 크기를 분석하는 데 사용됩니다.
+파일들이 서로를 어떻게 참조하는지 보여주며, 번들 크기를 분석하는 데 사용된다.
 
 #### 예제 코드
 
@@ -126,14 +121,14 @@ RootModule.js
 
 | 비교 | 렌더 트리 | 모듈 의존성 트리 |
 |------|----------|----------------|
-| **표현** | 컴포넌트 관계 | 파일(모듈) 관계 |
-| **노드** | React 컴포넌트 | JavaScript 파일 |
-| **간선** | 렌더링 관계 | import 관계 |
-| **용도** | UI 구조 이해 | 번들 크기 분석 |
+| 표현 | 컴포넌트 관계 | 파일(모듈) 관계 |
+| 노드 | React 컴포넌트 | JavaScript 파일 |
+| 간선 | 렌더링 관계 | import 관계 |
+| 용도 | UI 구조 이해 | 번들 크기 분석 |
 
 ### 트리 구조의 활용
 
-#### 1. **데이터 흐름 이해**
+#### 1. 데이터 흐름 이해
 
 ```jsx
 // 데이터는 부모 → 자식으로 흐름 (단방향)
@@ -142,13 +137,13 @@ RootModule.js
     <UserInfo user={user} />  // Props로 전달
 ```
 
-#### 2. **렌더링 성능 최적화**
+#### 2. 렌더링 성능 최적화
 
-- **Top-level 컴포넌트**: 변경 시 전체 트리 리렌더링
-- **Leaf 컴포넌트**: 변경 시 자신만 리렌더링
+- Top-level 컴포넌트: 변경 시 전체 트리 리렌더링
+- Leaf 컴포넌트: 변경 시 자신만 리렌더링
 
 ```jsx
-// ⚠️ App이 리렌더링되면 모든 자식도 리렌더링
+// App이 리렌더링되면 모든 자식도 리렌더링
 function App() {
   const [count, setCount] = useState(0);
   
@@ -161,25 +156,25 @@ function App() {
   );
 }
 
-// ✅ React.memo로 불필요한 리렌더링 방지
+// React.memo로 불필요한 리렌더링 방지
 const Header = React.memo(function Header() {
   return <header>Header</header>;
 });
 ```
 
-#### 3. **번들 크기 최적화**
+#### 3. 번들 크기 최적화
 
-모듈 의존성 트리를 분석하여 불필요한 의존성을 제거합니다.
+모듈 의존성 트리를 분석하여 불필요한 의존성을 제거한다.
 
 ```jsx
-// ❌ 전체 라이브러리 import (번들 크기 증가)
+// 전체 라이브러리 import (번들 크기 증가)
 import _ from 'lodash';
 
-// ✅ 필요한 함수만 import (번들 크기 감소)
+// 필요한 함수만 import (번들 크기 감소)
 import debounce from 'lodash/debounce';
 ```
 
-#### 4. **Code Splitting (코드 분할)**
+#### 4. Code Splitting (코드 분할)
 
 ```jsx
 import { lazy, Suspense } from 'react';
@@ -196,7 +191,7 @@ function App() {
 }
 ```
 
-**모듈 의존성 트리:**
+모듈 의존성 트리:
 
 ```
 RootModule.js
@@ -205,88 +200,17 @@ RootModule.js
 └── Home.js
 ```
 
-### 실전 예제: 컴포넌트 계층 구조
-
-```jsx
-// 블로그 애플리케이션 트리
-function BlogApp() {
-  return (
-    <div>
-      <Header>
-        <Logo />
-        <Navigation>
-          <NavItem />
-          <NavItem />
-          <NavItem />
-        </Navigation>
-      </Header>
-      <Main>
-        <Sidebar>
-          <SearchBox />
-          <CategoryList>
-            <Category />
-            <Category />
-          </CategoryList>
-        </Sidebar>
-        <Content>
-          <PostList>
-            <Post>
-              <PostHeader />
-              <PostBody />
-              <PostFooter>
-                <CommentCount />
-                <ShareButton />
-              </PostFooter>
-            </Post>
-          </PostList>
-        </Content>
-      </Main>
-      <Footer>
-        <Copyright />
-        <SocialLinks />
-      </Footer>
-    </div>
-  );
-}
-```
-
-**렌더 트리 (간소화):**
-
-```
-BlogApp
-├── Header
-│   ├── Logo
-│   └── Navigation
-│       └── NavItem (x3)
-├── Main
-│   ├── Sidebar
-│   │   ├── SearchBox
-│   │   └── CategoryList
-│   │       └── Category (x2)
-│   └── Content
-│       └── PostList
-│           └── Post
-│               ├── PostHeader
-│               ├── PostBody
-│               └── PostFooter
-│                   ├── CommentCount
-│                   └── ShareButton
-└── Footer
-    ├── Copyright
-    └── SocialLinks
-```
-
 ### 트리 구조의 이점
 
-1. **멘탈 모델**: UI 구조를 쉽게 이해
-2. **디버깅**: React DevTools에서 트리 구조로 표시
-3. **성능 분석**: 어느 컴포넌트가 리렌더링되는지 파악
-4. **최적화**: 불필요한 리렌더링 방지
-5. **코드 분할**: 효율적인 번들링 전략 수립
+1. 멘탈 모델: UI 구조를 쉽게 이해
+2. 디버깅: React DevTools에서 트리 구조로 표시
+3. 성능 분석: 어느 컴포넌트가 리렌더링되는지 파악
+4. 최적화: 불필요한 리렌더링 방지
+5. 코드 분할: 효율적인 번들링 전략 수립
 
 ### Vue와 비교
 
-Vue도 동일하게 컴포넌트 트리 구조를 사용하지만, 템플릿 기반이라 시각적으로 더 명확합니다.
+Vue도 동일하게 컴포넌트 트리 구조를 사용하지만, 템플릿 기반이라 시각적으로 더 명확하다.
 
 ```html
 <!-- Vue: 템플릿에서 트리 구조가 명확 -->

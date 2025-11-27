@@ -1,5 +1,5 @@
 ---
-title: "🚀 [React 라이브러리 4/8] React Query - 캐싱 전략"
+title: "[React 라이브러리 4/8] React Query - 캐싱 전략"
 date: "2025-08-22"
 description: "Stale Time, Cache Time, Query Invalidation"
 tags: ["React", "고급", "프론트엔드"]
@@ -13,20 +13,14 @@ seriesOrder: 49
 > 출처: [TanStack Query Documentation](https://tanstack.com/query/)
 
 ---
-
 ## 캐싱 전략
 캐싱 전략
-
 뮤테이션
-
 ### 1. useMutation 기본
-
 ```jsx
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-
 function CreateUser() {
   const queryClient = useQueryClient();
-
   const mutation = useMutation({
     mutationFn: (newUser) => {
       return fetch('/api/users', {
@@ -40,7 +34,6 @@ function CreateUser() {
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },
   });
-
   function handleSubmit(e) {
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -49,7 +42,6 @@ function CreateUser() {
       email: formData.get('email'),
     });
   }
-
   return (
     <form onSubmit={handleSubmit}>
       <input name="name" placeholder="Name" />
@@ -63,15 +55,12 @@ function CreateUser() {
   );
 }
 ```
-
 ### 2. 뮤테이션 상태
-
 ```jsx
 function DeleteUser({ userId }) {
   const mutation = useMutation({
     mutationFn: (id) => fetch(`/api/users/${id}`, { method: 'DELETE' }),
   });
-
   const {
     mutate,         // 뮤테이션 실행 함수
     isPending,      // 진행 중
@@ -81,7 +70,6 @@ function DeleteUser({ userId }) {
     data,           // 응답 데이터
     reset,          // 상태 초기화
   } = mutation;
-
   return (
     <div>
       <button onClick={() => mutate(userId)} disabled={isPending}>
@@ -98,9 +86,7 @@ function DeleteUser({ userId }) {
   );
 }
 ```
-
 ### 3. 뮤테이션 콜백
-
 ```jsx
 const mutation = useMutation({
   mutationFn: createUser,
@@ -132,30 +118,22 @@ const mutation = useMutation({
   },
 });
 ```
-
 ### 4. 쿼리 무효화
-
 ```jsx
 const queryClient = useQueryClient();
-
 // 특정 쿼리 무효화
 queryClient.invalidateQueries({ queryKey: ['users'] });
-
 // 특정 사용자 쿼리 무효화
 queryClient.invalidateQueries({ queryKey: ['user', userId] });
-
 // 접두사로 무효화 (모든 user 관련 쿼리)
 queryClient.invalidateQueries({ queryKey: ['user'] });
-
 // 정확히 일치하는 쿼리만 무효화
 queryClient.invalidateQueries({ 
   queryKey: ['users'], 
   exact: true 
 });
 ```
-
 ### 5. 캐시 직접 업데이트
-
 ```jsx
 const mutation = useMutation({
   mutationFn: createUser,
@@ -171,5 +149,4 @@ const mutation = useMutation({
   },
 });
 ```
-
 ---

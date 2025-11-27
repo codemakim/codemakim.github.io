@@ -1,0 +1,415 @@
+---
+title: "[React 기초 4-9/9] 연습문제 & 다음 단계"
+date: "2025-08-09"
+description: "Escape Hatches 학습을 마무리하는 연습문제와 다음 단계"
+tags: ["React", "학습", "Hook", "고급"]
+series: "React 기초"
+seriesOrder: 35
+---
+
+# 연습문제 & 다음 단계
+
+## 이 챕터에서 배운 내용 요약
+
+4장에서 배운 "Escape Hatches"는 React의 일반적인 데이터 흐름 밖으로 나가는 방법들이다.
+
+**핵심 개념:**
+
+- **useRef**: 리렌더링 없이 값을 기억한다
+- **DOM Ref**: React가 관리하는 DOM 노드에 접근한다
+- **useEffect**: 외부 시스템과 동기화한다
+- **Effect 최적화**: 불필요한 Effect를 제거한다
+- **Effect 생명주기**: 동기화 시작과 중지를 이해한다
+- **Effect Event**: 비반응형 로직을 분리한다 (실험적)
+- **의존성 제거**: Effect 최적화 기법을 익힌다
+- **커스텀 Hook**: 로직을 재사용 가능하게 만든다
+
+## 연습 문제
+
+### 1. 타이머 구현하기
+
+`useInterval` 커스텀 Hook을 사용하여 타이머를 구현한다.
+
+**요구사항:**
+
+- 시작/정지/리셋 기능
+- 분:초 형식으로 표시 (예: "01:30")
+- 정지 후 다시 시작하면 이어서 진행
+
+**시작 코드:**
+
+```jsx
+import { useState } from 'react';
+import { useInterval } from './useInterval';
+
+export default function Timer() {
+  // 여기에 코드 작성
+  // Hint: 경과 시간(초)을 state로 관리
+  // Hint: isRunning state로 시작/정지 상태 관리
+}
+```
+
+**예상 결과:**
+
+```jsx
+function Timer() {
+  const [seconds, setSeconds] = useState(0);
+  const [isRunning, setIsRunning] = useState(false);
+
+  useInterval(() => {
+    setSeconds(s => s + 1);
+  }, isRunning ? 1000 : null);
+
+  function handleStart() {
+    setIsRunning(true);
+  }
+
+  function handleStop() {
+    setIsRunning(false);
+  }
+
+  function handleReset() {
+    setSeconds(0);
+    setIsRunning(false);
+  }
+
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+
+  return (
+    <div>
+      <h1>
+        {String(minutes).padStart(2, '0')}:
+        {String(remainingSeconds).padStart(2, '0')}
+      </h1>
+      <button onClick={handleStart}>Start</button>
+      <button onClick={handleStop}>Stop</button>
+      <button onClick={handleReset}>Reset</button>
+    </div>
+  );
+}
+```
+
+### 2. 무한 스크롤 구현하기
+
+스크롤이 하단에 도달하면 자동으로 다음 페이지를 로드하는 기능을 구현한다.
+
+**요구사항:**
+
+- `useIntersectionObserver` 커스텀 Hook 구현
+- 스크롤 끝에 도달하면 더 많은 데이터 로드
+- 로딩 인디케이터 표시
+
+**시작 코드:**
+
+```jsx
+import { useState, useEffect, useRef } from 'react';
+
+function useIntersectionObserver(callback, options) {
+  // 여기에 IntersectionObserver 로직 구현
+  // ref를 반환하여 관찰할 요소에 연결
+}
+
+function InfiniteList() {
+  const [items, setItems] = useState([]);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  
+  // 여기에 코드 작성
+}
+```
+
+**예상 결과:**
+
+```jsx
+function useIntersectionObserver(callback, options = {}) {
+  const observerRef = useRef(null);
+  const elementRef = useRef(null);
+
+  useEffect(() => {
+    const element = elementRef.current;
+    if (!element) return;
+
+    observerRef.current = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        callback();
+      }
+    }, options);
+
+    observerRef.current.observe(element);
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, [callback, options]);
+
+  return elementRef;
+}
+
+function InfiniteList() {
+  const [items, setItems] = useState([]);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+
+  const loadMore = () => {
+    if (loading) return;
+    
+    setLoading(true);
+    fetchItems(page).then(newItems => {
+      setItems(prev => [...prev, ...newItems]);
+      setPage(p => p + 1);
+      setLoading(false);
+    });
+  };
+
+  const observerTarget = useIntersectionObserver(loadMore, {
+    threshold: 1.0
+  });
+
+  return (
+    <div>
+      {items.map(item => (
+        <div key={item.id}>{item.text}</div>
+      ))}
+      {loading && <p>Loading...</p>}
+      <div ref={observerTarget} style={{ height: 10 }} />
+    </div>
+  );
+}
+```
+
+### 3. 폼 검증 구현하기
+
+실시간 검증 기능이 있는 폼을 만든다.
+
+**요구사항:**
+
+- `useFormValidation` 커스텀 Hook 구현
+- 실시간 검증
+- 에러 메시지 표시
+- 제출 가능 여부 체크
+
+**시작 코드:**
+
+```jsx
+function useFormValidation(initialValues, validate) {
+  // 여기에 검증 로직 구현
+  // values, errors, handleChange, handleSubmit을 반환
+}
+
+function SignupForm() {
+  const validate = (values) => {
+    const errors = {};
+    
+    if (!values.email) {
+      errors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(values.email)) {
+      errors.email = 'Email is invalid';
+    }
+    
+    if (!values.password) {
+      errors.password = 'Password is required';
+    } else if (values.password.length < 8) {
+      errors.password = 'Password must be at least 8 characters';
+    }
+    
+    return errors;
+  };
+  
+  // 여기에 코드 작성
+}
+```
+
+**예상 결과:**
+
+```jsx
+function useFormValidation(initialValues, validate) {
+  const [values, setValues] = useState(initialValues);
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setValues(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleBlur = (e) => {
+    const { name } = e.target;
+    setTouched(prev => ({ ...prev, [name]: true }));
+  };
+
+  useEffect(() => {
+    const validationErrors = validate(values);
+    setErrors(validationErrors);
+  }, [values, validate]);
+
+  const handleSubmit = (callback) => (e) => {
+    e.preventDefault();
+    
+    // 모든 필드를 touched로 표시
+    const allTouched = Object.keys(values).reduce((acc, key) => {
+      acc[key] = true;
+      return acc;
+    }, {});
+    setTouched(allTouched);
+
+    if (Object.keys(errors).length === 0) {
+      callback(values);
+    }
+  };
+
+  return {
+    values,
+    errors,
+    touched,
+    handleChange,
+    handleBlur,
+    handleSubmit,
+    isValid: Object.keys(errors).length === 0
+  };
+}
+
+function SignupForm() {
+  const validate = (values) => {
+    const errors = {};
+    
+    if (!values.email) {
+      errors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(values.email)) {
+      errors.email = 'Email is invalid';
+    }
+    
+    if (!values.password) {
+      errors.password = 'Password is required';
+    } else if (values.password.length < 8) {
+      errors.password = 'Password must be at least 8 characters';
+    }
+    
+    return errors;
+  };
+
+  const {
+    values,
+    errors,
+    touched,
+    handleChange,
+    handleBlur,
+    handleSubmit,
+    isValid
+  } = useFormValidation({ email: '', password: '' }, validate);
+
+  const onSubmit = (values) => {
+    console.log('Submitted:', values);
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <div>
+        <input
+          name="email"
+          value={values.email}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          placeholder="Email"
+        />
+        {touched.email && errors.email && <p>{errors.email}</p>}
+      </div>
+      
+      <div>
+        <input
+          name="password"
+          type="password"
+          value={values.password}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          placeholder="Password"
+        />
+        {touched.password && errors.password && <p>{errors.password}</p>}
+      </div>
+      
+      <button type="submit" disabled={!isValid}>
+        Sign Up
+      </button>
+    </form>
+  );
+}
+```
+
+## 학습 체크리스트
+
+다음 항목을 모두 이해했는지 확인한다:
+
+- [ ] useRef를 적절히 사용할 수 있다
+- [ ] ref로 DOM 요소를 조작할 수 있다
+- [ ] forwardRef와 useImperativeHandle을 사용할 수 있다
+- [ ] useEffect를 올바르게 사용할 수 있다
+- [ ] 불필요한 Effect를 식별하고 제거할 수 있다
+- [ ] Effect의 생명주기를 이해한다
+- [ ] 의존성 배열을 올바르게 관리할 수 있다
+- [ ] Effect의 의존성을 최적화할 수 있다
+- [ ] 커스텀 Hook을 작성할 수 있다
+- [ ] 로직을 재사용 가능하게 추출할 수 있다
+
+## 다음 단계
+
+React 공식 문서의 **Learn React** 섹션을 모두 완료했다. 축하한다.
+
+### 더 배울 것들
+
+**1. 성능 최적화**
+- React.memo
+- useMemo와 useCallback
+- 가상화 (react-window, react-virtualized)
+- Code Splitting
+- Lazy Loading
+
+**2. 고급 패턴**
+- Compound Components
+- Render Props
+- Higher-Order Components (HOC)
+- Context 최적화
+
+**3. 상태 관리**
+- Context API 심화
+- useReducer 패턴
+- 외부 라이브러리 (Zustand, Jotai, Redux Toolkit)
+
+**4. 라우팅**
+- React Router
+- Next.js Pages Router / App Router
+
+**5. 실전 프로젝트**
+- 인증 시스템
+- CRUD 애플리케이션
+- 실시간 채팅
+- 대시보드
+
+### 추천 학습 자료
+
+**공식 문서:**
+- [React 공식 문서](https://react.dev)
+- [React API Reference](https://react.dev/reference/react)
+
+**블로그 & 튜토리얼:**
+- [Kent C. Dodds의 블로그](https://kentcdodds.com/blog)
+- [Dan Abramov의 블로그](https://overreacted.io)
+
+**오픈소스 프로젝트:**
+- GitHub에서 인기 있는 React 프로젝트 코드 읽기
+- 작은 기능부터 기여해보기
+
+## 마무리
+
+React의 기초를 탄탄히 다졌다. 이제 실전 프로젝트를 만들면서 배운 것들을 적용해보자.
+
+**기억할 것:**
+
+- Effect는 최후의 수단이다 (외부 시스템과 동기화할 때만)
+- 커스텀 Hook으로 로직을 재사용한다
+- ref는 탈출구다 (꼭 필요할 때만)
+- 의존성 배열은 거짓말하지 않는다
+- 린터 경고를 무시하지 않는다
+
+계속 배우고, 실험하고, 만들어보자. 화이팅!

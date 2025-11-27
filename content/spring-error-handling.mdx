@@ -1,0 +1,1000 @@
+---
+title: "Spring Boot 예외 처리 패턴"
+description: "@ControllerAdvice와 @ExceptionHandler를 사용한 글로벌 예외 처리와 실무에서 자주 발생하는 API 에러 핸들링 방법을 정리했다."
+date: "2025-10-05"
+tags: ["Spring", "Java", "백엔드"]
+---
+
+# Spring Boot 예외 처리 패턴
+
+Spring Boot에서 예외를 처리하는 방법은 여러 가지가 있지만, 실무에서는 `@ControllerAdvice`와 `@ExceptionHandler`를 사용한 글로벌 예외 처리가 표준이다. API 개발 시 일관된 에러 응답을 만들고 중복 코드를 제거할 수 있다.
+
+## 기본 예외 처리 방식의 문제점
+
+예외 처리를 하지 않으면 Spring이 기본 에러 페이지를 반환한다.
+
+```java
+@RestController
+@RequestMapping("/api/users")
+public class UserController {
+    
+    private final UserService userService;
+    
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+    
+    @GetMapping("/{id}")
+    public User getUser(@PathVariable Long id) {
+        return userService.findById(id); // 없으면 예외 발생
+    }
+}
+```
+
+```java
+@Service
+public class UserService {
+    
+    public User findById(Long id) {
+        return userRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+}
+```
+
+이렇게 하면 에러가 발생했을 때 Spring의 기본 응답이 나갑니다.
+
+```json
+{
+  "timestamp": "2025-10-05T10:30:00.000+00:00",
+  "status": 500,
+  "error": "Internal Server Error",
+  "message": "User not found",
+  "path": "/api/users/999"
+}
+```
+
+문제점:
+
+- 항상 500 에러로 나감 (잘못된 상태 코드)
+- 응답 형식이 일관되지 않음
+- 클라이언트가 에러를 구분하기 어려움
+- 민감한 스택 트레이스가 노출될 수 있음
+
+## ExceptionHandler 기본 사용법
+
+컨트롤러 내부에서 예외를 처리할 수 있다.
+
+```java
+@RestController
+@RequestMapping("/api/users")
+public class UserController {
+    
+    private final UserService userService;
+    
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+    
+    @GetMapping("/{id}")
+    public User getUser(@PathVariable Long id) {
+        return userService.findById(id);
+    }
+    
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleUserNotFound(UserNotFoundException e) {
+        ErrorResponse error = new ErrorResponse(
+            "USER_NOT_FOUND",
+            e.getMessage()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+}
+```
+
+```java
+public class UserNotFoundException extends RuntimeException {
+    public UserNotFoundException(String message) {
+        super(message);
+    }
+}
+```
+
+```java
+public record ErrorResponse(String code, String message) {
+}
+```
+
+이제 404 상태 코드와 일관된 형식으로 응답한다.
+
+```json
+{
+  "code": "USER_NOT_FOUND",
+  "message": "User not found"
+}
+```
+
+하지만 이 방식은 모든 컨트롤러에 반복해서 작성해야 하는 문제가 있다.
+
+## ControllerAdvice로 글로벌 예외 처리
+
+`@ControllerAdvice`를 사용하면 모든 컨트롤러의 예외를 한 곳에서 처리할 수 있다.
+
+```java
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+    
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleUserNotFound(UserNotFoundException e) {
+        ErrorResponse error = new ErrorResponse(
+            "USER_NOT_FOUND",
+            e.getMessage()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+    
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException e) {
+        ErrorResponse error = new ErrorResponse(
+            "INVALID_ARGUMENT",
+            e.getMessage()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+    
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleGeneralException(Exception e) {
+        ErrorResponse error = new ErrorResponse(
+            "INTERNAL_SERVER_ERROR",
+            "An unexpected error occurred"
+        );
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+    }
+}
+```
+
+이제 컨트롤러는 예외 처리 코드 없이 깔끔해집니다.
+
+```java
+@RestController
+@RequestMapping("/api/users")
+public class UserController {
+    
+    private final UserService userService;
+    
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+    
+    @GetMapping("/{id}")
+    public User getUser(@PathVariable Long id) {
+        return userService.findById(id); // 예외는 GlobalExceptionHandler가 처리
+    }
+    
+    @PostMapping
+    public User createUser(@RequestBody UserRequest request) {
+        if (request.getAge() < 0) {
+            throw new IllegalArgumentException("Age must be positive");
+        }
+        return userService.create(request);
+    }
+}
+```
+
+## 표준 에러 응답 설계
+
+실무에서는 더 상세한 에러 정보를 제공하는 것이 좋다.
+
+```java
+public record ErrorResponse(
+    String code,
+    String message,
+    LocalDateTime timestamp,
+    String path
+) {
+    public static ErrorResponse of(String code, String message, String path) {
+        return new ErrorResponse(code, message, LocalDateTime.now(), path);
+    }
+}
+```
+
+필드 검증 에러는 어떤 필드에서 에러가 발생했는지 알려줘야 한다.
+
+```java
+public record ErrorResponse(
+    String code,
+    String message,
+    LocalDateTime timestamp,
+    String path,
+    List<FieldError> errors
+) {
+    public record FieldError(
+        String field,
+        String message,
+        Object rejectedValue
+    ) {}
+    
+    public static ErrorResponse of(String code, String message, String path) {
+        return new ErrorResponse(code, message, LocalDateTime.now(), path, null);
+    }
+    
+    public static ErrorResponse of(String code, String message, String path, List<FieldError> errors) {
+        return new ErrorResponse(code, message, LocalDateTime.now(), path, errors);
+    }
+}
+```
+
+## Validation 에러 처리
+
+`@Valid`를 사용하면 `MethodArgumentNotValidException`이 발생한다.
+
+```java
+@PostMapping
+public User createUser(@Valid @RequestBody UserRequest request) {
+    return userService.create(request);
+}
+```
+
+```java
+public class UserRequest {
+    
+    @NotBlank(message = "Name is required")
+    @Size(min = 2, max = 50, message = "Name must be between 2 and 50 characters")
+    private String name;
+    
+    @NotBlank(message = "Email is required")
+    @Email(message = "Invalid email format")
+    private String email;
+    
+    @NotNull(message = "Age is required")
+    @Min(value = 1, message = "Age must be at least 1")
+    @Max(value = 150, message = "Age must be at most 150")
+    private Integer age;
+    
+    // getters and setters
+}
+```
+
+이 예외를 처리하는 핸들러를 추가한다.
+
+```java
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+    
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidationException(
+            MethodArgumentNotValidException e,
+            HttpServletRequest request) {
+        
+        List<ErrorResponse.FieldError> fieldErrors = e.getBindingResult()
+            .getFieldErrors()
+            .stream()
+            .map(error -> new ErrorResponse.FieldError(
+                error.getField(),
+                error.getDefaultMessage(),
+                error.getRejectedValue()
+            ))
+            .toList();
+        
+        ErrorResponse response = ErrorResponse.of(
+            "VALIDATION_FAILED",
+            "Invalid request parameters",
+            request.getRequestURI(),
+            fieldErrors
+        );
+        
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+}
+```
+
+잘못된 요청이 오면 상세한 정보를 반환한다.
+
+```json
+{
+  "code": "VALIDATION_FAILED",
+  "message": "Invalid request parameters",
+  "timestamp": "2025-10-05T10:30:00",
+  "path": "/api/users",
+  "errors": [
+    {
+      "field": "name",
+      "message": "Name is required",
+      "rejectedValue": null
+    },
+    {
+      "field": "email",
+      "message": "Invalid email format",
+      "rejectedValue": "invalid-email"
+    },
+    {
+      "field": "age",
+      "message": "Age must be at least 1",
+      "rejectedValue": -5
+    }
+  ]
+}
+```
+
+## ResponseEntityExceptionHandler 확장
+
+Spring MVC가 발생시키는 표준 예외들을 처리하려면 `ResponseEntityExceptionHandler`를 확장한다.
+
+```java
+@RestControllerAdvice
+public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+    
+    @Override
+    protected ResponseEntity<Object> handleMethodArgumentNotValid(
+            MethodArgumentNotValidException e,
+            HttpHeaders headers,
+            HttpStatusCode status,
+            WebRequest request) {
+        
+        List<ErrorResponse.FieldError> fieldErrors = e.getBindingResult()
+            .getFieldErrors()
+            .stream()
+            .map(error -> new ErrorResponse.FieldError(
+                error.getField(),
+                error.getDefaultMessage(),
+                error.getRejectedValue()
+            ))
+            .toList();
+        
+        ErrorResponse response = ErrorResponse.of(
+            "VALIDATION_FAILED",
+            "Invalid request parameters",
+            ((ServletWebRequest) request).getRequest().getRequestURI(),
+            fieldErrors
+        );
+        
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+    
+    @Override
+    protected ResponseEntity<Object> handleHttpMessageNotReadable(
+            HttpMessageNotReadableException e,
+            HttpHeaders headers,
+            HttpStatusCode status,
+            WebRequest request) {
+        
+        ErrorResponse response = ErrorResponse.of(
+            "INVALID_REQUEST_BODY",
+            "Request body is missing or malformed",
+            ((ServletWebRequest) request).getRequest().getRequestURI()
+        );
+        
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+    
+    @Override
+    protected ResponseEntity<Object> handleHttpRequestMethodNotSupported(
+            HttpRequestMethodNotSupportedException e,
+            HttpHeaders headers,
+            HttpStatusCode status,
+            WebRequest request) {
+        
+        ErrorResponse response = ErrorResponse.of(
+            "METHOD_NOT_ALLOWED",
+            String.format("HTTP method %s is not supported for this endpoint", e.getMethod()),
+            ((ServletWebRequest) request).getRequest().getRequestURI()
+        );
+        
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(response);
+    }
+    
+    @Override
+    protected ResponseEntity<Object> handleTypeMismatch(
+            TypeMismatchException e,
+            HttpHeaders headers,
+            HttpStatusCode status,
+            WebRequest request) {
+        
+        ErrorResponse response = ErrorResponse.of(
+            "TYPE_MISMATCH",
+            String.format("Failed to convert value '%s' to type %s", 
+                e.getValue(), 
+                e.getRequiredType().getSimpleName()),
+            ((ServletWebRequest) request).getRequest().getRequestURI()
+        );
+        
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+    
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleUserNotFound(
+            UserNotFoundException e,
+            HttpServletRequest request) {
+        
+        ErrorResponse response = ErrorResponse.of(
+            "USER_NOT_FOUND",
+            e.getMessage(),
+            request.getRequestURI()
+        );
+        
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
+    
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleGeneralException(
+            Exception e,
+            HttpServletRequest request) {
+        
+        ErrorResponse response = ErrorResponse.of(
+            "INTERNAL_SERVER_ERROR",
+            "An unexpected error occurred",
+            request.getRequestURI()
+        );
+        
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+}
+```
+
+## 커스텀 예외 계층 설계
+
+비즈니스 예외를 계층화하면 관리가 쉬워집니다.
+
+```java
+public abstract class BusinessException extends RuntimeException {
+    
+    private final String errorCode;
+    
+    protected BusinessException(String errorCode, String message) {
+        super(message);
+        this.errorCode = errorCode;
+    }
+    
+    public String getErrorCode() {
+        return errorCode;
+    }
+    
+    public abstract HttpStatus getHttpStatus();
+}
+```
+
+```java
+public class NotFoundException extends BusinessException {
+    
+    public NotFoundException(String message) {
+        super("NOT_FOUND", message);
+    }
+    
+    @Override
+    public HttpStatus getHttpStatus() {
+        return HttpStatus.NOT_FOUND;
+    }
+}
+```
+
+```java
+public class UserNotFoundException extends NotFoundException {
+    
+    public UserNotFoundException(Long id) {
+        super(String.format("User with id %d not found", id));
+    }
+}
+```
+
+```java
+public class BadRequestException extends BusinessException {
+    
+    public BadRequestException(String message) {
+        super("BAD_REQUEST", message);
+    }
+    
+    @Override
+    public HttpStatus getHttpStatus() {
+        return HttpStatus.BAD_REQUEST;
+    }
+}
+```
+
+```java
+public class DuplicateEmailException extends BadRequestException {
+    
+    public DuplicateEmailException(String email) {
+        super(String.format("Email %s is already in use", email));
+    }
+}
+```
+
+```java
+public class UnauthorizedException extends BusinessException {
+    
+    public UnauthorizedException(String message) {
+        super("UNAUTHORIZED", message);
+    }
+    
+    @Override
+    public HttpStatus getHttpStatus() {
+        return HttpStatus.UNAUTHORIZED;
+    }
+}
+```
+
+이제 예외 핸들러를 간단하게 만들 수 있다.
+
+```java
+@RestControllerAdvice
+public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+    
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<ErrorResponse> handleBusinessException(
+            BusinessException e,
+            HttpServletRequest request) {
+        
+        ErrorResponse response = ErrorResponse.of(
+            e.getErrorCode(),
+            e.getMessage(),
+            request.getRequestURI()
+        );
+        
+        return ResponseEntity.status(e.getHttpStatus()).body(response);
+    }
+}
+```
+
+## 실무에서 자주 나오는 케이스
+
+### 중복 데이터 처리
+
+```java
+@Service
+public class UserService {
+    
+    private final UserRepository userRepository;
+    
+    public User create(UserRequest request) {
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new DuplicateEmailException(request.getEmail());
+        }
+        
+        User user = new User();
+        user.setName(request.getName());
+        user.setEmail(request.getEmail());
+        user.setAge(request.getAge());
+        
+        return userRepository.save(user);
+    }
+}
+```
+
+### 권한 검증
+
+```java
+@Service
+public class PostService {
+    
+    public void delete(Long postId, Long userId) {
+        Post post = postRepository.findById(postId)
+            .orElseThrow(() -> new NotFoundException("Post not found"));
+        
+        if (!post.getAuthorId().equals(userId)) {
+            throw new UnauthorizedException("You are not authorized to delete this post");
+        }
+        
+        postRepository.delete(post);
+    }
+}
+```
+
+### 파일 업로드 에러
+
+```java
+public class FileTooLargeException extends BadRequestException {
+    
+    public FileTooLargeException(long size, long maxSize) {
+        super(String.format("File size %d bytes exceeds maximum allowed size %d bytes", 
+            size, maxSize));
+    }
+}
+```
+
+```java
+@Service
+public class FileService {
+    
+    private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    
+    public String upload(MultipartFile file) {
+        if (file.getSize() > MAX_FILE_SIZE) {
+            throw new FileTooLargeException(file.getSize(), MAX_FILE_SIZE);
+        }
+        
+        // 파일 저장 로직
+    }
+}
+```
+
+### 외부 API 호출 실패
+
+```java
+public class ExternalApiException extends BusinessException {
+    
+    public ExternalApiException(String message) {
+        super("EXTERNAL_API_ERROR", message);
+    }
+    
+    @Override
+    public HttpStatus getHttpStatus() {
+        return HttpStatus.BAD_GATEWAY;
+    }
+}
+```
+
+```java
+@Service
+public class PaymentService {
+    
+    public Payment processPayment(PaymentRequest request) {
+        try {
+            return paymentClient.charge(request);
+        } catch (Exception e) {
+            throw new ExternalApiException("Payment service is temporarily unavailable");
+        }
+    }
+}
+```
+
+### 데이터베이스 제약 조건 위반
+
+```java
+@RestControllerAdvice
+public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+    
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(
+            DataIntegrityViolationException e,
+            HttpServletRequest request) {
+        
+        String message = "Database constraint violation";
+        String code = "DATA_INTEGRITY_VIOLATION";
+        
+        if (e.getMessage().contains("unique")) {
+            message = "Duplicate entry detected";
+            code = "DUPLICATE_ENTRY";
+        } else if (e.getMessage().contains("foreign key")) {
+            message = "Referenced data does not exist";
+            code = "FOREIGN_KEY_VIOLATION";
+        }
+        
+        ErrorResponse response = ErrorResponse.of(code, message, request.getRequestURI());
+        
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+}
+```
+
+### JSON 파싱 에러
+
+```java
+@RestControllerAdvice
+public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+    
+    @Override
+    protected ResponseEntity<Object> handleHttpMessageNotReadable(
+            HttpMessageNotReadableException e,
+            HttpHeaders headers,
+            HttpStatusCode status,
+            WebRequest request) {
+        
+        String message = "Invalid request body";
+        
+        if (e.getCause() instanceof InvalidFormatException invalidFormat) {
+            message = String.format(
+                "Invalid value '%s' for field '%s'. Expected type: %s",
+                invalidFormat.getValue(),
+                invalidFormat.getPath().get(0).getFieldName(),
+                invalidFormat.getTargetType().getSimpleName()
+            );
+        }
+        
+        ErrorResponse response = ErrorResponse.of(
+            "INVALID_REQUEST_BODY",
+            message,
+            ((ServletWebRequest) request).getRequest().getRequestURI()
+        );
+        
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+}
+```
+
+요청:
+```json
+{
+  "name": "John",
+  "age": "invalid"
+}
+```
+
+응답:
+```json
+{
+  "code": "INVALID_REQUEST_BODY",
+  "message": "Invalid value 'invalid' for field 'age'. Expected type: Integer",
+  "timestamp": "2025-10-05T10:30:00",
+  "path": "/api/users"
+}
+```
+
+## 로깅
+
+예외가 발생하면 로그를 남기는 것이 좋다.
+
+```java
+@RestControllerAdvice
+@Slf4j
+public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+    
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<ErrorResponse> handleBusinessException(
+            BusinessException e,
+            HttpServletRequest request) {
+        
+        log.warn("Business exception occurred: code={}, message={}, path={}",
+            e.getErrorCode(), e.getMessage(), request.getRequestURI());
+        
+        ErrorResponse response = ErrorResponse.of(
+            e.getErrorCode(),
+            e.getMessage(),
+            request.getRequestURI()
+        );
+        
+        return ResponseEntity.status(e.getHttpStatus()).body(response);
+    }
+    
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleGeneralException(
+            Exception e,
+            HttpServletRequest request) {
+        
+        log.error("Unexpected exception occurred: path={}", request.getRequestURI(), e);
+        
+        ErrorResponse response = ErrorResponse.of(
+            "INTERNAL_SERVER_ERROR",
+            "An unexpected error occurred",
+            request.getRequestURI()
+        );
+        
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+}
+```
+
+비즈니스 예외는 `warn` 레벨로, 예상치 못한 예외는 `error` 레벨로 로그를 남깁니다.
+
+## 프로덕션 환경 설정
+
+개발 환경에서는 상세한 에러 정보를 보여주고, 프로덕션에서는 최소한의 정보만 노출한다.
+
+```java
+@RestControllerAdvice
+@Slf4j
+public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+    
+    @Value("${app.debug:false}")
+    private boolean debugMode;
+    
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleGeneralException(
+            Exception e,
+            HttpServletRequest request) {
+        
+        log.error("Unexpected exception occurred: path={}", request.getRequestURI(), e);
+        
+        String message = debugMode 
+            ? e.getMessage() 
+            : "An unexpected error occurred";
+        
+        ErrorResponse response = ErrorResponse.of(
+            "INTERNAL_SERVER_ERROR",
+            message,
+            request.getRequestURI()
+        );
+        
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+}
+```
+
+```yaml
+# application-dev.yml
+app:
+  debug: true
+
+# application-prod.yml
+app:
+  debug: false
+```
+
+## 국제화 지원
+
+에러 메시지를 다국어로 제공할 수 있다.
+
+```properties
+# messages.properties
+error.user.not-found=User not found
+error.user.duplicate-email=Email is already in use
+error.validation.name.required=Name is required
+error.validation.email.invalid=Invalid email format
+
+# messages_ko.properties
+error.user.not-found=사용자를 찾을 수 없다
+error.user.duplicate-email=이미 사용 중인 이메일이다
+error.validation.name.required=이름은 필수이다
+error.validation.email.invalid=올바른 이메일 형식이 아닙니다
+```
+
+```java
+@RestControllerAdvice
+@RequiredArgsConstructor
+public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+    
+    private final MessageSource messageSource;
+    
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleUserNotFound(
+            UserNotFoundException e,
+            HttpServletRequest request,
+            Locale locale) {
+        
+        String message = messageSource.getMessage(
+            "error.user.not-found",
+            null,
+            locale
+        );
+        
+        ErrorResponse response = ErrorResponse.of(
+            "USER_NOT_FOUND",
+            message,
+            request.getRequestURI()
+        );
+        
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
+}
+```
+
+요청 헤더에 `Accept-Language: ko`를 넣으면 한글 메시지가 반환된다.
+
+## 에러 코드 관리
+
+에러 코드를 enum으로 관리하면 일관성을 유지할 수 있다.
+
+```java
+@Getter
+@RequiredArgsConstructor
+public enum ErrorCode {
+    
+    // Common
+    INTERNAL_SERVER_ERROR("CMN001", HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred"),
+    INVALID_ARGUMENT("CMN002", HttpStatus.BAD_REQUEST, "Invalid argument"),
+    VALIDATION_FAILED("CMN003", HttpStatus.BAD_REQUEST, "Validation failed"),
+    
+    // User
+    USER_NOT_FOUND("USR001", HttpStatus.NOT_FOUND, "User not found"),
+    DUPLICATE_EMAIL("USR002", HttpStatus.CONFLICT, "Email is already in use"),
+    INVALID_PASSWORD("USR003", HttpStatus.BAD_REQUEST, "Invalid password"),
+    
+    // Post
+    POST_NOT_FOUND("PST001", HttpStatus.NOT_FOUND, "Post not found"),
+    UNAUTHORIZED_POST_ACCESS("PST002", HttpStatus.FORBIDDEN, "You are not authorized to access this post"),
+    
+    // File
+    FILE_TOO_LARGE("FIL001", HttpStatus.BAD_REQUEST, "File size exceeds maximum allowed size"),
+    INVALID_FILE_TYPE("FIL002", HttpStatus.BAD_REQUEST, "Invalid file type"),
+    FILE_UPLOAD_FAILED("FIL003", HttpStatus.INTERNAL_SERVER_ERROR, "File upload failed");
+    
+    private final String code;
+    private final HttpStatus status;
+    private final String message;
+}
+```
+
+```java
+public abstract class BusinessException extends RuntimeException {
+    
+    private final ErrorCode errorCode;
+    
+    protected BusinessException(ErrorCode errorCode) {
+        super(errorCode.getMessage());
+        this.errorCode = errorCode;
+    }
+    
+    protected BusinessException(ErrorCode errorCode, String message) {
+        super(message);
+        this.errorCode = errorCode;
+    }
+    
+    public ErrorCode getErrorCode() {
+        return errorCode;
+    }
+}
+```
+
+```java
+public class UserNotFoundException extends BusinessException {
+    
+    public UserNotFoundException(Long id) {
+        super(ErrorCode.USER_NOT_FOUND, 
+            String.format("User with id %d not found", id));
+    }
+}
+```
+
+```java
+@RestControllerAdvice
+public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+    
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<ErrorResponse> handleBusinessException(
+            BusinessException e,
+            HttpServletRequest request) {
+        
+        ErrorCode errorCode = e.getErrorCode();
+        
+        ErrorResponse response = ErrorResponse.of(
+            errorCode.getCode(),
+            e.getMessage(),
+            request.getRequestURI()
+        );
+        
+        return ResponseEntity.status(errorCode.getStatus()).body(response);
+    }
+}
+```
+
+## 테스트
+
+예외 처리가 제대로 동작하는지 테스트해야 한다.
+
+```java
+@WebMvcTest(UserController.class)
+class UserControllerTest {
+    
+    @Autowired
+    private MockMvc mockMvc;
+    
+    @MockBean
+    private UserService userService;
+    
+    @Test
+    void getUserNotFound() throws Exception {
+        when(userService.findById(999L))
+            .thenThrow(new UserNotFoundException(999L));
+        
+        mockMvc.perform(get("/api/users/999"))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.code").value("USR001"))
+            .andExpect(jsonPath("$.message").value("User with id 999 not found"));
+    }
+    
+    @Test
+    void createUserWithInvalidData() throws Exception {
+        String invalidRequest = """
+            {
+                "name": "",
+                "email": "invalid-email",
+                "age": -5
+            }
+            """;
+        
+        mockMvc.perform(post("/api/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(invalidRequest))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+            .andExpect(jsonPath("$.errors[0].field").value("name"))
+            .andExpect(jsonPath("$.errors[1].field").value("email"))
+            .andExpect(jsonPath("$.errors[2].field").value("age"));
+    }
+}
+```
+
+## 정리
+
+Spring Boot의 예외 처리는 `@ControllerAdvice`와 `@ExceptionHandler`를 중심으로 구성하는 것이 표준이다. 비즈니스 예외를 계층화하고 `ErrorCode` enum으로 관리하면 일관된 에러 응답을 만들 수 있다.
+
+실무에서는 Validation 에러, 중복 데이터, 권한 검증, 외부 API 실패 같은 케이스들을 미리 정의해두고, 프로덕션 환경에서는 민감한 정보를 노출하지 않도록 주의해야 한다. 모든 예외는 로그로 남겨서 나중에 문제를 추적할 수 있게 하는 것도 중요한다.

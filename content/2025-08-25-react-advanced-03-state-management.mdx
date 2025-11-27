@@ -1,7 +1,7 @@
 ---
-title: "🚀 [React 라이브러리 3/4] Zustand & Redux - 상태 관리"
+title: "[React 라이브러리 3/4] Zustand & Redux - 상태 관리"
 date: "2025-08-25"
-description: "구독 패턴, Flux 아키텍처, 선택적 리렌더링 메커니즘을 이해합니다"
+description: "구독 패턴, Flux 아키텍처, 선택적 리렌더링 메커니즘을 이해한다"
 tags: ["React", "고급", "프론트엔드"]
 series: "React 라이브러리"
 seriesOrder: 3
@@ -13,29 +13,26 @@ draft: true
 > Zustand, Redux Toolkit을 중심으로 한 상태 관리 학습 자료
 
 ---
-
 ## 📚 목차
-
 1. [개요](#개요)
 2. [Zustand](#zustand)
 3. [Redux Toolkit](#redux-toolkit)
 4. [Jotai](#jotai)
 5. [상태 관리 라이브러리 비교](#상태-관리-라이브러리-비교)
 6. [언제 무엇을 사용할까](#언제-무엇을-사용할까)
-
 ---
 
 ## 개요
 
 ### 왜 상태 관리 라이브러리가 필요한가?
 
-**Context API의 한계:**
+Context API의 한계:
 
 - 성능 문제 (불필요한 리렌더링)
 - 복잡한 상태 로직
 - DevTools 부족
 
-**상태 관리 라이브러리의 장점:**
+상태 관리 라이브러리의 장점:
 
 - 최적화된 리렌더링
 - 강력한 DevTools
@@ -46,23 +43,17 @@ draft: true
 
 | 라이브러리 | 번들 크기 | 학습 곡선 | 보일러플레이트 | 사용 사례 |
 |-----------|----------|----------|---------------|----------|
-| **Zustand** | ~1KB | 낮음 | 최소 | 중소형 앱 |
-| **Redux Toolkit** | ~13KB | 중간 | 적음 | 대규모 앱 |
-| **Jotai** | ~3KB | 낮음 | 최소 | 원자적 상태 |
-| **Recoil** | ~20KB | 중간 | 적음 | 복잡한 의존성 |
+| Zustand | ~1KB | 낮음 | 최소 | 중소형 앱 |
+| Redux Toolkit | ~13KB | 중간 | 적음 | 대규모 앱 |
+| Jotai | ~3KB | 낮음 | 최소 | 원자적 상태 |
+| Recoil | ~20KB | 중간 | 적음 | 복잡한 의존성 |
 
 ---
-
 ## Zustand
-
 ### 개요
-
-**Zustand**는 가장 간단하고 가벼운 상태 관리 라이브러리입니다.
-
-### 🔍 Zustand의 동작 원리
-
-**핵심 메커니즘: 구독 패턴 (Subscription Pattern)**
-
+Zustand는 가장 간단하고 가벼운 상태 관리 라이브러리이다.
+###  Zustand의 동작 원리
+핵심 메커니즘: 구독 패턴 (Subscription Pattern)
 ```javascript
 // Zustand가 내부적으로 하는 일 (단순화)
 function create(initializer) {
@@ -90,147 +81,110 @@ function create(initializer) {
   };
 }
 ```
-
-**동작 과정:**
-
+동작 과정:
 ```
 1. Store 생성
    → 초기 state 저장
    → subscribers Set 생성
-
 2. 컴포넌트에서 useStore 호출
    → selector 함수로 필요한 state만 추출
    → 해당 컴포넌트를 subscriber로 등록
-
 3. State 업데이트 (set 함수 호출)
    → state 객체 변경
    → 모든 subscribers에게 알림
    → 각 컴포넌트가 selector 재실행
    → 결과가 변경됐으면 리렌더링
-
 4. 컴포넌트 언마운트
    → subscriber 목록에서 제거
 ```
-
-**왜 빠른가?**
-
+왜 빠른가?
 ```jsx
 const useStore = create((set) => ({
   count: 0,
   user: { name: 'John' },
   increment: () => set((state) => ({ count: state.count + 1 }))
 }));
-
 // Component A: count만 구독
 function ComponentA() {
   const count = useStore(state => state.count);
   // count 변경 시에만 리렌더링!
 }
-
 // Component B: user만 구독
 function ComponentB() {
   const user = useStore(state => state.user);
   // user 변경 시에만 리렌더링!
 }
-
 // count 변경 시:
 // - ComponentA만 리렌더링
 // - ComponentB는 리렌더링 안됨!
 ```
-
-**Context API와 비교:**
-
+Context API와 비교:
 ```jsx
-// ❌ Context: 모든 Consumer가 리렌더링
+//  Context: 모든 Consumer가 리렌더링
 const value = { count, user };
 <Context.Provider value={value}>
   <ComponentA />  {/* count만 사용해도 user 변경 시 리렌더링! */}
   <ComponentB />
 </Context.Provider>
-
-// ✅ Zustand: 선택적 구독
+//  Zustand: 선택적 구독
 useStore(state => state.count)  // count 변경 시에만 리렌더링
 ```
-
-### 💡 실무 TIP: "Zustand와 Context API의 차이는?"
-
-**답변 예시:**
-
-"둘 다 전역 상태 관리이지만 근본적 차이가 있습니다.
-
-**Context API의 한계:**
-
+###  실무 TIP: "Zustand와 Context API의 차이는?"
+답변 예시:
+"둘 다 전역 상태 관리이지만 근본적 차이가 있다.
+Context API의 한계:
 ```jsx
 const AppContext = createContext();
-
 function Provider({ children }) {
   const [state, setState] = useState({ count: 0, user: null, theme: 'light' });
   return <AppContext.Provider value={state}>{children}</AppContext.Provider>;
 }
-
 function Component() {
   const { count } = useContext(AppContext);
   // 문제: theme 변경되어도 리렌더링됨!
 }
 ```
-
-**Zustand의 해결:**
-선택적 구독 (Selective Subscription)으로 필요한 state만 구독합니다.
-
+Zustand의 해결:
+선택적 구독 (Selective Subscription)으로 필요한 state만 구독한다.
 ```jsx
 const count = useStore(state => state.count);
 // count 변경 시에만 리렌더링!
 ```
-
-**성능 차이:**
-
+성능 차이:
 - 대규모 앱에서 불필요한 리렌더링 80% 감소
 - Profiler로 측정하면 명확히 보임
-
-**언제 무엇을 사용?**
-
+언제 무엇을 사용?
 - Context: 테마, 언어 등 느리게 변하는 상태
 - Zustand: 자주 변하는 UI 상태, 폼 상태 등"
-
-**특징:**
-
+특징:
 - 극도로 간단한 API
 - 보일러플레이트 거의 없음
 - React Hook 기반
 - TypeScript 지원 우수
-
 ### 설치
-
 ```bash
 npm install zustand
 ```
-
 ### 기본 사용법
-
 ```jsx
 // stores/useCounterStore.js
 import { create } from 'zustand';
-
 const useCounterStore = create((set) => ({
   count: 0,
   increment: () => set((state) => ({ count: state.count + 1 })),
   decrement: () => set((state) => ({ count: state.count + 1 })),
   reset: () => set({ count: 0 }),
 }));
-
 export default useCounterStore;
 ```
-
 ```jsx
 // components/Counter.jsx
 import useCounterStore from '../stores/useCounterStore';
-
 export default function Counter() {
   const count = useCounterStore((state) => state.count);
   const increment = useCounterStore((state) => state.increment);
   const decrement = useCounterStore((state) => state.decrement);
   const reset = useCounterStore((state) => state.reset);
-
   return (
     <div>
       <h1>{count}</h1>
@@ -241,33 +195,26 @@ export default function Counter() {
   );
 }
 ```
-
 ### 선택적 구독 (최적화)
-
 ```jsx
-// ✅ 좋음: count만 구독 (count 변경 시에만 리렌더링)
+//  좋음: count만 구독 (count 변경 시에만 리렌더링)
 function Counter() {
   const count = useCounterStore((state) => state.count);
   return <h1>{count}</h1>;
 }
-
-// ❌ 나쁨: 전체 store 구독 (모든 변경 시 리렌더링)
+//  나쁨: 전체 store 구독 (모든 변경 시 리렌더링)
 function Counter() {
   const store = useCounterStore();
   return <h1>{store.count}</h1>;
 }
 ```
-
 ### 비동기 액션
-
 ```jsx
 import { create } from 'zustand';
-
 const useUserStore = create((set) => ({
   users: [],
   loading: false,
   error: null,
-
   fetchUsers: async () => {
     set({ loading: true, error: null });
     try {
@@ -278,7 +225,6 @@ const useUserStore = create((set) => ({
       set({ error: error.message, loading: false });
     }
   },
-
   addUser: async (user) => {
     try {
       const response = await fetch('/api/users', {
@@ -293,17 +239,13 @@ const useUserStore = create((set) => ({
   },
 }));
 ```
-
 ### Immer 미들웨어 (불변성 간편화)
-
 ```bash
 npm install immer
 ```
-
 ```jsx
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-
 const useTodoStore = create(
   immer((set) => ({
     todos: [],
@@ -328,13 +270,10 @@ const useTodoStore = create(
   }))
 );
 ```
-
 ### Persist 미들웨어 (LocalStorage)
-
 ```jsx
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-
 const useAuthStore = create(
   persist(
     (set) => ({
@@ -350,9 +289,7 @@ const useAuthStore = create(
   )
 );
 ```
-
 ### Slice 패턴 (대규모 앱)
-
 ```jsx
 // stores/slices/userSlice.js
 export const createUserSlice = (set) => ({
@@ -362,7 +299,6 @@ export const createUserSlice = (set) => ({
     set({ users });
   },
 });
-
 // stores/slices/postSlice.js
 export const createPostSlice = (set) => ({
   posts: [],
@@ -371,26 +307,20 @@ export const createPostSlice = (set) => ({
     set({ posts });
   },
 });
-
 // stores/useStore.js
 import { create } from 'zustand';
 import { createUserSlice } from './slices/userSlice';
 import { createPostSlice } from './slices/postSlice';
-
 const useStore = create((...args) => ({
   ...createUserSlice(...args),
   ...createPostSlice(...args),
 }));
-
 export default useStore;
 ```
-
 ### DevTools
-
 ```jsx
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-
 const useStore = create(
   devtools((set) => ({
     count: 0,
@@ -398,13 +328,10 @@ const useStore = create(
   }))
 );
 ```
-
 ### Pinia와 비교
-
 ```javascript
 // Vue: Pinia
 import { defineStore } from 'pinia'
-
 export const useCounterStore = defineStore('counter', {
   state: () => ({
     count: 0
@@ -416,26 +343,23 @@ export const useCounterStore = defineStore('counter', {
   }
 })
 ```
-
 ```javascript
 // React: Zustand
 import { create } from 'zustand'
-
 const useCounterStore = create((set) => ({
   count: 0,
   increment: () => set((state) => ({ count: state.count + 1 }))
 }))
 ```
-
 ---
 
 ## Redux Toolkit
 
 ### 개요
 
-**Redux Toolkit**은 Redux의 공식 권장 방법입니다.
+Redux Toolkit은 Redux의 공식 권장 방법이다.
 
-**특징:**
+특징:
 
 - Redux 보일러플레이트 대폭 감소
 - Immer 내장 (불변성 자동 처리)
@@ -768,44 +692,31 @@ const counterSlice = createSlice({
 ```
 
 ---
-
 ## Jotai
-
 ### 개요
-
-**Jotai**는 원자적(atomic) 접근 방식의 상태 관리 라이브러리입니다.
-
-**특징:**
-
+Jotai는 원자적(atomic) 접근 방식의 상태 관리 라이브러리이다.
+특징:
 - 원자(atom) 기반
 - 최소한의 보일러플레이트
 - TypeScript 친화적
 - Suspense 지원
-
 ### 설치
-
 ```bash
 npm install jotai
 ```
-
 ### 기본 사용법
-
 ```jsx
 // atoms.js
 import { atom } from 'jotai';
-
 export const countAtom = atom(0);
 export const nameAtom = atom('John');
 ```
-
 ```jsx
 // components/Counter.jsx
 import { useAtom } from 'jotai';
 import { countAtom } from '../atoms';
-
 export default function Counter() {
   const [count, setCount] = useAtom(countAtom);
-
   return (
     <div>
       <h1>{count}</h1>
@@ -814,31 +725,23 @@ export default function Counter() {
   );
 }
 ```
-
 ### 읽기 전용 / 쓰기 전용
-
 ```jsx
 import { useAtomValue, useSetAtom } from 'jotai';
-
 function Display() {
   const count = useAtomValue(countAtom);  // 읽기 전용
   return <h1>{count}</h1>;
 }
-
 function Controls() {
   const setCount = useSetAtom(countAtom);  // 쓰기 전용
   return <button onClick={() => setCount((c) => c + 1)}>+</button>;
 }
 ```
-
 ### 파생 Atom
-
 ```jsx
 import { atom } from 'jotai';
-
 const countAtom = atom(0);
 const doubleCountAtom = atom((get) => get(countAtom) * 2);
-
 function Display() {
   const [count] = useAtom(countAtom);
   const [doubleCount] = useAtom(doubleCountAtom);
@@ -851,34 +754,25 @@ function Display() {
   );
 }
 ```
-
 ### 비동기 Atom
-
 ```jsx
 import { atom } from 'jotai';
-
 const userIdAtom = atom(1);
-
 const userAtom = atom(async (get) => {
   const userId = get(userIdAtom);
   const response = await fetch(`/api/users/${userId}`);
   return response.json();
 });
-
 function UserProfile() {
   const [user] = useAtom(userAtom);
   
   return <div>{user.name}</div>;
 }
 ```
-
 ### Atom with Storage
-
 ```jsx
 import { atomWithStorage } from 'jotai/utils';
-
 const themeAtom = atomWithStorage('theme', 'light');
-
 function ThemeToggle() {
   const [theme, setTheme] = useAtom(themeAtom);
   
@@ -889,7 +783,6 @@ function ThemeToggle() {
   );
 }
 ```
-
 ---
 
 ## 상태 관리 라이브러리 비교
@@ -935,23 +828,16 @@ const counterSlice = createSlice({
 ```
 
 ---
-
 ## 언제 무엇을 사용할까
-
-### Zustand를 사용하세요
-
-**장점:**
-
+### Zustand를 사용하라
+장점:
 - 매우 간단한 API
 - 보일러플레이트 거의 없음
 - 번들 크기 최소
-
-**사용 사례:**
-
+사용 사례:
 - 중소형 앱
 - 빠른 프로토타이핑
 - 간단한 전역 상태
-
 ```jsx
 // 간단한 인증 상태
 const useAuthStore = create((set) => ({
@@ -960,21 +846,15 @@ const useAuthStore = create((set) => ({
   logout: () => set({ user: null })
 }))
 ```
-
-### Redux Toolkit을 사용하세요
-
-**장점:**
-
+### Redux Toolkit을 사용하라
+장점:
 - 강력한 DevTools
 - 시간 여행 디버깅
 - 대규모 팀에 검증됨
-
-**사용 사례:**
-
+사용 사례:
 - 대규모 앱
 - 복잡한 상태 로직
 - 많은 비동기 작업
-
 ```jsx
 // 복잡한 비즈니스 로직
 const orderSlice = createSlice({
@@ -985,40 +865,29 @@ const orderSlice = createSlice({
   }
 })
 ```
-
-### Jotai를 사용하세요
-
-**장점:**
-
+### Jotai를 사용하라
+장점:
 - 원자적 업데이트
 - Suspense 지원
 - 최소 리렌더링
-
-**사용 사례:**
-
+사용 사례:
 - 세밀한 상태 제어
 - Suspense 활용
 - 원자적 상태 관리
-
 ```jsx
 // 독립적인 상태 조각들
 const userAtom = atom(null)
 const settingsAtom = atom({})
 const themeAtom = atom('light')
 ```
-
-### Context API를 사용하세요
-
-**언제:**
-
+### Context API를 사용하라
+언제:
 - 상태가 적을 때
 - 성능이 중요하지 않을 때
 - 외부 의존성을 피하고 싶을 때
-
 ```jsx
 const ThemeContext = createContext()
 ```
-
 ---
 
 ## 실전 예제: E-Commerce 앱
@@ -1152,11 +1021,8 @@ export default cartSlice.reducer;
 ```
 
 ---
-
 ## 다음 단계
-
 ### 학습 체크리스트
-
 - [ ] Zustand로 간단한 상태 관리를 할 수 있다
 - [ ] Redux Toolkit으로 복잡한 상태를 관리할 수 있다
 - [ ] RTK Query로 데이터 페칭을 할 수 있다
@@ -1164,11 +1030,8 @@ export default cartSlice.reducer;
 - [ ] 프로젝트에 맞는 라이브러리를 선택할 수 있다
 - [ ] Persist 미들웨어를 사용할 수 있다
 - [ ] DevTools를 활용할 수 있다
-
 ### 추가 학습 자료
-
 - [Zustand 공식 문서](https://docs.pmnd.rs/zustand/)
 - [Redux Toolkit 공식 문서](https://redux-toolkit.js.org/)
 - [Jotai 공식 문서](https://jotai.org/)
-
-모든 항목을 체크했다면 다음 주제로 넘어가세요! 🚀
+모든 항목을 체크했다면 다음 주제로 넘어가세요! 

@@ -1,7 +1,7 @@
 ---
-title: "📚 [React 기초 2-4/8] 스냅샷으로서의 State"
+title: "[React 기초 2-4/8] 스냅샷으로서의 State"
 date: "2025-07-18"
-description: "React State가 스냅샷처럼 동작하는 원리를 이해합니다"
+description: "React State가 스냅샷처럼 동작하는 원리를 이해한다"
 tags: ["React", "학습", "Vue", "초급", "프론트엔드"]
 series: "React 기초"
 seriesOrder: 14
@@ -9,21 +9,14 @@ seriesOrder: 14
 
 # React 학습 가이드 - 스냅샷으로서의 State
 
-> React 공식 문서를 기반으로 한 학습 자료  
-> 원문: [Adding Interactivity - React](https://react.dev/learn/adding-interactivity)
 
 ---
-
 ## 스냅샷으로서의 State
-
-### State는 스냅샷처럼 동작합니다
-
+### State는 스냅샷처럼 동작한다
 ```jsx
 import { useState } from 'react';
-
 export default function Counter() {
   const [number, setNumber] = useState(0);
-
   return (
     <>
       <h1>{number}</h1>
@@ -36,16 +29,11 @@ export default function Counter() {
   );
 }
 ```
-
-**예상:** 버튼 클릭 → `number`가 3 증가?  
-**실제:** `number`가 1만 증가!
-
+예상: 버튼 클릭 → `number`가 3 증가?  
+실제: `number`가 1만 증가!
 ### 왜 이런 일이 발생하나?
-
-**State는 스냅샷처럼 동작합니다.**
-
-클릭 시점의 `number` 값(0)이 해당 렌더링의 모든 코드에서 그대로 유지됩니다.
-
+State는 스냅샷처럼 동작한다.
+클릭 시점의 `number` 값(0)이 해당 렌더링의 모든 코드에서 그대로 유지된다.
 ```jsx
 <button onClick={() => {
   setNumber(number + 1);  // setNumber(0 + 1)
@@ -53,19 +41,13 @@ export default function Counter() {
   setNumber(number + 1);  // setNumber(0 + 1)
 }}>+3</button>
 ```
-
-`number`는 렌더링 시점에 `0`이므로, 세 번 모두 `setNumber(1)`을 호출합니다!
-
+`number`는 렌더링 시점에 `0`이므로, 세 번 모두 `setNumber(1)`을 호출한다!
 ### 렌더링 시점의 State는 고정됨
-
-렌더링이 일어날 때 state 값이 한 번 결정되면, 그 렌더링 내에서는 변하지 않습니다.
-
+렌더링이 일어날 때 state 값이 한 번 결정되면, 그 렌더링 내에서는 변하지 않다.
 ```jsx
 import { useState } from 'react';
-
 export default function Counter() {
   const [number, setNumber] = useState(0);
-
   return (
     <>
       <h1>{number}</h1>
@@ -77,21 +59,14 @@ export default function Counter() {
   );
 }
 ```
-
-**`alert(number)`는 `0`을 표시합니다!**
-
-`setNumber(number + 5)`를 호출해도, 해당 렌더링의 `number`는 여전히 `0`입니다.
-
+`alert(number)`는 `0`을 표시한다!
+`setNumber(number + 5)`를 호출해도, 해당 렌더링의 `number`는 여전히 `0`이다.
 ### 시간에 따른 State
-
-`setTimeout`을 사용해도 마찬가지입니다.
-
+`setTimeout`을 사용해도 마찬가지이다.
 ```jsx
 import { useState } from 'react';
-
 export default function Counter() {
   const [number, setNumber] = useState(0);
-
   return (
     <>
       <h1>{number}</h1>
@@ -105,37 +80,24 @@ export default function Counter() {
   );
 }
 ```
-
-**버튼 클릭 → 3초 대기 → alert는 `0` 표시**
-
-React는 이벤트 핸들러가 실행될 때의 state 값을 "고정"합니다.
-
+버튼 클릭 → 3초 대기 → alert는 `0` 표시
+React는 이벤트 핸들러가 실행될 때의 state 값을 "고정"한다.
 ### State 업데이트 스케줄링
-
 `setNumber(number + 5)`를 호출한다고 해서 state가 즉시 바뀌는 게 아닙니다.
-
-`setNumber(number + 5)`는 다음을 요청합니다:
-
+`setNumber(number + 5)`는 다음을 요청한다:
 1. `number`를 `0 + 5`로 설정
 2. 리렌더링 스케줄
-
-**즉각 업데이트되지 않습니다!**
-
+즉각 업데이트되지 않다!
 ### 실전 예제: 클릭 추적
-
 신호등 예제로 더 명확히 이해해봅시다.
-
 ```jsx
 import { useState } from 'react';
-
 export default function TrafficLight() {
   const [walk, setWalk] = useState(true);
-
   function handleClick() {
     setWalk(!walk);
-    alert(walk ? '정지 다음입니다' : '걷기 다음입니다');
+    alert(walk ? '정지 다음이다' : '걷기 다음이다');
   }
-
   return (
     <>
       <button onClick={handleClick}>
@@ -150,21 +112,15 @@ export default function TrafficLight() {
   );
 }
 ```
-
-**'걷기' 상태에서 버튼 클릭:**
-
+'걷기' 상태에서 버튼 클릭:
 1. `setWalk(false)` 호출 (다음 렌더링을 '정지'로 스케줄)
 2. `alert(walk ? ...)` 실행 → `walk`는 여전히 `true`
-3. "정지 다음입니다" 표시 (올바름!)
-
+3. "정지 다음이다" 표시 (올바름!)
 ### Vue와 비교
-
 ```html
 <script setup>
 import { ref, nextTick } from 'vue'
-
 const count = ref(0)
-
 async function increment() {
   count.value++
   console.log(count.value)  // 1 (즉시 반영!)
@@ -174,11 +130,9 @@ async function increment() {
 }
 </script>
 ```
-
 ```jsx
 // React
 import { useState } from 'react'
-
 function Counter() {
   const [count, setCount] = useState(0)
   
@@ -190,8 +144,6 @@ function Counter() {
   return <button onClick={increment}>{count}</button>
 }
 ```
-
-**차이점:**
-
+차이점:
 - Vue: `ref.value` 변경 시 즉시 반영 (반응형)
 - React: State는 다음 렌더링까지 변경 안됨 (스냅샷)

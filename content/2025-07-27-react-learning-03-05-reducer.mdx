@@ -1,7 +1,7 @@
 ---
-title: "📚 [React 기초 3-5/8] Reducer로 State 로직 추출하기"
+title: "[React 기초 3-5/8] Reducer로 State 로직 추출하기"
 date: "2025-07-27"
-description: "useReducer Hook을 사용해 복잡한 State 로직을 관리하는 방법을 학습합니다"
+description: "useReducer Hook을 사용해 복잡한 State 로직을 관리하는 방법을 학습한다"
 tags: ["React", "학습", "Vue", "초급", "프론트엔드"]
 series: "React 기초"
 seriesOrder: 23
@@ -9,17 +9,11 @@ seriesOrder: 23
 
 # React 학습 가이드 - Reducer로 State 로직 추출하기
 
-> React 공식 문서를 기반으로 한 학습 자료  
-> 원문: [Managing State - React](https://react.dev/learn/managing-state)
 
 ---
-
 ## Reducer로 State 로직 추출하기
-
 ### Reducer란 무엇인가?
-
-**Reducer는 "현재 상태 + 액션 → 새로운 상태"를 계산하는 순수 함수입니다.**
-
+Reducer는 "현재 상태 + 액션 → 새로운 상태"를 계산하는 순수 함수이다.
 ```javascript
 // Reducer의 기본 형태
 function reducer(currentState, action) {
@@ -27,35 +21,26 @@ function reducer(currentState, action) {
   return newState;
 }
 ```
-
 #### 이름의 유래
-
-Reducer라는 이름은 JavaScript 배열의 `reduce()` 메서드에서 유래했습니다:
-
+Reducer라는 이름은 JavaScript 배열의 `reduce()` 메서드에서 유래했다:
 ```javascript
 // 배열의 reduce: 여러 값을 하나로 축약
 const numbers = [1, 2, 3, 4, 5];
 const sum = numbers.reduce((accumulator, current) => accumulator + current, 0);
 // 15 (누적된 결과)
-
 // React의 Reducer: 여러 액션을 통해 state를 누적/변경
 function counterReducer(state, action) {
   // 이전 state + 현재 action → 새로운 state
   return state + action.value;
 }
 ```
-
-둘 다 **"이전 결과 + 새로운 입력 → 다음 결과"**를 계산하는 패턴입니다.
-
+둘 다 "이전 결과 + 새로운 입력 → 다음 결과"를 계산하는 패턴이다.
 #### 핵심 개념: 3요소
-
 ```
 📦 현재 State  +  🎬 Action  →  📦 새로운 State
     (tasks)        ({type: 'added'})    (tasks + 새 할일)
 ```
-
-**동작 흐름:**
-
+동작 흐름:
 ```
 1. 사용자가 버튼 클릭
    ↓
@@ -67,60 +52,45 @@ function counterReducer(state, action) {
    ↓
 5. 컴포넌트 리렌더링
 ```
-
-이 패턴의 핵심은 **"무엇을(what) 할지"만 선언**하고, **"어떻게(how)"는 reducer가 처리**한다는 점입니다.
-
+이 패턴의 핵심은 "무엇을(what) 할지"만 선언하고, "어떻게(how)"는 reducer가 처리한다는 점이다.
 ### 언제 Reducer를 사용해야 할까?
-
 #### useState vs useReducer 비교
-
 | 기준 | useState | useReducer |
 |------|----------|------------|
-| **적합한 경우** | 간단한 state (숫자, 문자열, boolean) | 복잡한 state (객체, 배열, 여러 관련 값) |
-| **업데이트 방식** | `setState(newValue)` 직접 호출 | `dispatch(action)` 의도 전달 |
-| **로직 위치** | 여러 이벤트 핸들러에 분산 | reducer 함수 하나에 집중 |
-| **테스트** | 컴포넌트 전체 테스트 필요 | reducer 함수만 독립 테스트 |
-| **디버깅** | 어디서 state가 변경되는지 추적 어려움 | 액션 로그로 변경 이력 추적 쉬움 |
-| **코드 재사용** | 재사용 어려움 | reducer 함수를 다른 곳에서 재사용 가능 |
-
+| 적합한 경우 | 간단한 state (숫자, 문자열, boolean) | 복잡한 state (객체, 배열, 여러 관련 값) |
+| 업데이트 방식 | `setState(newValue)` 직접 호출 | `dispatch(action)` 의도 전달 |
+| 로직 위치 | 여러 이벤트 핸들러에 분산 | reducer 함수 하나에 집중 |
+| 테스트 | 컴포넌트 전체 테스트 필요 | reducer 함수만 독립 테스트 |
+| 디버깅 | 어디서 state가 변경되는지 추적 어려움 | 액션 로그로 변경 이력 추적 쉬움 |
+| 코드 재사용 | 재사용 어려움 | reducer 함수를 다른 곳에서 재사용 가능 |
 #### 실용적 판단 기준
-
-**useState를 쓰세요:**
-
+useState를 쓰세요:
 ```jsx
 // 단순한 값 하나만 관리
 const [count, setCount] = useState(0);
 const [isOpen, setIsOpen] = useState(false);
 ```
-
-**useReducer를 고려하세요:**
-
+useReducer를 고려하라:
 ```jsx
-// ✅ 여러 관련된 state를 함께 업데이트
-// ✅ 다음 state가 이전 state에 복잡하게 의존
-// ✅ 3개 이상의 이벤트 핸들러가 같은 state를 업데이트
+//  여러 관련된 state를 함께 업데이트
+//  다음 state가 이전 state에 복잡하게 의존
+//  3개 이상의 이벤트 핸들러가 같은 state를 업데이트
 const [state, dispatch] = useReducer(reducer, {
   tasks: [],
   selectedId: null,
   filter: 'all'
 });
 ```
-
-**경험 법칙:** 
+경험 법칙: 
 - `setState`를 5번 이상 호출하는 컴포넌트 → useReducer 검토
 - state 업데이트 로직이 복잡해서 버그가 자주 생김 → useReducer로 전환
-
 ### Reducer가 필요한 이유
-
 컴포넌트가 복잡해지면 state 업데이트 로직을 추적하기 어려워집니다.
-
 많은 이벤트 핸들러에 걸쳐 state 업데이트가 분산되면 복잡해집니다.
-
 ```jsx
-// ❌ 복잡함: 여러 핸들러에 분산된 state 업데이트
+//  복잡함: 여러 핸들러에 분산된 state 업데이트
 function TaskApp() {
   const [tasks, setTasks] = useState(initialTasks);
-
   function handleAddTask(text) {
     setTasks([...tasks, {
       id: nextId++,
@@ -128,7 +98,6 @@ function TaskApp() {
       done: false
     }]);
   }
-
   function handleChangeTask(task) {
     setTasks(tasks.map(t => {
       if (t.id === task.id) {
@@ -138,7 +107,6 @@ function TaskApp() {
       }
     }));
   }
-
   function handleDeleteTask(taskId) {
     setTasks(tasks.filter(t => t.id !== taskId));
   }
@@ -146,62 +114,46 @@ function TaskApp() {
   // 핸들러가 너무 많음...
 }
 ```
-
-**Reducer로 통합:**
-
+Reducer로 통합:
 ```jsx
-// ✅ 간결함: 모든 업데이트 로직을 reducer에 통합
+//  간결함: 모든 업데이트 로직을 reducer에 통합
 function TaskApp() {
   const [tasks, dispatch] = useReducer(tasksReducer, initialTasks);
-
   function handleAddTask(text) {
     dispatch({ type: 'added', id: nextId++, text: text });
   }
-
   function handleChangeTask(task) {
     dispatch({ type: 'changed', task: task });
   }
-
   function handleDeleteTask(taskId) {
     dispatch({ type: 'deleted', id: taskId });
   }
 }
 ```
-
 ### useReducer Hook 이해하기
-
-**useReducer는 React에서 제공하는 Hook으로, reducer 함수를 통해 state를 관리합니다.**
-
+useReducer는 React에서 제공하는 Hook으로, reducer 함수를 통해 state를 관리한다.
 #### 기본 사용법
-
 ```jsx
 const [state, dispatch] = useReducer(reducer, initialState);
 ```
-
-**3개의 요소:**
-
-1. **`reducer`**: state를 업데이트하는 함수
+3개의 요소:
+1. `reducer`: state를 업데이트하는 함수
    ```jsx
    function reducer(state, action) {
      // 로직
      return newState;
    }
    ```
-
-2. **`initialState`**: 초기 state 값
+2. `initialState`: 초기 state 값
    ```jsx
    const initialState = { count: 0 };
    ```
-
-3. **반환값**: `[state, dispatch]` 배열
+3. 반환값: `[state, dispatch]` 배열
    - `state`: 현재 state 값
    - `dispatch`: action을 전달하는 함수
-
 #### 간단한 예제: Counter
-
 ```jsx
 import { useReducer } from 'react';
-
 // 1. reducer 함수 정의
 function counterReducer(state, action) {
   switch (action.type) {
@@ -215,11 +167,9 @@ function counterReducer(state, action) {
       throw Error('알 수 없는 액션: ' + action.type);
   }
 }
-
 // 2. 컴포넌트에서 사용
 function Counter() {
   const [state, dispatch] = useReducer(counterReducer, { count: 0 });
-
   return (
     <>
       <p>Count: {state.count}</p>
@@ -230,15 +180,11 @@ function Counter() {
   );
 }
 ```
-
 #### dispatch 함수 이해하기
-
-`dispatch`는 **"이런 일이 일어났어요"라고 React에게 알리는 함수**입니다.
-
+`dispatch`는 "이런 일이 일어났어요"라고 React에게 알리는 함수이다.
 ```jsx
 // dispatch에 action 객체를 전달
 dispatch({ type: 'increment' });
-
 // action에는 추가 데이터도 담을 수 있음
 dispatch({ 
   type: 'added', 
@@ -246,73 +192,54 @@ dispatch({
   text: '새 할일' 
 });
 ```
-
-**dispatch를 호출하면:**
+dispatch를 호출하면:
 1. React가 reducer 함수를 호출
 2. reducer가 새로운 state를 반환
 3. React가 컴포넌트를 리렌더링
-
 #### 초기값 설정하는 3가지 방법
-
-**방법 1: 직접 전달 (가장 일반적)**
-
+방법 1: 직접 전달 (가장 일반적)
 ```jsx
 const [state, dispatch] = useReducer(reducer, { count: 0 });
 ```
-
-**방법 2: 초기화 함수 사용 (계산 비용이 큰 경우)**
-
+방법 2: 초기화 함수 사용 (계산 비용이 큰 경우)
 ```jsx
 function init(initialCount) {
   return { count: initialCount };
 }
-
 // 세 번째 인자로 초기화 함수 전달
 const [state, dispatch] = useReducer(reducer, 0, init);
 // init(0)이 한 번만 호출됨
 ```
-
-**방법 3: 상수로 분리**
-
+방법 3: 상수로 분리
 ```jsx
 const INITIAL_STATE = { 
   tasks: [], 
   filter: 'all' 
 };
-
 const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
 ```
-
 #### useState vs useReducer 구조 비교
-
 ```jsx
 // useState: 값을 직접 설정
 const [count, setCount] = useState(0);
 setCount(1);        // 새 값 직접 전달
 setCount(c => c + 1); // 함수로 계산
-
 // useReducer: action으로 의도 전달
 const [state, dispatch] = useReducer(reducer, { count: 0 });
 dispatch({ type: 'set', value: 1 });      // 의도 전달
 dispatch({ type: 'increment' });          // 의도 전달
 ```
-
-**핵심 차이:**
-- **useState**: "이 값으로 바꿔줘" (명령형)
-- **useReducer**: "이런 일이 일어났어" (선언형)
-
+핵심 차이:
+- useState: "이 값으로 바꿔줘" (명령형)
+- useReducer: "이런 일이 일어났어" (선언형)
 ### useState에서 useReducer로 마이그레이션
-
-Reducer를 도입하는 것은 3단계로 진행됩니다.
-
+Reducer를 도입하는 것은 3단계로 진행된다.
 #### 1단계: dispatch 액션으로 변경
-
 ```jsx
 // 이전: setState 직접 호출
 function handleAddTask(text) {
   setTasks([...tasks, { id: nextId++, text: text, done: false }]);
 }
-
 // 이후: dispatch로 액션 전달
 function handleAddTask(text) {
   dispatch({
@@ -322,11 +249,8 @@ function handleAddTask(text) {
   });
 }
 ```
-
 #### 2단계: reducer 함수 작성
-
-Reducer는 현재 state와 action 객체를 받아 다음 state를 반환하는 함수입니다.
-
+Reducer는 현재 state와 action 객체를 받아 다음 state를 반환하는 함수이다.
 ```jsx
 function tasksReducer(tasks, action) {
   switch (action.type) {
@@ -355,27 +279,20 @@ function tasksReducer(tasks, action) {
   }
 }
 ```
-
 #### 3단계: useReducer 사용
-
 ```jsx
 import { useReducer } from 'react';
-
 function TaskApp() {
   const [tasks, dispatch] = useReducer(tasksReducer, initialTasks);
   
   // ...
 }
 ```
-
 ### Reducer 작성 팁
-
-Reducer를 작성할 때 지켜야 할 중요한 규칙이 있습니다.
-
-#### 1. **Reducer는 순수해야 합니다**
-
+Reducer를 작성할 때 지켜야 할 중요한 규칙이 있다.
+#### 1. Reducer는 순수해야 한다
 ```jsx
-// ❌ 나쁨: 부작용
+//  나쁨: 부작용
 function reducer(state, action) {
   switch (action.type) {
     case 'increment':
@@ -383,8 +300,7 @@ function reducer(state, action) {
       return state;
   }
 }
-
-// ✅ 좋음: 새 객체 반환
+//  좋음: 새 객체 반환
 function reducer(state, action) {
   switch (action.type) {
     case 'increment':
@@ -392,25 +308,18 @@ function reducer(state, action) {
   }
 }
 ```
-
-#### 2. **각 액션은 단일 사용자 상호작용을 설명합니다**
-
+#### 2. 각 액션은 단일 사용자 상호작용을 설명한다
 ```jsx
-// ❌ 나쁨: 여러 작업을 하나의 액션으로
+//  나쁨: 여러 작업을 하나의 액션으로
 dispatch({ type: 'update_everything', newData });
-
-// ✅ 좋음: 명확한 의도
+//  좋음: 명확한 의도
 dispatch({ type: 'user_logged_in', userId: 123 });
 dispatch({ type: 'profile_updated', profile: newProfile });
 ```
-
 ### 실전 예제: 할 일 앱
-
-모든 개념을 통합한 완성된 예제를 보겠습니다.
-
+모든 개념을 통합한 완성된 예제를 보겠다.
 ```jsx
 import { useReducer } from 'react';
-
 function tasksReducer(tasks, action) {
   switch (action.type) {
     case 'added': {
@@ -436,17 +345,14 @@ function tasksReducer(tasks, action) {
     }
   }
 }
-
 let nextId = 3;
 const initialTasks = [
   { id: 0, text: 'Visit Kafka Museum', done: true },
   { id: 1, text: 'Watch a puppet show', done: false },
   { id: 2, text: 'Lennon Wall pic', done: false }
 ];
-
 export default function TaskApp() {
   const [tasks, dispatch] = useReducer(tasksReducer, initialTasks);
-
   function handleAddTask(text) {
     dispatch({
       type: 'added',
@@ -454,21 +360,18 @@ export default function TaskApp() {
       text: text,
     });
   }
-
   function handleChangeTask(task) {
     dispatch({
       type: 'changed',
       task: task
     });
   }
-
   function handleDeleteTask(taskId) {
     dispatch({
       type: 'deleted',
       id: taskId
     });
   }
-
   return (
     <>
       <h1>Prague itinerary</h1>
@@ -482,18 +385,13 @@ export default function TaskApp() {
   );
 }
 ```
-
 ### Immer로 간결한 Reducer
-
-Reducer에서도 Immer를 사용하면 불변 업데이트를 더 간단하게 작성할 수 있습니다.
-
+Reducer에서도 Immer를 사용하면 불변 업데이트를 더 간단하게 작성할 수 있다.
 ```bash
 npm install use-immer
 ```
-
 ```jsx
 import { useImmerReducer } from 'use-immer';
-
 function tasksReducer(draft, action) {
   switch (action.type) {
     case 'added': {
@@ -518,21 +416,16 @@ function tasksReducer(draft, action) {
     }
   }
 }
-
 export default function TaskApp() {
   const [tasks, dispatch] = useImmerReducer(tasksReducer, initialTasks);
   // ...
 }
 ```
-
 ### Vue와 비교
-
-Vue에서는 Pinia나 Vuex를 사용하여 유사한 패턴을 구현합니다:
-
+Vue에서는 Pinia나 Vuex를 사용하여 유사한 패턴을 구현한다:
 ```javascript
 // Vue: Pinia store
 import { defineStore } from 'pinia'
-
 export const useTaskStore = defineStore('tasks', {
   state: () => ({
     tasks: []

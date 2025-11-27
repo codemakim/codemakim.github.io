@@ -1,5 +1,5 @@
 ---
-title: "📚 [React 기초 1-3/10] JSX로 마크업 작성하기"
+title: "[React 기초 1-3/10] JSX로 마크업 작성하기"
 date: "2025-07-07"
 description: "JSX 문법을 이해하고 HTML을 JSX로 변환하는 방법을 학습합니다"
 tags: ["React", "학습", "Vue", "초급", "프론트엔드"]
@@ -9,41 +9,36 @@ seriesOrder: 3
 
 # React 학습 가이드 - JSX로 마크업 작성하기
 
-> React 공식 문서를 기반으로 한 학습 자료  
-> 원문: [Describing the UI - React](https://react.dev/learn/describing-the-ui)
-
----
-
 ## JSX로 마크업 작성하기
 
 ### JSX란?
 
-**JSX (JavaScript XML)**는 JavaScript 파일 안에 HTML과 유사한 마크업을 작성할 수 있는 문법 확장입니다.
+`JSX (JavaScript XML)`는 JavaScript 파일 안에 HTML과 유사한 마크업을 작성할 수 있는 문법 확장이다.
 
 ### 핵심 특징
 
-1. **HTML보다 엄격함**: 태그는 반드시 닫아야 함
-2. **동적 정보 표시 가능**: JavaScript 표현식 사용
-3. **React 컴포넌트의 표준**: 렌더링 로직과 마크업을 함께 관리
+1. HTML보다 엄격함: 태그는 반드시 닫아야 함
+2. 동적 정보 표시 가능: JavaScript 표현식 사용
+3. React 컴포넌트의 표준: 렌더링 로직과 마크업을 함께 관리
 
 ### HTML을 JSX로 변환하기
 
-HTML을 그대로 복사하면 에러가 발생합니다. JSX는 HTML보다 규칙이 더 엄격하기 때문입니다.
+HTML을 그대로 복사하면 에러가 발생한다. JSX는 HTML보다 규칙이 더 엄격하기 때문이다.
 
-#### ❌ 작동하지 않는 코드 (HTML 그대로)
+#### 작동하지 않는 코드 (HTML 그대로)
 
 ```jsx
 export default function TodoList() {
   return (
-    // ❌ 여러 요소를 반환할 수 없음!
+    // 여러 요소를 반환할 수 없음
     <h1>Hedy Lamarr's Todos</h1>
     <img
       src="https://i.imgur.com/yXOvdOSs.jpg"
       alt="Hedy Lamarr"
-      class="photo"        // ❌ class는 JSX에서 사용 불가
-    >                      // ❌ 자체 닫기 태그 필요
+      class="photo"        // class는 JSX에서 사용 불가
+    >                      // 자체 닫기 태그 필요
     <ul>
-      <li>Invent new traffic lights      // ❌ 태그 닫기 필요
+      <li>Invent new traffic lights      // 태그 닫기 필요
       <li>Rehearse a movie scene
       <li>Improve spectrum technology
     </ul>
@@ -51,7 +46,7 @@ export default function TodoList() {
 }
 ```
 
-#### ✅ 올바른 JSX 코드
+#### 올바른 JSX 코드
 
 ```jsx
 export default function TodoList() {
@@ -61,30 +56,30 @@ export default function TodoList() {
       <img
         src="https://i.imgur.com/yXOvdOSs.jpg"
         alt="Hedy Lamarr"
-        className="photo"  // ✅ className 사용
-      />                   // ✅ 자체 닫기
+        className="photo"
+      />
       <ul>
-        <li>Invent new traffic lights</li>  // ✅ 태그 닫기
+        <li>Invent new traffic lights</li>
         <li>Rehearse a movie scene</li>
         <li>Improve spectrum technology</li>
       </ul>
-    </>  // ✅ Fragment로 감싸기
+    </>
   );
 }
 ```
 
 ### JSX 규칙
 
-#### 1. **단일 루트 요소 반환**
+#### 1. 단일 루트 요소 반환
 
 ```jsx
-// ❌ 여러 요소 반환 불가
+// 여러 요소 반환 불가
 return (
   <h1>Title</h1>
   <p>Content</p>
 )
 
-// ✅ Fragment(<>)로 감싸기
+// Fragment(<>)로 감싸기
 return (
   <>
     <h1>Title</h1>
@@ -92,7 +87,7 @@ return (
   </>
 )
 
-// ✅ div로 감싸기 (DOM 노드 추가됨)
+// div로 감싸기 (DOM 노드 추가됨)
 return (
   <div>
     <h1>Title</h1>
@@ -101,39 +96,39 @@ return (
 )
 ```
 
-**설명:**
+설명:
 
-- React는 한 번에 하나의 요소만 반환할 수 있습니다
-- 여러 요소를 반환하려면 하나의 부모 요소로 감싸야 합니다
-- `<> </>` (Fragment)는 보이지 않는 래퍼로, HTML에 태그가 추가되지 않습니다
+- React는 한 번에 하나의 요소만 반환할 수 있다
+- 여러 요소를 반환하려면 하나의 부모 요소로 감싸야 한다
+- `<> </>` (Fragment)는 보이지 않는 래퍼로, HTML에 태그가 추가되지 않는다
 
-#### 2. **모든 태그 닫기**
+#### 2. 모든 태그 닫기
 
-HTML에서는 일부 태그를 닫지 않아도 되지만, JSX에서는 모든 태그를 반드시 닫아야 합니다.
+HTML에서는 일부 태그를 닫지 않아도 되지만, JSX에서는 모든 태그를 반드시 닫아야 한다.
 
 ```jsx
-// ❌ 잘못된 코드
+// 잘못된 코드
 <img src="...">
 <br>
 
-// ✅ 올바른 코드
+// 올바른 코드
 <img src="..." />
 <br />
 ```
 
-#### 3. **camelCase 속성 사용**
+#### 3. camelCase 속성 사용
 
-JSX는 JavaScript로 변환되기 때문에 HTML 속성명을 camelCase로 작성해야 합니다.
+JSX는 JavaScript로 변환되기 때문에 HTML 속성명을 camelCase로 작성해야 한다.
 
 ```jsx
-// ❌ HTML 속성명
+// HTML 속성명
 <div class="container" onclick="handleClick()">
 
-// ✅ JSX 속성명 (camelCase)
+// JSX 속성명 (camelCase)
 <div className="container" onClick={handleClick}>
 ```
 
-**주요 변경사항:**
+주요 변경사항:
 
 | HTML | JSX |
 |------|-----|
@@ -145,7 +140,7 @@ JSX는 JavaScript로 변환되기 때문에 HTML 속성명을 camelCase로 작�
 
 ### HTML → JSX 변환기 활용
 
-복잡한 HTML은 [변환기](https://transform.tools/html-to-jsx)를 사용하면 편리합니다.
+복잡한 HTML은 [변환기](https://transform.tools/html-to-jsx)를 사용하면 편리하다.
 
 ### Vue와 비교
 

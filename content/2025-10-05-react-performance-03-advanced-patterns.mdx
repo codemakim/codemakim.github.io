@@ -12,15 +12,12 @@ seriesOrder: 3
 > 프로덕션 수준의 성능 최적화 학습 자료
 
 ---
-
 ## 📚 목차
-
 1. [가상화 (Virtualization)](#가상화-virtualization)
 2. [이미지 최적화](#이미지-최적화)
 3. [Web Vitals](#web-vitals)
 4. [서버 컴포넌트 최적화](#서버-컴포넌트-최적화)
 5. [Concurrent Features](#concurrent-features)
-
 ---
 
 ## 가상화 (Virtualization)
@@ -54,17 +51,13 @@ function VirtualList({ items }) {
 }
 ```
 
-**10,000개 항목도 빠르게 렌더링!**
+10,000개 항목도 빠르게 렌더링!
 
 ---
-
 ## 이미지 최적화
-
 ### Next.js Image 컴포넌트
-
 ```jsx
 import Image from 'next/image';
-
 export default function Gallery() {
   return (
     <div>
@@ -75,7 +68,6 @@ export default function Gallery() {
         height={600}
         priority  // LCP 최적화
       />
-
       <Image
         src="/photo.jpg"
         alt="Photo"
@@ -88,16 +80,15 @@ export default function Gallery() {
   );
 }
 ```
-
 ---
 
 ## Web Vitals
 
 ### 핵심 지표
 
-- **LCP (Largest Contentful Paint)**: 2.5초 이하
-- **FID (First Input Delay)**: 100ms 이하
-- **CLS (Cumulative Layout Shift)**: 0.1 이하
+- LCP (Largest Contentful Paint): 2.5초 이하
+- FID (First Input Delay): 100ms 이하
+- CLS (Cumulative Layout Shift): 0.1 이하
 
 ### 측정
 
@@ -112,19 +103,15 @@ export function WebVitals() {
 ```
 
 ---
-
 ## 서버 컴포넌트 최적화
-
 ### 데이터 페칭 최적화
-
 ```jsx
-// ✅ 병렬 페칭
+//  병렬 페칭
 export default async function Page() {
   const [users, posts] = await Promise.all([
     fetchUsers(),
     fetchPosts()
   ]);
-
   return (
     <div>
       <Users data={users} />
@@ -133,7 +120,6 @@ export default async function Page() {
   );
 }
 ```
-
 ---
 
 ## Concurrent Features
@@ -194,22 +180,16 @@ function SearchResults() {
 ```
 
 ---
-
 ## 최종 체크리스트
-
 ### 필수 최적화
-
 - [ ] 이미지 최적화
 - [ ] 코드 분할
 - [ ] 불필요한 리렌더링 방지
 - [ ] 큰 리스트 가상화
 - [ ] Web Vitals 측정
-
 ### 고급 최적화
-
 - [ ] Service Worker
 - [ ] Preloading
 - [ ] Prefetching
 - [ ] Concurrent Features
-
-축하합니다! 모든 최적화 가이드를 완료했습니다! 🎉
+축하한다! 모든 최적화 가이드를 완료했다! 🎉

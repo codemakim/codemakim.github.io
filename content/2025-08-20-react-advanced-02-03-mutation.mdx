@@ -1,5 +1,5 @@
 ---
-title: "🚀 [React 라이브러리 3/8] React Query - 뮤테이션"
+title: "[React 라이브러리 3/8] React Query - 뮤테이션"
 date: "2025-08-21"
 description: "useMutation, 낙관적 업데이트, 에러 처리"
 tags: ["React", "고급", "프론트엔드"]
@@ -13,26 +13,19 @@ seriesOrder: 48
 > 출처: [TanStack Query Documentation](https://tanstack.com/query/)
 
 ---
-
 ## 뮤테이션
 뮤테이션
-
 쿼리 기초
-
 ### 1. useQuery 기본
-
 ```jsx
 import { useQuery } from '@tanstack/react-query';
-
 function Users() {
   const { data, isLoading, error, isError } = useQuery({
     queryKey: ['users'],
     queryFn: fetchUsers,
   });
-
   if (isLoading) return <div>Loading...</div>;
   if (isError) return <div>Error: {error.message}</div>;
-
   return (
     <ul>
       {data.map(user => (
@@ -41,7 +34,6 @@ function Users() {
     </ul>
   );
 }
-
 async function fetchUsers() {
   const response = await fetch('/api/users');
   if (!response.ok) {
@@ -50,43 +42,34 @@ async function fetchUsers() {
   return response.json();
 }
 ```
-
 ### 2. Query Key
-
-**Query Key는 쿼리를 고유하게 식별합니다.**
-
+Query Key는 쿼리를 고유하게 식별한다.
 ```jsx
 // 단순 키
 useQuery({ queryKey: ['users'], queryFn: fetchUsers });
-
 // 파라미터가 있는 키
 useQuery({ 
   queryKey: ['user', userId], 
   queryFn: () => fetchUser(userId) 
 });
-
 // 복잡한 키
 useQuery({ 
   queryKey: ['users', { status: 'active', page: 1 }],
   queryFn: () => fetchUsers({ status: 'active', page: 1 })
 });
 ```
-
 ### 3. Query Function
-
 ```jsx
 // 기본
 const query = useQuery({
   queryKey: ['users'],
   queryFn: fetchUsers,
 });
-
 // 화살표 함수
 const query = useQuery({
   queryKey: ['users'],
   queryFn: () => fetch('/api/users').then(res => res.json()),
 });
-
 // async/await
 const query = useQuery({
   queryKey: ['users'],
@@ -98,7 +81,6 @@ const query = useQuery({
     return response.json();
   },
 });
-
 // QueryKey에서 값 추출
 const query = useQuery({
   queryKey: ['user', userId],
@@ -108,9 +90,7 @@ const query = useQuery({
   },
 });
 ```
-
 ### 4. 상태 관리
-
 ```jsx
 function UserProfile({ userId }) {
   const { 
@@ -126,13 +106,10 @@ function UserProfile({ userId }) {
     queryKey: ['user', userId],
     queryFn: () => fetchUser(userId),
   });
-
   // isLoading: 처음 로딩 중 (데이터 없음)
   if (isLoading) return <Spinner />;
-
   // isError: 에러 발생
   if (isError) return <ErrorMessage error={error} />;
-
   // isSuccess: 데이터 로드 완료
   return (
     <div>
@@ -144,9 +121,7 @@ function UserProfile({ userId }) {
   );
 }
 ```
-
 ### 5. 의존적 쿼리
-
 ```jsx
 function UserPosts({ userId }) {
   // 먼저 사용자 정보 가져오기
@@ -154,14 +129,12 @@ function UserPosts({ userId }) {
     queryKey: ['user', userId],
     queryFn: () => fetchUser(userId),
   });
-
   // user가 있을 때만 포스트 가져오기
   const { data: posts } = useQuery({
     queryKey: ['posts', user?.id],
     queryFn: () => fetchPosts(user.id),
     enabled: !!user,  // user가 있을 때만 실행
   });
-
   return (
     <div>
       <h1>{user?.name}'s Posts</h1>
@@ -172,9 +145,7 @@ function UserPosts({ userId }) {
   );
 }
 ```
-
 ### 6. 병렬 쿼리
-
 ```jsx
 function Dashboard() {
   const users = useQuery({ 
@@ -191,12 +162,10 @@ function Dashboard() {
     queryKey: ['comments'], 
     queryFn: fetchComments 
   });
-
   // 모든 쿼리가 로딩 중인지 확인
   if (users.isLoading || posts.isLoading || comments.isLoading) {
     return <div>Loading...</div>;
   }
-
   return (
     <div>
       <Users data={users.data} />
@@ -206,9 +175,7 @@ function Dashboard() {
   );
 }
 ```
-
-**useQueries로 동적 병렬 쿼리:**
-
+useQueries로 동적 병렬 쿼리:
 ```jsx
 function UserProfiles({ userIds }) {
   const userQueries = useQueries({
@@ -217,13 +184,10 @@ function UserProfiles({ userIds }) {
       queryFn: () => fetchUser(id),
     })),
   });
-
   const isLoading = userQueries.some(query => query.isLoading);
   const isError = userQueries.some(query => query.isError);
-
   if (isLoading) return <div>Loading...</div>;
   if (isError) return <div>Error loading users</div>;
-
   return (
     <div>
       {userQueries.map((query, index) => (
@@ -233,5 +197,4 @@ function UserProfiles({ userIds }) {
   );
 }
 ```
-
 ---

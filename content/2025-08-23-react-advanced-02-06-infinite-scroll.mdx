@@ -1,5 +1,5 @@
 ---
-title: "🚀 [React 라이브러리 6/8] React Query - 무한 스크롤"
+title: "[React 라이브러리 6/8] React Query - 무한 스크롤"
 date: "2025-08-24"
 description: "useInfiniteQuery로 무한 스크롤 구현"
 tags: ["React", "고급", "프론트엔드"]
@@ -13,34 +13,26 @@ seriesOrder: 51
 > 출처: [TanStack Query Documentation](https://tanstack.com/query/)
 
 ---
-
 ## 무한 스크롤
 무한 스크롤
-
 낙관적 업데이트
-
 ### 기본 패턴
-
 ```jsx
 function TodoList() {
   const queryClient = useQueryClient();
-
   const mutation = useMutation({
     mutationFn: updateTodo,
     onMutate: async (newTodo) => {
       // 진행 중인 리페치 취소
       await queryClient.cancelQueries({ queryKey: ['todos'] });
-
       // 이전 데이터 스냅샷
       const previousTodos = queryClient.getQueryData(['todos']);
-
       // 낙관적 업데이트
       queryClient.setQueryData(['todos'], (old) =>
         old.map(todo =>
           todo.id === newTodo.id ? newTodo : todo
         )
       );
-
       // 롤백을 위한 컨텍스트 반환
       return { previousTodos };
     },
@@ -54,14 +46,12 @@ function TodoList() {
       queryClient.invalidateQueries({ queryKey: ['todos'] });
     },
   });
-
   function handleToggle(todo) {
     mutation.mutate({
       ...todo,
       completed: !todo.completed,
     });
   }
-
   return (
     <div>
       {todos.map(todo => (
@@ -75,26 +65,20 @@ function TodoList() {
   );
 }
 ```
-
 ### 복잡한 예제: 좋아요 버튼
-
 ```jsx
 function LikeButton({ postId }) {
   const queryClient = useQueryClient();
-
   const likeMutation = useMutation({
     mutationFn: (postId) => fetch(`/api/posts/${postId}/like`, { method: 'POST' }),
     onMutate: async (postId) => {
       await queryClient.cancelQueries({ queryKey: ['post', postId] });
-
       const previousPost = queryClient.getQueryData(['post', postId]);
-
       queryClient.setQueryData(['post', postId], (old) => ({
         ...old,
         likes: old.likes + 1,
         isLiked: true,
       }));
-
       return { previousPost };
     },
     onError: (err, postId, context) => {
@@ -104,32 +88,26 @@ function LikeButton({ postId }) {
       queryClient.invalidateQueries({ queryKey: ['post', postId] });
     },
   });
-
   const unlikeMutation = useMutation({
     mutationFn: (postId) => fetch(`/api/posts/${postId}/unlike`, { method: 'POST' }),
     onMutate: async (postId) => {
       await queryClient.cancelQueries({ queryKey: ['post', postId] });
-
       const previousPost = queryClient.getQueryData(['post', postId]);
-
       queryClient.setQueryData(['post', postId], (old) => ({
         ...old,
         likes: old.likes - 1,
         isLiked: false,
       }));
-
       return { previousPost };
     },
     onError: (err, postId, context) => {
       queryClient.setQueryData(['post', postId], context.previousPost);
     },
   });
-
   const { data: post } = useQuery({
     queryKey: ['post', postId],
     queryFn: () => fetchPost(postId),
   });
-
   function handleClick() {
     if (post.isLiked) {
       unlikeMutation.mutate(postId);
@@ -137,7 +115,6 @@ function LikeButton({ postId }) {
       likeMutation.mutate(postId);
     }
   }
-
   return (
     <button onClick={handleClick}>
       {post.isLiked ? '❤️' : '🤍'} {post.likes}
@@ -145,5 +122,4 @@ function LikeButton({ postId }) {
   );
 }
 ```
-
 ---

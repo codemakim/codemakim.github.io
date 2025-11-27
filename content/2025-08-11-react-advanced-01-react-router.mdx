@@ -1,7 +1,7 @@
 ---
-title: "🚀 [React 라이브러리 1/4] React Router - 라우팅 원리"
+title: "[React 라이브러리 1/4] React Router - 라우팅 원리"
 date: "2025-08-11"
-description: "SPA 라우팅의 동작 메커니즘을 이해하고 React Router v6를 마스터합니다"
+description: "SPA 라우팅의 동작 메커니즘을 이해하고 React Router v6를 마스터한다"
 tags: ["React", "고급", "프론트엔드"]
 series: "React 라이브러리"
 seriesOrder: 1
@@ -14,9 +14,7 @@ draft: true
 > 출처: [React Router Documentation](https://reactrouter.com/)
 
 ---
-
 ## 📚 목차
-
 1. [개요](#개요)
 2. [기본 라우팅](#기본-라우팅)
 3. [중첩 라우트](#중첩-라우트)
@@ -26,18 +24,17 @@ draft: true
 7. [Protected Routes](#protected-routes)
 8. [로딩 및 에러 처리](#로딩-및-에러-처리)
 9. [고급 패턴](#고급-패턴)
-
 ---
 
 ## 개요
 
 ### React Router란?
 
-**React Router**는 React 애플리케이션에서 **클라이언트 사이드 라우팅**을 구현하는 표준 라이브러리입니다.
+React Router는 React 애플리케이션에서 클라이언트 사이드 라우팅을 구현하는 표준 라이브러리이다.
 
-### 🔍 클라이언트 사이드 라우팅의 동작 원리
+###  클라이언트 사이드 라우팅의 동작 원리
 
-**전통적인 서버 사이드 라우팅:**
+전통적인 서버 사이드 라우팅:
 
 ```
 사용자가 /about 클릭
@@ -49,7 +46,7 @@ draft: true
 페이지 전체 새로고침 (깜빡임!)
 ```
 
-**클라이언트 사이드 라우팅 (SPA):**
+클라이언트 사이드 라우팅 (SPA):
 
 ```
 사용자가 /about 클릭
@@ -63,13 +60,13 @@ React Router가 URL 감지
 해당 컴포넌트만 교체 (깜빡임 없음!)
 ```
 
-**핵심 원리:**
+핵심 원리:
 
-1. **History API 활용**: `pushState()`, `replaceState()`, `popstate` 이벤트
-2. **컴포넌트 매칭**: URL 패턴과 컴포넌트 매핑
-3. **상태 보존**: 페이지 전환 없이 UI만 업데이트
+1. History API 활용: `pushState()`, `replaceState()`, `popstate` 이벤트
+2. 컴포넌트 매칭: URL 패턴과 컴포넌트 매핑
+3. 상태 보존: 페이지 전환 없이 UI만 업데이트
 
-**실제 코드로 보는 원리:**
+실제 코드로 보는 원리:
 
 ```javascript
 // React Router가 내부적으로 하는 일 (단순화)
@@ -86,31 +83,31 @@ function navigate(path) {
 }
 ```
 
-**장점:**
+장점:
 
-- ✅ 빠른 페이지 전환 (네트워크 요청 없음)
-- ✅ 부드러운 UX (깜빡임 없음)
-- ✅ 상태 유지 (전역 state 보존)
-- ✅ 애니메이션 가능
+-  빠른 페이지 전환 (네트워크 요청 없음)
+-  부드러운 UX (깜빡임 없음)
+-  상태 유지 (전역 state 보존)
+-  애니메이션 가능
 
-**단점:**
+단점:
 
-- ❌ 초기 번들 크기 증가 (해결책: 코드 분할)
-- ❌ SEO 어려움 (해결책: SSR - Next.js)
+-  초기 번들 크기 증가 (해결책: 코드 분할)
+-  SEO 어려움 (해결책: SSR - Next.js)
 
-### 💡 실무 TIP: "SPA 라우팅을 설명해보세요"
+###  실무 TIP: "SPA 라우팅을 설명해보세요"
 
-**답변 예시:**
+답변 예시:
 
-"SPA에서 라우팅은 History API를 활용합니다.
+"SPA에서 라우팅은 History API를 활용한다.
 
-사용자가 링크를 클릭하면 React Router가 기본 동작을 막고 (`preventDefault`), `history.pushState`로 URL만 변경합니다. 이때 페이지는 새로고침되지 않습니다.
+사용자가 링크를 클릭하면 React Router가 기본 동작을 막고 (`preventDefault`), `history.pushState`로 URL만 변경한다. 이때 페이지는 새로고침되지 않다.
 
-React Router는 URL 변경을 감지하여 해당 경로에 매핑된 컴포넌트만 교체합니다. 이를 통해 빠르고 부드러운 페이지 전환이 가능하며, 전역 상태도 유지됩니다.
+React Router는 URL 변경을 감지하여 해당 경로에 매핑된 컴포넌트만 교체한다. 이를 통해 빠르고 부드러운 페이지 전환이 가능하며, 전역 상태도 유지된다.
 
-다만 초기 번들 크기가 커질 수 있어 코드 분할이 중요하고, SEO를 위해서는 Next.js 같은 SSR 프레임워크를 고려해야 합니다."
+다만 초기 번들 크기가 커질 수 있어 코드 분할이 중요하고, SEO를 위해서는 Next.js 같은 SSR 프레임워크를 고려해야 한다."
 
-**주요 기능:**
+주요 기능:
 
 - 선언적 라우팅
 - 중첩 라우트
@@ -128,25 +125,21 @@ npm install react-router-dom
 
 | 기능 | Vue Router | React Router |
 |------|-----------|--------------|
-| **라우트 정의** | 객체 배열 | JSX 컴포넌트 |
-| **중첩 라우트** | `children` | `<Outlet />` |
-| **네비게이션** | `<router-link>` | `<Link>` |
-| **프로그래밍 네비게이션** | `router.push()` | `navigate()` |
-| **파라미터 접근** | `route.params` | `useParams()` |
+| 라우트 정의 | 객체 배열 | JSX 컴포넌트 |
+| 중첩 라우트 | `children` | `<Outlet />` |
+| 네비게이션 | `<router-link>` | `<Link>` |
+| 프로그래밍 네비게이션 | `router.push()` | `navigate()` |
+| 파라미터 접근 | `route.params` | `useParams()` |
 
 ---
-
 ## 기본 라우팅
-
 ### 1. 라우터 설정
-
 ```jsx
 // App.jsx
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
 import About from './pages/About';
 import Contact from './pages/Contact';
-
 export default function App() {
   return (
     <BrowserRouter>
@@ -159,12 +152,9 @@ export default function App() {
   );
 }
 ```
-
 ### 2. Link 컴포넌트
-
 ```jsx
 import { Link } from 'react-router-dom';
-
 export default function Navigation() {
   return (
     <nav>
@@ -175,12 +165,9 @@ export default function Navigation() {
   );
 }
 ```
-
 ### 3. NavLink (활성 링크)
-
 ```jsx
 import { NavLink } from 'react-router-dom';
-
 export default function Navigation() {
   return (
     <nav>
@@ -202,9 +189,7 @@ export default function Navigation() {
   );
 }
 ```
-
 ### Vue Router와 비교
-
 ```html
 <!-- Vue Router -->
 <template>
@@ -212,10 +197,8 @@ export default function Navigation() {
   <router-link to="/">Home</router-link>
   <router-link to="/about">About</router-link>
 </template>
-
 <script>
 import { createRouter, createWebHistory } from 'vue-router'
-
 const router = createRouter({
   history: createWebHistory(),
   routes: [
@@ -225,11 +208,9 @@ const router = createRouter({
 })
 </script>
 ```
-
 ```jsx
 // React Router
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
-
 function App() {
   return (
     <BrowserRouter>
@@ -245,7 +226,6 @@ function App() {
   )
 }
 ```
-
 ---
 
 ## 중첩 라우트
@@ -375,24 +355,18 @@ const routes = [
 ```
 
 ---
-
 ## 동적 라우트
-
 ### 1. URL 파라미터
-
 ```jsx
 // 라우트 정의
 <Route path="/users/:userId" element={<User />} />
 <Route path="/posts/:postId" element={<Post />} />
 <Route path="/products/:category/:productId" element={<Product />} />
 ```
-
 ### 2. useParams Hook
-
 ```jsx
 // pages/User.jsx
 import { useParams } from 'react-router-dom';
-
 export default function User() {
   const { userId } = useParams();
   
@@ -404,13 +378,10 @@ export default function User() {
   );
 }
 ```
-
 ### 3. 복수 파라미터
-
 ```jsx
 // pages/Product.jsx
 import { useParams } from 'react-router-dom';
-
 export default function Product() {
   const { category, productId } = useParams();
   
@@ -423,12 +394,9 @@ export default function Product() {
   );
 }
 ```
-
 ### 4. Optional 파라미터
-
 ```jsx
 <Route path="/users/:userId?" element={<Users />} />
-
 function Users() {
   const { userId } = useParams();
   
@@ -439,12 +407,9 @@ function Users() {
   return <UserList />;
 }
 ```
-
 ### 5. Wildcard (*)
-
 ```jsx
 <Route path="/docs/*" element={<Docs />} />
-
 function Docs() {
   const params = useParams();
   const path = params['*'];  // /docs/ 이후의 모든 경로
@@ -452,30 +417,24 @@ function Docs() {
   return <div>Docs path: {path}</div>;
 }
 ```
-
 ### Vue Router와 비교
-
 ```html
 <!-- Vue Router -->
 <script setup>
 import { useRoute } from 'vue-router'
-
 const route = useRoute()
 const userId = route.params.userId
 const category = route.params.category
 </script>
 ```
-
 ```jsx
 // React Router
 import { useParams } from 'react-router-dom'
-
 function Component() {
   const { userId, category } = useParams()
   // ...
 }
 ```
-
 ---
 
 ## 프로그래밍 방식 네비게이션
@@ -595,14 +554,10 @@ navigate(-1)
 ```
 
 ---
-
 ## Router Hooks
-
 ### 1. useLocation
-
 ```jsx
 import { useLocation } from 'react-router-dom';
-
 export default function Header() {
   const location = useLocation();
   
@@ -616,29 +571,22 @@ export default function Header() {
   );
 }
 ```
-
-**활용 예시: 이전 페이지 기억**
-
+활용 예시: 이전 페이지 기억
 ```jsx
 function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from || '/';
-
   function handleLogin() {
     // 로그인 성공 후 원래 페이지로
     navigate(from, { replace: true });
   }
-
   return <button onClick={handleLogin}>Login</button>;
 }
 ```
-
 ### 2. useSearchParams
-
 ```jsx
 import { useSearchParams } from 'react-router-dom';
-
 export default function ProductList() {
   const [searchParams, setSearchParams] = useSearchParams();
   
@@ -660,17 +608,13 @@ export default function ProductList() {
   );
 }
 ```
-
-**URLSearchParams API:**
-
+URLSearchParams API:
 ```jsx
 const [searchParams, setSearchParams] = useSearchParams();
-
 // 읽기
 searchParams.get('category');           // 'books'
 searchParams.getAll('tags');            // ['fiction', 'bestseller']
 searchParams.has('category');           // true
-
 // 쓰기
 setSearchParams({ category: 'movies' });
 setSearchParams(prev => {
@@ -678,12 +622,9 @@ setSearchParams(prev => {
   return prev;
 });
 ```
-
 ### 3. useParams (재확인)
-
 ```jsx
 import { useParams } from 'react-router-dom';
-
 function BlogPost() {
   const { postId } = useParams();
   const [post, setPost] = useState(null);
@@ -697,12 +638,9 @@ function BlogPost() {
   return <article>{post?.title}</article>;
 }
 ```
-
 ### 4. useMatch
-
 ```jsx
 import { useMatch } from 'react-router-dom';
-
 function Navigation() {
   const match = useMatch('/users/:userId');
   
@@ -713,12 +651,9 @@ function Navigation() {
   return <nav>...</nav>;
 }
 ```
-
 ### 5. useRoutes (프로그래밍 방식 라우트)
-
 ```jsx
 import { useRoutes } from 'react-router-dom';
-
 function App() {
   const routes = useRoutes([
     { path: '/', element: <Home /> },
@@ -736,31 +671,24 @@ function App() {
   return routes;
 }
 ```
-
 ### Vue Router와 비교
-
 ```html
 <!-- Vue Router -->
 <script setup>
 import { useRoute, useRouter } from 'vue-router'
-
 const route = useRoute()
 const router = useRouter()
-
 // 현재 경로
 const path = route.path
 const params = route.params
 const query = route.query
-
 // 쿼리 변경
 router.push({ query: { page: 2 } })
 </script>
 ```
-
 ```jsx
 // React Router
 import { useLocation, useParams, useSearchParams } from 'react-router-dom'
-
 function Component() {
   const location = useLocation()
   const params = useParams()
@@ -775,7 +703,6 @@ function Component() {
   setSearchParams({ page: 2 })
 }
 ```
-
 ---
 
 ## Protected Routes
@@ -967,19 +894,14 @@ function ProtectedRoute({ children, requiredRole }) {
 ```
 
 ---
-
 ## 로딩 및 에러 처리
-
 ### 1. Suspense와 Lazy Loading
-
 ```jsx
 import { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-
 const Home = lazy(() => import('./pages/Home'));
 const About = lazy(() => import('./pages/About'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
-
 export default function App() {
   return (
     <BrowserRouter>
@@ -993,7 +915,6 @@ export default function App() {
     </BrowserRouter>
   );
 }
-
 function LoadingSpinner() {
   return (
     <div className="loading-spinner">
@@ -1002,26 +923,20 @@ function LoadingSpinner() {
   );
 }
 ```
-
 ### 2. 에러 바운더리
-
 ```jsx
 import { Component } from 'react';
-
 class ErrorBoundary extends Component {
   constructor(props) {
     super(props);
     this.state = { hasError: false, error: null };
   }
-
   static getDerivedStateFromError(error) {
     return { hasError: true, error };
   }
-
   componentDidCatch(error, errorInfo) {
     console.error('Error caught by boundary:', error, errorInfo);
   }
-
   render() {
     if (this.state.hasError) {
       return (
@@ -1034,11 +949,9 @@ class ErrorBoundary extends Component {
         </div>
       );
     }
-
     return this.props.children;
   }
 }
-
 // 사용
 <BrowserRouter>
   <ErrorBoundary>
@@ -1050,16 +963,13 @@ class ErrorBoundary extends Component {
   </ErrorBoundary>
 </BrowserRouter>
 ```
-
 ### 3. 404 Not Found
-
 ```jsx
 <Routes>
   <Route path="/" element={<Home />} />
   <Route path="/about" element={<About />} />
   <Route path="*" element={<NotFound />} />
 </Routes>
-
 function NotFound() {
   return (
     <div>
@@ -1069,16 +979,13 @@ function NotFound() {
   );
 }
 ```
-
 ### 4. 데이터 로딩 패턴
-
 ```jsx
 function UserProfile() {
   const { userId } = useParams();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
   useEffect(() => {
     setLoading(true);
     fetch(`/api/users/${userId}`)
@@ -1095,11 +1002,9 @@ function UserProfile() {
         setLoading(false);
       });
   }, [userId]);
-
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorMessage error={error} />;
   if (!user) return <NotFound />;
-
   return (
     <div>
       <h1>{user.name}</h1>
@@ -1108,7 +1013,6 @@ function UserProfile() {
   );
 }
 ```
-
 ---
 
 ## 고급 패턴
@@ -1287,14 +1191,11 @@ function Gallery() {
 ```
 
 ---
-
 ## 실전 예제: 블로그 애플리케이션
-
 ```jsx
 // App.jsx
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Suspense, lazy } from 'react';
-
 const Layout = lazy(() => import('./components/Layout'));
 const Home = lazy(() => import('./pages/Home'));
 const PostList = lazy(() => import('./pages/PostList'));
@@ -1304,7 +1205,6 @@ const EditPost = lazy(() => import('./pages/EditPost'));
 const Login = lazy(() => import('./pages/Login'));
 const Profile = lazy(() => import('./pages/Profile'));
 const NotFound = lazy(() => import('./pages/NotFound'));
-
 export default function App() {
   return (
     <BrowserRouter>
@@ -1352,7 +1252,6 @@ export default function App() {
   );
 }
 ```
-
 ---
 
 ## 다음 단계
@@ -1375,5 +1274,4 @@ export default function App() {
 - [Vue Router 비교](https://router.vuejs.org/)
 
 ---
-
-모든 항목을 체크했다면 다음 주제로 넘어가세요! 🚀
+모든 항목을 체크했다면 다음 주제로 넘어가세요! 

@@ -1,5 +1,5 @@
 ---
-title: "🚀 [React 라이브러리 7/7] Next.js 고급 - 실전 예제 & 다음 단계"
+title: "[React 라이브러리 7/7] Next.js 고급 - 실전 예제 & 다음 단계"
 date: "2025-09-07"
 description: "블로그 플랫폼 구현, Nuxt 비교 및 학습 체크리스트"
 tags: ["Next.js", "React", "고급", "프론트엔드"]
@@ -12,18 +12,14 @@ seriesOrder: 65
 > Next.js 15의 고급 기능을 다루는 학습 자료
 
 ---
-
 ## 실전 예제: 블로그 플랫폼
-
 ```jsx
 // app/posts/page.jsx
 export const revalidate = 3600; // 1시간마다
-
 export default async function Posts() {
   const posts = await fetch('https://api.example.com/posts', {
     next: { tags: ['posts'] }
   }).then(res => res.json());
-
   return (
     <div>
       <h1>Blog Posts</h1>
@@ -34,58 +30,44 @@ export default async function Posts() {
   );
 }
 ```
-
 ```jsx
 // app/actions.js
 'use server';
-
 import { revalidateTag } from 'next/cache';
 import { redirect } from 'next/navigation';
-
 export async function createPost(formData) {
   const title = formData.get('title');
   const content = formData.get('content');
-
   await db.posts.create({
     data: { title, content },
   });
-
   revalidateTag('posts');
   redirect('/posts');
 }
-
 export async function deletePost(id) {
   await db.posts.delete({
     where: { id },
   });
-
   revalidateTag('posts');
 }
 ```
-
 ```jsx
 // middleware.js
 import { NextResponse } from 'next/server';
-
 export function middleware(request) {
   const token = request.cookies.get('auth-token');
-
   // 인증 필요한 경로
   if (request.nextUrl.pathname.startsWith('/admin')) {
     if (!token) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
   }
-
   // 로깅
   console.log(`[${new Date().toISOString()}] ${request.method} ${request.url}`);
-
   return NextResponse.next();
 }
-
 export const config = {
   matcher: ['/admin/:path*', '/api/:path*'],
 };
 ```
-
 ---

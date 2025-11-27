@@ -1,7 +1,7 @@
 ---
 title: "📘 [입문] Next.js 프로젝트 가이드 - Vue 개발자를 위한"
 date: "2025-07-01"
-description: "Vue 개발자가 Next.js를 빠르게 이해하도록 프로젝트 구조와 설정 파일을 상세히 설명합니다"
+description: "Vue 개발자가 Next.js를 빠르게 이해하도록 프로젝트 구조와 설정 파일을 상세히 설명한다"
 tags: ["Next.js", "Vue", "초급", "프론트엔드"]
 draft: true
 ---
@@ -11,16 +11,13 @@ draft: true
 > 6년차 Vue 개발자가 Next.js를 빠르게 마스터하기 위한 실전 가이드
 
 ---
-
 ## 📚 목차
-
 1. [프로젝트 개요](#프로젝트-개요)
 2. [Vue vs Next.js 핵심 비교](#vue-vs-nextjs-핵심-비교)
 3. [프로젝트 구조 이해하기](#프로젝트-구조-이해하기)
 4. [설정 파일 분석](#설정-파일-분석)
 5. [핵심 개념 및 패턴](#핵심-개념-및-패턴)
 6. [실전 학습 로드맵](#실전-학습-로드맵)
-
 ---
 
 ## 프로젝트 개요
@@ -37,69 +34,53 @@ Tailwind CSS 4        # 유틸리티 CSS (Vue에서도 사용 가능)
 
 ### 프로젝트 특징
 
-- **정적 사이트 생성(SSG)**: GitHub Pages 배포용
-- **MDX 블로그**: Markdown + React 컴포넌트
-- **App Router**: Next.js 13+ 새로운 라우팅 시스템
-- **서버 컴포넌트**: 기본값, 성능 최적화
+- 정적 사이트 생성(SSG): GitHub Pages 배포용
+- MDX 블로그: Markdown + React 컴포넌트
+- App Router: Next.js 13+ 새로운 라우팅 시스템
+- 서버 컴포넌트: 기본값, 성능 최적화
 
 ---
-
 ## Vue vs Next.js 핵심 비교
-
 ### 1. 프레임워크 구조
-
 | 개념 | Vue 3 / Nuxt 3 | React / Next.js 15 |
 |------|----------------|-------------------|
-| **프레임워크** | Vue (Core) + Nuxt (Meta) | React (Core) + Next.js (Meta) |
-| **파일 라우팅** | `pages/` 또는 `app/` | `app/` (App Router) |
-| **상태 관리** | Composition API, Pinia | React Hooks, Context API |
-| **템플릿** | `<template>` + SFC | JSX (함수 반환값) |
-| **반응성** | `ref()`, `reactive()` | `useState()`, `useEffect()` |
-| **라이프사이클** | `onMounted()`, `onUnmounted()` | `useEffect()` |
-
+| 프레임워크 | Vue (Core) + Nuxt (Meta) | React (Core) + Next.js (Meta) |
+| 파일 라우팅 | `pages/` 또는 `app/` | `app/` (App Router) |
+| 상태 관리 | Composition API, Pinia | React Hooks, Context API |
+| 템플릿 | `<template>` + SFC | JSX (함수 반환값) |
+| 반응성 | `ref()`, `reactive()` | `useState()`, `useEffect()` |
+| 라이프사이클 | `onMounted()`, `onUnmounted()` | `useEffect()` |
 ### 2. 컴포넌트 작성 방식 비교
-
 #### Vue 3 (Composition API)
-
 ```html
 <script setup>
 import { ref, onMounted } from 'vue'
-
 const count = ref(0)
 const increment = () => count.value++
-
 onMounted(() => {
   console.log('컴포넌트 마운트됨')
 })
 </script>
-
 <template>
   <div>
     <h1>{{ count }}</h1>
     <button @click="increment">증가</button>
   </div>
 </template>
-
 <style scoped>
 h1 { color: blue; }
 </style>
 ```
-
 #### React (Next.js 15 - 클라이언트 컴포넌트)
-
 ```tsx
 'use client' // 클라이언트 컴포넌트 선언
-
 import { useState, useEffect } from 'react'
-
 export default function Counter() {
   const [count, setCount] = useState(0)
   const increment = () => setCount(count + 1)
-
   useEffect(() => {
     console.log('컴포넌트 마운트됨')
   }, [])
-
   return (
     <div>
       <h1 className="text-blue-600">{count}</h1>
@@ -108,25 +89,19 @@ export default function Counter() {
   )
 }
 ```
-
-**핵심 차이점:**
-
+핵심 차이점:
 - Vue: `ref().value`로 값 접근 → React: 직접 변수 사용
 - Vue: `@click` → React: `onClick` (camelCase)
 - Vue: `<template>` 분리 → React: JSX 반환
 - Vue: `<style scoped>` → React: Tailwind 또는 CSS Modules
-
 ### 3. 서버 컴포넌트 (Next.js 15의 새로운 개념)
-
-Vue에는 없는 Next.js만의 혁신적 기능입니다.
-
+Vue에는 없는 Next.js만의 혁신적 기능이다.
 ```tsx
 // 기본값: 서버 컴포넌트 (자동으로 서버에서 실행)
 export default async function PostList() {
   // 서버에서만 실행됨 (DB 직접 접근 가능!)
   const posts = await fetch('https://api.example.com/posts')
   const data = await posts.json()
-
   return (
     <div>
       {data.map(post => (
@@ -138,20 +113,15 @@ export default async function PostList() {
   )
 }
 ```
-
-**서버 컴포넌트의 장점:**
-
-- ✅ 번들 크기 0KB (JavaScript가 클라이언트로 전송 안됨)
-- ✅ 데이터베이스 직접 접근 가능
-- ✅ 민감한 API 키 사용 가능
-- ✅ 초기 로딩 속도 향상
-
-**언제 클라이언트 컴포넌트를 사용하나?**
-
+서버 컴포넌트의 장점:
+-  번들 크기 0KB (JavaScript가 클라이언트로 전송 안됨)
+-  데이터베이스 직접 접근 가능
+-  민감한 API 키 사용 가능
+-  초기 로딩 속도 향상
+언제 클라이언트 컴포넌트를 사용하나?
 - 이벤트 핸들러 필요 (`onClick`, `onChange` 등)
 - React Hooks 사용 (`useState`, `useEffect` 등)
 - 브라우저 전용 API (`window`, `localStorage` 등)
-
 ---
 
 ## 프로젝트 구조 이해하기
@@ -165,7 +135,7 @@ blog/
 ├── .next/                # Next.js 빌드 캐시 (Git 무시)
 ├── .vscode/              # VS Code 설정
 │   └── settings.json     # MDX 파일 연결 설정
-├── content/              # 📝 MDX 블로그 포스트 (중요!)
+├── content/              #  MDX 블로그 포스트 (중요!)
 │   ├── hello-world.mdx
 │   ├── react-hooks-guide.mdx
 │   └── ...
@@ -199,7 +169,7 @@ blog/
 
 #### 📁 `src/app/` - App Router (가장 중요!)
 
-Next.js 13+의 **파일 기반 라우팅** 시스템입니다.
+Next.js 13+의 파일 기반 라우팅 시스템이다.
 
 | 파일명 | 역할 | Vue/Nuxt 비교 |
 |--------|------|--------------|
@@ -209,7 +179,7 @@ Next.js 13+의 **파일 기반 라우팅** 시스템입니다.
 | `error.tsx` | 에러 UI | `error.vue` |
 | `not-found.tsx` | 404 페이지 | `error.vue` |
 
-**라우팅 예시:**
+라우팅 예시:
 
 ```
 src/app/
@@ -225,7 +195,7 @@ src/app/
         └── route.ts      → /api/hello (API 라우트)
 ```
 
-**Vue/Nuxt와 비교:**
+Vue/Nuxt와 비교:
 
 ```
 Nuxt 3: pages/posts/[slug].vue
@@ -234,7 +204,7 @@ Next.js 15: app/posts/[slug]/page.tsx
 
 #### 📁 `content/` - MDX 블로그 포스트
 
-Markdown + React 컴포넌트를 사용할 수 있는 블로그 포스트입니다.
+Markdown + React 컴포넌트를 사용할 수 있는 블로그 포스트이다.
 
 ```markdown
 ---
@@ -246,7 +216,7 @@ tags: ["React"]
 
 # React Hooks란?
 
-React 16.8에 도입된 새로운 기능입니다.
+React 16.8에 도입된 새로운 기능이다.
 
 ## useState 예제
 
@@ -255,7 +225,7 @@ const [count, setCount] = useState(0)
 \`\`\`
 ```
 
-**Contentlayer가 자동으로 처리:**
+Contentlayer가 자동으로 처리:
 
 1. MDX 파일 읽기
 2. Frontmatter 파싱
@@ -263,11 +233,8 @@ const [count, setCount] = useState(0)
 4. 빌드 시 정적 생성
 
 ---
-
 ## 설정 파일 분석
-
 ### 1. `package.json` - 프로젝트 메타데이터
-
 ```json
 {
   "name": "blog",
@@ -300,20 +267,15 @@ const [count, setCount] = useState(0)
   }
 }
 ```
-
-**주요 의존성 설명:**
-
-- **next**: Vue의 Nuxt와 동일한 역할 (SSR, 라우팅, 빌드)
-- **contentlayer2**: MDX 파일을 TypeScript 객체로 변환
-- **@tailwindcss/typography**: 블로그 포스트 스타일링
-- **rehype/remark**: MDX 처리 플러그인
-
+주요 의존성 설명:
+- next: Vue의 Nuxt와 동일한 역할 (SSR, 라우팅, 빌드)
+- contentlayer2: MDX 파일을 TypeScript 객체로 변환
+- @tailwindcss/typography: 블로그 포스트 스타일링
+- rehype/remark: MDX 처리 플러그인
 ### 2. `next.config.ts` - Next.js 설정 (핵심!)
-
 ```typescript
 import type { NextConfig } from "next";
 import { withContentlayer } from "next-contentlayer2";
-
 const nextConfig: NextConfig = {
   // GitHub Pages용 정적 빌드 (SSG)
   output: 'export',
@@ -335,22 +297,17 @@ const nextConfig: NextConfig = {
   // basePath: '/codemakim.github.io',
   // assetPrefix: '/codemakim.github.io',
 };
-
 // Contentlayer와 통합
 export default withContentlayer(nextConfig);
 ```
-
-**설정 옵션 설명:**
-
+설정 옵션 설명:
 | 옵션 | 의미 | 이유 |
 |------|------|------|
 | `output: 'export'` | 정적 HTML 생성 | GitHub Pages는 정적 사이트만 지원 |
 | `trailingSlash: true` | URL 끝에 `/` 추가 | `/posts/hello-world/` |
 | `images.unoptimized` | 이미지 최적화 비활성화 | 정적 호스팅에서 작동 안함 |
 | `experimental.mdxRs` | Rust 기반 MDX 컴파일러 | 빌드 속도 5-10배 향상 |
-
-**Vue/Nuxt와 비교:**
-
+Vue/Nuxt와 비교:
 ```javascript
 // nuxt.config.ts (Nuxt 3)
 export default defineNuxtConfig({
@@ -358,9 +315,7 @@ export default defineNuxtConfig({
   target: 'static',  // Next.js의 output: 'export'
 })
 ```
-
 ### 3. `contentlayer.config.ts` - MDX 블로그 설정
-
 ```typescript
 import { defineDocumentType, makeSource } from 'contentlayer2/source-files'
 import rehypeHighlight from 'rehype-highlight'
@@ -368,7 +323,6 @@ import rehypeSlug from 'rehype-slug'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
-
 // Post 문서 타입 정의 (TypeScript 타입 자동 생성)
 export const Post = defineDocumentType(() => ({
   name: 'Post',
@@ -412,7 +366,6 @@ export const Post = defineDocumentType(() => ({
     },
   },
 }))
-
 // Contentlayer 소스 설정
 export default makeSource({
   contentDirPath: './content',    // MDX 파일 위치
@@ -427,20 +380,16 @@ export default makeSource({
   },
 })
 ```
-
-**이 설정이 하는 일:**
-
-1. **타입 정의**: `content/hello-world.mdx` → TypeScript 객체로 변환
-2. **Frontmatter 파싱**: YAML 메타데이터를 객체로
-3. **MDX 변환**: Markdown + JSX → React 컴포넌트
-4. **플러그인 적용**:
+이 설정이 하는 일:
+1. 타입 정의: `content/hello-world.mdx` → TypeScript 객체로 변환
+2. Frontmatter 파싱: YAML 메타데이터를 객체로
+3. MDX 변환: Markdown + JSX → React 컴포넌트
+4. 플러그인 적용:
    - `remarkGfm`: GitHub 스타일 Markdown (테이블, 체크박스 등)
    - `remarkMath`: 수학 공식 `$E=mc^2$`
    - `rehypeHighlight`: 코드 블록 하이라이팅
    - `rehypeKatex`: 수학 공식 렌더링
-
-**자동 생성되는 타입:**
-
+자동 생성되는 타입:
 ```typescript
 // .contentlayer/generated/index.d.ts (자동 생성)
 export interface Post {
@@ -455,12 +404,9 @@ export interface Post {
   slug: string          // computed
   body: MDX
 }
-
 export const allPosts: Post[]  // 모든 포스트 배열
 ```
-
 ### 4. `tsconfig.json` - TypeScript 설정
-
 ```json
 {
   "compilerOptions": {
@@ -498,47 +444,36 @@ export const allPosts: Post[]  // 모든 포스트 배열
   "exclude": ["node_modules"]
 }
 ```
-
-**핵심 설정:**
-
-- **`strict: true`**: 타입 안정성 최대화
-- **`paths`**: 경로 별칭 (Vue의 `~` 또는 `@`와 동일)
-- **`jsx: "preserve"`**: JSX를 그대로 유지 (Next.js가 변환)
-
-**경로 별칭 사용 예:**
-
+핵심 설정:
+- `strict: true`: 타입 안정성 최대화
+- `paths`: 경로 별칭 (Vue의 `~` 또는 `@`와 동일)
+- `jsx: "preserve"`: JSX를 그대로 유지 (Next.js가 변환)
+경로 별칭 사용 예:
 ```typescript
-// ❌ 상대 경로 (지저분함)
+//  상대 경로 (지저분함)
 import Button from '../../../../components/Button'
-
-// ✅ 절대 경로 (깔끔!)
+//  절대 경로 (깔끔!)
 import Button from '@/components/Button'
 ```
-
 ### 5. `src/app/layout.tsx` - 루트 레이아웃
-
 ```typescript
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-
 // Google Fonts 로드 (최적화됨)
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
-
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
-
 // SEO 메타데이터 (정적)
 export const metadata: Metadata = {
   title: "개발 블로그",
-  description: "Next.js와 웹 개발에 관한 이야기들을 공유합니다",
+  description: "Next.js와 웹 개발에 관한 이야기들을 공유한다",
 };
-
 // 루트 레이아웃 (모든 페이지에 적용)
 export default function RootLayout({
   children,
@@ -556,9 +491,7 @@ export default function RootLayout({
   );
 }
 ```
-
-**Vue와 비교:**
-
+Vue와 비교:
 ```html
 <!-- Vue: layouts/default.vue -->
 <template>
@@ -569,28 +502,22 @@ export default function RootLayout({
   </div>
 </template>
 ```
-
-**핵심 개념:**
-
-- **`layout.tsx`**: 모든 페이지의 공통 레이아웃
-- **`metadata`**: SEO를 위한 메타 태그 (정적 또는 동적)
-- **`children`**: Vue의 `<slot>`과 동일
-
+핵심 개념:
+- `layout.tsx`: 모든 페이지의 공통 레이아웃
+- `metadata`: SEO를 위한 메타 태그 (정적 또는 동적)
+- `children`: Vue의 `<slot>`과 동일
 ### 6. `src/app/page.tsx` - 홈페이지
-
 ```typescript
 import Link from "next/link";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { allPosts } from "contentlayer/generated";  // 타입 안전!
-
 // 서버 컴포넌트 (기본값)
 export default function Home() {
   // 포스트 정렬 (최신순)
   const posts = allPosts.sort((a, b) => 
     new Date(b.date).getTime() - new Date(a.date).getTime()
   );
-
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
       <header className="bg-white dark:bg-gray-900 shadow-sm border-b dark:border-gray-800">
@@ -599,11 +526,10 @@ export default function Home() {
             개발 블로그
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Next.js와 웹 개발에 관한 이야기들을 공유합니다
+            Next.js와 웹 개발에 관한 이야기들을 공유한다
           </p>
         </div>
       </header>
-
       <main className="max-w-4xl mx-auto px-4 py-8">
         <div className="space-y-8">
           {posts.map((post) => (
@@ -651,22 +577,17 @@ export default function Home() {
   );
 }
 ```
-
-**핵심 포인트:**
-
-1. **서버 컴포넌트**: `'use client'`가 없으면 자동으로 서버에서 실행
-2. **Contentlayer 데이터**: `allPosts`는 타입 안전하게 자동 생성됨
-3. **Link 컴포넌트**: Next.js의 `<Link>`는 자동으로 prefetch (빠름!)
-4. **Tailwind CSS**: 유틸리티 클래스 (`className`)
-
-**Vue와 비교:**
-
+핵심 포인트:
+1. 서버 컴포넌트: `'use client'`가 없으면 자동으로 서버에서 실행
+2. Contentlayer 데이터: `allPosts`는 타입 안전하게 자동 생성됨
+3. Link 컴포넌트: Next.js의 `<Link>`는 자동으로 prefetch (빠름!)
+4. Tailwind CSS: 유틸리티 클래스 (`className`)
+Vue와 비교:
 ```html
 <!-- Vue: pages/index.vue -->
 <script setup>
 const posts = await queryContent('posts').sort({ date: -1 }).find()
 </script>
-
 <template>
   <div>
     <article v-for="post in posts" :key="post._id">
@@ -677,9 +598,7 @@ const posts = await queryContent('posts').sort({ date: -1 }).find()
   </div>
 </template>
 ```
-
 ### 7. `src/app/posts/[slug]/page.tsx` - 동적 라우트
-
 ```typescript
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -687,45 +606,37 @@ import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { allPosts } from "contentlayer/generated";
 import { MDXContent } from "./MDXContent";
-
 // params는 Promise (Next.js 15+)
 interface PageProps {
   params: Promise<{
     slug: string;
   }>;
 }
-
 // 정적 경로 생성 (빌드 타임에 모든 경로 생성)
 export async function generateStaticParams() {
   return allPosts.map((post) => ({
     slug: post.slug,
   }));
 }
-
 // 동적 메타데이터 (SEO)
 export async function generateMetadata({ params }: PageProps) {
   const { slug } = await params;
   const post = allPosts.find((post) => post.slug === slug);
-
   if (!post) {
     return {};
   }
-
   return {
     title: post.title,
     description: post.description,
   };
 }
-
 // 페이지 컴포넌트
 export default async function PostPage({ params }: PageProps) {
   const { slug } = await params;
   const post = allPosts.find((post) => post.slug === slug);
-
   if (!post) {
     notFound();  // 404 페이지로 이동
   }
-
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
       <header className="bg-white dark:bg-gray-900 shadow-sm border-b dark:border-gray-800">
@@ -763,7 +674,6 @@ export default async function PostPage({ params }: PageProps) {
           </div>
         </div>
       </header>
-
       <main className="max-w-4xl mx-auto px-4 py-8">
         <article className="prose dark:prose-invert max-w-none prose-lg">
           <MDXContent code={post.body.code} />
@@ -773,16 +683,12 @@ export default async function PostPage({ params }: PageProps) {
   );
 }
 ```
-
-**핵심 개념:**
-
-1. **`[slug]`**: 동적 라우트 (Vue의 `[slug].vue`와 동일)
-2. **`generateStaticParams()`**: 정적 경로 생성 (SSG)
-3. **`generateMetadata()`**: 동적 SEO 메타데이터
-4. **`notFound()`**: 404 페이지로 리다이렉트
-
-**Vue/Nuxt와 비교:**
-
+핵심 개념:
+1. `[slug]`: 동적 라우트 (Vue의 `[slug].vue`와 동일)
+2. `generateStaticParams()`: 정적 경로 생성 (SSG)
+3. `generateMetadata()`: 동적 SEO 메타데이터
+4. `notFound()`: 404 페이지로 리다이렉트
+Vue/Nuxt와 비교:
 ```html
 <!-- Nuxt: pages/posts/[slug].vue -->
 <script setup>
@@ -790,12 +696,10 @@ const route = useRoute()
 const { data: post } = await useAsyncData('post', () => 
   queryContent('posts').where({ slug: route.params.slug }).findOne()
 )
-
 if (!post.value) {
   throw createError({ statusCode: 404 })
 }
 </script>
-
 <template>
   <article>
     <h1>{{ post.title }}</h1>
@@ -803,44 +707,32 @@ if (!post.value) {
   </article>
 </template>
 ```
-
 ### 8. `src/app/posts/[slug]/MDXContent.tsx` - 클라이언트 컴포넌트
-
 ```typescript
 "use client";  // 클라이언트 컴포넌트 선언
-
 import { useMDXComponent } from "next-contentlayer2/hooks";
 import "katex/dist/katex.min.css";  // KaTeX 스타일
-
 interface MDXContentProps {
   code: string;
 }
-
 export function MDXContent({ code }: MDXContentProps) {
   const Component = useMDXComponent(code);
   return <Component />;
 }
 ```
-
-**왜 클라이언트 컴포넌트인가?**
-
+왜 클라이언트 컴포넌트인가?
 - `useMDXComponent`는 React Hook이므로 클라이언트에서 실행되어야 함
 - MDX 컴포넌트는 인터랙티브할 수 있음 (버튼, 폼 등)
-
 ### 9. `eslint.config.mjs` - ESLint 설정
-
 ```javascript
 import { dirname } from "path";
 import { fileURLToPath } from "url";
 import { FlatCompat } from "@eslint/eslintrc";
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
 const compat = new FlatCompat({
   baseDirectory: __dirname,
 });
-
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
@@ -853,31 +745,22 @@ const eslintConfig = [
     ],
   },
 ];
-
 export default eslintConfig;
 ```
-
-**설정 설명:**
-
+설정 설명:
 - `next/core-web-vitals`: Next.js 권장 규칙 + 성능 규칙
 - `next/typescript`: TypeScript 규칙
 - `ignores`: 린트 제외 폴더
-
 ### 10. `postcss.config.mjs` - PostCSS 설정
-
 ```javascript
 const config = {
   plugins: ["@tailwindcss/postcss"],
 };
-
 export default config;
 ```
-
-**Tailwind CSS 4의 새로운 방식:**
-
+Tailwind CSS 4의 새로운 방식:
 - Tailwind CSS 4는 PostCSS 플러그인으로 작동
 - `@import "tailwindcss";`로 CSS에서 직접 import
-
 ---
 
 ## 핵심 개념 및 패턴
@@ -886,24 +769,24 @@ export default config;
 
 | 특징 | 서버 컴포넌트 | 클라이언트 컴포넌트 |
 |------|--------------|-------------------|
-| **선언** | 기본값 (아무것도 안씀) | `"use client"` |
-| **실행 위치** | 서버 | 브라우저 |
-| **번들 크기** | 0KB | JavaScript 포함 |
-| **데이터 페칭** | async/await 가능 | useEffect 필요 |
-| **Hooks 사용** | ❌ 불가능 | ✅ 가능 |
-| **이벤트 핸들러** | ❌ 불가능 | ✅ 가능 |
-| **브라우저 API** | ❌ 불가능 | ✅ 가능 |
+| 선언 | 기본값 (아무것도 안씀) | `"use client"` |
+| 실행 위치 | 서버 | 브라우저 |
+| 번들 크기 | 0KB | JavaScript 포함 |
+| 데이터 페칭 | async/await 가능 | useEffect 필요 |
+| Hooks 사용 |  불가능 |  가능 |
+| 이벤트 핸들러 |  불가능 |  가능 |
+| 브라우저 API |  불가능 |  가능 |
 
-**사용 규칙:**
+사용 규칙:
 
 ```typescript
-// ✅ 서버 컴포넌트 (기본값)
+//  서버 컴포넌트 (기본값)
 export default async function PostList() {
   const posts = await fetch('...')  // 서버에서 실행
   return <div>{/* ... */}</div>
 }
 
-// ✅ 클라이언트 컴포넌트
+//  클라이언트 컴포넌트
 'use client'
 export default function Counter() {
   const [count, setCount] = useState(0)  // Hooks 사용
@@ -938,7 +821,7 @@ export default async function PostList() {
 }
 ```
 
-**장점:**
+장점:
 
 - 서버에서 데이터 페칭 → 클라이언트 번들 크기 감소
 - 초기 로딩 속도 향상 (HTML에 데이터 포함)
@@ -1011,7 +894,7 @@ export default function Counter() {
 }
 ```
 
-**핵심 차이:**
+핵심 차이:
 
 - Vue: `ref().value` → React: 직접 사용
 - Vue: 자동 반응성 → React: `setState` 호출 필요
@@ -1059,7 +942,7 @@ export default function MyComponent() {
 }
 ```
 
-**핵심:**
+핵심:
 
 - React는 `useEffect` 하나로 모든 생명주기 처리
 - 의존성 배열(`[]`)로 실행 시점 제어
@@ -1096,7 +979,7 @@ export default function ChildComponent({ title, onUpdate }: Props) {
 }
 ```
 
-**핵심 차이:**
+핵심 차이:
 
 - Vue: `props` + `emit` 분리 → React: 모두 `props`로 전달
 - Vue: `@event` → React: `onEvent` (콜백 함수)
@@ -1134,10 +1017,10 @@ date: "2025-01-15"
 
 # 제목
 
-일반 Markdown 텍스트입니다.
+일반 Markdown 텍스트이다.
 
 <CustomAlert type="warning">
-  이것은 React 컴포넌트입니다!
+  이것은 React 컴포넌트이다!
 </CustomAlert>
 
 \`\`\`tsx
@@ -1146,7 +1029,7 @@ const hello = 'world'
 \`\`\`
 ```
 
-**MDXContent에서 컴포넌트 제공:**
+MDXContent에서 컴포넌트 제공:
 
 ```typescript
 'use client'
@@ -1167,21 +1050,14 @@ export function MDXContent({ code }: { code: string }) {
 ```
 
 ---
-
 ## 실전 학습 로드맵
-
 ### 1주차: React 기초 마스터
-
-**목표:** Vue → React 사고방식 전환
-
+목표: Vue → React 사고방식 전환
 #### Day 1-2: JSX와 컴포넌트
-
-- ✅ JSX 문법 익히기
-- ✅ 함수 컴포넌트 작성
-- ✅ Props 전달 및 사용
-
-**실습:**
-
+-  JSX 문법 익히기
+-  함수 컴포넌트 작성
+-  Props 전달 및 사용
+실습:
 ```typescript
 // src/components/Button.tsx 생성
 interface ButtonProps {
@@ -1189,7 +1065,6 @@ interface ButtonProps {
   onClick: () => void
   variant?: 'primary' | 'secondary'
 }
-
 export default function Button({ label, onClick, variant = 'primary' }: ButtonProps) {
   const baseClass = "px-4 py-2 rounded"
   const variantClass = variant === 'primary' 
@@ -1203,19 +1078,14 @@ export default function Button({ label, onClick, variant = 'primary' }: ButtonPr
   )
 }
 ```
-
 #### Day 3-4: useState와 이벤트 처리
-
-- ✅ `useState` Hook 마스터
-- ✅ 이벤트 핸들러 작성
-- ✅ 폼 처리
-
-**실습:**
-
+-  `useState` Hook 마스터
+-  이벤트 핸들러 작성
+-  폼 처리
+실습:
 ```typescript
 'use client'
 import { useState } from 'react'
-
 export default function TodoList() {
   const [todos, setTodos] = useState<string[]>([])
   const [input, setInput] = useState('')
@@ -1242,19 +1112,14 @@ export default function TodoList() {
   )
 }
 ```
-
 #### Day 5-7: useEffect와 생명주기
-
-- ✅ `useEffect` Hook 이해
-- ✅ 데이터 페칭
-- ✅ 클린업 함수
-
-**실습:**
-
+-  `useEffect` Hook 이해
+-  데이터 페칭
+-  클린업 함수
+실습:
 ```typescript
 'use client'
 import { useState, useEffect } from 'react'
-
 export default function Timer() {
   const [seconds, setSeconds] = useState(0)
   
@@ -1269,32 +1134,24 @@ export default function Timer() {
   return <div>경과 시간: {seconds}초</div>
 }
 ```
-
 ### 2주차: Next.js 핵심 개념
-
-**목표:** App Router와 서버 컴포넌트 이해
-
+목표: App Router와 서버 컴포넌트 이해
 #### Day 8-10: App Router와 라우팅
-
-- ✅ 파일 기반 라우팅
-- ✅ 동적 라우트
-- ✅ 레이아웃과 템플릿
-
-**실습:**
-
+-  파일 기반 라우팅
+-  동적 라우트
+-  레이아웃과 템플릿
+실습:
 ```bash
 # 새 페이지 생성
 touch src/app/about/page.tsx
 touch src/app/blog/page.tsx
 touch src/app/blog/[slug]/page.tsx
 ```
-
 ```typescript
 // src/app/blog/[slug]/page.tsx
 interface PageProps {
   params: Promise<{ slug: string }>
 }
-
 export default async function BlogPost({ params }: PageProps) {
   const { slug } = await params
   
@@ -1305,15 +1162,11 @@ export default async function BlogPost({ params }: PageProps) {
   )
 }
 ```
-
 #### Day 11-12: 서버 컴포넌트와 데이터 페칭
-
-- ✅ 서버 vs 클라이언트 컴포넌트 구분
-- ✅ async/await로 데이터 페칭
-- ✅ 캐싱 전략
-
-**실습:**
-
+-  서버 vs 클라이언트 컴포넌트 구분
+-  async/await로 데이터 페칭
+-  캐싱 전략
+실습:
 ```typescript
 // 서버 컴포넌트
 export default async function ProductList() {
@@ -1331,15 +1184,11 @@ export default async function ProductList() {
   )
 }
 ```
-
 #### Day 13-14: 메타데이터와 SEO
-
-- ✅ 정적/동적 메타데이터
-- ✅ Open Graph
-- ✅ 구조화된 데이터
-
-**실습:**
-
+-  정적/동적 메타데이터
+-  Open Graph
+-  구조화된 데이터
+실습:
 ```typescript
 export const metadata = {
   title: '상품 목록',
@@ -1351,29 +1200,21 @@ export const metadata = {
   },
 }
 ```
-
 ### 3주차: 고급 패턴과 최적화
-
-**목표:** 실전 프로젝트 수준의 코드 작성
-
+목표: 실전 프로젝트 수준의 코드 작성
 #### Day 15-17: Context API와 전역 상태
-
-- ✅ React Context 사용
-- ✅ 전역 상태 관리
-- ✅ Provider 패턴
-
-**실습:**
-
+-  React Context 사용
+-  전역 상태 관리
+-  Provider 패턴
+실습:
 ```typescript
 // src/contexts/ThemeContext.tsx
 'use client'
 import { createContext, useContext, useState } from 'react'
-
 const ThemeContext = createContext<{
   theme: 'light' | 'dark'
   toggleTheme: () => void
 }>({ theme: 'light', toggleTheme: () => {} })
-
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
   
@@ -1387,23 +1228,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     </ThemeContext.Provider>
   )
 }
-
 export const useTheme = () => useContext(ThemeContext)
 ```
-
 #### Day 18-19: 성능 최적화
-
-- ✅ `useMemo`와 `useCallback`
-- ✅ `React.memo`로 리렌더링 방지
-- ✅ 이미지 최적화
-
-**실습:**
-
+-  `useMemo`와 `useCallback`
+-  `React.memo`로 리렌더링 방지
+-  이미지 최적화
+실습:
 ```typescript
 'use client'
 import { useMemo, useCallback } from 'react'
 import Image from 'next/image'
-
 export default function ExpensiveComponent({ data }: { data: any[] }) {
   // 비싼 계산 메모이제이션
   const sortedData = useMemo(() => {
@@ -1429,19 +1264,14 @@ export default function ExpensiveComponent({ data }: { data: any[] }) {
   )
 }
 ```
-
 #### Day 20-21: 에러 처리와 로딩 상태
-
-- ✅ Error Boundary
-- ✅ Suspense와 로딩
-- ✅ 스트리밍 SSR
-
-**실습:**
-
+-  Error Boundary
+-  Suspense와 로딩
+-  스트리밍 SSR
+실습:
 ```typescript
 // src/app/posts/error.tsx
 'use client'
-
 export default function Error({
   error,
   reset,
@@ -1451,40 +1281,38 @@ export default function Error({
 }) {
   return (
     <div>
-      <h2>에러가 발생했습니다!</h2>
+      <h2>에러가 발생했다!</h2>
       <p>{error.message}</p>
       <button onClick={reset}>다시 시도</button>
     </div>
   )
 }
-
 // src/app/posts/loading.tsx
 export default function Loading() {
   return <div>로딩 중...</div>
 }
 ```
-
 ---
 
 ## 🚨 실무 필수: Suspense와 정적 빌드 (GitHub Pages)
 
 ### 문제 상황
 
-Next.js에서 `useSearchParams`를 사용할 때 정적 빌드(`output: 'export'`)를 하면 다음과 같은 에러가 발생합니다:
+Next.js에서 `useSearchParams`를 사용할 때 정적 빌드(`output: 'export'`)를 하면 다음과 같은 에러가 발생한다:
 
 ```bash
 ⨯ useSearchParams() should be wrapped in a suspense boundary
 Error occurred prerendering page "/"
 ```
 
-**왜 발생하나요?**
+왜 발생하나요?
 
 - `useSearchParams`는 클라이언트에서 URL을 읽는 Hook
 - 정적 빌드 시에는 서버에서 미리 렌더링 시도
 - URL 정보는 클라이언트에서만 알 수 있음
 - → Suspense로 감싸서 "이 부분은 클라이언트에서 처리할게요"라고 알려줘야 함
 
-### ❌ 잘못된 방법
+###  잘못된 방법
 
 ```tsx
 // src/app/page.tsx
@@ -1493,19 +1321,19 @@ Error occurred prerendering page "/"
 import { useSearchParams } from "next/navigation";
 
 export default function Home() {
-  const searchParams = useSearchParams(); // ⚠️ 빌드 에러!
+  const searchParams = useSearchParams(); //  빌드 에러!
   const tag = searchParams.get("tag");
   
   return <div>...</div>;
 }
 ```
 
-**문제점:**
+문제점:
 
 - 정적 빌드 시 에러 발생
 - GitHub Pages 배포 실패
 
-### ✅ 올바른 방법 1: Suspense 사용 (권장)
+###  올바른 방법 1: Suspense 사용 (권장)
 
 ```tsx
 // src/app/page.tsx (서버 컴포넌트)
@@ -1536,7 +1364,7 @@ export default function Home() {
 import { useSearchParams, useRouter } from "next/navigation";
 
 export default function HomeContent() {
-  const searchParams = useSearchParams(); // ✅ Suspense 안에서 사용
+  const searchParams = useSearchParams(); //  Suspense 안에서 사용
   const router = useRouter();
   const selectedTag = searchParams.get("tag");
 
@@ -1569,15 +1397,15 @@ export default function HomeContent() {
 }
 ```
 
-**장점:**
+장점:
 
-- ✅ Next.js 15 권장 패턴
-- ✅ 정적 빌드 성공
-- ✅ 점진적 렌더링 (헤더 먼저 → 컨텐츠 나중에)
-- ✅ 로딩 상태 표시 가능
-- ✅ SEO 친화적
+-  Next.js 15 권장 패턴
+-  정적 빌드 성공
+-  점진적 렌더링 (헤더 먼저 → 컨텐츠 나중에)
+-  로딩 상태 표시 가능
+-  SEO 친화적
 
-### ✅ 올바른 방법 2: 글래스모피즘 스타일 적용
+###  올바른 방법 2: 글래스모피즘 스타일 적용
 
 ```tsx
 <Suspense
@@ -1595,7 +1423,7 @@ export default function HomeContent() {
 </Suspense>
 ```
 
-**세련된 로딩 UI:**
+세련된 로딩 UI:
 
 - 반투명 유리 효과
 - 다크모드 지원
@@ -1603,7 +1431,7 @@ export default function HomeContent() {
 
 ### Vue와 비교
 
-**Vue 3 (Composition API):**
+Vue 3 (Composition API):
 
 ```html
 <template>
@@ -1632,7 +1460,7 @@ const tag = computed(() => route.query.tag);
 </script>
 ```
 
-**차이점:**
+차이점:
 
 | 항목 | Vue 3 | Next.js 15 |
 |------|-------|------------|
@@ -1641,12 +1469,12 @@ const tag = computed(() => route.query.tag);
 | 클라이언트 표시 | 자동 | `"use client"` 필요 |
 | 정적 빌드 | 문제 없음 | Suspense 필수 |
 
-### 실무 팁 💡
+### 실무 팁 
 
-**1. Suspense 경계 설정**
+1. Suspense 경계 설정
 
 ```tsx
-// ✅ 좋은 예: 적절한 단위로 분리
+//  좋은 예: 적절한 단위로 분리
 <Suspense fallback={<FilterLoading />}>
   <FilterSection />
 </Suspense>
@@ -1657,16 +1485,16 @@ const tag = computed(() => route.query.tag);
 ```
 
 ```tsx
-// ❌ 나쁜 예: 너무 큰 단위
+//  나쁜 예: 너무 큰 단위
 <Suspense fallback={<div>로딩 중...</div>}>
   <EntireApp /> {/* 전체가 로딩 상태 */}
 </Suspense>
 ```
 
-**2. 폴백 UI는 실제 컨텐츠와 비슷한 크기로**
+2. 폴백 UI는 실제 컨텐츠와 비슷한 크기로
 
 ```tsx
-// ✅ 레이아웃 시프트 방지
+//  레이아웃 시프트 방지
 <Suspense fallback={
   <div className="h-96 animate-pulse bg-gray-200">
     {/* 실제 컨텐츠와 비슷한 높이 */}
@@ -1676,7 +1504,7 @@ const tag = computed(() => route.query.tag);
 </Suspense>
 ```
 
-**3. 중첩된 Suspense 활용**
+3. 중첩된 Suspense 활용
 
 ```tsx
 <Suspense fallback={<PageLoading />}>
@@ -1694,7 +1522,7 @@ const tag = computed(() => route.query.tag);
 
 ### 디버깅 팁 🔧
 
-**빌드 에러 확인:**
+빌드 에러 확인:
 
 ```bash
 # 1. Contentlayer 빌드
@@ -1707,36 +1535,36 @@ npm run build
 # "missing-suspense-with-csr-bailout" → Suspense 필요!
 ```
 
-**개발 서버에서는 정상인데 빌드 시 에러?**
+개발 서버에서는 정상인데 빌드 시 에러?
 
 → `useSearchParams`, `usePathname`, `useRouter` 등 클라이언트 Hook을 Suspense로 감싸세요!
 
 ### 정리
 
-**핵심 원칙:**
+핵심 원칙:
 
-1. **클라이언트 Hook (useSearchParams 등) 사용 시**
+1. 클라이언트 Hook (useSearchParams 등) 사용 시
    - Suspense로 감싸기
    - 컴포넌트 분리하기
 
-2. **정적 빌드 (export) 시**
+2. 정적 빌드 (export) 시
    - 서버에서 불가능한 작업은 Suspense 내부로
    - 폴백 UI 제공
 
-3. **사용자 경험**
+3. 사용자 경험
    - 로딩 상태 명확히 표시
    - 점진적 렌더링 활용
 
-**체크리스트:**
+체크리스트:
 
-- ✅ `useSearchParams` 사용 → Suspense 체크
-- ✅ 빌드 에러 → 에러 메시지 읽고 Suspense 추가
-- ✅ 로딩 UI → 실제 컨텐츠와 비슷한 크기
-- ✅ 테스트 → `npm run build`로 정적 빌드 확인
+-  `useSearchParams` 사용 → Suspense 체크
+-  빌드 에러 → 에러 메시지 읽고 Suspense 추가
+-  로딩 UI → 실제 컨텐츠와 비슷한 크기
+-  테스트 → `npm run build`로 정적 빌드 확인
 
 ### 4주차: 실전 프로젝트
 
-**목표:** 완전한 기능의 블로그 확장
+목표: 완전한 기능의 블로그 확장
 
 #### Day 22-24: 검색 기능 추가
 
@@ -1805,29 +1633,21 @@ export default function Comments() {
 ```
 
 ---
-
 ## 추가 학습 자료
-
 ### 공식 문서
-
 - [Next.js 공식 문서](https://nextjs.org/docs)
 - [React 공식 문서](https://react.dev)
 - [Contentlayer 문서](https://contentlayer.dev)
-
 ### 유용한 도구
-
 - [React DevTools](https://react.dev/learn/react-developer-tools)
 - [Next.js DevTools](https://nextjs.org/docs/app/building-your-application/optimizing)
-
 ### 연습 프로젝트 아이디어
-
-1. ✅ 블로그 검색 기능
-2. ✅ 태그 기반 필터링
-3. ✅ 다크모드 토글
-4. ✅ 조회수 카운터
-5. ✅ RSS 피드 생성
-6. ✅ 관련 포스트 추천
-
+1.  블로그 검색 기능
+2.  태그 기반 필터링
+3.  다크모드 토글
+4.  조회수 카운터
+5.  RSS 피드 생성
+6.  관련 포스트 추천
 ---
 
 ## 마무리
@@ -1845,8 +1665,8 @@ export default function Comments() {
 
 ### 다음 단계
 
-1. **상태 관리 라이브러리**: Zustand, Jotai
-2. **폼 라이브러리**: React Hook Form
-3. **데이터 페칭**: TanStack Query (React Query)
-4. **테스팅**: Jest + React Testing Library
-5. **스타일링**: CSS Modules, Styled Components
+1. 상태 관리 라이브러리: Zustand, Jotai
+2. 폼 라이브러리: React Hook Form
+3. 데이터 페칭: TanStack Query (React Query)
+4. 테스팅: Jest + React Testing Library
+5. 스타일링: CSS Modules, Styled Components

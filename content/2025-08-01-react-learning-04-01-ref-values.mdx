@@ -1,0 +1,346 @@
+---
+title: "[React 기초 4-1/9] Ref로 값 참조하기"
+date: "2025-08-01"
+description: "리렌더링 없이 값을 기억하기 위한 useRef 사용법"
+tags: ["React", "학습", "Ref", "초급", "프론트엔드"]
+series: "React 기초"
+seriesOrder: 27
+---
+
+# Ref로 값 참조하기
+
+## useRef란 무엇인가?
+
+컴포넌트가 일부 정보를 "기억"해야 하지만, 그 정보가 변경될 때 **새로운 렌더링을 트리거하고 싶지 않을 때** `useRef` Hook을 사용한다.
+
+### State와의 차이점
+
+State는 변경되면 컴포넌트를 리렌더링한다. 하지만 때로는 리렌더링 없이 값을 저장해야 할 때가 있다. 예를 들어:
+
+- `setInterval`이나 `setTimeout`의 ID를 저장
+- DOM 요소의 참조를 저장
+- 렌더링에 필요하지 않은 다른 값들
+
+이럴 때 `useRef`를 사용한다.
+
+### 기본 사용법
+
+```jsx
+import { useRef } from 'react';
+
+function MyComponent() {
+  const ref = useRef(0);
+  
+  // ref.current로 접근
+  console.log(ref.current); // 0
+}
+```
+
+`useRef`는 다음과 같은 객체를 반환한다:
+
+```javascript
+{
+  current: 0  // 전달한 초기값
+}
+```
+
+`ref.current` 프로퍼티로 현재 값에 접근하고 수정할 수 있다. 이 값은 React가 추적하지 않으므로 변경해도 리렌더링이 발생하지 않는다.
+
+### State vs Ref 비교
+
+| 특징 | useRef | useState |
+|------|--------|----------|
+| **반환값** | `{ current: value }` | `[value, setValue]` |
+| **변경 시 리렌더링** | 안 함 | 함 |
+| **변경 가능 (Mutable)** | 가능 (`ref.current` 직접 수정) | 불가 (setter 함수 사용) |
+| **렌더링 중 읽기/쓰기** | 불가 | 가능 (읽기만) |
+
+### 예제: 스톱워치 (ref와 state를 함께 사용)
+
+Ref의 실용적인 사용 예제를 살펴본다. 스톱워치는 ref와 state를 **함께** 사용하는 좋은 예제다.
+
+```jsx
+import { useState, useRef } from 'react';
+
+export default function Stopwatch() {
+  const [startTime, setStartTime] = useState(null);
+  const [now, setNow] = useState(null);
+  const intervalRef = useRef(null);
+
+  function handleStart() {
+    setStartTime(Date.now());
+    setNow(Date.now());
+
+    clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(() => {
+      setNow(Date.now());  // 10ms마다 state 업데이트 -> 리렌더링 발생
+    }, 10);
+  }
+
+  function handleStop() {
+    clearInterval(intervalRef.current);
+  }
+
+  let secondsPassed = 0;
+  if (startTime != null && now != null) {
+    secondsPassed = (now - startTime) / 1000;
+  }
+
+  return (
+    <>
+      <h1>Time passed: {secondsPassed.toFixed(3)}</h1>
+      <button onClick={handleStart}>Start</button>
+      <button onClick={handleStop}>Stop</button>
+    </>
+  );
+}
+```
+
+**중요: 이 스톱워치는 리렌더링이 발생한다**
+
+질문: "경과 시간이 화면에 업데이트되는데, 리렌더링이 발생하는 것 아닌가?"
+답: **맞다!** 리렌더링이 발생한다. 하지만 이것이 **자연스럽고 올바른 동작**이다.
+
+**왜 리렌더링이 발생하나?**
+
+- `setInterval`이 10ms마다 `setNow(Date.now())`를 호출한다
+- `now`는 **state**이므로 변경되면 리렌더링이 발생한다
+- 리렌더링이 발생해야 화면의 `secondsPassed`가 업데이트된다
+
+**그렇다면 ref는 왜 사용하나?**
+
+```jsx
+const intervalRef = useRef(null);  // interval ID를 ref에 저장
+
+intervalRef.current = setInterval(() => {
+  setNow(Date.now());
+}, 10);
+```
+
+- `setInterval`은 ID(숫자)를 반환한다 (예: `123`)
+- 이 ID는 나중에 `clearInterval(123)`로 타이머를 중지할 때 필요하다
+- **하지만 이 ID는 화면에 표시할 필요가 없다**
+- ID가 변경되어도 리렌더링이 필요하지 않다
+- 그래서 ref에 저장한다
+
+**만약 intervalId를 state로 저장하면?**
+
+```jsx
+const [intervalId, setIntervalId] = useState(null);  // 나쁜 방법
+
+function handleStart() {
+  const id = setInterval(() => {
+    setNow(Date.now());
+  }, 10);
+  setIntervalId(id);  // 불필요한 리렌더링 발생
+}
+```
+
+문제:
+- `setIntervalId(id)`를 호출하면 리렌더링이 발생한다
+- 하지만 interval ID는 화면에 표시되지 않으므로 리렌더링이 불필요하다
+
+**정리:**
+
+- **ref 사용**: interval ID (화면에 안 보임, 리렌더링 불필요)
+- **state 사용**: `now` (화면에 보임, 리렌더링 필요)
+
+이것이 ref와 state를 함께 사용하는 올바른 패턴이다.
+
+### Ref를 언제 사용하나?
+
+일반적으로 React "밖"으로 나가서 외부 API와 통신할 때 ref를 사용한다.
+
+**ref를 사용하기 좋은 경우:**
+
+- `setTimeout`이나 `setInterval` ID 저장
+- DOM 요소 참조 저장 (다음 챕터에서 다룸)
+- JSX 계산에 필요하지 않은 다른 객체 저장
+
+**ref를 사용하면 안 되는 경우:**
+
+- 렌더링에 필요한 정보 저장 (이건 state를 사용해야 함)
+- 화면에 표시해야 하는 값 저장 (이것도 state를 사용해야 함)
+
+### Ref 사용 시 주의사항
+
+#### 1. Ref를 탈출구로 취급한다
+
+Ref는 React의 일반적인 데이터 흐름에서 "탈출"하는 것이다. 꼭 필요할 때만 사용한다.
+
+```jsx
+// 좋은 예: 외부 시스템이나 브라우저 API
+const intervalRef = useRef(null);
+const videoRef = useRef(null);
+
+// 나쁜 예: React가 관리해야 할 정보
+const dataRef = useRef([]);  // 이건 state를 사용해야 한다
+```
+
+#### 2. 렌더링 중에 ref.current를 읽거나 쓰지 않는다
+
+렌더링 중에는 ref.current를 읽거나 쓰면 안 된다. React는 렌더링 중에 컴포넌트가 순수하게 동작하길 기대하는데, ref를 변경하면 이 규칙을 위반한다.
+
+```jsx
+// 나쁜 예: 렌더링 중 ref 변경
+function MyComponent() {
+  const myRef = useRef(0);
+  myRef.current = myRef.current + 1;  // 예측 불가능한 동작
+  return <h1>{myRef.current}</h1>;
+}
+
+// 좋은 예: 이벤트 핸들러나 Effect에서 사용
+function MyComponent() {
+  const myRef = useRef(0);
+  
+  function handleClick() {
+    myRef.current = myRef.current + 1;
+    console.log(myRef.current);
+  }
+  
+  return <button onClick={handleClick}>Click me</button>;
+}
+```
+
+**왜 렌더링 중에 ref를 변경하면 안 되나?**
+
+렌더링 함수는 순수해야 한다. 즉, 같은 입력에 대해 항상 같은 출력을 내놓아야 한다. ref를 변경하면 부작용이 발생하여 예측 불가능한 동작을 일으킨다.
+
+이벤트 핸들러나 Effect는 순수할 필요가 없으므로, 여기서 ref를 변경하는 것은 괜찮다.
+
+### Ref 내부 동작 원리
+
+Ref가 어떻게 작동하는지 내부 구현을 간단히 살펴본다.
+
+**React가 내부적으로 하는 일:**
+
+```jsx
+function useRef(initialValue) {
+  const [ref, unused] = useState({ current: initialValue });
+  return ref;
+}
+```
+
+실제로 `useRef`는 `useState` 위에 구축된다. 첫 번째 렌더링에서 `{ current: initialValue }` 객체를 생성하고, 이후 렌더링에서는 같은 객체를 반환한다.
+
+차이점은:
+- `useState`는 setter 함수를 제공하고 값이 변경되면 리렌더링한다
+- `useRef`는 항상 같은 객체를 반환하고, `current`를 변경해도 리렌더링하지 않는다
+
+### 예제: 클릭 카운터
+
+Ref가 리렌더링을 일으키지 않는다는 것을 보여주는 간단한 예제다.
+
+```jsx
+import { useRef } from 'react';
+
+export default function Counter() {
+  let countRef = useRef(0);
+
+  function handleClick() {
+    // ref.current를 증가시키지만 리렌더링은 안 됨
+    countRef.current = countRef.current + 1;
+    alert('You clicked ' + countRef.current + ' times!');
+  }
+
+  return (
+    <button onClick={handleClick}>
+      Click me!
+    </button>
+  );
+}
+```
+
+**동작 확인:**
+
+버튼을 여러 번 클릭하면:
+- `countRef.current` 값은 계속 증가한다
+- 하지만 화면은 변하지 않는다 (리렌더링이 안 됨)
+- Alert는 증가된 값을 보여준다
+
+이것이 ref와 state의 핵심 차이다.
+
+### 실무 활용 예제: 이전 값 기억하기
+
+Ref를 사용하면 이전 렌더링의 값을 기억할 수 있다.
+
+```jsx
+import { useState, useRef, useEffect } from 'react';
+
+function Counter() {
+  const [count, setCount] = useState(0);
+  const prevCountRef = useRef();
+
+  useEffect(() => {
+    prevCountRef.current = count;
+  });
+
+  const prevCount = prevCountRef.current;
+
+  return (
+    <div>
+      <h1>Now: {count}, before: {prevCount}</h1>
+      <button onClick={() => setCount(count + 1)}>Increment</button>
+    </div>
+  );
+}
+```
+
+**동작 원리:**
+
+1. 첫 렌더링: `prevCount`는 `undefined` (ref의 초기값)
+2. 렌더링 후 Effect 실행: `prevCountRef.current = 0`
+3. 버튼 클릭으로 `count`가 1이 됨
+4. 렌더링: `prevCount`는 `0` (이전 값), `count`는 `1` (현재 값)
+5. 렌더링 후 Effect 실행: `prevCountRef.current = 1`
+
+### Vue와 비교
+
+Vue를 사용해본 경험이 있다면, React의 `useRef`와 Vue의 `ref()`가 완전히 다르다는 점에 주의해야 한다.
+
+```html
+<!-- Vue: ref()는 반응형 -->
+<script setup>
+import { ref } from 'vue'
+
+const count = ref(0)
+
+function increment() {
+  count.value++  // 자동으로 리렌더링됨
+}
+</script>
+
+<template>
+  <button @click="increment">{{ count }}</button>
+</template>
+```
+
+```jsx
+// React: useRef는 비반응형
+import { useRef } from 'react'
+
+function Counter() {
+  const countRef = useRef(0)
+  
+  function increment() {
+    countRef.current++  // 리렌더링 안 됨
+  }
+  
+  return <button onClick={increment}>Click</button>
+}
+```
+
+**핵심 차이:**
+
+- **Vue의 `ref()`**: 반응형이다. 값이 변경되면 자동으로 화면이 업데이트된다.
+- **React의 `useRef`**: 비반응형이다. 값이 변경되어도 화면이 업데이트되지 않는다.
+
+React에서 화면 업데이트가 필요하면 `useState`를 사용해야 한다.
+
+## 정리
+
+- `useRef`는 리렌더링을 트리거하지 않는 값을 저장한다
+- `ref.current` 프로퍼티로 값에 접근하고 수정할 수 있다
+- 외부 시스템과 통신할 때 유용하다 (타이머 ID, DOM 요소 등)
+- 렌더링 중에는 ref를 읽거나 쓰지 않는다
+- Vue의 `ref()`와는 완전히 다른 개념이다

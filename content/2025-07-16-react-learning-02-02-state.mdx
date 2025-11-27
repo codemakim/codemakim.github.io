@@ -1,7 +1,7 @@
 ---
-title: "📚 [React 기초 2-2/8] State: 컴포넌트의 메모리"
+title: "[React 기초 2-2/8] State: 컴포넌트의 메모리"
 date: "2025-07-16"
-description: "useState Hook을 사용해 컴포넌트에 상태를 추가하는 방법을 학습합니다"
+description: "useState Hook을 사용해 컴포넌트에 상태를 추가하는 방법을 학습한다"
 tags: ["React", "학습", "Vue", "초급", "프론트엔드"]
 series: "React 기초"
 seriesOrder: 12
@@ -9,28 +9,19 @@ seriesOrder: 12
 
 # React 학습 가이드 - State: 컴포넌트의 메모리
 
-> React 공식 문서를 기반으로 한 학습 자료  
-> 원문: [Adding Interactivity - React](https://react.dev/learn/adding-interactivity)
 
 ---
-
 ## State: 컴포넌트의 메모리
-
 ### 일반 변수로는 충분하지 않은 이유
-
-먼저 일반 변수로 값을 변경하려고 하면 어떤 문제가 생기는지 살펴보겠습니다.
-
+먼저 일반 변수로 값을 변경하려고 하면 어떤 문제가 생기는지 살펴보겠다.
 ```jsx
-// ❌ 작동하지 않음!
+//  작동하지 않음!
 import { sculptureList } from './data.js';
-
 export default function Gallery() {
   let index = 0;  // 일반 변수
-
   function handleClick() {
     index = index + 1;  // 변경되지만 리렌더링 안됨!
   }
-
   let sculpture = sculptureList[index];
   return (
     <>
@@ -41,37 +32,25 @@ export default function Gallery() {
   );
 }
 ```
-
-**작동하지 않는 이유:**
-
-1. **로컬 변수는 렌더링 간에 유지되지 않음** - React가 컴포넌트를 두 번째로 렌더링할 때 처음부터 다시 렌더링함 (변수 변경 무시)
-2. **로컬 변수 변경은 렌더링을 트리거하지 않음** - React는 새 데이터로 컴포넌트를 다시 렌더링해야 한다는 것을 모름
-
+작동하지 않는 이유:
+1. 로컬 변수는 렌더링 간에 유지되지 않음 - React가 컴포넌트를 두 번째로 렌더링할 때 처음부터 다시 렌더링함 (변수 변경 무시)
+2. 로컬 변수 변경은 렌더링을 트리거하지 않음 - React는 새 데이터로 컴포넌트를 다시 렌더링해야 한다는 것을 모름
 ### 컴포넌트를 업데이트하려면
-
-1. 렌더링 간에 데이터 **유지**
-2. 새 데이터로 컴포넌트 **리렌더링** 트리거
-
-`useState` Hook이 이 두 가지를 제공합니다:
-
-- **State 변수**: 렌더링 간 데이터 유지
-- **State setter 함수**: 변수를 업데이트하고 리렌더링 트리거
-
+1. 렌더링 간에 데이터 유지
+2. 새 데이터로 컴포넌트 리렌더링 트리거
+`useState` Hook이 이 두 가지를 제공한다:
+- State 변수: 렌더링 간 데이터 유지
+- State setter 함수: 변수를 업데이트하고 리렌더링 트리거
 ### useState Hook 사용하기
-
-State를 사용하면 값이 제대로 유지되고 변경 시 리렌더링이 트리거됩니다.
-
+State를 사용하면 값이 제대로 유지되고 변경 시 리렌더링이 트리거된다.
 ```jsx
 import { useState } from 'react';
 import { sculptureList } from './data.js';
-
 export default function Gallery() {
   const [index, setIndex] = useState(0);  // State!
-
   function handleClick() {
     setIndex(index + 1);  // State 업데이트 → 리렌더링!
   }
-
   let sculpture = sculptureList[index];
   return (
     <>
@@ -82,71 +61,51 @@ export default function Gallery() {
   );
 }
 ```
-
 ### useState 해부하기
-
-useState의 각 부분이 무엇을 의미하는지 살펴보겠습니다.
-
+useState의 각 부분이 무엇을 의미하는지 살펴보겠다.
 ```jsx
 const [index, setIndex] = useState(0);
 ```
-
-**구성 요소:**
-
+구성 요소:
 - `index`: 현재 state 값
 - `setIndex`: state를 업데이트하는 함수
 - `useState(0)`: 초기값은 `0`
-
-**명명 규칙:**
-
+명명 규칙:
 ```jsx
 const [something, setSomething] = useState(initialValue);
 ```
-
 ### Hook이란?
-
-**Hook**은 `use`로 시작하는 특별한 함수입니다.
-
-**Hook의 규칙:**
-
-1. **컴포넌트 최상위에서만 호출** (조건문, 반복문 내부 ❌)
-2. **React 함수 컴포넌트 또는 커스텀 Hook에서만 호출**
-
+Hook은 `use`로 시작하는 특별한 함수이다.
+Hook의 규칙:
+1. 컴포넌트 최상위에서만 호출 (조건문, 반복문 내부 )
+2. React 함수 컴포넌트 또는 커스텀 Hook에서만 호출
 ```jsx
-// ✅ 올바른 사용
+//  올바른 사용
 function MyComponent() {
   const [state, setState] = useState(0);
   // ...
 }
-
-// ❌ 잘못된 사용
+//  잘못된 사용
 function MyComponent() {
   if (condition) {
-    const [state, setState] = useState(0);  // 조건부 Hook ❌
+    const [state, setState] = useState(0);  // 조건부 Hook 
   }
 }
 ```
-
 ### 여러 State 변수 사용하기
-
-한 컴포넌트에서 여러 개의 state를 사용할 수 있습니다.
-
+한 컴포넌트에서 여러 개의 state를 사용할 수 있다.
 ```jsx
 import { useState } from 'react';
 import { sculptureList } from './data.js';
-
 export default function Gallery() {
   const [index, setIndex] = useState(0);
   const [showMore, setShowMore] = useState(false);
-
   function handleNextClick() {
     setIndex(index + 1);
   }
-
   function handleMoreClick() {
     setShowMore(!showMore);
   }
-
   let sculpture = sculptureList[index];
   return (
     <>
@@ -161,18 +120,12 @@ export default function Gallery() {
   );
 }
 ```
-
-**State 변수가 서로 관련 없으면 분리하는 것이 좋습니다.**
-
-### State는 격리되고 비공개입니다
-
-State는 **컴포넌트 인스턴스마다 로컬**입니다.
-
+State 변수가 서로 관련 없으면 분리하는 것이 좋다.
+### State는 격리되고 비공개이다
+State는 컴포넌트 인스턴스마다 로컬이다.
 같은 컴포넌트를 여러 번 렌더링해도 각각 독립적인 state를 가집니다.
-
 ```jsx
 import { useState } from 'react';
-
 function Counter() {
   const [count, setCount] = useState(0);
   
@@ -182,7 +135,6 @@ function Counter() {
     </button>
   );
 }
-
 export default function App() {
   return (
     <div>
@@ -192,32 +144,24 @@ export default function App() {
   );
 }
 ```
-
-**각 `Counter`는 자신만의 `count` state를 가집니다.**
-
+각 `Counter`는 자신만의 `count` state를 가집니다.
 ### Vue와 비교
-
 ```html
 <!-- Vue: ref() -->
 <script setup>
 import { ref } from 'vue'
-
 const count = ref(0)
-
 function increment() {
   count.value++
 }
 </script>
-
 <template>
   <button @click="increment">{{ count }}</button>
 </template>
 ```
-
 ```jsx
 // React: useState()
 import { useState } from 'react'
-
 function Counter() {
   const [count, setCount] = useState(0)
   
@@ -228,8 +172,6 @@ function Counter() {
   return <button onClick={increment}>{count}</button>
 }
 ```
-
-**차이점:**
-
+차이점:
 - Vue: `count.value`로 접근/변경
 - React: `count` (읽기), `setCount(newValue)` (쓰기)

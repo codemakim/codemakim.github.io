@@ -1,5 +1,5 @@
 ---
-title: "🚀 [React 라이브러리 4/9] React Router - 프로그래밍 방식 네비게이션"
+title: "[React 라이브러리 4/9] React Router - 프로그래밍 방식 네비게이션"
 date: "2025-08-15"
 description: "useNavigate, 조건부 네비게이션, 히스토리 조작"
 tags: ["React", "고급", "프론트엔드"]
@@ -13,27 +13,20 @@ seriesOrder: 40
 > 출처: [React Router Documentation](https://reactrouter.com/)
 
 ---
-
 ## 프로그래밍 방식 네비게이션
 프로그래밍 방식 네비게이션
-
 동적 라우트
-
 ### 1. URL 파라미터
-
 ```jsx
 // 라우트 정의
 <Route path="/users/:userId" element={<User />} />
 <Route path="/posts/:postId" element={<Post />} />
 <Route path="/products/:category/:productId" element={<Product />} />
 ```
-
 ### 2. useParams Hook
-
 ```jsx
 // pages/User.jsx
 import { useParams } from 'react-router-dom';
-
 export default function User() {
   const { userId } = useParams();
   
@@ -45,13 +38,10 @@ export default function User() {
   );
 }
 ```
-
 ### 3. 복수 파라미터
-
 ```jsx
 // pages/Product.jsx
 import { useParams } from 'react-router-dom';
-
 export default function Product() {
   const { category, productId } = useParams();
   
@@ -64,12 +54,9 @@ export default function Product() {
   );
 }
 ```
-
 ### 4. Optional 파라미터
-
 ```jsx
 <Route path="/users/:userId?" element={<Users />} />
-
 function Users() {
   const { userId } = useParams();
   
@@ -80,12 +67,9 @@ function Users() {
   return <UserList />;
 }
 ```
-
 ### 5. Wildcard (*)
-
 ```jsx
 <Route path="/docs/*" element={<Docs />} />
-
 function Docs() {
   const params = useParams();
   const path = params['*'];  // /docs/ 이후의 모든 경로
@@ -93,28 +77,22 @@ function Docs() {
   return <div>Docs path: {path}</div>;
 }
 ```
-
 ### Vue Router와 비교
-
 ```html
 <!-- Vue Router -->
 <script setup>
 import { useRoute } from 'vue-router'
-
 const route = useRoute()
 const userId = route.params.userId
 const category = route.params.category
 </script>
 ```
-
 ```jsx
 // React Router
 import { useParams } from 'react-router-dom'
-
 function Component() {
   const { userId, category } = useParams()
   // ...
 }
 ```
-
 ---

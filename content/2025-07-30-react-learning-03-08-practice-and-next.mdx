@@ -1,5 +1,5 @@
 ---
-title: "📚 [React 기초 3-8/8] 연습문제 & 다음 단계"
+title: "[React 기초 3-8/8] 연습문제 & 다음 단계"
 date: "2025-07-30"
 description: "React State 관리 학습을 마무리하는 연습문제와 다음 단계 안내"
 tags: ["React", "학습", "Vue", "초급", "프론트엔드"]
@@ -9,21 +9,16 @@ seriesOrder: 26
 
 # React 학습 가이드 - 연습문제 & 다음 단계
 
-> React 공식 문서를 기반으로 한 학습 자료  
-> 원문: [Managing State - React](https://react.dev/learn/managing-state)
 
 ---
-
 ## 이 챕터에서 배운 내용 요약
-
-**선언적 UI**: state로 UI 표현  
-**State 구조화**: 중복, 모순 피하기  
-**State 끌어올리기**: 컴포넌트 간 공유  
-**State 보존/재설정**: key로 제어  
-**Reducer**: 복잡한 state 로직 통합  
-**Context**: prop drilling 없이 데이터 전달  
-**Reducer + Context**: 확장 가능한 구조
-
+선언적 UI: state로 UI 표현  
+State 구조화: 중복, 모순 피하기  
+State 끌어올리기: 컴포넌트 간 공유  
+State 보존/재설정: key로 제어  
+Reducer: 복잡한 state 로직 통합  
+Context: prop drilling 없이 데이터 전달  
+Reducer + Context: 확장 가능한 구조
 ---
 
 ## 연습 문제
@@ -43,7 +38,7 @@ export default function SignupForm() {
 }
 ```
 
-**요구사항:**
+요구사항:
 
 - 이메일 형식 검증 (정규식 사용)
 - 비밀번호 8자 이상 검증
@@ -64,21 +59,21 @@ import CodeOrderingQuiz from '@/app/components/CodeOrderingQuiz';
     "    newErrors.email = '올바른 이메일 형식이 아닙니다.';",
     "  }",
     "  if (formData.password.length < 8) {",
-    "    newErrors.password = '비밀번호는 8자 이상이어야 합니다.';",
+    "    newErrors.password = '비밀번호는 8자 이상이어야 한다.';",
     "  }",
     "  if (formData.password !== formData.confirmPassword) {",
-    "    newErrors.confirmPassword = '비밀번호가 일치하지 않습니다.';",
+    "    newErrors.confirmPassword = '비밀번호가 일치하지 않다.';",
     "  }",
     "  setErrors(newErrors);",
     "  if (Object.keys(newErrors).length === 0) {",
-    "    alert('회원가입이 완료되었습니다!');",
+    "    alert('회원가입이 완료되었다!');",
     "  }",
     "}",
   ]}
 />
 
 <details>
-<summary><strong>💡 정답 전체 코드 보기</strong></summary>
+<summary><strong> 정답 전체 코드 보기</strong></summary>
 
 ```jsx
 import { useState } from 'react';
@@ -105,17 +100,17 @@ export default function SignupForm() {
     }
 
     if (formData.password.length < 8) {
-      newErrors.password = '비밀번호는 8자 이상이어야 합니다.';
+      newErrors.password = '비밀번호는 8자 이상이어야 한다.';
     }
 
     if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = '비밀번호가 일치하지 않습니다.';
+      newErrors.confirmPassword = '비밀번호가 일치하지 않다.';
     }
 
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length === 0) {
-      alert('회원가입이 완료되었습니다!');
+      alert('회원가입이 완료되었다!');
     }
   }
 
@@ -188,7 +183,7 @@ export default function SignupForm() {
 // - 총액 계산
 ```
 
-**요구사항:**
+요구사항:
 
 - Context로 전역 상태 관리
 - Reducer로 복잡한 로직 처리
@@ -205,7 +200,7 @@ export default function SignupForm() {
 // - 모든 컴포넌트에 자동 적용
 ```
 
-**요구사항:**
+요구사항:
 
 - Context로 테마 상태 관리
 - localStorage에 테마 설정 저장
@@ -223,7 +218,7 @@ export default function SignupForm() {
 // - 우선순위 설정
 ```
 
-**요구사항:**
+요구사항:
 
 - Context + Reducer 패턴 사용
 - 복잡한 State 구조 설계
@@ -231,43 +226,33 @@ export default function SignupForm() {
 - 사용자 경험 개선
 
 ---
-
 ## 해답 예시
-
 ### 2. 다크 모드 해답
-
 ```jsx
 // ThemeContext.js
 import { createContext, useContext, useState, useEffect } from 'react';
-
 const ThemeContext = createContext();
-
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('theme') || 'light';
   });
-
   useEffect(() => {
     localStorage.setItem('theme', theme);
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
-
   return (
     <ThemeContext.Provider value={{ theme, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );
 }
-
 export function useTheme() {
   return useContext(ThemeContext);
 }
 ```
-
 ```jsx
 // App.js
 import { ThemeProvider, useTheme } from './ThemeContext';
-
 function ThemeToggle() {
   const { theme, setTheme } = useTheme();
   
@@ -277,7 +262,6 @@ function ThemeToggle() {
     </button>
   );
 }
-
 export default function App() {
   return (
     <ThemeProvider>
@@ -287,14 +271,13 @@ export default function App() {
           <ThemeToggle />
         </header>
         <main>
-          <p>테마가 자동으로 적용됩니다!</p>
+          <p>테마가 자동으로 적용된다!</p>
         </main>
       </div>
     </ThemeProvider>
   );
 }
 ```
-
 ---
 
 ## 학습 체크리스트
@@ -308,12 +291,10 @@ export default function App() {
 - [ ] Reducer와 Context를 결합할 수 있다
 - [ ] 언제 Context를 사용해야 할지 안다
 
-모든 항목을 체크했다면 다음 챕터로 넘어가세요! 🚀
+모든 항목을 체크했다면 다음 챕터로 넘어가세요! 
 
 ---
-
 ## 참고 자료
-
 - [React 공식 문서 - Managing State](https://react.dev/learn/managing-state)
 - [React 공식 문서 - Escape Hatches](https://react.dev/learn/escape-hatches)
 - [useReducer Hook](https://react.dev/reference/react/useReducer)
