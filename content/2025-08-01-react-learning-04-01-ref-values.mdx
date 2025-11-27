@@ -55,9 +55,9 @@ function MyComponent() {
 | **변경 가능 (Mutable)** | 가능 (`ref.current` 직접 수정) | 불가 (setter 함수 사용) |
 | **렌더링 중 읽기/쓰기** | 불가 | 가능 (읽기만) |
 
-### 예제: 스톱워치
+### 예제: 스톱워치 (ref와 state를 함께 사용)
 
-Ref의 실용적인 사용 예제를 살펴본다. 스톱워치를 만들 때 interval ID를 저장하는 데 ref를 사용한다.
+Ref의 실용적인 사용 예제를 살펴본다. 스톱워치는 ref와 state를 **함께** 사용하는 좋은 예제다.
 
 ```jsx
 import { useState, useRef } from 'react';
@@ -73,7 +73,7 @@ export default function Stopwatch() {
 
     clearInterval(intervalRef.current);
     intervalRef.current = setInterval(() => {
-      setNow(Date.now());
+      setNow(Date.now());  // 10ms마다 state 업데이트 -> 리렌더링 발생
     }, 10);
   }
 
@@ -96,11 +96,56 @@ export default function Stopwatch() {
 }
 ```
 
-**왜 `intervalRef`를 사용하나?**
+**중요: 이 스톱워치는 리렌더링이 발생한다**
 
-- `setInterval`이 반환하는 ID를 저장해야 나중에 `clearInterval`로 중지할 수 있다
-- 이 ID는 렌더링에 사용되지 않으므로 ref에 저장한다
-- State로 저장하면 ID가 변경될 때마다 불필요한 리렌더링이 발생한다
+질문: "경과 시간이 화면에 업데이트되는데, 리렌더링이 발생하는 것 아닌가?"
+답: **맞다!** 리렌더링이 발생한다. 하지만 이것이 **자연스럽고 올바른 동작**이다.
+
+**왜 리렌더링이 발생하나?**
+
+- `setInterval`이 10ms마다 `setNow(Date.now())`를 호출한다
+- `now`는 **state**이므로 변경되면 리렌더링이 발생한다
+- 리렌더링이 발생해야 화면의 `secondsPassed`가 업데이트된다
+
+**그렇다면 ref는 왜 사용하나?**
+
+```jsx
+const intervalRef = useRef(null);  // interval ID를 ref에 저장
+
+intervalRef.current = setInterval(() => {
+  setNow(Date.now());
+}, 10);
+```
+
+- `setInterval`은 ID(숫자)를 반환한다 (예: `123`)
+- 이 ID는 나중에 `clearInterval(123)`로 타이머를 중지할 때 필요하다
+- **하지만 이 ID는 화면에 표시할 필요가 없다**
+- ID가 변경되어도 리렌더링이 필요하지 않다
+- 그래서 ref에 저장한다
+
+**만약 intervalId를 state로 저장하면?**
+
+```jsx
+const [intervalId, setIntervalId] = useState(null);  // 나쁜 방법
+
+function handleStart() {
+  const id = setInterval(() => {
+    setNow(Date.now());
+  }, 10);
+  setIntervalId(id);  // 불필요한 리렌더링 발생
+}
+```
+
+문제:
+- `setIntervalId(id)`를 호출하면 리렌더링이 발생한다
+- 하지만 interval ID는 화면에 표시되지 않으므로 리렌더링이 불필요하다
+
+**정리:**
+
+- **ref 사용**: interval ID (화면에 안 보임, 리렌더링 불필요)
+- **state 사용**: `now` (화면에 보임, 리렌더링 필요)
+
+이것이 ref와 state를 함께 사용하는 올바른 패턴이다.
 
 ### Ref를 언제 사용하나?
 
