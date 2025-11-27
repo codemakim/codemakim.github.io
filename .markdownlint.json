@@ -9,6 +9,9 @@
   "MD025": false,
   "MD028": false,
   "MD029": false,
+  "MD033": {
+    "allowed_elements": ["br"]
+  },
   "MD036": false,
   "MD040": false,
   "MD047": false,
