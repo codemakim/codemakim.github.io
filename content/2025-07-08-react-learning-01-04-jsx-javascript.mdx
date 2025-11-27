@@ -19,11 +19,11 @@ JSX에서 중괄호 `{}`를 사용하면 JavaScript 로직이나 동적 속성�
 
 ```jsx
 const person = {
-  name: 'Gregorio Y. Zara',
+  name: "Gregorio Y. Zara",
   theme: {
-    backgroundColor: 'black',
-    color: 'pink'
-  }
+    backgroundColor: "black",
+    color: "pink",
+  },
 };
 
 export default function TodoList() {
@@ -73,9 +73,9 @@ export default function TodoList() {
 ```jsx
 export default function Component() {
   const user = {
-    name: 'Kim',
-    imageUrl: 'https://example.com/image.jpg',
-    imageSize: 90
+    name: "Kim",
+    imageUrl: "https://example.com/image.jpg",
+    imageSize: 90,
   };
 
   return (
@@ -87,7 +87,7 @@ export default function Component() {
       <p>Today is {new Date().toLocaleDateString()}</p>
 
       {/* 3. 삼항 연산자 */}
-      <p>{user.age > 18 ? 'Adult' : 'Minor'}</p>
+      <p>{user.age > 18 ? "Adult" : "Minor"}</p>
 
       {/* 4. 객체 속성 */}
       <img
@@ -95,13 +95,13 @@ export default function Component() {
         alt={user.name}
         style={{
           width: user.imageSize,
-          height: user.imageSize
+          height: user.imageSize,
         }}
       />
 
       {/* 5. 배열 메서드 */}
       <ul>
-        {[1, 2, 3].map(num => (
+        {[1, 2, 3].map((num) => (
           <li key={num}>{num * 2}</li>
         ))}
       </ul>
@@ -114,9 +114,7 @@ export default function Component() {
 
 ```jsx
 // 스타일 객체 전달
-<div style={{ backgroundColor: 'black', color: 'pink' }}>
-  Content
-</div>
+<div style={{ backgroundColor: "black", color: "pink" }}>Content</div>
 
 // 외부 중괄호: JSX로 JavaScript 전환
 // 내부 중괄호: JavaScript 객체 리터럴
@@ -145,11 +143,11 @@ export default function Component() {
 // React: 단일 중괄호 { }
 export default function Component() {
   return (
-    <div style={{ backgroundColor: 'black', color: 'pink' }}>
+    <div style={{ backgroundColor: "black", color: "pink" }}>
       <h1>{person.name}</h1>
       <img src={person.imageUrl} />
     </div>
-  )
+  );
 }
 ```
 

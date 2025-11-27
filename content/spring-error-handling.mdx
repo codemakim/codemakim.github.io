@@ -17,13 +17,13 @@ Spring Boot에서 예외를 처리하는 방법은 여러 가지가 있지만, �
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
-    
+
     private final UserService userService;
-    
+
     public UserController(UserService userService) {
         this.userService = userService;
     }
-    
+
     @GetMapping("/{id}")
     public User getUser(@PathVariable Long id) {
         return userService.findById(id); // 없으면 예외 발생
@@ -34,7 +34,7 @@ public class UserController {
 ```java
 @Service
 public class UserService {
-    
+
     public User findById(Long id) {
         return userRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("User not found"));
@@ -69,18 +69,18 @@ public class UserService {
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
-    
+
     private final UserService userService;
-    
+
     public UserController(UserService userService) {
         this.userService = userService;
     }
-    
+
     @GetMapping("/{id}")
     public User getUser(@PathVariable Long id) {
         return userService.findById(id);
     }
-    
+
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleUserNotFound(UserNotFoundException e) {
         ErrorResponse error = new ErrorResponse(
@@ -123,7 +123,7 @@ public record ErrorResponse(String code, String message) {
 ```java
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-    
+
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleUserNotFound(UserNotFoundException e) {
         ErrorResponse error = new ErrorResponse(
@@ -132,7 +132,7 @@ public class GlobalExceptionHandler {
         );
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
     }
-    
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException e) {
         ErrorResponse error = new ErrorResponse(
@@ -141,7 +141,7 @@ public class GlobalExceptionHandler {
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
-    
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneralException(Exception e) {
         ErrorResponse error = new ErrorResponse(
@@ -159,18 +159,18 @@ public class GlobalExceptionHandler {
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
-    
+
     private final UserService userService;
-    
+
     public UserController(UserService userService) {
         this.userService = userService;
     }
-    
+
     @GetMapping("/{id}")
     public User getUser(@PathVariable Long id) {
         return userService.findById(id); // 예외는 GlobalExceptionHandler가 처리
     }
-    
+
     @PostMapping
     public User createUser(@RequestBody UserRequest request) {
         if (request.getAge() < 0) {
@@ -213,11 +213,11 @@ public record ErrorResponse(
         String message,
         Object rejectedValue
     ) {}
-    
+
     public static ErrorResponse of(String code, String message, String path) {
         return new ErrorResponse(code, message, LocalDateTime.now(), path, null);
     }
-    
+
     public static ErrorResponse of(String code, String message, String path, List<FieldError> errors) {
         return new ErrorResponse(code, message, LocalDateTime.now(), path, errors);
     }
@@ -237,20 +237,20 @@ public User createUser(@Valid @RequestBody UserRequest request) {
 
 ```java
 public class UserRequest {
-    
+
     @NotBlank(message = "Name is required")
     @Size(min = 2, max = 50, message = "Name must be between 2 and 50 characters")
     private String name;
-    
+
     @NotBlank(message = "Email is required")
     @Email(message = "Invalid email format")
     private String email;
-    
+
     @NotNull(message = "Age is required")
     @Min(value = 1, message = "Age must be at least 1")
     @Max(value = 150, message = "Age must be at most 150")
     private Integer age;
-    
+
     // getters and setters
 }
 ```
@@ -260,12 +260,12 @@ public class UserRequest {
 ```java
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-    
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationException(
             MethodArgumentNotValidException e,
             HttpServletRequest request) {
-        
+
         List<ErrorResponse.FieldError> fieldErrors = e.getBindingResult()
             .getFieldErrors()
             .stream()
@@ -275,14 +275,14 @@ public class GlobalExceptionHandler {
                 error.getRejectedValue()
             ))
             .toList();
-        
+
         ErrorResponse response = ErrorResponse.of(
             "VALIDATION_FAILED",
             "Invalid request parameters",
             request.getRequestURI(),
             fieldErrors
         );
-        
+
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 }
@@ -323,14 +323,14 @@ Spring MVC가 발생시키는 표준 예외들을 처리하려면 `ResponseEntit
 ```java
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
-    
+
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(
             MethodArgumentNotValidException e,
             HttpHeaders headers,
             HttpStatusCode status,
             WebRequest request) {
-        
+
         List<ErrorResponse.FieldError> fieldErrors = e.getBindingResult()
             .getFieldErrors()
             .stream()
@@ -340,92 +340,92 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 error.getRejectedValue()
             ))
             .toList();
-        
+
         ErrorResponse response = ErrorResponse.of(
             "VALIDATION_FAILED",
             "Invalid request parameters",
             ((ServletWebRequest) request).getRequest().getRequestURI(),
             fieldErrors
         );
-        
+
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
-    
+
     @Override
     protected ResponseEntity<Object> handleHttpMessageNotReadable(
             HttpMessageNotReadableException e,
             HttpHeaders headers,
             HttpStatusCode status,
             WebRequest request) {
-        
+
         ErrorResponse response = ErrorResponse.of(
             "INVALID_REQUEST_BODY",
             "Request body is missing or malformed",
             ((ServletWebRequest) request).getRequest().getRequestURI()
         );
-        
+
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
-    
+
     @Override
     protected ResponseEntity<Object> handleHttpRequestMethodNotSupported(
             HttpRequestMethodNotSupportedException e,
             HttpHeaders headers,
             HttpStatusCode status,
             WebRequest request) {
-        
+
         ErrorResponse response = ErrorResponse.of(
             "METHOD_NOT_ALLOWED",
             String.format("HTTP method %s is not supported for this endpoint", e.getMethod()),
             ((ServletWebRequest) request).getRequest().getRequestURI()
         );
-        
+
         return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(response);
     }
-    
+
     @Override
     protected ResponseEntity<Object> handleTypeMismatch(
             TypeMismatchException e,
             HttpHeaders headers,
             HttpStatusCode status,
             WebRequest request) {
-        
+
         ErrorResponse response = ErrorResponse.of(
             "TYPE_MISMATCH",
-            String.format("Failed to convert value '%s' to type %s", 
-                e.getValue(), 
+            String.format("Failed to convert value '%s' to type %s",
+                e.getValue(),
                 e.getRequiredType().getSimpleName()),
             ((ServletWebRequest) request).getRequest().getRequestURI()
         );
-        
+
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
-    
+
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleUserNotFound(
             UserNotFoundException e,
             HttpServletRequest request) {
-        
+
         ErrorResponse response = ErrorResponse.of(
             "USER_NOT_FOUND",
             e.getMessage(),
             request.getRequestURI()
         );
-        
+
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
-    
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneralException(
             Exception e,
             HttpServletRequest request) {
-        
+
         ErrorResponse response = ErrorResponse.of(
             "INTERNAL_SERVER_ERROR",
             "An unexpected error occurred",
             request.getRequestURI()
         );
-        
+
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 }
@@ -437,29 +437,29 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
 ```java
 public abstract class BusinessException extends RuntimeException {
-    
+
     private final String errorCode;
-    
+
     protected BusinessException(String errorCode, String message) {
         super(message);
         this.errorCode = errorCode;
     }
-    
+
     public String getErrorCode() {
         return errorCode;
     }
-    
+
     public abstract HttpStatus getHttpStatus();
 }
 ```
 
 ```java
 public class NotFoundException extends BusinessException {
-    
+
     public NotFoundException(String message) {
         super("NOT_FOUND", message);
     }
-    
+
     @Override
     public HttpStatus getHttpStatus() {
         return HttpStatus.NOT_FOUND;
@@ -469,7 +469,7 @@ public class NotFoundException extends BusinessException {
 
 ```java
 public class UserNotFoundException extends NotFoundException {
-    
+
     public UserNotFoundException(Long id) {
         super(String.format("User with id %d not found", id));
     }
@@ -478,11 +478,11 @@ public class UserNotFoundException extends NotFoundException {
 
 ```java
 public class BadRequestException extends BusinessException {
-    
+
     public BadRequestException(String message) {
         super("BAD_REQUEST", message);
     }
-    
+
     @Override
     public HttpStatus getHttpStatus() {
         return HttpStatus.BAD_REQUEST;
@@ -492,7 +492,7 @@ public class BadRequestException extends BusinessException {
 
 ```java
 public class DuplicateEmailException extends BadRequestException {
-    
+
     public DuplicateEmailException(String email) {
         super(String.format("Email %s is already in use", email));
     }
@@ -501,11 +501,11 @@ public class DuplicateEmailException extends BadRequestException {
 
 ```java
 public class UnauthorizedException extends BusinessException {
-    
+
     public UnauthorizedException(String message) {
         super("UNAUTHORIZED", message);
     }
-    
+
     @Override
     public HttpStatus getHttpStatus() {
         return HttpStatus.UNAUTHORIZED;
@@ -518,18 +518,18 @@ public class UnauthorizedException extends BusinessException {
 ```java
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
-    
+
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ErrorResponse> handleBusinessException(
             BusinessException e,
             HttpServletRequest request) {
-        
+
         ErrorResponse response = ErrorResponse.of(
             e.getErrorCode(),
             e.getMessage(),
             request.getRequestURI()
         );
-        
+
         return ResponseEntity.status(e.getHttpStatus()).body(response);
     }
 }
@@ -542,19 +542,19 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 ```java
 @Service
 public class UserService {
-    
+
     private final UserRepository userRepository;
-    
+
     public User create(UserRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new DuplicateEmailException(request.getEmail());
         }
-        
+
         User user = new User();
         user.setName(request.getName());
         user.setEmail(request.getEmail());
         user.setAge(request.getAge());
-        
+
         return userRepository.save(user);
     }
 }
@@ -565,15 +565,15 @@ public class UserService {
 ```java
 @Service
 public class PostService {
-    
+
     public void delete(Long postId, Long userId) {
         Post post = postRepository.findById(postId)
             .orElseThrow(() -> new NotFoundException("Post not found"));
-        
+
         if (!post.getAuthorId().equals(userId)) {
             throw new UnauthorizedException("You are not authorized to delete this post");
         }
-        
+
         postRepository.delete(post);
     }
 }
@@ -583,9 +583,9 @@ public class PostService {
 
 ```java
 public class FileTooLargeException extends BadRequestException {
-    
+
     public FileTooLargeException(long size, long maxSize) {
-        super(String.format("File size %d bytes exceeds maximum allowed size %d bytes", 
+        super(String.format("File size %d bytes exceeds maximum allowed size %d bytes",
             size, maxSize));
     }
 }
@@ -594,14 +594,14 @@ public class FileTooLargeException extends BadRequestException {
 ```java
 @Service
 public class FileService {
-    
+
     private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-    
+
     public String upload(MultipartFile file) {
         if (file.getSize() > MAX_FILE_SIZE) {
             throw new FileTooLargeException(file.getSize(), MAX_FILE_SIZE);
         }
-        
+
         // 파일 저장 로직
     }
 }
@@ -611,11 +611,11 @@ public class FileService {
 
 ```java
 public class ExternalApiException extends BusinessException {
-    
+
     public ExternalApiException(String message) {
         super("EXTERNAL_API_ERROR", message);
     }
-    
+
     @Override
     public HttpStatus getHttpStatus() {
         return HttpStatus.BAD_GATEWAY;
@@ -626,7 +626,7 @@ public class ExternalApiException extends BusinessException {
 ```java
 @Service
 public class PaymentService {
-    
+
     public Payment processPayment(PaymentRequest request) {
         try {
             return paymentClient.charge(request);
@@ -642,15 +642,15 @@ public class PaymentService {
 ```java
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
-    
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(
             DataIntegrityViolationException e,
             HttpServletRequest request) {
-        
+
         String message = "Database constraint violation";
         String code = "DATA_INTEGRITY_VIOLATION";
-        
+
         if (e.getMessage().contains("unique")) {
             message = "Duplicate entry detected";
             code = "DUPLICATE_ENTRY";
@@ -658,9 +658,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             message = "Referenced data does not exist";
             code = "FOREIGN_KEY_VIOLATION";
         }
-        
+
         ErrorResponse response = ErrorResponse.of(code, message, request.getRequestURI());
-        
+
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 }
@@ -671,16 +671,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 ```java
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
-    
+
     @Override
     protected ResponseEntity<Object> handleHttpMessageNotReadable(
             HttpMessageNotReadableException e,
             HttpHeaders headers,
             HttpStatusCode status,
             WebRequest request) {
-        
+
         String message = "Invalid request body";
-        
+
         if (e.getCause() instanceof InvalidFormatException invalidFormat) {
             message = String.format(
                 "Invalid value '%s' for field '%s'. Expected type: %s",
@@ -689,19 +689,20 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 invalidFormat.getTargetType().getSimpleName()
             );
         }
-        
+
         ErrorResponse response = ErrorResponse.of(
             "INVALID_REQUEST_BODY",
             message,
             ((ServletWebRequest) request).getRequest().getRequestURI()
         );
-        
+
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 }
 ```
 
 요청:
+
 ```json
 {
   "name": "John",
@@ -710,6 +711,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 ```
 
 응답:
+
 ```json
 {
   "code": "INVALID_REQUEST_BODY",
@@ -727,37 +729,37 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
-    
+
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ErrorResponse> handleBusinessException(
             BusinessException e,
             HttpServletRequest request) {
-        
+
         log.warn("Business exception occurred: code={}, message={}, path={}",
             e.getErrorCode(), e.getMessage(), request.getRequestURI());
-        
+
         ErrorResponse response = ErrorResponse.of(
             e.getErrorCode(),
             e.getMessage(),
             request.getRequestURI()
         );
-        
+
         return ResponseEntity.status(e.getHttpStatus()).body(response);
     }
-    
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneralException(
             Exception e,
             HttpServletRequest request) {
-        
+
         log.error("Unexpected exception occurred: path={}", request.getRequestURI(), e);
-        
+
         ErrorResponse response = ErrorResponse.of(
             "INTERNAL_SERVER_ERROR",
             "An unexpected error occurred",
             request.getRequestURI()
         );
-        
+
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 }
@@ -773,27 +775,27 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
-    
+
     @Value("${app.debug:false}")
     private boolean debugMode;
-    
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneralException(
             Exception e,
             HttpServletRequest request) {
-        
+
         log.error("Unexpected exception occurred: path={}", request.getRequestURI(), e);
-        
-        String message = debugMode 
-            ? e.getMessage() 
+
+        String message = debugMode
+            ? e.getMessage()
             : "An unexpected error occurred";
-        
+
         ErrorResponse response = ErrorResponse.of(
             "INTERNAL_SERVER_ERROR",
             message,
             request.getRequestURI()
         );
-        
+
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 }
@@ -831,27 +833,27 @@ error.validation.email.invalid=올바른 이메일 형식이 아닙니다
 @RestControllerAdvice
 @RequiredArgsConstructor
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
-    
+
     private final MessageSource messageSource;
-    
+
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleUserNotFound(
             UserNotFoundException e,
             HttpServletRequest request,
             Locale locale) {
-        
+
         String message = messageSource.getMessage(
             "error.user.not-found",
             null,
             locale
         );
-        
+
         ErrorResponse response = ErrorResponse.of(
             "USER_NOT_FOUND",
             message,
             request.getRequestURI()
         );
-        
+
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 }
@@ -867,26 +869,26 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 @Getter
 @RequiredArgsConstructor
 public enum ErrorCode {
-    
+
     // Common
     INTERNAL_SERVER_ERROR("CMN001", HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred"),
     INVALID_ARGUMENT("CMN002", HttpStatus.BAD_REQUEST, "Invalid argument"),
     VALIDATION_FAILED("CMN003", HttpStatus.BAD_REQUEST, "Validation failed"),
-    
+
     // User
     USER_NOT_FOUND("USR001", HttpStatus.NOT_FOUND, "User not found"),
     DUPLICATE_EMAIL("USR002", HttpStatus.CONFLICT, "Email is already in use"),
     INVALID_PASSWORD("USR003", HttpStatus.BAD_REQUEST, "Invalid password"),
-    
+
     // Post
     POST_NOT_FOUND("PST001", HttpStatus.NOT_FOUND, "Post not found"),
     UNAUTHORIZED_POST_ACCESS("PST002", HttpStatus.FORBIDDEN, "You are not authorized to access this post"),
-    
+
     // File
     FILE_TOO_LARGE("FIL001", HttpStatus.BAD_REQUEST, "File size exceeds maximum allowed size"),
     INVALID_FILE_TYPE("FIL002", HttpStatus.BAD_REQUEST, "Invalid file type"),
     FILE_UPLOAD_FAILED("FIL003", HttpStatus.INTERNAL_SERVER_ERROR, "File upload failed");
-    
+
     private final String code;
     private final HttpStatus status;
     private final String message;
@@ -895,19 +897,19 @@ public enum ErrorCode {
 
 ```java
 public abstract class BusinessException extends RuntimeException {
-    
+
     private final ErrorCode errorCode;
-    
+
     protected BusinessException(ErrorCode errorCode) {
         super(errorCode.getMessage());
         this.errorCode = errorCode;
     }
-    
+
     protected BusinessException(ErrorCode errorCode, String message) {
         super(message);
         this.errorCode = errorCode;
     }
-    
+
     public ErrorCode getErrorCode() {
         return errorCode;
     }
@@ -916,9 +918,9 @@ public abstract class BusinessException extends RuntimeException {
 
 ```java
 public class UserNotFoundException extends BusinessException {
-    
+
     public UserNotFoundException(Long id) {
-        super(ErrorCode.USER_NOT_FOUND, 
+        super(ErrorCode.USER_NOT_FOUND,
             String.format("User with id %d not found", id));
     }
 }
@@ -927,20 +929,20 @@ public class UserNotFoundException extends BusinessException {
 ```java
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
-    
+
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ErrorResponse> handleBusinessException(
             BusinessException e,
             HttpServletRequest request) {
-        
+
         ErrorCode errorCode = e.getErrorCode();
-        
+
         ErrorResponse response = ErrorResponse.of(
             errorCode.getCode(),
             e.getMessage(),
             request.getRequestURI()
         );
-        
+
         return ResponseEntity.status(errorCode.getStatus()).body(response);
     }
 }
@@ -953,24 +955,24 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 ```java
 @WebMvcTest(UserController.class)
 class UserControllerTest {
-    
+
     @Autowired
     private MockMvc mockMvc;
-    
+
     @MockBean
     private UserService userService;
-    
+
     @Test
     void getUserNotFound() throws Exception {
         when(userService.findById(999L))
             .thenThrow(new UserNotFoundException(999L));
-        
+
         mockMvc.perform(get("/api/users/999"))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.code").value("USR001"))
             .andExpect(jsonPath("$.message").value("User with id 999 not found"));
     }
-    
+
     @Test
     void createUserWithInvalidData() throws Exception {
         String invalidRequest = """
@@ -980,7 +982,7 @@ class UserControllerTest {
                 "age": -5
             }
             """;
-        
+
         mockMvc.perform(post("/api/users")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(invalidRequest))

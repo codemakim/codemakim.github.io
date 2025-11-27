@@ -13,18 +13,22 @@ seriesOrder: 39
 > 출처: [React Router Documentation](https://reactrouter.com/)
 
 ---
+
 ## 동적 라우트
+
 동적 라우트
 중첩 라우트
+
 ### 1. Layout 패턴
+
 ```jsx
 // App.jsx
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Layout from './components/Layout';
-import Home from './pages/Home';
-import About from './pages/About';
-import Blog from './pages/Blog';
-import Post from './pages/Post';
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Layout from "./components/Layout";
+import Home from "./pages/Home";
+import About from "./pages/About";
+import Blog from "./pages/Blog";
+import Post from "./pages/Post";
 export default function App() {
   return (
     <BrowserRouter>
@@ -40,10 +44,12 @@ export default function App() {
   );
 }
 ```
+
 ### 2. Layout 컴포넌트
+
 ```jsx
 // components/Layout.jsx
-import { Outlet, Link } from 'react-router-dom';
+import { Outlet, Link } from "react-router-dom";
 export default function Layout() {
   return (
     <div>
@@ -54,11 +60,11 @@ export default function Layout() {
           <Link to="/blog">Blog</Link>
         </nav>
       </header>
-      
+
       <main>
-        <Outlet />  {/* 자식 라우트가 여기에 렌더링됨 */}
+        <Outlet /> {/* 자식 라우트가 여기에 렌더링됨 */}
       </main>
-      
+
       <footer>
         <p>© 2025 My App</p>
       </footer>
@@ -66,18 +72,20 @@ export default function Layout() {
   );
 }
 ```
+
 ### 3. 다단계 중첩
+
 ```jsx
 <Routes>
   <Route path="/" element={<Layout />}>
     <Route index element={<Home />} />
-    
+
     <Route path="dashboard" element={<DashboardLayout />}>
       <Route index element={<DashboardHome />} />
       <Route path="settings" element={<Settings />} />
       <Route path="profile" element={<Profile />} />
     </Route>
-    
+
     <Route path="admin" element={<AdminLayout />}>
       <Route index element={<AdminHome />} />
       <Route path="users" element={<Users />} />
@@ -86,36 +94,41 @@ export default function Layout() {
   </Route>
 </Routes>
 ```
+
 ### Index Route
+
 ```jsx
 // index: 부모 경로와 동일한 경로에 렌더링
 <Route path="/" element={<Layout />}>
-  <Route index element={<Home />} />  {/* / */}
-  <Route path="about" element={<About />} />  {/* /about */}
+  <Route index element={<Home />} /> {/* / */}
+  <Route path="about" element={<About />} /> {/* /about */}
 </Route>
 ```
+
 ### Vue Router와 비교
+
 ```javascript
 // Vue Router: children
 const routes = [
   {
-    path: '/',
+    path: "/",
     component: Layout,
     children: [
-      { path: '', component: Home },
-      { path: 'about', component: About },
+      { path: "", component: Home },
+      { path: "about", component: About },
       {
-        path: 'dashboard',
+        path: "dashboard",
         component: DashboardLayout,
         children: [
-          { path: '', component: DashboardHome },
-          { path: 'settings', component: Settings }
-        ]
-      }
-    ]
-  }
-]
+          { path: "", component: DashboardHome },
+          { path: "settings", component: Settings },
+        ],
+      },
+    ],
+  },
+];
 ```
+
 ```jsx
 // React Router: Outlet
 <Route path="/" element={<Layout />}>
@@ -127,4 +140,5 @@ const routes = [
   </Route>
 </Route>
 ```
+
 ---

@@ -36,7 +36,7 @@ export function getImageUrl(person) {
 
 ```jsx
 // App.js
-import { getImageUrl } from './utils.js';
+import { getImageUrl } from "./utils.js";
 
 export default function Profile() {
   return (
@@ -44,8 +44,8 @@ export default function Profile() {
       <Avatar
         size={100}
         person={{
-          name: 'Katsuko Saruhashi',
-          imageId: 'YfeOqp2'
+          name: "Katsuko Saruhashi",
+          imageId: "YfeOqp2",
         }}
       />
     </Card>
@@ -67,11 +67,7 @@ function Avatar({ person, size }) {
 
 // Card 컴포넌트: children prop
 function Card({ children }) {
-  return (
-    <div className="card">
-      {children}
-    </div>
-  );
+  return <div className="card">{children}</div>;
 }
 ```
 
@@ -86,10 +82,7 @@ function Card({ children }) {
 #### 1. 자식 컴포넌트에 Props 전달
 
 ```jsx
-<Avatar
-  size={100}
-  person={{ name: 'Kim', imageId: 'abc123' }}
-/>
+<Avatar size={100} person={{ name: "Kim", imageId: "abc123" }} />
 ```
 
 #### 2. 자식 컴포넌트에서 Props 읽기
@@ -124,15 +117,13 @@ function Avatar({ person, size = 100 }) {
 ```jsx
 function Profile(props) {
   return (
-    <Avatar {...props} />  // 모든 props 전달
+    <Avatar {...props} /> // 모든 props 전달
   );
 }
 
 // 동일한 코드
 function Profile({ person, size }) {
-  return (
-    <Avatar person={person} size={size} />
-  );
+  return <Avatar person={person} size={size} />;
 }
 ```
 
@@ -144,18 +135,14 @@ function Profile({ person, size }) {
 
 ```jsx
 function Card({ children }) {
-  return (
-    <div className="card">
-      {children}
-    </div>
-  );
+  return <div className="card">{children}</div>;
 }
 
 // 사용
 <Card>
   <h1>Title</h1>
   <p>Content</p>
-</Card>
+</Card>;
 ```
 
 Vue의 `<slot>`과 동일:
@@ -176,8 +163,8 @@ Props는 절대 수정할 수 없다.
 ```jsx
 // 잘못된 코드
 function Avatar({ person, size }) {
-  person.name = 'New Name';  // Props 수정 불가
-  size = 200;                // Props 수정 불가
+  person.name = "New Name"; // Props 수정 불가
+  size = 200; // Props 수정 불가
   return <img />;
 }
 
@@ -221,10 +208,10 @@ function Avatar({ person, size }: AvatarProps) {
 ```html
 <!-- Vue: defineProps -->
 <script setup>
-const props = defineProps({
-  person: Object,
-  size: Number
-})
+  const props = defineProps({
+    person: Object,
+    size: Number,
+  });
 </script>
 
 <template>
@@ -235,6 +222,6 @@ const props = defineProps({
 ```jsx
 // React: 함수 매개변수
 function Avatar({ person, size }) {
-  return <img width={size} />
+  return <img width={size} />;
 }
 ```

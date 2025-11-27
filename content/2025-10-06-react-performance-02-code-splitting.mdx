@@ -12,13 +12,16 @@ seriesOrder: 2
 > React와 Next.js에서의 코드 분할 학습 자료
 
 ---
+
 ## 📚 목차
+
 1. [개요](#개요)
 2. [React.lazy](#reactlazy)
 3. [Suspense](#suspense)
 4. [라우트 기반 분할](#라우트-기반-분할)
 5. [컴포넌트 기반 분할](#컴포넌트-기반-분할)
 6. [Next.js 자동 분할](#nextjs-자동-분할)
+
 ---
 
 ## 개요
@@ -34,12 +37,15 @@ seriesOrder: 2
 - 성능 향상
 
 ---
+
 ## React.lazy
+
 ### 기본 사용
+
 ```jsx
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense } from "react";
 // 동적 import
-const HeavyComponent = lazy(() => import('./HeavyComponent'));
+const HeavyComponent = lazy(() => import("./HeavyComponent"));
 function App() {
   return (
     <Suspense fallback={<div>Loading...</div>}>
@@ -48,15 +54,15 @@ function App() {
   );
 }
 ```
+
 ### 조건부 로딩
+
 ```jsx
 function App() {
   const [showAdmin, setShowAdmin] = useState(false);
   return (
     <div>
-      <button onClick={() => setShowAdmin(true)}>
-        Show Admin Panel
-      </button>
+      <button onClick={() => setShowAdmin(true)}>Show Admin Panel</button>
       {showAdmin && (
         <Suspense fallback={<div>Loading Admin...</div>}>
           <AdminPanel />
@@ -65,19 +71,20 @@ function App() {
     </div>
   );
 }
-const AdminPanel = lazy(() => import('./AdminPanel'));
+const AdminPanel = lazy(() => import("./AdminPanel"));
 ```
+
 ---
 
 ## 라우트 기반 분할
 
 ```jsx
-import { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { lazy, Suspense } from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-const Home = lazy(() => import('./pages/Home'));
-const About = lazy(() => import('./pages/About'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Home = lazy(() => import("./pages/Home"));
+const About = lazy(() => import("./pages/About"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
 
 function App() {
   return (
@@ -95,8 +102,11 @@ function App() {
 ```
 
 ---
+
 ## Next.js 자동 분할
+
 ### 자동 코드 분할
+
 ```jsx
 // Next.js는 각 페이지를 자동으로 분할
 // app/about/page.jsx
@@ -105,17 +115,20 @@ export default function About() {
 }
 // 자동으로 별도 번들로 분리됨!
 ```
+
 ### Dynamic Import
+
 ```jsx
-import dynamic from 'next/dynamic';
-const DynamicComponent = dynamic(() => import('../components/Heavy'), {
+import dynamic from "next/dynamic";
+const DynamicComponent = dynamic(() => import("../components/Heavy"), {
   loading: () => <p>Loading...</p>,
-  ssr: false,  // 서버 사이드 렌더링 비활성화
+  ssr: false, // 서버 사이드 렌더링 비활성화
 });
 export default function Page() {
   return <DynamicComponent />;
 }
 ```
+
 ---
 
 ## 번들 분석
@@ -126,8 +139,8 @@ npm install --save-dev @next/bundle-analyzer
 
 ```javascript
 // next.config.js
-const withBundleAnalyzer = require('@next/bundle-analyzer')({
-  enabled: process.env.ANALYZE === 'true',
+const withBundleAnalyzer = require("@next/bundle-analyzer")({
+  enabled: process.env.ANALYZE === "true",
 });
 
 module.exports = withBundleAnalyzer({

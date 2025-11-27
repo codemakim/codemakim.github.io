@@ -16,13 +16,13 @@ Spring Boot 애플리케이션의 설정을 관리하는 방법은 `@Value`와 `
 ```java
 @Service
 public class EmailService {
-    
+
     @Value("${email.from}")
     private String from;
-    
+
     @Value("${email.timeout:5000}")
     private int timeout;
-    
+
     public void send(String to, String message) {
         // from, timeout 사용
     }
@@ -41,31 +41,31 @@ email:
 ```java
 @Service
 public class DatabaseService {
-    
+
     @Value("${database.host}")
     private String host;
-    
+
     @Value("${database.port}")
     private int port;
-    
+
     @Value("${database.username}")
     private String username;
-    
+
     @Value("${database.password}")
     private String password;
-    
+
     @Value("${database.database}")
     private String database;
-    
+
     @Value("${database.pool.min-size}")
     private int minPoolSize;
-    
+
     @Value("${database.pool.max-size}")
     private int maxPoolSize;
-    
+
     @Value("${database.pool.timeout}")
     private long timeout;
-    
+
     // 설정이 많아질수록 관리가 어려움
 }
 ```
@@ -85,22 +85,22 @@ public class DatabaseService {
 ```java
 @ConfigurationProperties(prefix = "database")
 public class DatabaseProperties {
-    
+
     private String host;
     private int port;
     private String username;
     private String password;
     private String database;
     private Pool pool;
-    
+
     public static class Pool {
         private int minSize;
         private int maxSize;
         private long timeout;
-        
+
         // getters and setters
     }
-    
+
     // getters and setters
 }
 ```
@@ -137,13 +137,13 @@ public class DatabaseProperties {
 @Configuration
 @EnableConfigurationProperties(DatabaseProperties.class)
 public class DatabaseConfig {
-    
+
     private final DatabaseProperties properties;
-    
+
     public DatabaseConfig(DatabaseProperties properties) {
         this.properties = properties;
     }
-    
+
     @Bean
     public DataSource dataSource() {
         HikariConfig config = new HikariConfig();
@@ -158,7 +158,7 @@ public class DatabaseConfig {
         config.setMinimumIdle(properties.getPool().getMinSize());
         config.setMaximumPoolSize(properties.getPool().getMaxSize());
         config.setConnectionTimeout(properties.getPool().getTimeout());
-        
+
         return new HikariDataSource(config);
     }
 }
@@ -174,14 +174,14 @@ Lombok을 사용하면 getter/setter 보일러플레이트를 제거할 수 있�
 @Data
 @ConfigurationProperties(prefix = "database")
 public class DatabaseProperties {
-    
+
     private String host;
     private int port;
     private String username;
     private String password;
     private String database;
     private Pool pool = new Pool();
-    
+
     @Data
     public static class Pool {
         private int minSize = 5;
@@ -198,14 +198,14 @@ public class DatabaseProperties {
 @ConfigurationProperties(prefix = "database")
 @ConstructorBinding
 public class DatabaseProperties {
-    
+
     private final String host;
     private final int port;
     private final String username;
     private final String password;
     private final String database;
     private final Pool pool;
-    
+
     public DatabaseProperties(
             String host,
             int port,
@@ -220,13 +220,13 @@ public class DatabaseProperties {
         this.database = database;
         this.pool = pool;
     }
-    
+
     @Getter
     public static class Pool {
         private final int minSize;
         private final int maxSize;
         private final long timeout;
-        
+
         public Pool(int minSize, int maxSize, long timeout) {
             this.minSize = minSize;
             this.maxSize = maxSize;
@@ -243,14 +243,14 @@ Spring Boot 3.0부터는 `@ConstructorBinding`이 자동으로 적용되므로 �
 @RequiredArgsConstructor
 @ConfigurationProperties(prefix = "database")
 public class DatabaseProperties {
-    
+
     private final String host;
     private final int port;
     private final String username;
     private final String password;
     private final String database;
     private final Pool pool;
-    
+
     @Getter
     @RequiredArgsConstructor
     public static class Pool {
@@ -328,13 +328,13 @@ private String sqsRegion;
 public class AwsProperties {
     private S3 s3;
     private Sqs sqs;
-    
+
     @Data
     public static class S3 {
         private String bucket;
         private String region;
     }
-    
+
     @Data
     public static class Sqs {
         private String queueUrl;
@@ -400,39 +400,39 @@ JSR-303 Bean Validation을 사용해서 설정값을 검증할 수 있다.
 @Validated
 @ConfigurationProperties(prefix = "database")
 public class DatabaseProperties {
-    
+
     @NotBlank(message = "Database host is required")
     private String host;
-    
+
     @Min(value = 1, message = "Port must be greater than 0")
     @Max(value = 65535, message = "Port must be less than 65536")
     private int port;
-    
+
     @NotBlank(message = "Username is required")
     private String username;
-    
+
     @NotBlank(message = "Password is required")
     private String password;
-    
+
     @NotBlank(message = "Database name is required")
     private String database;
-    
+
     @Valid
     @NotNull(message = "Pool configuration is required")
     private Pool pool;
-    
+
     @Data
     public static class Pool {
-        
+
         @Min(value = 1, message = "Min pool size must be at least 1")
         private int minSize;
-        
+
         @Min(value = 1, message = "Max pool size must be at least 1")
         private int maxSize;
-        
+
         @Min(value = 1000, message = "Timeout must be at least 1000ms")
         private long timeout;
-        
+
         @AssertTrue(message = "Max pool size must be greater than or equal to min pool size")
         public boolean isValidPoolSize() {
             return maxSize >= minSize;
@@ -446,11 +446,11 @@ public class DatabaseProperties {
 ```yaml
 # application.yml
 database:
-  host: ""  # 실패: NotBlank
-  port: 99999  # 실패: Max 65535
+  host: "" # 실패: NotBlank
+  port: 99999 # 실패: Max 65535
   pool:
     min-size: 10
-    max-size: 5  # 실패: maxSize >= minSize
+    max-size: 5 # 실패: maxSize >= minSize
 ```
 
 ```
@@ -460,7 +460,7 @@ APPLICATION FAILED TO START
 
 Description:
 
-Binding to target org.springframework.boot.context.properties.bind.BindException: 
+Binding to target org.springframework.boot.context.properties.bind.BindException:
 Failed to bind properties under 'database' to DatabaseProperties failed:
 
     Property: database.host
@@ -484,50 +484,50 @@ Failed to bind properties under 'database' to DatabaseProperties failed:
 @Validated
 @ConfigurationProperties(prefix = "redis")
 public class RedisProperties {
-    
+
     @NotBlank
     private String host = "localhost";
-    
+
     @Min(1)
     @Max(65535)
     private int port = 6379;
-    
+
     private String password;
-    
+
     @Min(0)
     private int database = 0;
-    
+
     @Valid
     @NotNull
     private Pool pool = new Pool();
-    
+
     @Valid
     @NotNull
     private Timeout timeout = new Timeout();
-    
+
     @Data
     public static class Pool {
         @Min(1)
         private int minIdle = 5;
-        
+
         @Min(1)
         private int maxIdle = 10;
-        
+
         @Min(1)
         private int maxActive = 20;
-        
+
         @Min(0)
         private long maxWait = 3000;
     }
-    
+
     @Data
     public static class Timeout {
         @Min(1000)
         private long connection = 5000;
-        
+
         @Min(1000)
         private long read = 3000;
-        
+
         @Min(1000)
         private long write = 3000;
     }
@@ -555,13 +555,13 @@ redis:
 @Configuration
 @EnableConfigurationProperties(RedisProperties.class)
 public class RedisConfig {
-    
+
     private final RedisProperties properties;
-    
+
     public RedisConfig(RedisProperties properties) {
         this.properties = properties;
     }
-    
+
     @Bean
     public RedisConnectionFactory redisConnectionFactory() {
         RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
@@ -569,15 +569,15 @@ public class RedisConfig {
         config.setPort(properties.getPort());
         config.setPassword(properties.getPassword());
         config.setDatabase(properties.getDatabase());
-        
+
         LettucePoolingClientConfiguration pooling = LettucePoolingClientConfiguration.builder()
             .poolConfig(poolConfig())
             .commandTimeout(Duration.ofMillis(properties.getTimeout().getConnection()))
             .build();
-        
+
         return new LettuceConnectionFactory(config, pooling);
     }
-    
+
     private GenericObjectPoolConfig poolConfig() {
         GenericObjectPoolConfig config = new GenericObjectPoolConfig();
         config.setMinIdle(properties.getPool().getMinIdle());
@@ -596,55 +596,55 @@ public class RedisConfig {
 @Validated
 @ConfigurationProperties(prefix = "aws")
 public class AwsProperties {
-    
+
     @NotBlank
     private String region = "ap-northeast-2";
-    
+
     @NotBlank
     private String accessKey;
-    
+
     @NotBlank
     private String secretKey;
-    
+
     @Valid
     @NotNull
     private S3 s3 = new S3();
-    
+
     @Valid
     @NotNull
     private Sqs sqs = new Sqs();
-    
+
     @Data
     public static class S3 {
         @NotBlank
         private String bucket;
-        
+
         @NotBlank
         private String baseUrl;
-        
+
         @Min(1)
         private int maxConnections = 50;
-        
+
         @Min(1000)
         private long connectionTimeout = 5000;
-        
+
         @Min(1000)
         private long socketTimeout = 10000;
     }
-    
+
     @Data
     public static class Sqs {
         @NotBlank
         private String queueUrl;
-        
+
         @Min(1)
         @Max(10)
         private int maxNumberOfMessages = 10;
-        
+
         @Min(0)
         @Max(20)
         private int visibilityTimeout = 30;
-        
+
         @Min(0)
         @Max(20)
         private int waitTimeSeconds = 20;
@@ -677,48 +677,48 @@ aws:
 @Validated
 @ConfigurationProperties(prefix = "datasources")
 public class DataSourcesProperties {
-    
+
     @Valid
     @NotNull
     private DataSourceConfig primary = new DataSourceConfig();
-    
+
     @Valid
     @NotNull
     private DataSourceConfig secondary = new DataSourceConfig();
-    
+
     @Data
     public static class DataSourceConfig {
         @NotBlank
         private String url;
-        
+
         @NotBlank
         private String username;
-        
+
         @NotBlank
         private String password;
-        
+
         @NotBlank
         private String driverClassName = "org.postgresql.Driver";
-        
+
         @Valid
         @NotNull
         private Pool pool = new Pool();
     }
-    
+
     @Data
     public static class Pool {
         @Min(1)
         private int minimumIdle = 5;
-        
+
         @Min(1)
         private int maximumPoolSize = 20;
-        
+
         @Min(1000)
         private long connectionTimeout = 30000;
-        
+
         @Min(1000)
         private long idleTimeout = 600000;
-        
+
         @Min(1000)
         private long maxLifetime = 1800000;
     }
@@ -755,24 +755,24 @@ datasources:
 @Configuration
 @EnableConfigurationProperties(DataSourcesProperties.class)
 public class DataSourceConfig {
-    
+
     private final DataSourcesProperties properties;
-    
+
     public DataSourceConfig(DataSourcesProperties properties) {
         this.properties = properties;
     }
-    
+
     @Bean
     @Primary
     public DataSource primaryDataSource() {
         return createDataSource(properties.getPrimary());
     }
-    
+
     @Bean
     public DataSource secondaryDataSource() {
         return createDataSource(properties.getSecondary());
     }
-    
+
     private DataSource createDataSource(DataSourcesProperties.DataSourceConfig config) {
         HikariConfig hikariConfig = new HikariConfig();
         hikariConfig.setJdbcUrl(config.getUrl());
@@ -784,7 +784,7 @@ public class DataSourceConfig {
         hikariConfig.setConnectionTimeout(config.getPool().getConnectionTimeout());
         hikariConfig.setIdleTimeout(config.getPool().getIdleTimeout());
         hikariConfig.setMaxLifetime(config.getPool().getMaxLifetime());
-        
+
         return new HikariDataSource(hikariConfig);
     }
 }
@@ -807,13 +807,13 @@ public @interface ValidPoolSize {
 
 ```java
 public class PoolSizeValidator implements ConstraintValidator<ValidPoolSize, DatabaseProperties.Pool> {
-    
+
     @Override
     public boolean isValid(DatabaseProperties.Pool pool, ConstraintValidatorContext context) {
         if (pool == null) {
             return true;
         }
-        
+
         if (pool.getMaxSize() < pool.getMinSize()) {
             context.disableDefaultConstraintViolation();
             context.buildConstraintViolationWithTemplate(
@@ -821,7 +821,7 @@ public class PoolSizeValidator implements ConstraintValidator<ValidPoolSize, Dat
             ).addConstraintViolation();
             return false;
         }
-        
+
         if (pool.getMinSize() > 100) {
             context.disableDefaultConstraintViolation();
             context.buildConstraintViolationWithTemplate(
@@ -829,7 +829,7 @@ public class PoolSizeValidator implements ConstraintValidator<ValidPoolSize, Dat
             ).addConstraintViolation();
             return false;
         }
-        
+
         return true;
     }
 }
@@ -890,8 +890,11 @@ database:
     max-size: 50
     timeout: 60000
 ```
+
 ## 설정 파일 분리
+
 설정이 많으면 파일을 나눌 수 있다.
+
 ```yaml
 # application.yml
 spring:
@@ -946,12 +949,12 @@ annotationProcessor 'org.springframework.boot:spring-boot-configuration-processo
 ```java
 @ConfigurationProperties(prefix = "custom")
 public class CustomProperties {
-    
+
     /**
      * 서버 호스트 주소
      */
     private String host;
-    
+
     /**
      * 서버 포트 번호 (기본값: 8080)
      */

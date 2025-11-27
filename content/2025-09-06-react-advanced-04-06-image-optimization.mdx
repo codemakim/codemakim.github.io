@@ -12,10 +12,13 @@ seriesOrder: 64
 > Next.js 15의 고급 기능을 다루는 학습 자료
 
 ---
+
 ## 이미지 최적화
+
 ### next/image 고급 사용
+
 ```jsx
-import Image from 'next/image';
+import Image from "next/image";
 export default function Gallery() {
   return (
     <div>
@@ -25,16 +28,10 @@ export default function Gallery() {
         alt="Hero"
         fill
         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-        style={{ objectFit: 'cover' }}
+        style={{ objectFit: "cover" }}
       />
       {/* 우선순위 이미지 (LCP 최적화) */}
-      <Image
-        src="/hero.jpg"
-        alt="Hero"
-        width={1200}
-        height={600}
-        priority
-      />
+      <Image src="/hero.jpg" alt="Hero" width={1200} height={600} priority />
       {/* 블러 플레이스홀더 */}
       <Image
         src="/photo.jpg"
@@ -56,29 +53,34 @@ export default function Gallery() {
   );
 }
 ```
+
 ### 이미지 로더
+
 ```jsx
 // next.config.js
 module.exports = {
   images: {
-    loader: 'custom',
-    loaderFile: './image-loader.js',
+    loader: "custom",
+    loaderFile: "./image-loader.js",
   },
 };
 ```
+
 ```jsx
 // image-loader.js
 export default function cloudinaryLoader({ src, width, quality }) {
-  const params = ['f_auto', 'c_limit', `w_${width}`, `q_${quality || 'auto'}`];
-  return `https://res.cloudinary.com/demo/image/upload/${params.join(',')}${src}`;
+  const params = ["f_auto", "c_limit", `w_${width}`, `q_${quality || "auto"}`];
+  return `https://res.cloudinary.com/demo/image/upload/${params.join(",")}${src}`;
 }
 ```
+
 ### 동적 블러 플레이스홀더
+
 ```jsx
-import { getPlaiceholder } from 'plaiceholder';
+import { getPlaiceholder } from "plaiceholder";
 export default async function Post({ params }) {
   const post = await fetchPost(params.id);
-  
+
   const { base64 } = await getPlaiceholder(post.imageUrl);
   return (
     <Image
@@ -92,4 +94,5 @@ export default async function Post({ params }) {
   );
 }
 ```
+
 ---

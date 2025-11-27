@@ -51,14 +51,10 @@ React에서는 JSX에 이벤트 핸들러를 추가하여 사용자 상호작용
 ```jsx
 export default function Button() {
   function handleClick() {
-    alert('버튼을 클릭했습니다!');
+    alert("버튼을 클릭했습니다!");
   }
 
-  return (
-    <button onClick={handleClick}>
-      클릭하세요
-    </button>
-  );
+  return <button onClick={handleClick}>클릭하세요</button>;
 }
 ```
 
@@ -77,9 +73,9 @@ export default function Button() {
 ```jsx
 function Button() {
   function handleClick() {
-    alert('클릭됨!');
+    alert("클릭됨!");
   }
-  
+
   return <button onClick={handleClick}>클릭</button>;
 }
 ```
@@ -89,9 +85,11 @@ function Button() {
 ```jsx
 function Button() {
   return (
-    <button onClick={function handleClick() {
-      alert('클릭됨!');
-    }}>
+    <button
+      onClick={function handleClick() {
+        alert("클릭됨!");
+      }}
+    >
       클릭
     </button>
   );
@@ -103,9 +101,11 @@ function Button() {
 ```jsx
 function Button() {
   return (
-    <button onClick={() => {
-      alert('클릭됨!');
-    }}>
+    <button
+      onClick={() => {
+        alert("클릭됨!");
+      }}
+    >
       클릭
     </button>
   );
@@ -115,7 +115,7 @@ function Button() {
 #### 4. 한 줄 인라인
 
 ```jsx
-<button onClick={() => alert('클릭됨!')}>클릭</button>
+<button onClick={() => alert("클릭됨!")}>클릭</button>
 ```
 
 ### 일반적인 실수
@@ -142,22 +142,14 @@ function Button() {
 
 ```jsx
 function AlertButton({ message, children }) {
-  return (
-    <button onClick={() => alert(message)}>
-      {children}
-    </button>
-  );
+  return <button onClick={() => alert(message)}>{children}</button>;
 }
 
 export default function Toolbar() {
   return (
     <div>
-      <AlertButton message="영상을 재생합니다!">
-        영상 재생
-      </AlertButton>
-      <AlertButton message="이미지를 업로드합니다!">
-        이미지 업로드
-      </AlertButton>
+      <AlertButton message="영상을 재생합니다!">영상 재생</AlertButton>
+      <AlertButton message="이미지를 업로드합니다!">이미지 업로드</AlertButton>
     </div>
   );
 }
@@ -169,11 +161,7 @@ export default function Toolbar() {
 
 ```jsx
 function Button({ onClick, children }) {
-  return (
-    <button onClick={onClick}>
-      {children}
-    </button>
-  );
+  return <button onClick={onClick}>{children}</button>;
 }
 
 function PlayButton({ movieName }) {
@@ -181,11 +169,7 @@ function PlayButton({ movieName }) {
     alert(`${movieName} 재생 중!`);
   }
 
-  return (
-    <Button onClick={handlePlayClick}>
-      "{movieName}" 재생
-    </Button>
-  );
+  return <Button onClick={handlePlayClick}>"{movieName}" 재생</Button>;
 }
 
 export default function Toolbar() {
@@ -209,22 +193,14 @@ export default function Toolbar() {
 
 ```jsx
 function Button({ onSmash, children }) {
-  return (
-    <button onClick={onSmash}>
-      {children}
-    </button>
-  );
+  return <button onClick={onSmash}>{children}</button>;
 }
 
 export default function App() {
   return (
     <div>
-      <Button onSmash={() => alert('영상 재생!')}>
-        영상 재생
-      </Button>
-      <Button onSmash={() => alert('이미지 업로드!')}>
-        이미지 업로드
-      </Button>
+      <Button onSmash={() => alert("영상 재생!")}>영상 재생</Button>
+      <Button onSmash={() => alert("이미지 업로드!")}>이미지 업로드</Button>
     </div>
   );
 }
@@ -245,15 +221,11 @@ export default function Toolbar() {
     <div
       className="Toolbar"
       onClick={() => {
-        alert('툴바를 클릭했습니다!');
+        alert("툴바를 클릭했습니다!");
       }}
     >
-      <button onClick={() => alert('영상 재생!')}>
-        영상 재생
-      </button>
-      <button onClick={() => alert('이미지 업로드!')}>
-        이미지 업로드
-      </button>
+      <button onClick={() => alert("영상 재생!")}>영상 재생</button>
+      <button onClick={() => alert("이미지 업로드!")}>이미지 업로드</button>
     </div>
   );
 }
@@ -269,10 +241,12 @@ export default function Toolbar() {
 ```jsx
 function Button({ onClick, children }) {
   return (
-    <button onClick={e => {
-      e.stopPropagation();  // 전파 중단
-      onClick();
-    }}>
+    <button
+      onClick={(e) => {
+        e.stopPropagation(); // 전파 중단
+        onClick();
+      }}
+    >
       {children}
     </button>
   );
@@ -280,13 +254,9 @@ function Button({ onClick, children }) {
 
 export default function Toolbar() {
   return (
-    <div className="Toolbar" onClick={() => alert('툴바 클릭!')}>
-      <Button onClick={() => alert('영상 재생!')}>
-        영상 재생
-      </Button>
-      <Button onClick={() => alert('이미지 업로드!')}>
-        이미지 업로드
-      </Button>
+    <div className="Toolbar" onClick={() => alert("툴바 클릭!")}>
+      <Button onClick={() => alert("영상 재생!")}>영상 재생</Button>
+      <Button onClick={() => alert("이미지 업로드!")}>이미지 업로드</Button>
     </div>
   );
 }
@@ -301,10 +271,12 @@ export default function Toolbar() {
 ```jsx
 export default function Signup() {
   return (
-    <form onSubmit={e => {
-      e.preventDefault();  // 페이지 새로고침 방지
-      alert('제출되었습니다!');
-    }}>
+    <form
+      onSubmit={(e) => {
+        e.preventDefault(); // 페이지 새로고침 방지
+        alert("제출되었습니다!");
+      }}
+    >
       <input />
       <button>전송</button>
     </form>
@@ -314,10 +286,10 @@ export default function Signup() {
 
 `stopPropagation()` vs `preventDefault()`
 
-| 메서드 | 설명 |
-|--------|------|
-| `e.stopPropagation()` | 상위 핸들러 실행 중단 |
-| `e.preventDefault()` | 기본 브라우저 동작 방지 |
+| 메서드                | 설명                    |
+| --------------------- | ----------------------- |
+| `e.stopPropagation()` | 상위 핸들러 실행 중단   |
+| `e.preventDefault()`  | 기본 브라우저 동작 방지 |
 
 ### 이벤트 핸들러에서 부작용 처리 가능
 
@@ -339,9 +311,9 @@ export default function Signup() {
 </template>
 
 <script setup>
-function handleClick() {
-  alert('클릭됨!')
-}
+  function handleClick() {
+    alert("클릭됨!");
+  }
 </script>
 ```
 
@@ -349,10 +321,10 @@ function handleClick() {
 // React: onClick
 function Button() {
   function handleClick() {
-    alert('클릭됨!')
+    alert("클릭됨!");
   }
-  
-  return <button onClick={handleClick}>클릭</button>
+
+  return <button onClick={handleClick}>클릭</button>;
 }
 ```
 

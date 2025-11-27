@@ -23,13 +23,13 @@ React는 `useState`, `useEffect` 같은 내장 Hook을 제공하지만, 직접 H
 
 ```jsx
 // 좋은 예
-function useOnlineStatus() { }
-function useFormInput() { }
-function useFetch() { }
+function useOnlineStatus() {}
+function useFormInput() {}
+function useFetch() {}
 
 // 나쁜 예
-function getOnlineStatus() { }  // Hook이 아님
-function formInput() { }  // Hook이 아님
+function getOnlineStatus() {} // Hook이 아님
+function formInput() {} // Hook이 아님
 ```
 
 **왜 `use`로 시작해야 하나?**
@@ -46,7 +46,7 @@ React는 함수 이름으로 Hook인지 판단한다. `use`로 시작하지 않�
 // StatusBar 컴포넌트
 function StatusBar() {
   const [isOnline, setIsOnline] = useState(true);
-  
+
   useEffect(() => {
     function handleOnline() {
       setIsOnline(true);
@@ -54,23 +54,23 @@ function StatusBar() {
     function handleOffline() {
       setIsOnline(false);
     }
-    
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
     };
   }, []);
-  
-  return <h1>{isOnline ? 'Online' : 'Disconnected'}</h1>;
+
+  return <h1>{isOnline ? "Online" : "Disconnected"}</h1>;
 }
 
 // SaveButton 컴포넌트
 function SaveButton() {
   const [isOnline, setIsOnline] = useState(true);
-  
+
   useEffect(() => {
     function handleOnline() {
       setIsOnline(true);
@@ -78,19 +78,19 @@ function SaveButton() {
     function handleOffline() {
       setIsOnline(false);
     }
-    
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
     };
   }, []);
 
   return (
     <button disabled={!isOnline}>
-      {isOnline ? 'Save progress' : 'Reconnecting...'}
+      {isOnline ? "Save progress" : "Reconnecting..."}
     </button>
   );
 }
@@ -102,11 +102,11 @@ function SaveButton() {
 
 ```jsx
 // useOnlineStatus.js
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 function useOnlineStatus() {
   const [isOnline, setIsOnline] = useState(true);
-  
+
   useEffect(() => {
     function handleOnline() {
       setIsOnline(true);
@@ -114,16 +114,16 @@ function useOnlineStatus() {
     function handleOffline() {
       setIsOnline(false);
     }
-    
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
     };
   }, []);
-  
+
   return isOnline;
 }
 
@@ -136,7 +136,7 @@ export default useOnlineStatus;
 // StatusBar 컴포넌트
 function StatusBar() {
   const isOnline = useOnlineStatus();
-  return <h1>{isOnline ? 'Online' : 'Disconnected'}</h1>;
+  return <h1>{isOnline ? "Online" : "Disconnected"}</h1>;
 }
 
 // SaveButton 컴포넌트
@@ -145,7 +145,7 @@ function SaveButton() {
 
   return (
     <button disabled={!isOnline}>
-      {isOnline ? 'Save progress' : 'Reconnecting...'}
+      {isOnline ? "Save progress" : "Reconnecting..."}
     </button>
   );
 }
@@ -159,12 +159,12 @@ function SaveButton() {
 
 ```jsx
 function StatusBar() {
-  const isOnline = useOnlineStatus();  // 독립적인 state
+  const isOnline = useOnlineStatus(); // 독립적인 state
   // ...
 }
 
 function SaveButton() {
-  const isOnline = useOnlineStatus();  // 독립적인 state
+  const isOnline = useOnlineStatus(); // 독립적인 state
   // ...
 }
 ```
@@ -182,7 +182,7 @@ function SaveButton() {
 ### 1. useLocalStorage - localStorage 동기화
 
 ```jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 function useLocalStorage(key, initialValue) {
   // localStorage에서 초기값 읽기
@@ -201,12 +201,12 @@ function useLocalStorage(key, initialValue) {
 
 // 사용 예
 function App() {
-  const [name, setName] = useLocalStorage('name', '');
-  
+  const [name, setName] = useLocalStorage("name", "");
+
   return (
     <input
       value={name}
-      onChange={e => setName(e.target.value)}
+      onChange={(e) => setName(e.target.value)}
       placeholder="Your name"
     />
   );
@@ -218,7 +218,7 @@ function App() {
 ### 2. useWindowSize - 창 크기 추적
 
 ```jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 function useWindowSize() {
   const [size, setSize] = useState({
@@ -234,8 +234,8 @@ function useWindowSize() {
       });
     }
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   return size;
@@ -244,7 +244,11 @@ function useWindowSize() {
 // 사용 예
 function App() {
   const { width, height } = useWindowSize();
-  return <p>Window size: {width} x {height}</p>;
+  return (
+    <p>
+      Window size: {width} x {height}
+    </p>
+  );
 }
 ```
 
@@ -253,7 +257,7 @@ function App() {
 ### 3. useFetch - 데이터 페칭
 
 ```jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 function useFetch(url) {
   const [data, setData] = useState(null);
@@ -265,12 +269,12 @@ function useFetch(url) {
     setError(null);
 
     fetch(url)
-      .then(response => response.json())
-      .then(data => {
+      .then((response) => response.json())
+      .then((data) => {
         setData(data);
         setLoading(false);
       })
-      .catch(error => {
+      .catch((error) => {
         setError(error);
         setLoading(false);
       });
@@ -294,7 +298,7 @@ function UserProfile({ userId }) {
 ### 4. useDebounce - 입력 지연
 
 ```jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -314,7 +318,7 @@ function useDebounce(value, delay) {
 
 // 사용 예
 function SearchBar() {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
   useEffect(() => {
@@ -327,7 +331,7 @@ function SearchBar() {
   return (
     <input
       value={searchTerm}
-      onChange={e => setSearchTerm(e.target.value)}
+      onChange={(e) => setSearchTerm(e.target.value)}
       placeholder="Search..."
     />
   );
@@ -339,15 +343,15 @@ function SearchBar() {
 ### 5. usePrevious - 이전 값 기억
 
 ```jsx
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect } from "react";
 
 function usePrevious(value) {
   const ref = useRef();
-  
+
   useEffect(() => {
     ref.current = value;
   }, [value]);
-  
+
   return ref.current;
 }
 
@@ -358,7 +362,9 @@ function Counter() {
 
   return (
     <div>
-      <h1>Now: {count}, before: {prevCount}</h1>
+      <h1>
+        Now: {count}, before: {prevCount}
+      </h1>
       <button onClick={() => setCount(count + 1)}>Increment</button>
     </div>
   );
@@ -370,7 +376,7 @@ function Counter() {
 ### 6. useInterval - 안전한 타이머
 
 ```jsx
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef } from "react";
 
 function useInterval(callback, delay) {
   const savedCallback = useRef();
@@ -385,7 +391,7 @@ function useInterval(callback, delay) {
     function tick() {
       savedCallback.current();
     }
-    
+
     if (delay !== null) {
       const id = setInterval(tick, delay);
       return () => clearInterval(id);
@@ -413,12 +419,12 @@ function Counter() {
 
 ```jsx
 // 좋은 예
-function useFormInput(initialValue) { }
-function useFetch(url) { }
+function useFormInput(initialValue) {}
+function useFetch(url) {}
 
 // 나쁜 예
-function getFormInput(initialValue) { }
-function fetchData(url) { }
+function getFormInput(initialValue) {}
+function fetchData(url) {}
 ```
 
 ### 2. 높은 수준의 사용 사례에 집중
@@ -452,14 +458,14 @@ function useChatRoom({ serverUrl, roomId }) {
 ```jsx
 function useFormInput(initialValue) {
   const [value, setValue] = useState(initialValue);
-  
+
   function handleChange(e) {
     setValue(e.target.value);
   }
-  
+
   return {
     value,
-    onChange: handleChange
+    onChange: handleChange,
   };
 }
 ```
@@ -468,7 +474,7 @@ function useFormInput(initialValue) {
 
 ```jsx
 function useFormInput(initialValue) {
-  console.log('Rendering!');  // 순수하지 않음
+  console.log("Rendering!"); // 순수하지 않음
   const [value, setValue] = useState(initialValue);
   return { value, setValue };
 }

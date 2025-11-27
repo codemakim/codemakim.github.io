@@ -81,11 +81,11 @@ App (Root)
 
 ### 트리 용어
 
-| 용어 | 설명 | 예제 |
-|------|------|------|
-| Root Component | 최상위 컴포넌트 | `App` |
-| Top-level Component | 루트에 가까운 컴포넌트 | `Header`, `Main` |
-| Leaf Component | 자식이 없는 컴포넌트 | `Logo`, `Nav`, `Sidebar`, `Content` |
+| 용어                | 설명                   | 예제                                |
+| ------------------- | ---------------------- | ----------------------------------- |
+| Root Component      | 최상위 컴포넌트        | `App`                               |
+| Top-level Component | 루트에 가까운 컴포넌트 | `Header`, `Main`                    |
+| Leaf Component      | 자식이 없는 컴포넌트   | `Logo`, `Nav`, `Sidebar`, `Content` |
 
 ### 2. 모듈 의존성 트리 (Module Dependency Tree)
 
@@ -97,14 +97,14 @@ App (Root)
 
 ```jsx
 // RootModule.js
-import ModuleA from './ModuleA.js';
-import ModuleB from './ModuleB.js';
-import ModuleC from './ModuleC.js';
+import ModuleA from "./ModuleA.js";
+import ModuleB from "./ModuleB.js";
+import ModuleC from "./ModuleC.js";
 ```
 
 ```jsx
 // ModuleC.js
-import ModuleD from './ModuleD.js';
+import ModuleD from "./ModuleD.js";
 ```
 
 #### 의존성 트리 다이어그램
@@ -119,12 +119,12 @@ RootModule.js
 
 ### 렌더 트리 vs 모듈 의존성 트리
 
-| 비교 | 렌더 트리 | 모듈 의존성 트리 |
-|------|----------|----------------|
-| 표현 | 컴포넌트 관계 | 파일(모듈) 관계 |
-| 노드 | React 컴포넌트 | JavaScript 파일 |
-| 간선 | 렌더링 관계 | import 관계 |
-| 용도 | UI 구조 이해 | 번들 크기 분석 |
+| 비교 | 렌더 트리      | 모듈 의존성 트리 |
+| ---- | -------------- | ---------------- |
+| 표현 | 컴포넌트 관계  | 파일(모듈) 관계  |
+| 노드 | React 컴포넌트 | JavaScript 파일  |
+| 간선 | 렌더링 관계    | import 관계      |
+| 용도 | UI 구조 이해   | 번들 크기 분석   |
 
 ### 트리 구조의 활용
 
@@ -146,12 +146,12 @@ RootModule.js
 // App이 리렌더링되면 모든 자식도 리렌더링
 function App() {
   const [count, setCount] = useState(0);
-  
+
   return (
     <div>
-      <Header />        // 리렌더링됨
-      <Main />          // 리렌더링됨
-      <Footer />        // 리렌더링됨
+      <Header /> // 리렌더링됨
+      <Main /> // 리렌더링됨
+      <Footer /> // 리렌더링됨
     </div>
   );
 }
@@ -168,19 +168,19 @@ const Header = React.memo(function Header() {
 
 ```jsx
 // 전체 라이브러리 import (번들 크기 증가)
-import _ from 'lodash';
+import _ from "lodash";
 
 // 필요한 함수만 import (번들 크기 감소)
-import debounce from 'lodash/debounce';
+import debounce from "lodash/debounce";
 ```
 
 #### 4. Code Splitting (코드 분할)
 
 ```jsx
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense } from "react";
 
 // 동적 import로 번들 분할
-const Admin = lazy(() => import('./Admin'));
+const Admin = lazy(() => import("./Admin"));
 
 function App() {
   return (
@@ -216,11 +216,11 @@ Vue도 동일하게 컴포넌트 트리 구조를 사용하지만, 템플릿 기
 <!-- Vue: 템플릿에서 트리 구조가 명확 -->
 <template>
   <div>
-    <Header>
+    <header>
       <Logo />
       <Navigation />
-    </Header>
-    <Main />
+    </header>
+    <main />
   </div>
 </template>
 ```

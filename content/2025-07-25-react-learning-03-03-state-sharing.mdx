@@ -9,19 +9,26 @@ seriesOrder: 21
 
 # React 학습 가이드 - 컴포넌트 간 State 공유하기
 
-
 ---
+
 ## 컴포넌트 간 State 공유하기
+
 두 컴포넌트가 동일한 state를 공유해야 할 때가 있다. 어떻게 해야 할까요?
+
 ### State 끌어올리기 (Lifting State Up)
+
 두 컴포넌트가 항상 함께 변경되기를 원할 때:
+
 1. 두 컴포넌트에서 state 제거
 2. 공통 부모로 state 이동
 3. Props로 state 전달
+
 ### 예제: 아코디언
+
 하나의 패널만 열리도록 하는 아코디언 컴포넌트를 만들어봅시다.
+
 ```jsx
-import { useState } from 'react';
+import { useState } from "react";
 export default function Accordion() {
   const [activeIndex, setActiveIndex] = useState(0);
   return (
@@ -32,16 +39,16 @@ export default function Accordion() {
         isActive={activeIndex === 0}
         onShow={() => setActiveIndex(0)}
       >
-        인구 약 200만의 알마티는 카자흐스탄에서 가장 큰 도시이다.
-        1929년부터 1997년까지 수도였다.
+        인구 약 200만의 알마티는 카자흐스탄에서 가장 큰 도시이다. 1929년부터
+        1997년까지 수도였다.
       </Panel>
       <Panel
         title="어원"
         isActive={activeIndex === 1}
         onShow={() => setActiveIndex(1)}
       >
-        이름은 카자흐어로 "사과"를 의미하는 алма에서 유래했으며,
-        "사과로 가득한"을 뜻한다.
+        이름은 카자흐어로 "사과"를 의미하는 алма에서 유래했으며, "사과로
+        가득한"을 뜻한다.
       </Panel>
     </>
   );
@@ -50,36 +57,44 @@ function Panel({ title, children, isActive, onShow }) {
   return (
     <section className="panel">
       <h3>{title}</h3>
+      {isActive ? <p>{children}</p> : <button onClick={onShow}>보기</button>}
+    </section>
+  );
+}
+```
+
+### 제어 컴포넌트 vs 비제어 컴포넌트
+
+컴포넌트는 부모가 제어하는지, 자체적으로 동작하는지에 따라 두 가지로 분류된다.
+비제어 컴포넌트 (Uncontrolled):
+
+- 자체 state로 설정 관리
+- 부모가 영향을 줄 수 없음
+
+```jsx
+function Panel({ title, children }) {
+  const [isActive, setIsActive] = useState(false); // 자체 state
+  return (
+    <section>
+      <h3>{title}</h3>
       {isActive ? (
         <p>{children}</p>
       ) : (
-        <button onClick={onShow}>보기</button>
+        <button onClick={() => setIsActive(true)}>보기</button>
       )}
     </section>
   );
 }
 ```
-### 제어 컴포넌트 vs 비제어 컴포넌트
-컴포넌트는 부모가 제어하는지, 자체적으로 동작하는지에 따라 두 가지로 분류된다.
-비제어 컴포넌트 (Uncontrolled):
-- 자체 state로 설정 관리
-- 부모가 영향을 줄 수 없음
-```jsx
-function Panel({ title, children }) {
-  const [isActive, setIsActive] = useState(false);  // 자체 state
-  return (
-    <section>
-      <h3>{title}</h3>
-      {isActive ? <p>{children}</p> : <button onClick={() => setIsActive(true)}>보기</button>}
-    </section>
-  );
-}
-```
+
 제어 컴포넌트 (Controlled):
+
 - Props로 state 받음
 - 부모가 완전히 제어
+
 ```jsx
-function Panel({ title, children, isActive, onShow }) {  // Props로 제어
+function Panel({ title, children, isActive, onShow }) {
+  // Props로 제어
   return (
     <section>
       <h3>{title}</h3>
@@ -88,9 +103,12 @@ function Panel({ title, children, isActive, onShow }) {  // Props로 제어
   );
 }
 ```
+
 ### 단일 진실의 원천 (Single Source of Truth)
+
 동일한 데이터를 여러 곳에 저장하면 동기화 문제가 발생한다.
 각 state마다 한 곳에만 저장하라.
+
 ```jsx
 //  좋음: state는 Accordion에만 존재
 <Accordion>
@@ -101,12 +119,14 @@ function Panel({ title, children, isActive, onShow }) {  // Props로 제어
 <Panel />  {/* 독립적 state */}
 <Panel />  {/* 독립적 state */}
 ```
+
 ### Vue와 비교
+
 ```html
 <!-- Vue: v-model로 양방향 바인딩 -->
 <script setup>
-import { ref } from 'vue'
-const activeIndex = ref(0)
+  import { ref } from "vue";
+  const activeIndex = ref(0);
 </script>
 <template>
   <Accordion v-model="activeIndex">
@@ -115,11 +135,12 @@ const activeIndex = ref(0)
   </Accordion>
 </template>
 ```
+
 ```jsx
 // React: 명시적 props 전달
 function Accordion() {
   const [activeIndex, setActiveIndex] = useState(0);
-  
+
   return (
     <>
       <Panel isActive={activeIndex === 0} onShow={() => setActiveIndex(0)} />

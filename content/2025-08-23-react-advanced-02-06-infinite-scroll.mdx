@@ -13,10 +13,14 @@ seriesOrder: 51
 > 출처: [TanStack Query Documentation](https://tanstack.com/query/)
 
 ---
+
 ## 무한 스크롤
+
 무한 스크롤
 낙관적 업데이트
+
 ### 기본 패턴
+
 ```jsx
 function TodoList() {
   const queryClient = useQueryClient();
@@ -24,26 +28,24 @@ function TodoList() {
     mutationFn: updateTodo,
     onMutate: async (newTodo) => {
       // 진행 중인 리페치 취소
-      await queryClient.cancelQueries({ queryKey: ['todos'] });
+      await queryClient.cancelQueries({ queryKey: ["todos"] });
       // 이전 데이터 스냅샷
-      const previousTodos = queryClient.getQueryData(['todos']);
+      const previousTodos = queryClient.getQueryData(["todos"]);
       // 낙관적 업데이트
-      queryClient.setQueryData(['todos'], (old) =>
-        old.map(todo =>
-          todo.id === newTodo.id ? newTodo : todo
-        )
+      queryClient.setQueryData(["todos"], (old) =>
+        old.map((todo) => (todo.id === newTodo.id ? newTodo : todo)),
       );
       // 롤백을 위한 컨텍스트 반환
       return { previousTodos };
     },
     onError: (err, newTodo, context) => {
       // 에러 발생 시 롤백
-      queryClient.setQueryData(['todos'], context.previousTodos);
-      toast.error('Failed to update todo');
+      queryClient.setQueryData(["todos"], context.previousTodos);
+      toast.error("Failed to update todo");
     },
     onSettled: () => {
       // 성공/실패 상관없이 리페치
-      queryClient.invalidateQueries({ queryKey: ['todos'] });
+      queryClient.invalidateQueries({ queryKey: ["todos"] });
     },
   });
   function handleToggle(todo) {
@@ -54,27 +56,26 @@ function TodoList() {
   }
   return (
     <div>
-      {todos.map(todo => (
-        <TodoItem
-          key={todo.id}
-          todo={todo}
-          onToggle={handleToggle}
-        />
+      {todos.map((todo) => (
+        <TodoItem key={todo.id} todo={todo} onToggle={handleToggle} />
       ))}
     </div>
   );
 }
 ```
+
 ### 복잡한 예제: 좋아요 버튼
+
 ```jsx
 function LikeButton({ postId }) {
   const queryClient = useQueryClient();
   const likeMutation = useMutation({
-    mutationFn: (postId) => fetch(`/api/posts/${postId}/like`, { method: 'POST' }),
+    mutationFn: (postId) =>
+      fetch(`/api/posts/${postId}/like`, { method: "POST" }),
     onMutate: async (postId) => {
-      await queryClient.cancelQueries({ queryKey: ['post', postId] });
-      const previousPost = queryClient.getQueryData(['post', postId]);
-      queryClient.setQueryData(['post', postId], (old) => ({
+      await queryClient.cancelQueries({ queryKey: ["post", postId] });
+      const previousPost = queryClient.getQueryData(["post", postId]);
+      queryClient.setQueryData(["post", postId], (old) => ({
         ...old,
         likes: old.likes + 1,
         isLiked: true,
@@ -82,18 +83,19 @@ function LikeButton({ postId }) {
       return { previousPost };
     },
     onError: (err, postId, context) => {
-      queryClient.setQueryData(['post', postId], context.previousPost);
+      queryClient.setQueryData(["post", postId], context.previousPost);
     },
     onSettled: (data, error, postId) => {
-      queryClient.invalidateQueries({ queryKey: ['post', postId] });
+      queryClient.invalidateQueries({ queryKey: ["post", postId] });
     },
   });
   const unlikeMutation = useMutation({
-    mutationFn: (postId) => fetch(`/api/posts/${postId}/unlike`, { method: 'POST' }),
+    mutationFn: (postId) =>
+      fetch(`/api/posts/${postId}/unlike`, { method: "POST" }),
     onMutate: async (postId) => {
-      await queryClient.cancelQueries({ queryKey: ['post', postId] });
-      const previousPost = queryClient.getQueryData(['post', postId]);
-      queryClient.setQueryData(['post', postId], (old) => ({
+      await queryClient.cancelQueries({ queryKey: ["post", postId] });
+      const previousPost = queryClient.getQueryData(["post", postId]);
+      queryClient.setQueryData(["post", postId], (old) => ({
         ...old,
         likes: old.likes - 1,
         isLiked: false,
@@ -101,11 +103,11 @@ function LikeButton({ postId }) {
       return { previousPost };
     },
     onError: (err, postId, context) => {
-      queryClient.setQueryData(['post', postId], context.previousPost);
+      queryClient.setQueryData(["post", postId], context.previousPost);
     },
   });
   const { data: post } = useQuery({
-    queryKey: ['post', postId],
+    queryKey: ["post", postId],
     queryFn: () => fetchPost(postId),
   });
   function handleClick() {
@@ -117,9 +119,10 @@ function LikeButton({ postId }) {
   }
   return (
     <button onClick={handleClick}>
-      {post.isLiked ? '❤️' : '🤍'} {post.likes}
+      {post.isLiked ? "❤️" : "🤍"} {post.likes}
     </button>
   );
 }
 ```
+
 ---

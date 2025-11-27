@@ -12,14 +12,17 @@ seriesOrder: 61
 > Next.js 15의 고급 기능을 다루는 학습 자료
 
 ---
+
 ## ISR (Incremental Static Regeneration)
+
 ### 기본 ISR
+
 ```jsx
 // app/posts/[id]/page.jsx
 export const revalidate = 60; // 60초마다 재생성
 export default async function Post({ params }) {
   const post = await fetchPost(params.id);
-  
+
   return (
     <article>
       <h1>{post.title}</h1>
@@ -29,17 +32,19 @@ export default async function Post({ params }) {
 }
 export async function generateStaticParams() {
   const posts = await fetchPosts();
-  
+
   return posts.map((post) => ({
     id: post.id.toString(),
   }));
 }
 ```
+
 ### On-Demand Revalidation
+
 ```jsx
 // app/api/revalidate/route.js
-import { revalidatePath, revalidateTag } from 'next/cache';
-import { NextResponse } from 'next/server';
+import { revalidatePath, revalidateTag } from "next/cache";
+import { NextResponse } from "next/server";
 export async function POST(request) {
   const { path, tag } = await request.json();
   if (path) {
@@ -53,41 +58,46 @@ export async function POST(request) {
   return NextResponse.json({ revalidated: false });
 }
 ```
+
 ```jsx
 // 특정 경로 재검증
-fetch('/api/revalidate', {
-  method: 'POST',
-  body: JSON.stringify({ path: '/posts/1' }),
+fetch("/api/revalidate", {
+  method: "POST",
+  body: JSON.stringify({ path: "/posts/1" }),
 });
 // 태그로 재검증
-fetch('/api/revalidate', {
-  method: 'POST',
-  body: JSON.stringify({ tag: 'posts' }),
+fetch("/api/revalidate", {
+  method: "POST",
+  body: JSON.stringify({ tag: "posts" }),
 });
 ```
+
 ### 태그 기반 캐시
+
 ```jsx
 // app/posts/page.jsx
 export default async function Posts() {
-  const posts = await fetch('https://api.example.com/posts', {
-    next: { tags: ['posts'] }
-  }).then(res => res.json());
+  const posts = await fetch("https://api.example.com/posts", {
+    next: { tags: ["posts"] },
+  }).then((res) => res.json());
   return (
     <ul>
-      {posts.map(post => (
+      {posts.map((post) => (
         <li key={post.id}>{post.title}</li>
       ))}
     </ul>
   );
 }
 ```
+
 ```jsx
 // app/actions.js
-'use server';
-import { revalidateTag } from 'next/cache';
+"use server";
+import { revalidateTag } from "next/cache";
 export async function createPost(data) {
   await db.posts.create({ data });
-  revalidateTag('posts'); // 'posts' 태그를 가진 모든 캐시 무효화
+  revalidateTag("posts"); // 'posts' 태그를 가진 모든 캐시 무효화
 }
 ```
+
 ---

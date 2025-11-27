@@ -30,9 +30,24 @@ UI 트리: 렌더 트리와 모듈 의존성 트리 이해
 ```jsx
 // 목표: 재사용 가능한 프로필 카드 만들기
 const users = [
-  { id: 1, name: 'Alice', role: 'Developer', avatar: 'https://i.imgur.com/avatar1.jpg' },
-  { id: 2, name: 'Bob', role: 'Designer', avatar: 'https://i.imgur.com/avatar2.jpg' },
-  { id: 3, name: 'Charlie', role: 'Manager', avatar: 'https://i.imgur.com/avatar3.jpg' },
+  {
+    id: 1,
+    name: "Alice",
+    role: "Developer",
+    avatar: "https://i.imgur.com/avatar1.jpg",
+  },
+  {
+    id: 2,
+    name: "Bob",
+    role: "Designer",
+    avatar: "https://i.imgur.com/avatar2.jpg",
+  },
+  {
+    id: 3,
+    name: "Charlie",
+    role: "Manager",
+    avatar: "https://i.imgur.com/avatar3.jpg",
+  },
 ];
 
 // TODO: ProfileCard 컴포넌트 작성
@@ -60,9 +75,9 @@ export default function App() {
 ```jsx
 // 목표: 조건부 렌더링 연습
 const todos = [
-  { id: 1, text: 'Learn React', completed: true },
-  { id: 2, text: 'Build a project', completed: false },
-  { id: 3, text: 'Deploy to production', completed: false },
+  { id: 1, text: "Learn React", completed: true },
+  { id: 2, text: "Build a project", completed: false },
+  { id: 3, text: "Deploy to production", completed: false },
 ];
 
 // TODO: TodoItem 컴포넌트 작성
@@ -90,10 +105,10 @@ export default function TodoList() {
 ```jsx
 // 목표: filter()와 map() 연습
 const products = [
-  { id: 1, name: 'Laptop', category: 'Electronics', price: 1200 },
-  { id: 2, name: 'Phone', category: 'Electronics', price: 800 },
-  { id: 3, name: 'Desk', category: 'Furniture', price: 300 },
-  { id: 4, name: 'Chair', category: 'Furniture', price: 150 },
+  { id: 1, name: "Laptop", category: "Electronics", price: 1200 },
+  { id: 2, name: "Phone", category: "Electronics", price: 800 },
+  { id: 3, name: "Desk", category: "Furniture", price: 300 },
+  { id: 4, name: "Chair", category: "Furniture", price: 150 },
 ];
 
 // TODO: ProductList 컴포넌트 작성
@@ -107,7 +122,7 @@ export default function App() {
     <div>
       <h1>Electronics</h1>
       <ProductList category="Electronics" />
-      
+
       <h1>Furniture</h1>
       <ProductList category="Furniture" />
     </div>
@@ -140,7 +155,7 @@ function ProfileCard({ user }) {
 export default function App() {
   return (
     <div className="profiles">
-      {users.map(user => (
+      {users.map((user) => (
         <ProfileCard key={user.id} user={user} />
       ))}
     </div>
@@ -154,11 +169,7 @@ export default function App() {
 function TodoItem({ todo }) {
   return (
     <li className="todo-item">
-      {todo.completed ? (
-        <del>{todo.text} ✅</del>
-      ) : (
-        todo.text
-      )}
+      {todo.completed ? <del>{todo.text} ✅</del> : todo.text}
     </li>
   );
 }
@@ -166,7 +177,7 @@ function TodoItem({ todo }) {
 export default function TodoList() {
   return (
     <ul>
-      {todos.map(todo => (
+      {todos.map((todo) => (
         <TodoItem key={todo.id} todo={todo} />
       ))}
     </ul>
@@ -179,12 +190,12 @@ export default function TodoList() {
 ```jsx
 function ProductList({ category }) {
   const filteredProducts = products.filter(
-    product => product.category === category
+    (product) => product.category === category,
   );
-  
+
   return (
     <ul>
-      {filteredProducts.map(product => (
+      {filteredProducts.map((product) => (
         <li key={product.id}>
           {product.name} - ${product.price}
         </li>

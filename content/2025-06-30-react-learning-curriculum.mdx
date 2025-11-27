@@ -277,16 +277,16 @@ docs/
 
    ```jsx
    function handleClick() {
-     setCount(count + 1);  // 0 + 1
-     console.log(count);   // 여전히 0! (스냅샷)
+     setCount(count + 1); // 0 + 1
+     console.log(count); // 여전히 0! (스냅샷)
    }
    ```
 
 3. **해결책**: 업데이터 함수 사용
 
    ```jsx
-   setCount(c => c + 1);
-   setCount(c => c + 1);  // 이제 2 증가!
+   setCount((c) => c + 1);
+   setCount((c) => c + 1); // 이제 2 증가!
    ```
 
 4. **실무 영향**: 비동기 작업 후 state 사용 시 주의
@@ -311,10 +311,10 @@ docs/
    ```jsx
    useEffect(() => {
      const id = setInterval(() => {
-       console.log('Tick');
+       console.log("Tick");
      }, 1000);
-     
-     return () => clearInterval(id);  // 클린업!
+
+     return () => clearInterval(id); // 클린업!
    }, []);
    ```
 
@@ -328,11 +328,11 @@ docs/
 
 **답변 구조:**
 
-| 도구 | 메모이제이션 대상 | 사용 시기 |
-|------|----------------|----------|
-| `React.memo` | **컴포넌트** | Props 변경 없으면 리렌더링 방지 |
-| `useMemo` | **값** | 비싼 계산 결과 캐싱 |
-| `useCallback` | **함수** | 함수 참조 동일성 유지 |
+| 도구          | 메모이제이션 대상 | 사용 시기                       |
+| ------------- | ----------------- | ------------------------------- |
+| `React.memo`  | **컴포넌트**      | Props 변경 없으면 리렌더링 방지 |
+| `useMemo`     | **값**            | 비싼 계산 결과 캐싱             |
+| `useCallback` | **함수**          | 함수 참조 동일성 유지           |
 
 **실무 예제:**
 
@@ -340,7 +340,6 @@ docs/
 // React.memo: 컴포넌트 메모이제이션
 const ExpensiveChild = React.memo(({ data }) => {
   // data 변경 시에만 리렌더링
-
 });
 
 // useMemo: 값 메모이제이션
@@ -352,7 +351,6 @@ const sortedData = useMemo(() => {
 const handleClick = useCallback(() => {
   doSomething(id);
 }, [id]);
-
 ```
 
 **주의사항:** 과도한 메모이제이션은 오히려 성능 저하!
@@ -377,7 +375,7 @@ const handleClick = useCallback(() => {
    서버 컴포넌트:
    - 서버에서 실행 → HTML 생성 → 클라이언트로 전송
    - JavaScript 번들에 포함 안됨 (0KB!)
-   
+
 
    클라이언트 컴포넌트:
    - JavaScript 번들에 포함됨
@@ -392,7 +390,7 @@ const handleClick = useCallback(() => {
    - 데이터 페칭
    - 백엔드 리소스 직접 접근
    - 민감한 정보 (API 키 등)
-   
+
    // ✅ 클라이언트 컴포넌트 ("use client")
    - useState, useEffect 등 Hook 사용
    - 이벤트 리스너 (onClick 등)
@@ -423,7 +421,7 @@ const handleClick = useCallback(() => {
 2. **서버 액션의 해결책**:
 
    ```jsx
-   
+
    export async function createPost(formData) {
      // 서버에서 실행!
      await db.posts.create({ ... });
@@ -462,20 +460,20 @@ const handleClick = useCallback(() => {
      const [data, setData] = useState([]);
      const [loading, setLoading] = useState(false);
      const [error, setError] = useState(null);
-     
+
      useEffect(() => {
        setLoaing(true);
-       fetch('/api/users')
-         .then(data => {
+       fetch("/api/users")
+         .then((data) => {
            setData(data);
            setLoading(false);
          })
-         .catch(err => {
+         .catch((err) => {
            setError(err);
            setLoading(false);
          });
      }, []);
-     
+
      // 캐싱 없음, 중복 요청 방지 없음, 재시도 없음...
    }
    ```
@@ -486,11 +484,10 @@ const handleClick = useCallback(() => {
    // ✅ React Query (10줄)
    function Users() {
      const { data, isLoading, error } = useQuery({
-       queryKey: ['users'],
-       queryFn: fetchUsers
-
+       queryKey: ["users"],
+       queryFn: fetchUsers,
      });
-     
+
      // 자동 캐싱, 중복 제거, 재시도, 백그라운드 리페치...
    }
    ```
@@ -515,7 +512,6 @@ const handleClick = useCallback(() => {
 **답변 구조:**
 
 1. **Context API 적합한 경우**:
-
    - 테마, 언어, 인증 등 **느리게 변하는 전역 상태**
    - 깊은 컴포넌트 트리에 props 전달
    - 외부 의존성 피하고 싶을 때
@@ -533,9 +529,8 @@ const handleClick = useCallback(() => {
    const { theme, user, cart } = useContext(AppContext);
    // theme만 변경되어도 리렌더링!
 
-   
    // ✅ Zustand: 필요한 값만 구독
-   const theme = useStore(state => state.theme);
+   const theme = useStore((state) => state.theme);
    // theme 변경 시에만 리렌더링!
    ```
 
@@ -596,13 +591,13 @@ const handleClick = useCallback(() => {
 
    ```jsx
    // ❌ 나쁨: class에 의존
-   getByClassName('submit-button')
-   
+   getByClassName("submit-button");
+
    // ❌ 나쁨: 구조에 의존
-   container.querySelector('div > button')
-   
+   container.querySelector("div > button");
+
    // ✅ 좋음: 사용자 관점
-   getByRole('button', { name: /submit/i })
+   getByRole("button", { name: /submit/i });
    ```
 
 3. **리팩토링 안전**:
@@ -686,7 +681,7 @@ Vue의 `computed`나 `v-memo`와 유사하지만, React는 명시적으로 최�
 
 ```javascript
 // 가장 간단: 10개씩만 표시
-const displayedItems = items.slice((page - 1) *10, page* 10);
+const displayedItems = items.slice((page - 1) * 10, page * 10);
 ```
 
 ### 2단계: 가상화 (Virtualization)
@@ -710,7 +705,6 @@ const displayedItems = items.slice((page - 1) *10, page* 10);
 const ListItem = React.memo(({ item }) => {
   return <div>{item.name}</div>;
 });
-
 ```
 
 **성능 개선:**
@@ -746,14 +740,17 @@ Vue의 `v-virtual-scroller`와 동일한 원리입니다."
 # 내 학습 노트
 
 ## State 관리
+
 Vue: ref(), reactive() - 자동 반응성
 React: useState() - 명시적 setter
 
 왜 차이가 있나?
+
 - Vue: Proxy 기반 반응성 시스템
 - React: 불변성 기반 비교
 
 실무에서 차이:
+
 - Vue: 직접 수정 가능 (편함)
 - React: 새 객체 생성 (명확함, 디버깅 쉬움)
 ```
@@ -842,7 +839,7 @@ React: useState() - 명시적 setter
 - [ ] React Query의 캐싱을 이해한다
 - [ ] 상태 관리 라이브러리를 선택할 수 있다
 - [ ] 서버 컴포넌트를 설명할 수 있다
-**실무 준비:**
+      **실무 준비:**
 
 - [ ] "SPA 라우팅은 어떻게 작동하나요?" 답변 준비
 - [ ] "서버 컴포넌트의 장점은?" 답변 준비
@@ -865,8 +862,7 @@ React: useState() - 명시적 setter
 **실무 준비:**
 
 - [ ] "테스트 전략은?" 답변 준비
-- [ ] "성능 최적화 경험은?" 답변 준비
--[ ] "10,000개 리스트 최적화?" 답변 준비
+- [ ] "성능 최적화 경험은?" 답변 준비 -[ ] "10,000개 리스트 최적화?" 답변 준비
 
 **실습:**
 
@@ -926,6 +922,7 @@ Performance:
 ### 실무관이 좋아하는 답변 구조
 
 **나쁜 답변:**
+
 > "React.memo를 사용하면 성능이 좋아집니다."
 
 **좋은 답변:**

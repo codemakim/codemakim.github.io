@@ -9,26 +9,38 @@ seriesOrder: 22
 
 # React 학습 가이드 - State 보존 및 재설정
 
-
 ---
+
 ## State 보존 및 재설정
+
 React는 언제 state를 유지하고 언제 초기화할까요? 이를 이해하면 버그를 피할 수 있다.
+
 ### React의 위치 판단 원리
+
 React는 컴포넌트의 위치를 기준으로 state를 보존하거나 재설정한다. 위치는 다음 두 가지로 결정된다:
+
 1. 부모 컴포넌트: 어떤 컴포넌트의 자식인가?
 2. 순서(인덱스): 부모의 자식들 중 몇 번째인가?
+
 ```jsx
-<div>                    {/* 부모: App, 순서: 0 */}
-  <Counter />            {/* 부모: div, 순서: 0 */}
+<div>
+  {" "}
+  {/* 부모: App, 순서: 0 */}
+  <Counter /> {/* 부모: div, 순서: 0 */}
   {showB && <Counter />} {/* 부모: div, 순서: 1 */}
 </div>
 ```
+
 위 예제에서 두 `<Counter />`는:
+
 - 같은 부모 (`div`)를 가지지만
 - 다른 순서 (0번째 vs 1번째)
-따라서 React는 다른 위치로 인식하여 각각 독립적인 state를 가집니다.
+  따라서 React는 다른 위치로 인식하여 각각 독립적인 state를 가집니다.
+
 ### 위치 판단의 핵심 규칙
+
 React는 렌더링할 때 다음과 같이 위치를 판단한다:
+
 1. JSX 표현식의 위치가 중요한다
    - 같은 부모 안에서도 다른 줄/다른 표현식이면 다른 위치
    - 삼항연산자(`? :`)는 하나의 표현식이므로 같은 위치
@@ -41,18 +53,20 @@ React는 렌더링할 때 다음과 같이 위치를 판단한다:
 4. `key` prop은 위치 판단에 사용되는 식별자
    - 같은 위치라도 `key`가 다르면 다른 컴포넌트로 인식
    - `key`를 변경하면 강제로 state 재설정 가능
+
 ### 예제 1: 다른 위치에 같은 컴포넌트 렌더링
+
 ```jsx
-import { useState } from 'react';
+import { useState } from "react";
 export default function App() {
   const [showB, setShowB] = useState(true);
-  
+
   return (
     <div>
-      <Counter />            {/* 위치: 부모 div의 0번째 자식 */}
+      <Counter /> {/* 위치: 부모 div의 0번째 자식 */}
       {showB && <Counter />} {/* 위치: 부모 div의 1번째 자식 */}
       <button onClick={() => setShowB(!showB)}>
-        {showB ? '두 번째 Counter 숨기기' : '두 번째 Counter 보이기'}
+        {showB ? "두 번째 Counter 숨기기" : "두 번째 Counter 보이기"}
       </button>
     </div>
   );
@@ -61,41 +75,40 @@ function Counter() {
   const [count, setCount] = useState(0);
   return (
     <div>
-      <button onClick={() => setCount(count + 1)}>
-        Count: {count}
-      </button>
+      <button onClick={() => setCount(count + 1)}>Count: {count}</button>
     </div>
   );
 }
 ```
+
 원리:
+
 - 첫 번째 `<Counter />`는 부모 `div`의 0번째 자식 위치
 - 두 번째 `<Counter />`는 부모 `div`의 1번째 자식 위치
 - 다른 순서이므로 React는 다른 위치로 인식
 - 각각 독립적인 state를 가짐
-동작:
+  동작:
 - 두 Counter는 별도로 카운트됨 (독립적인 state)
 - `showB`를 false로 변경 → 1번째 위치의 Counter가 DOM에서 제거됨
 - `showB`를 다시 true로 → 1번째 위치에 새로운 Counter 인스턴스 생성 (state 0부터 시작)
+
 ### 예제 2: 같은 위치의 같은 컴포넌트 - state 보존
+
 삼항연산자는 하나의 표현식이므로, 조건에 따라 다른 값을 반환하더라도 같은 위치로 인식된다.
+
 ```jsx
-import { useState } from 'react';
+import { useState } from "react";
 export default function App() {
   const [isFancy, setIsFancy] = useState(false);
-  
+
   return (
     <div>
-      {isFancy ? (
-        <Counter isFancy={true} />
-      ) : (
-        <Counter isFancy={false} />
-      )}
+      {isFancy ? <Counter isFancy={true} /> : <Counter isFancy={false} />}
       <label>
         <input
           type="checkbox"
           checked={isFancy}
-          onChange={e => setIsFancy(e.target.checked)}
+          onChange={(e) => setIsFancy(e.target.checked)}
         />
         Use fancy styling
       </label>
@@ -108,13 +121,17 @@ function Counter({ isFancy }) {
     <div>
       <button
         onClick={() => setCount(count + 1)}
-        style={isFancy ? {
-          background: 'linear-gradient(45deg, #ff6b6b, #4ecdc4)',
-          color: 'white',
-          padding: '10px 20px',
-          border: 'none',
-          borderRadius: '5px'
-        } : {}}
+        style={
+          isFancy
+            ? {
+                background: "linear-gradient(45deg, #ff6b6b, #4ecdc4)",
+                color: "white",
+                padding: "10px 20px",
+                border: "none",
+                borderRadius: "5px",
+              }
+            : {}
+        }
       >
         Count: {count}
       </button>
@@ -122,21 +139,26 @@ function Counter({ isFancy }) {
   );
 }
 ```
+
 원리:
+
 - 삼항연산자 `{isFancy ? ... : ...}`는 하나의 표현식
 - 이 표현식의 위치는 부모 `div`의 0번째 자식
 - `isFancy`가 변경되어도 같은 위치에 같은 컴포넌트 타입 (`Counter`)이 렌더링됨
 - React는 이를 동일한 인스턴스로 인식하여 state를 보존
-동작:
+  동작:
 - `isFancy`를 변경해도 Counter의 state(`count`)는 유지됨
 - React는 컴포넌트를 재생성하지 않고 prop만 업데이트함
+
 ### 예제 3: 같은 위치의 다른 컴포넌트 - state 재설정
+
 같은 위치라도 컴포넌트 타입이 다르면 React는 다른 컴포넌트로 인식하여 state를 재설정한다.
+
 ```jsx
 import { useState } from 'react';
 export default function App() {
   const [isPaused, setIsPaused] = useState(false);
-  
+
   return (
     <div>
       {isPaused ? (
@@ -166,31 +188,36 @@ function Counter() {
   );
 }
 ```
+
 원리:
+
 - 삼항연산자는 같은 위치 (부모 `div`의 0번째 자식)
 - 하지만 `isPaused`가 true일 때는 `<p>`, false일 때는 `<Counter />`
 - 컴포넌트 타입이 다르므로 React는 다른 컴포넌트로 인식
 - `isPaused`가 변경되면 이전 컴포넌트를 완전히 제거하고 새로운 컴포넌트를 새로 생성
 - 새로운 인스턴스이므로 state가 초기값(0)으로 재설정됨
-동작:
+  동작:
 - `isPaused`를 변경하면 Counter의 state 재설정됨
 - React는 컴포넌트를 재사용하지 않고 새로 생성함
+
 ### 같은 위치에서 state 재설정하기
+
 같은 위치의 같은 컴포넌트인데 state를 초기화하고 싶다면 어떻게 할까요? 두 가지 방법이 있다.
+
 #### 방법 1: 다른 위치에 렌더링
+
 원리: JSX에서 독립적인 표현식으로 작성하면 React는 다른 위치로 인식한다.
+
 ```jsx
-import { useState } from 'react';
+import { useState } from "react";
 export default function Scoreboard() {
   const [isPlayerA, setIsPlayerA] = useState(true);
-  
+
   return (
     <div>
-      {isPlayerA && <Counter person="Taylor" />}  {/* 위치: 0번째 자식 */}
-      {!isPlayerA && <Counter person="Sarah" />}   {/* 위치: 1번째 자식 */}
-      <button onClick={() => setIsPlayerA(!isPlayerA)}>
-        다음 플레이어!
-      </button>
+      {isPlayerA && <Counter person="Taylor" />} {/* 위치: 0번째 자식 */}
+      {!isPlayerA && <Counter person="Sarah" />} {/* 위치: 1번째 자식 */}
+      <button onClick={() => setIsPlayerA(!isPlayerA)}>다음 플레이어!</button>
     </div>
   );
 }
@@ -198,29 +225,40 @@ function Counter({ person }) {
   const [score, setScore] = useState(0);
   return (
     <div>
-      <p>{person}: {score}</p>
+      <p>
+        {person}: {score}
+      </p>
       <button onClick={() => setScore(score + 1)}>+1</button>
     </div>
   );
 }
 ```
+
 원리:
+
 - `{isPlayerA && ...}`와 `{!isPlayerA && ...}`는 두 개의 독립적인 표현식
 - 각각 부모 `div`의 0번째, 1번째 자식 위치
 - 다른 위치이므로 React는 다른 컴포넌트로 인식
 - 플레이어 전환 시 state가 재설정됨
-주의: 삼항연산자를 사용하면 같은 위치로 인식되어 state가 보존된다:
+  주의: 삼항연산자를 사용하면 같은 위치로 인식되어 state가 보존된다:
+
 ```jsx
-{isPlayerA ? <Counter person="Taylor" /> : <Counter person="Sarah" />}
+{
+  isPlayerA ? <Counter person="Taylor" /> : <Counter person="Sarah" />;
+}
 ```
+
 이 경우는 하나의 표현식이므로 같은 위치(0번째 자식)로 인식된다.
+
 #### 방법 2: key로 state 재설정 (권장)
+
 원리: `key` prop은 React가 컴포넌트를 식별하는 데 사용된다. 같은 위치라도 `key`가 다르면 다른 컴포넌트로 인식한다.
+
 ```jsx
 import { useState } from 'react';
 export default function Scoreboard() {
   const [isPlayerA, setIsPlayerA] = useState(true);
-  
+
   return (
     <div>
       {isPlayerA ? (
@@ -244,29 +282,34 @@ function Counter({ person }) {
   );
 }
 ```
+
 원리:
+
 - 삼항연산자이므로 같은 위치 (부모 `div`의 0번째 자식)
 - 하지만 `key` prop이 다름 ("Taylor" vs "Sarah")
 - React는 위치와 `key`를 함께 사용하여 컴포넌트를 식별
 - 같은 위치 + 다른 key = 다른 컴포넌트로 인식
 - `key`가 변경되면 이전 컴포넌트를 제거하고 새로운 컴포넌트를 생성
 - state가 초기값으로 재설정됨
-비교:
+  비교:
 - 방법 1: JSX에서 다른 위치에 렌더링 (코드가 복잡해질 수 있음)
 - 방법 2: `key`로 강제 재설정 (권장, 더 간결하고 명확함)
+
 ### 실전 예제: 채팅 앱
+
 연락처를 바꿀 때마다 입력 필드를 초기화해야 하는 채팅 앱이다.
+
 ```jsx
-import { useState } from 'react';
+import { useState } from "react";
 export default function Messenger() {
   const [to, setTo] = useState(contacts[0]);
-  
+
   return (
     <div>
       <ContactList
         contacts={contacts}
         selectedContact={to}
-        onSelect={contact => setTo(contact)}
+        onSelect={(contact) => setTo(contact)}
       />
       <Chat key={to.id} contact={to} />
     </div>
@@ -275,12 +318,12 @@ export default function Messenger() {
 function ContactList({ contacts, selectedContact, onSelect }) {
   return (
     <ul>
-      {contacts.map(contact => (
+      {contacts.map((contact) => (
         <li key={contact.id}>
           <button
             onClick={() => onSelect(contact)}
             style={{
-              fontWeight: selectedContact.id === contact.id ? 'bold' : 'normal'
+              fontWeight: selectedContact.id === contact.id ? "bold" : "normal",
             }}
           >
             {contact.name}
@@ -291,46 +334,54 @@ function ContactList({ contacts, selectedContact, onSelect }) {
   );
 }
 function Chat({ contact }) {
-  const [text, setText] = useState('');
-  
+  const [text, setText] = useState("");
+
   return (
     <div>
       <h3>채팅: {contact.name}</h3>
       <textarea
         value={text}
-        onChange={e => setText(e.target.value)}
+        onChange={(e) => setText(e.target.value)}
         placeholder={`${contact.name}에게 메시지를 입력하라...`}
       />
-      <button onClick={() => {
-        alert(`메시지 전송: "${text}"`);
-        setText('');
-      }}>
+      <button
+        onClick={() => {
+          alert(`메시지 전송: "${text}"`);
+          setText("");
+        }}
+      >
         전송
       </button>
     </div>
   );
 }
 const contacts = [
-  { id: 0, name: 'Taylor', email: 'taylor@mail.com' },
-  { id: 1, name: 'Alice', email: 'alice@mail.com' },
-  { id: 2, name: 'Bob', email: 'bob@mail.com' }
+  { id: 0, name: "Taylor", email: "taylor@mail.com" },
+  { id: 1, name: "Alice", email: "alice@mail.com" },
+  { id: 2, name: "Bob", email: "bob@mail.com" },
 ];
 ```
+
 원리:
+
 - `key={to.id}`를 사용하면 연락처가 변경될 때마다 `key`가 변경됨
 - 같은 위치에 같은 컴포넌트 타입이지만, `key`가 다르므로 React는 다른 컴포넌트로 인식
 - 이전 `Chat` 인스턴스를 제거하고 새로운 인스턴스를 생성
 - `text` state가 초기값('')으로 재설정됨
-`key` 없이 사용하면:
+  `key` 없이 사용하면:
 - 연락처가 변경되어도 `key`가 없으므로 React는 같은 컴포넌트로 인식
 - 컴포넌트를 재사용하므로 `text` state가 유지됨
 - 이전 연락처의 메시지가 남아있는 버그 발생
-동작 확인:
+  동작 확인:
+
 1. Taylor 선택 → 메시지 입력
 2. Alice 선택 → 입력 필드가 비워짐 (`key` 변경으로 state 재설정)
 3. 다시 Taylor 선택 → 입력 필드가 비워짐 (새로운 인스턴스)
+
 ### Vue와 비교
+
 Vue도 `key`를 사용하여 강제 재렌더링할 수 있다:
+
 ```html
 <template>
   <Chat :key="selectedContact.id" :contact="selectedContact" />

@@ -130,13 +130,13 @@ JSX는 JavaScript로 변환되기 때문에 HTML 속성명을 camelCase로 작�
 
 주요 변경사항:
 
-| HTML | JSX |
-|------|-----|
-| `class` | `className` |
-| `for` | `htmlFor` |
-| `onclick` | `onClick` |
-| `onchange` | `onChange` |
-| `tabindex` | `tabIndex` |
+| HTML       | JSX         |
+| ---------- | ----------- |
+| `class`    | `className` |
+| `for`      | `htmlFor`   |
+| `onclick`  | `onClick`   |
+| `onchange` | `onChange`  |
+| `tabindex` | `tabIndex`  |
 
 ### HTML → JSX 변환기 활용
 
@@ -149,7 +149,7 @@ JSX는 JavaScript로 변환되기 때문에 HTML 속성명을 camelCase로 작�
 <template>
   <div>
     <h1>{{ title }}</h1>
-    <img :src="imageUrl" class="photo">
+    <img :src="imageUrl" class="photo" />
   </div>
 </template>
 ```
@@ -162,6 +162,6 @@ export default function Component() {
       <h1>{title}</h1>
       <img src={imageUrl} className="photo" />
     </div>
-  )
+  );
 }
 ```

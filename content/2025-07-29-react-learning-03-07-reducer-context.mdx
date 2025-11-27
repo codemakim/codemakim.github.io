@@ -30,6 +30,7 @@ Reducer와 Context를 결합하면 대규모 애플리케이션에서도 유지�
 단순히 `useState`와 props로 state를 관리하면 두 가지 문제가 생긴다:
 
 **문제 1: Props Drilling**
+
 ```jsx
 // App이 최상단에서 state를 가지고
 // 여러 단계를 거쳐 전달해야 함
@@ -43,6 +44,7 @@ Reducer와 Context를 결합하면 대규모 애플리케이션에서도 유지�
 ```
 
 **문제 2: 흩어진 업데이트 로직**
+
 ```jsx
 // 여러 컴포넌트에 같은 로직이 반복됨
 function AddTask() {
@@ -59,6 +61,7 @@ function EditTask() {
 ```
 
 **해결: Reducer + Context**
+
 ```jsx
 // 로직은 reducer에 집중
 // 어디서든 dispatch로 접근
@@ -93,24 +96,22 @@ src/
 ```tsx
 // contexts/TasksContext.tsx
 type Action =
-  | { type: 'added'; id: number; text: string }
-  | { type: 'changed'; id: number; text: string; done: boolean }
-  | { type: 'deleted'; id: number };
+  | { type: "added"; id: number; text: string }
+  | { type: "changed"; id: number; text: string; done: boolean }
+  | { type: "deleted"; id: number };
 
 type Task = { id: number; text: string; done: boolean };
 
 function tasksReducer(state: Task[], action: Action): Task[] {
   switch (action.type) {
-    case 'added':
+    case "added":
       return [...state, { id: action.id, text: action.text, done: false }];
-    case 'changed':
-      return state.map(t => 
-        t.id === action.id 
-          ? { ...t, text: action.text, done: action.done } 
-          : t
+    case "changed":
+      return state.map((t) =>
+        t.id === action.id ? { ...t, text: action.text, done: action.done } : t,
       );
-    case 'deleted':
-      return state.filter(t => t.id !== action.id);
+    case "deleted":
+      return state.filter((t) => t.id !== action.id);
     default:
       return state;
   }
@@ -120,16 +121,18 @@ function tasksReducer(state: Task[], action: Action): Task[] {
 #### 2단계: Context 생성 (값과 dispatch 분리)
 
 ```tsx
-import { createContext, useContext, useReducer } from 'react';
+import { createContext, useContext, useReducer } from "react";
 
 // 값을 전달하는 Context
 const TasksContext = createContext<Task[] | undefined>(undefined);
 
 // dispatch를 전달하는 Context (성능 최적화)
-const TasksDispatchContext = createContext<React.Dispatch<Action> | undefined>(undefined);
+const TasksDispatchContext = createContext<React.Dispatch<Action> | undefined>(
+  undefined,
+);
 ```
 
-왜 두 개로 분리하나? 
+왜 두 개로 분리하나?
 
 - `TasksContext`를 사용하는 컴포넌트는 tasks 값이 변경될 때만 리렌더링된다
 - `TasksDispatchContext`만 사용하는 컴포넌트는 tasks 값이 변경되어도 리렌더링되지 않는다
@@ -139,7 +142,7 @@ const TasksDispatchContext = createContext<React.Dispatch<Action> | undefined>(u
 ```tsx
 export function TasksProvider({ children }: { children: React.ReactNode }) {
   const [tasks, dispatch] = useReducer(tasksReducer, []);
-  
+
   return (
     <TasksContext.Provider value={tasks}>
       <TasksDispatchContext.Provider value={dispatch}>
@@ -156,7 +159,7 @@ export function TasksProvider({ children }: { children: React.ReactNode }) {
 export function useTasks() {
   const ctx = useContext(TasksContext);
   if (!ctx) {
-    throw new Error('useTasks must be used within TasksProvider');
+    throw new Error("useTasks must be used within TasksProvider");
   }
   return ctx;
 }
@@ -164,7 +167,7 @@ export function useTasks() {
 export function useTasksDispatch() {
   const ctx = useContext(TasksDispatchContext);
   if (!ctx) {
-    throw new Error('useTasksDispatch must be used within TasksProvider');
+    throw new Error("useTasksDispatch must be used within TasksProvider");
   }
   return ctx;
 }
@@ -191,10 +194,10 @@ function App() {
 // TaskList.tsx
 function TaskList() {
   const tasks = useTasks(); // 값만 읽기
-  
+
   return (
     <ul>
-      {tasks.map(task => (
+      {tasks.map((task) => (
         <TaskItem key={task.id} task={task} />
       ))}
     </ul>
@@ -204,20 +207,20 @@ function TaskList() {
 // AddTask.tsx
 function AddTask() {
   const dispatch = useTasksDispatch(); // dispatch만 사용 (리렌더링 안됨)
-  const [text, setText] = useState('');
-  
+  const [text, setText] = useState("");
+
   function handleAdd() {
-    dispatch({ 
-      type: 'added', 
-      id: Date.now(), 
-      text 
+    dispatch({
+      type: "added",
+      id: Date.now(),
+      text,
     });
-    setText('');
+    setText("");
   }
-  
+
   return (
     <div>
-      <input value={text} onChange={e => setText(e.target.value)} />
+      <input value={text} onChange={(e) => setText(e.target.value)} />
       <button onClick={handleAdd}>Add</button>
     </div>
   );
@@ -226,21 +229,23 @@ function AddTask() {
 // TaskItem.tsx
 function TaskItem({ task }: { task: Task }) {
   const dispatch = useTasksDispatch();
-  
+
   return (
     <li>
       <input
         type="checkbox"
         checked={task.done}
-        onChange={e => dispatch({
-          type: 'changed',
-          id: task.id,
-          text: task.text,
-          done: e.target.checked
-        })}
+        onChange={(e) =>
+          dispatch({
+            type: "changed",
+            id: task.id,
+            text: task.text,
+            done: e.target.checked,
+          })
+        }
       />
       <span>{task.text}</span>
-      <button onClick={() => dispatch({ type: 'deleted', id: task.id })}>
+      <button onClick={() => dispatch({ type: "deleted", id: task.id })}>
         Delete
       </button>
     </li>
@@ -261,12 +266,14 @@ function TaskItem({ task }: { task: Task }) {
 모든 상황에 사용하는 것은 아니다. 적절한 상황을 판단해야 한다.
 
 **권장하는 경우:**
+
 - 업데이트 로직이 다수의 핸들러로 흩어져 복잡해질 때
 - 여러 컴포넌트가 동일한 state/로직을 공유해야 할 때
 - state 업데이트 로직이 복잡해서 한 곳에서 관리하고 싶을 때
 - 깊은 컴포넌트 트리에서 props drilling이 발생할 때
 
 **권장하지 않는 경우:**
+
 - 단일 컴포넌트에서만 사용하는 단순한 state (`useState`가 더 간단)
 - state가 자주 변경되는데 많은 컴포넌트가 구독하는 경우 (리렌더링 폭발)
 - 전역 Context 하나에 모든 state를 몰아넣는 경우
@@ -276,6 +283,7 @@ function TaskItem({ task }: { task: Task }) {
 성능과 유지보수성을 고려한 설계 패턴이다.
 
 **1. 값과 dispatch 분리**
+
 ```tsx
 // 나쁨: 하나의 Context
 const TasksContext = createContext({ tasks, dispatch });
@@ -286,6 +294,7 @@ const TasksDispatchContext = createContext(dispatch);
 ```
 
 **2. Provider를 도메인별로 분리**
+
 ```tsx
 // 나쁨: 하나의 거대한 Context
 <AppContext.Provider value={{ user, tasks, theme, ... }}>
@@ -301,6 +310,7 @@ const TasksDispatchContext = createContext(dispatch);
 ```
 
 **3. 커스텀 Hook 제공**
+
 ```tsx
 // 나쁨: 직접 useContext 사용
 const tasks = useContext(TasksContext);
@@ -319,7 +329,7 @@ const tasks = useTasks(); // 에러 처리 포함
 // 나쁨: 매 렌더마다 새 객체 생성
 function TasksProvider({ children }) {
   const [tasks, dispatch] = useReducer(tasksReducer, []);
-  
+
   // 매번 새로운 객체 생성 → 모든 구독자가 리렌더링
   return (
     <TasksContext.Provider value={{ tasks, dispatch }}>
@@ -354,25 +364,27 @@ const TaskItem = React.memo(function TaskItem({ task }) {
 ### TypeScript 안전성
 
 **Discriminated Union으로 액션 타입 안전성 확보**
+
 ```tsx
 type Action =
-  | { type: 'added'; id: number; text: string }
-  | { type: 'changed'; id: number; text: string; done: boolean }
-  | { type: 'deleted'; id: number };
+  | { type: "added"; id: number; text: string }
+  | { type: "changed"; id: number; text: string; done: boolean }
+  | { type: "deleted"; id: number };
 
 // TypeScript가 자동으로 type에 따라 필요한 필드를 체크
-dispatch({ type: 'added', text: 'New' }); // OK
-dispatch({ type: 'added' }); // Error: text가 없음
+dispatch({ type: "added", text: "New" }); // OK
+dispatch({ type: "added" }); // Error: text가 없음
 ```
 
 **Context 기본값을 undefined로 설정**
+
 ```tsx
 const TasksContext = createContext<Task[] | undefined>(undefined);
 
 export function useTasks() {
   const ctx = useContext(TasksContext);
   if (!ctx) {
-    throw new Error('useTasks must be used within TasksProvider');
+    throw new Error("useTasks must be used within TasksProvider");
   }
   return ctx; // 여기서는 Task[]로 타입이 좁혀짐
 }
@@ -381,29 +393,27 @@ export function useTasks() {
 ### 테스트 전략
 
 **Reducer 테스트 (순수 함수)**
+
 ```tsx
-describe('tasksReducer', () => {
-  it('should add a task', () => {
+describe("tasksReducer", () => {
+  it("should add a task", () => {
     const state = [];
-    const action = { type: 'added', id: 1, text: 'Test' };
+    const action = { type: "added", id: 1, text: "Test" };
     const newState = tasksReducer(state, action);
-    
-    expect(newState).toEqual([{ id: 1, text: 'Test', done: false }]);
+
+    expect(newState).toEqual([{ id: 1, text: "Test", done: false }]);
   });
 });
 ```
 
 **컴포넌트 테스트 (통합)**
+
 ```tsx
 function renderWithProvider(component) {
-  return render(
-    <TasksProvider>
-      {component}
-    </TasksProvider>
-  );
+  return render(<TasksProvider>{component}</TasksProvider>);
 }
 
-test('should add a task', () => {
+test("should add a task", () => {
   renderWithProvider(<App />);
   // 테스트 로직...
 });
@@ -429,6 +439,7 @@ Reducer는 **순수 함수**여야 한다. 순수 함수란 같은 입력에 대
 **부작용이란?**
 
 함수의 주된 목적(값 반환) 외에 외부 세계와 상호작용하는 모든 것:
+
 - 네트워크 요청 (`fetch`, `axios` 등)
 - DOM 조작
 - 타이머 설정 (`setTimeout`, `setInterval`)
@@ -438,11 +449,11 @@ Reducer는 **순수 함수**여야 한다. 순수 함수란 같은 입력에 대
 ```tsx
 // 나쁨: Reducer에서 네트워크 요청
 function tasksReducer(state, action) {
-  if (action.type === 'added') {
+  if (action.type === "added") {
     // 문제: fetch는 네트워크 요청을 보내는 부작용
-    // 외부 스코프 상태 접근 여부와 무관하게, 
+    // 외부 스코프 상태 접근 여부와 무관하게,
     // "네트워크 요청을 보낸다"는 행위 자체가 부작용
-    fetch('/api/tasks', { method: 'POST', body: JSON.stringify(action.task) });
+    fetch("/api/tasks", { method: "POST", body: JSON.stringify(action.task) });
     return [...state, action.task];
   }
 }
@@ -458,28 +469,30 @@ function tasksReducer(state, action) {
 // 좋음: 컴포넌트나 useEffect에서 실행
 function AddTask() {
   const dispatch = useTasksDispatch();
-  
+
   async function handleAdd(newTask) {
     // 1. 먼저 API 호출
-    await fetch('/api/tasks', { 
-      method: 'POST', 
-      body: JSON.stringify(newTask) 
+    await fetch('/api/tasks', {
+      method: 'POST',
+      body: JSON.stringify(newTask)
     });
-    
+
     // 2. 성공하면 Reducer 업데이트
     dispatch({ type: 'added', task: newTask });
   }
-  
+
   return <button onClick={() => handleAdd(...)}>Add</button>;
 }
 ```
 
 이렇게 분리하면:
+
 - Reducer는 순수 함수로 유지 (테스트 쉬움)
 - 네트워크 요청은 컴포넌트에서 처리 (에러 처리 쉬움)
 - 각자의 역할이 명확함
 
 **2. 거대한 단일 Context**
+
 ```tsx
 // 나쁨: 하나에 다 넣기
 <AppContext.Provider value={{ user, tasks, theme, settings, ... }}>
@@ -491,6 +504,7 @@ function AddTask() {
 ```
 
 **3. 가변 데이터 반환**
+
 ```tsx
 // 나쁨: 원본 수정
 function reducer(state, action) {
@@ -528,6 +542,7 @@ src/
 ```
 
 이렇게 하면:
+
 - 관련 코드가 한 곳에 모인다
 - 다른 기능과 독립적이다
 - 테스트하기 쉽다

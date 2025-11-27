@@ -9,15 +9,20 @@ seriesOrder: 20
 
 # React 학습 가이드 - State 구조 선택하기
 
-
 ---
+
 ## State 구조 선택하기
+
 state를 어떻게 구조화하느냐에 따라 코드의 가독성과 유지보수성이 크게 달라집니다.
 좋은 state 구조는 업데이트와 디버깅을 쉽게 만듭니다.
+
 ### State 구조화 원칙
+
 #### 1. 관련 state 그룹화하기
+
 두 개 이상의 state가 항상 함께 변경된다면, 하나로 통합하는 것이 좋다.
 항상 함께 업데이트되는 state는 하나로 합치세요.
+
 ```jsx
 //  나쁨: 두 state가 항상 함께 업데이트됨
 const [x, setX] = useState(0);
@@ -25,19 +30,24 @@ const [y, setY] = useState(0);
 //  좋음: 하나의 객체로
 const [position, setPosition] = useState({ x: 0, y: 0 });
 ```
+
 몇 개의 state 변수가 필요할지 모르는 경우:
+
 ```jsx
 // 동적 폼 필드
 const [fields, setFields] = useState({});
 function addField(fieldName) {
   setFields({
     ...fields,
-    [fieldName]: ''
+    [fieldName]: "",
   });
 }
 ```
+
 #### 2. State의 모순 피하기
+
 여러 state가 서로 모순되는 상태를 만들면 버그가 발생하기 쉬다.
+
 ```jsx
 //  나쁨: 모순된 상태 가능
 const [isSending, setIsSending] = useState(false);
@@ -45,48 +55,54 @@ const [isSent, setIsSent] = useState(false);
 // 문제: 둘 다 true일 수 있음 (불가능한 상태)
 async function handleSubmit() {
   setIsSending(true);
-  await post('/api/message');
+  await post("/api/message");
   setIsSending(false);
-  setIsSent(true);  // 깜빡하고 setIsSending(false) 안하면?
+  setIsSent(true); // 깜빡하고 setIsSending(false) 안하면?
 }
 //  좋음: 하나의 status로 명확히
-const [status, setStatus] = useState('typing');
+const [status, setStatus] = useState("typing");
 // 가능한 값: 'typing', 'sending', 'sent'
 async function handleSubmit() {
-  setStatus('sending');
-  await post('/api/message');
-  setStatus('sent');
+  setStatus("sending");
+  await post("/api/message");
+  setStatus("sent");
 }
 ```
+
 #### 3. 중복 state 피하기
+
 다른 state로부터 계산할 수 있는 값은 state로 만들지 말아야 한다.
+
 ```jsx
 //  나쁨: fullName은 중복
-const [firstName, setFirstName] = useState('');
-const [lastName, setLastName] = useState('');
-const [fullName, setFullName] = useState('');
+const [firstName, setFirstName] = useState("");
+const [lastName, setLastName] = useState("");
+const [fullName, setFullName] = useState("");
 function handleFirstNameChange(e) {
   setFirstName(e.target.value);
-  setFullName(e.target.value + ' ' + lastName);  // 동기화 필요!
+  setFullName(e.target.value + " " + lastName); // 동기화 필요!
 }
 //  좋음: 렌더링 중 계산
-const [firstName, setFirstName] = useState('');
-const [lastName, setLastName] = useState('');
-const fullName = firstName + ' ' + lastName;
+const [firstName, setFirstName] = useState("");
+const [lastName, setLastName] = useState("");
+const fullName = firstName + " " + lastName;
 ```
+
 #### 4. 깊게 중첩된 state 피하기
+
 중첩이 깊어지면 불변 업데이트가 매우 복잡해집니다.
+
 ```jsx
 //  나쁨: 깊은 중첩
 const [state, setState] = useState({
   user: {
     profile: {
       address: {
-        city: 'Seoul',
-        street: 'Gangnam'
-      }
-    }
-  }
+        city: "Seoul",
+        street: "Gangnam",
+      },
+    },
+  },
 });
 // 업데이트가 복잡함
 setState({
@@ -97,83 +113,89 @@ setState({
       ...state.user.profile,
       address: {
         ...state.user.profile.address,
-        city: 'Busan'
-      }
-    }
-  }
+        city: "Busan",
+      },
+    },
+  },
 });
 //  좋음: 평탄하게
-const [city, setCity] = useState('Seoul');
-const [street, setStreet] = useState('Gangnam');
-const [userName, setUserName] = useState('');
+const [city, setCity] = useState("Seoul");
+const [street, setStreet] = useState("Gangnam");
+const [userName, setUserName] = useState("");
 // 또는 정규화
 const [users, setUsers] = useState({
-  1: { name: 'Kim', addressId: 10 }
+  1: { name: "Kim", addressId: 10 },
 });
 const [addresses, setAddresses] = useState({
-  10: { city: 'Seoul', street: 'Gangnam' }
+  10: { city: "Seoul", street: "Gangnam" },
 });
 ```
+
 #### 5. 파생 state 피하기
+
 다른 state에서 파생되는 값은 렌더링 시 계산하는 것이 좋다.
+
 ```jsx
 //  나쁨: selectedItem은 items로부터 파생 가능
 const [items, setItems] = useState(initialItems);
 const [selectedItem, setSelectedItem] = useState(items[0]);
 function handleItemClick(item) {
-  setSelectedItem(item);  // items가 변경되면 동기화 문제!
+  setSelectedItem(item); // items가 변경되면 동기화 문제!
 }
 //  좋음: ID만 저장하고 렌더링 시 찾기
 const [items, setItems] = useState(initialItems);
 const [selectedId, setSelectedId] = useState(0);
-const selectedItem = items.find(item => item.id === selectedId);
+const selectedItem = items.find((item) => item.id === selectedId);
 ```
+
 ### 실전 예제: 여행 플래너
+
 state 구조화 원칙을 적용한 예제를 보겠다.
+
 ```jsx
-import { useState } from 'react';
+import { useState } from "react";
 const initialItems = [
-  { id: 0, title: 'Warm socks', packed: true },
-  { id: 1, title: 'Travel journal', packed: false },
-  { id: 2, title: 'Watercolors', packed: false },
+  { id: 0, title: "Warm socks", packed: true },
+  { id: 1, title: "Travel journal", packed: false },
+  { id: 2, title: "Watercolors", packed: false },
 ];
 export default function TravelPlan() {
   const [items, setItems] = useState(initialItems);
   const total = items.length;
-  const packed = items.filter(item => item.packed).length;
+  const packed = items.filter((item) => item.packed).length;
   function handleToggle(itemId, nextPacked) {
-    setItems(items.map(item => {
-      if (item.id === itemId) {
-        return { ...item, packed: nextPacked };
-      }
-      return item;
-    }));
+    setItems(
+      items.map((item) => {
+        if (item.id === itemId) {
+          return { ...item, packed: nextPacked };
+        }
+        return item;
+      }),
+    );
   }
   function handleDelete(itemId) {
-    setItems(items.filter(item => item.id !== itemId));
+    setItems(items.filter((item) => item.id !== itemId));
   }
   return (
     <>
       <h1>여행 짐 목록</h1>
-      <h2>{packed} / {total} 준비됨</h2>
-      <ItemList
-        items={items}
-        onToggle={handleToggle}
-        onDelete={handleDelete}
-      />
+      <h2>
+        {packed} / {total} 준비됨
+      </h2>
+      <ItemList items={items} onToggle={handleToggle} onDelete={handleDelete} />
     </>
   );
 }
 function ItemList({ items, onToggle, onDelete }) {
   return (
     <ul>
-      {items.map(item => (
+      {items.map((item) => (
         <li key={item.id}>
           <label>
             <input
               type="checkbox"
               checked={item.packed}
-              onChange={e => onToggle(item.id, e.target.checked)}
+              onChange={(e) => onToggle(item.id, e.target.checked)}
             />
             {item.title}
           </label>
@@ -184,16 +206,20 @@ function ItemList({ items, onToggle, onDelete }) {
   );
 }
 ```
+
 ### Vue와 비교
+
 ```html
 <script setup>
-import { ref, computed } from 'vue'
-const items = ref([
-  { id: 0, title: 'Warm socks', packed: true },
-  { id: 1, title: 'Travel journal', packed: false },
-])
-//  computed로 파생 state
-const total = computed(() => items.value.length)
-const packed = computed(() => items.value.filter(item => item.packed).length)
+  import { ref, computed } from "vue";
+  const items = ref([
+    { id: 0, title: "Warm socks", packed: true },
+    { id: 1, title: "Travel journal", packed: false },
+  ]);
+  //  computed로 파생 state
+  const total = computed(() => items.value.length);
+  const packed = computed(
+    () => items.value.filter((item) => item.packed).length,
+  );
 </script>
 ```

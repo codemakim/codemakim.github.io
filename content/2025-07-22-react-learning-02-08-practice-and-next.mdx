@@ -9,9 +9,10 @@ seriesOrder: 18
 
 # React 학습 가이드 - 연습문제 & 다음 단계
 
-
 ---
+
 ## 이 챕터에서 배운 내용 요약
+
 이벤트 핸들러: `onClick`, `onChange` 등으로 사용자 입력에 응답  
 useState Hook: 컴포넌트에 메모리(state) 추가  
 렌더와 커밋: React의 3단계 UI 업데이트 과정  
@@ -19,6 +20,7 @@ State 스냅샷: State는 렌더링 시점에 고정됨
 State 업데이트 큐: 업데이터 함수로 여러 업데이트 배치  
 객체 업데이트: Spread 문법으로 불변 업데이트  
 배열 업데이트: `map`, `filter` 등으로 새 배열 생성
+
 ---
 
 ## 연습 문제
@@ -27,7 +29,7 @@ State 업데이트 큐: 업데이터 함수로 여러 업데이트 배치
 
 ```jsx
 // TODO: +1, -1, Reset 버튼이 있는 카운터 만들기
-import { useState } from 'react';
+import { useState } from "react";
 
 export default function Counter() {
   // 여기에 코드 작성
@@ -44,11 +46,11 @@ export default function Counter() {
 
 ```jsx
 // TODO: 추가, 완료 토글, 삭제 기능이 있는 할 일 목록
-import { useState } from 'react';
+import { useState } from "react";
 
 export default function TodoList() {
   const [todos, setTodos] = useState([]);
-  
+
   // 여기에 코드 작성
 }
 ```
@@ -64,19 +66,18 @@ export default function TodoList() {
 
 ```jsx
 // TODO: 상품 추가, 수량 변경, 제거 기능
-import { useState } from 'react';
+import { useState } from "react";
 
 const products = [
-  { id: 1, name: 'Laptop', price: 1200 },
-  { id: 2, name: 'Phone', price: 800 },
-  { id: 3, name: 'Headphones', price: 100 },
+  { id: 1, name: "Laptop", price: 1200 },
+  { id: 2, name: "Phone", price: 800 },
+  { id: 3, name: "Headphones", price: 100 },
 ];
 
 export default function ShoppingCart() {
   const [cart, setCart] = useState([]);
-  
-  // 여기에 코드 작성
 
+  // 여기에 코드 작성
 }
 ```
 
@@ -91,21 +92,19 @@ export default function ShoppingCart() {
 
 ```jsx
 // TODO: 실시간 검증이 있는 회원가입 폼
-import { useState } from 'react';
+import { useState } from "react";
 
 export default function SignupForm() {
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    confirmPassword: ''
+    email: "",
+    password: "",
+    confirmPassword: "",
   });
-  
+
   const [errors, setErrors] = useState({});
 
-  
   // 여기에 코드 작성
 }
-
 ```
 
 요구사항:
@@ -116,10 +115,13 @@ export default function SignupForm() {
 - 실시간 오류 표시
 
 ---
+
 ## 해답 예시
+
 ### 1. 카운터 해답
+
 ```jsx
-import { useState } from 'react';
+import { useState } from "react";
 export default function Counter() {
   const [count, setCount] = useState(0);
   return (
@@ -132,48 +134,59 @@ export default function Counter() {
   );
 }
 ```
+
 ### 2. 할 일 목록 해답
+
 ```jsx
-import { useState } from 'react';
+import { useState } from "react";
 export default function TodoList() {
   const [todos, setTodos] = useState([]);
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValue] = useState("");
   function addTodo() {
     if (inputValue.trim()) {
-      setTodos([...todos, {
-        id: Date.now(),
-        text: inputValue,
-        completed: false
-      }]);
-      setInputValue('');
+      setTodos([
+        ...todos,
+        {
+          id: Date.now(),
+          text: inputValue,
+          completed: false,
+        },
+      ]);
+      setInputValue("");
     }
   }
   function toggleTodo(id) {
-    setTodos(todos.map(todo =>
-      todo.id === id ? { ...todo, completed: !todo.completed } : todo
-    ));
+    setTodos(
+      todos.map((todo) =>
+        todo.id === id ? { ...todo, completed: !todo.completed } : todo,
+      ),
+    );
   }
   function deleteTodo(id) {
-    setTodos(todos.filter(todo => todo.id !== id));
+    setTodos(todos.filter((todo) => todo.id !== id));
   }
   return (
     <div>
       <input
         value={inputValue}
-        onChange={e => setInputValue(e.target.value)}
-        onKeyPress={e => e.key === 'Enter' && addTodo()}
+        onChange={(e) => setInputValue(e.target.value)}
+        onKeyPress={(e) => e.key === "Enter" && addTodo()}
       />
       <button onClick={addTodo}>Add</button>
-      
+
       <ul>
-        {todos.map(todo => (
+        {todos.map((todo) => (
           <li key={todo.id}>
             <input
               type="checkbox"
               checked={todo.completed}
               onChange={() => toggleTodo(todo.id)}
             />
-            <span style={{ textDecoration: todo.completed ? 'line-through' : 'none' }}>
+            <span
+              style={{
+                textDecoration: todo.completed ? "line-through" : "none",
+              }}
+            >
               {todo.text}
             </span>
             <button onClick={() => deleteTodo(todo.id)}>Delete</button>
@@ -184,24 +197,26 @@ export default function TodoList() {
   );
 }
 ```
+
 ### 3. 쇼핑 카트 해답
+
 ```jsx
-import { useState } from 'react';
+import { useState } from "react";
 const products = [
-  { id: 1, name: 'Laptop', price: 1200 },
-  { id: 2, name: 'Phone', price: 800 },
-  { id: 3, name: 'Headphones', price: 100 },
+  { id: 1, name: "Laptop", price: 1200 },
+  { id: 2, name: "Phone", price: 800 },
+  { id: 3, name: "Headphones", price: 100 },
 ];
 export default function ShoppingCart() {
   const [cart, setCart] = useState([]);
   function addToCart(product) {
-    setCart(prevCart => {
-      const existingItem = prevCart.find(item => item.id === product.id);
+    setCart((prevCart) => {
+      const existingItem = prevCart.find((item) => item.id === product.id);
       if (existingItem) {
-        return prevCart.map(item =>
+        return prevCart.map((item) =>
           item.id === product.id
             ? { ...item, quantity: item.quantity + 1 }
-            : item
+            : item,
         );
       } else {
         return [...prevCart, { ...product, quantity: 1 }];
@@ -210,114 +225,123 @@ export default function ShoppingCart() {
   }
   function updateQuantity(id, quantity) {
     if (quantity <= 0) {
-      setCart(cart.filter(item => item.id !== id));
+      setCart(cart.filter((item) => item.id !== id));
     } else {
-      setCart(cart.map(item =>
-        item.id === id ? { ...item, quantity } : item
-      ));
+      setCart(
+        cart.map((item) => (item.id === id ? { ...item, quantity } : item)),
+      );
     }
   }
-  const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   return (
     <div>
       <h2>Products</h2>
-      {products.map(product => (
+      {products.map((product) => (
         <div key={product.id}>
           {product.name} - ${product.price}
           <button onClick={() => addToCart(product)}>Add to Cart</button>
         </div>
       ))}
       <h2>Cart</h2>
-      {cart.map(item => (
+      {cart.map((item) => (
         <div key={item.id}>
           {item.name} - ${item.price} x {item.quantity}
-          <button onClick={() => updateQuantity(item.id, item.quantity - 1)}>-</button>
-          <button onClick={() => updateQuantity(item.id, item.quantity + 1)}>+</button>
+          <button onClick={() => updateQuantity(item.id, item.quantity - 1)}>
+            -
+          </button>
+          <button onClick={() => updateQuantity(item.id, item.quantity + 1)}>
+            +
+          </button>
           <button onClick={() => updateQuantity(item.id, 0)}>Remove</button>
         </div>
       ))}
-      
+
       <h3>Total: ${total}</h3>
     </div>
   );
 }
 ```
+
 ### 4. 고급: 폼 검증 해답
+
 ```jsx
-import { useState } from 'react';
+import { useState } from "react";
 export default function SignupForm() {
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    confirmPassword: ''
+    email: "",
+    password: "",
+    confirmPassword: "",
   });
-  
+
   const [errors, setErrors] = useState({});
   function validateEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   }
   function handleChange(field, value) {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    
+    setFormData((prev) => ({ ...prev, [field]: value }));
+
     // 실시간 검증
     const newErrors = { ...errors };
-    
-    if (field === 'email') {
+
+    if (field === "email") {
       if (value && !validateEmail(value)) {
-        newErrors.email = '올바른 이메일 형식이 아닙니다';
+        newErrors.email = "올바른 이메일 형식이 아닙니다";
       } else {
         delete newErrors.email;
       }
     }
-    
-    if (field === 'password') {
+
+    if (field === "password") {
       if (value && value.length < 8) {
-        newErrors.password = '비밀번호는 최소 8자 이상이어야 한다';
+        newErrors.password = "비밀번호는 최소 8자 이상이어야 한다";
       } else {
         delete newErrors.password;
       }
-      
+
       // 비밀번호 확인도 다시 검증
       if (formData.confirmPassword && value !== formData.confirmPassword) {
-        newErrors.confirmPassword = '비밀번호가 일치하지 않다';
-      } else if (formData.confirmPassword && value === formData.confirmPassword) {
+        newErrors.confirmPassword = "비밀번호가 일치하지 않다";
+      } else if (
+        formData.confirmPassword &&
+        value === formData.confirmPassword
+      ) {
         delete newErrors.confirmPassword;
       }
     }
-    
-    if (field === 'confirmPassword') {
+
+    if (field === "confirmPassword") {
       if (value && value !== formData.password) {
-        newErrors.confirmPassword = '비밀번호가 일치하지 않다';
+        newErrors.confirmPassword = "비밀번호가 일치하지 않다";
       } else {
         delete newErrors.confirmPassword;
       }
     }
-    
+
     setErrors(newErrors);
   }
   function handleSubmit(e) {
     e.preventDefault();
-    
+
     // 최종 검증
     const finalErrors = {};
-    
+
     if (!validateEmail(formData.email)) {
-      finalErrors.email = '올바른 이메일 형식이 아닙니다';
+      finalErrors.email = "올바른 이메일 형식이 아닙니다";
     }
-    
+
     if (formData.password.length < 8) {
-      finalErrors.password = '비밀번호는 최소 8자 이상이어야 한다';
+      finalErrors.password = "비밀번호는 최소 8자 이상이어야 한다";
     }
-    
+
     if (formData.password !== formData.confirmPassword) {
-      finalErrors.confirmPassword = '비밀번호가 일치하지 않다';
+      finalErrors.confirmPassword = "비밀번호가 일치하지 않다";
     }
-    
+
     if (Object.keys(finalErrors).length === 0) {
-      alert('회원가입 성공!');
+      alert("회원가입 성공!");
       // 폼 초기화
-      setFormData({ email: '', password: '', confirmPassword: '' });
+      setFormData({ email: "", password: "", confirmPassword: "" });
       setErrors({});
     } else {
       setErrors(finalErrors);
@@ -330,43 +354,50 @@ export default function SignupForm() {
         <input
           type="email"
           value={formData.email}
-          onChange={e => handleChange('email', e.target.value)}
+          onChange={(e) => handleChange("email", e.target.value)}
         />
-        {errors.email && <span style={{ color: 'red' }}>{errors.email}</span>}
+        {errors.email && <span style={{ color: "red" }}>{errors.email}</span>}
       </div>
-      
+
       <div>
         <label>비밀번호:</label>
         <input
           type="password"
           value={formData.password}
-          onChange={e => handleChange('password', e.target.value)}
+          onChange={(e) => handleChange("password", e.target.value)}
         />
-        {errors.password && <span style={{ color: 'red' }}>{errors.password}</span>}
+        {errors.password && (
+          <span style={{ color: "red" }}>{errors.password}</span>
+        )}
       </div>
-      
+
       <div>
         <label>비밀번호 확인:</label>
         <input
           type="password"
           value={formData.confirmPassword}
-          onChange={e => handleChange('confirmPassword', e.target.value)}
+          onChange={(e) => handleChange("confirmPassword", e.target.value)}
         />
-        {errors.confirmPassword && <span style={{ color: 'red' }}>{errors.confirmPassword}</span>}
+        {errors.confirmPassword && (
+          <span style={{ color: "red" }}>{errors.confirmPassword}</span>
+        )}
       </div>
-      
+
       <button type="submit">회원가입</button>
     </form>
   );
 }
 ```
+
 핵심 포인트:
+
 - 실시간 검증: `onChange` 이벤트에서 즉시 검증 수행
 - 이메일 정규식: `/^[^\s@]+@[^\s@]+\.[^\s@]+$/` 패턴 사용
 - 비밀번호 길이: 최소 8자 이상 검증
 - 비밀번호 일치: `password`와 `confirmPassword` 비교
 - 오류 상태 관리: `errors` 객체로 각 필드별 오류 메시지 관리
 - 제출 시 최종 검증: 모든 필드 재검증 후 제출
+
 ---
 
 ## 학습 체크리스트
@@ -383,7 +414,9 @@ export default function SignupForm() {
 모든 항목을 체크했다면 다음 챕터로 넘어가세요! 🚀
 
 ---
+
 ## 참고 자료
+
 - [React 공식 문서 - Adding Interactivity](https://react.dev/learn/adding-interactivity)
 - [React 공식 문서 - Managing State](https://react.dev/learn/managing-state)
 - [useState Hook](https://react.dev/reference/react/useState)

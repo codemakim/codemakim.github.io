@@ -18,13 +18,13 @@ Spring에서 의존성을 주입하는 방법은 필드 주입, 세터 주입, �
 ```java
 @RestController
 public class UserController {
-    
+
     @Autowired
     private UserService userService;
-    
+
     @Autowired
     private EmailService emailService;
-    
+
     @GetMapping("/users/{id}")
     public User getUser(@PathVariable Long id) {
         return userService.findById(id);
@@ -41,15 +41,15 @@ public class UserController {
 ```java
 @RestController
 public class UserController {
-    
+
     private UserService userService;
     private EmailService emailService;
-    
+
     @Autowired
     public void setUserService(UserService userService) {
         this.userService = userService;
     }
-    
+
     @Autowired
     public void setEmailService(EmailService emailService) {
         this.emailService = emailService;
@@ -66,16 +66,16 @@ Spring 4.3부터 권장하는 방식이다.
 ```java
 @RestController
 public class UserController {
-    
+
     private final UserService userService;
     private final EmailService emailService;
-    
+
     @Autowired // 생성자가 하나면 생략 가능
     public UserController(UserService userService, EmailService emailService) {
         this.userService = userService;
         this.emailService = emailService;
     }
-    
+
     @GetMapping("/users/{id}")
     public User getUser(@PathVariable Long id) {
         return userService.findById(id);
@@ -88,10 +88,10 @@ public class UserController {
 ```java
 @RestController
 public class UserController {
-    
+
     private final UserService userService;
     private final EmailService emailService;
-    
+
     // @Autowired 생략 가능
     public UserController(UserService userService, EmailService emailService) {
         this.userService = userService;
@@ -111,10 +111,10 @@ public class UserController {
 ```java
 @RestController
 public class UserController {
-    
+
     @Autowired
     private UserService userService; // final 불가능
-    
+
     public void someMethod() {
         this.userService = null; // 이렇게 바뀔 수 있음
     }
@@ -126,9 +126,9 @@ public class UserController {
 ```java
 @RestController
 public class UserController {
-    
+
     private final UserService userService; // 생성 후 변경 불가
-    
+
     public UserController(UserService userService) {
         this.userService = userService;
     }
@@ -141,13 +141,13 @@ public class UserController {
 
 ```java
 public class UserControllerTest {
-    
+
     @Test
     void test() {
         // 필드 주입: 의존성을 주입할 방법이 없음
         UserController controller = new UserController();
         // controller.userService는 null 상태
-        
+
         // 생성자 주입: 의존성을 쉽게 주입
         UserService mockService = mock(UserService.class);
         UserController controller = new UserController(mockService);
@@ -181,7 +181,7 @@ public class OrderService {
 @Service
 public class UserService {
     private final OrderService orderService;
-    
+
     public UserService(OrderService orderService) {
         this.orderService = orderService;
     }
@@ -190,7 +190,7 @@ public class UserService {
 @Service
 public class OrderService {
     private final UserService userService;
-    
+
     public OrderService(UserService userService) {
         this.userService = userService;
     }
@@ -222,7 +222,7 @@ public class UserService {
 ```java
 @Service
 public class UserService {
-    
+
     public UserService(
             UserRepository userRepository,
             EmailService emailService,
@@ -252,9 +252,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 @Service
 public class UserService {
-    
+
     private final UserRepository userRepository;
-    
+
     @Autowired // Spring 전용
     public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
@@ -267,9 +267,9 @@ public class UserService {
 ```java
 @Service
 public class EmailService {
-    
+
     private final MailSender mailSender;
-    
+
     @Autowired(required = false) // 없어도 됨
     public void setMailSender(MailSender mailSender) {
         this.mailSender = mailSender;
@@ -287,9 +287,9 @@ import jakarta.inject.Inject; // Spring Boot 3.x
 
 @Service
 public class UserService {
-    
+
     private final UserRepository userRepository;
-    
+
     @Inject // Java 표준
     public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
@@ -343,16 +343,16 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequiredArgsConstructor // 생성자 자동 생성
 public class UserController {
-    
+
     private final UserService userService;
     private final EmailService emailService;
-    
+
     // 생성자가 자동으로 생성됨
     // public UserController(UserService userService, EmailService emailService) {
     //     this.userService = userService;
     //     this.emailService = emailService;
     // }
-    
+
     @GetMapping("/users/{id}")
     public User getUser(@PathVariable Long id) {
         return userService.findById(id);
@@ -367,7 +367,7 @@ public class UserController {
 ```java
 @AllArgsConstructor // 모든 필드를 포함하는 생성자
 public class UserService {
-    
+
     private final UserRepository userRepository;
     private final EmailService emailService;
     private String configValue; // final이 아닌 필드도 포함됨
@@ -375,7 +375,7 @@ public class UserService {
 
 @RequiredArgsConstructor // final 필드만 포함하는 생성자
 public class UserService {
-    
+
     private final UserRepository userRepository;
     private final EmailService emailService;
     private String configValue; // 생성자에 포함 안 됨
@@ -391,12 +391,12 @@ public class UserService {
 ```java
 @RequiredArgsConstructor
 public class UserService {
-    
+
     private final UserRepository userRepository; // 포함됨
     @NonNull
     private EmailService emailService; // 포함됨
     private String configValue; // 포함 안 됨
-    
+
     // 생성된 생성자:
     // public UserService(UserRepository userRepository, EmailService emailService)
 }
@@ -433,9 +433,9 @@ Spring의 Bean은 생명주기를 가지고 있고 스코프로 관리된다.
 @Service
 @Scope("singleton") // 생략 가능 (기본값)
 public class UserService {
-    
+
     private final UserRepository userRepository;
-    
+
     public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
@@ -466,9 +466,9 @@ public class AdminController {
 @Service
 @Scope("prototype")
 public class ReportGenerator {
-    
+
     private String reportData;
-    
+
     public void setReportData(String data) {
         this.reportData = data;
     }
@@ -480,9 +480,9 @@ public class ReportGenerator {
 ```java
 @RestController
 public class ReportController {
-    
+
     private final ApplicationContext context;
-    
+
     @GetMapping("/reports")
     public Report generate() {
         // 매번 새로운 인스턴스
@@ -498,9 +498,9 @@ public class ReportController {
 ```java
 @RestController
 public class ReportController {
-    
+
     private final ReportGenerator generator; // 처음 한 번만 생성됨
-    
+
     public ReportController(ReportGenerator generator) {
         this.generator = generator; // Prototype이지만 계속 같은 인스턴스
     }
@@ -512,13 +512,13 @@ Prototype Bean이 필요하면 `Provider`나 `ObjectFactory`를 사용한다.
 ```java
 @RestController
 public class ReportController {
-    
+
     private final ObjectProvider<ReportGenerator> generatorProvider;
-    
+
     public ReportController(ObjectProvider<ReportGenerator> generatorProvider) {
         this.generatorProvider = generatorProvider;
     }
-    
+
     @GetMapping("/reports")
     public Report generate() {
         ReportGenerator generator = generatorProvider.getObject(); // 매번 새로운 인스턴스
@@ -536,10 +536,10 @@ HTTP 요청마다 새로운 인스턴스를 생성한다. 웹 애플리케이션
 @Component
 @Scope(value = "request", proxyMode = ScopedProxyMode.TARGET_CLASS)
 public class RequestContext {
-    
+
     private String requestId;
     private LocalDateTime requestTime;
-    
+
     public RequestContext() {
         this.requestId = UUID.randomUUID().toString();
         this.requestTime = LocalDateTime.now();
@@ -553,9 +553,9 @@ public class RequestContext {
 @RestController
 @RequiredArgsConstructor
 public class UserController {
-    
+
     private final RequestContext requestContext; // 프록시가 주입됨
-    
+
     @GetMapping("/users/{id}")
     public User getUser(@PathVariable Long id) {
         log.info("Request ID: {}", requestContext.getRequestId());
@@ -575,9 +575,9 @@ HTTP 세션마다 새로운 인스턴스를 생성한다.
 @Component
 @Scope(value = "session", proxyMode = ScopedProxyMode.TARGET_CLASS)
 public class ShoppingCart {
-    
+
     private List<Item> items = new ArrayList<>();
-    
+
     public void addItem(Item item) {
         items.add(item);
     }
@@ -594,9 +594,9 @@ ServletContext 생명주기와 같다. Singleton과 비슷하지만 웹 애플�
 @Component
 @Scope("application")
 public class AppConfig {
-    
+
     private final Map<String, String> configs = new HashMap<>();
-    
+
     public void setConfig(String key, String value) {
         configs.put(key, value);
     }
@@ -619,9 +619,9 @@ public class AppConfig {
 ```java
 @Service // Singleton
 public class UserService {
-    
+
     private User currentUser; // 모든 요청이 공유 - 위험!
-    
+
     public void process(Long userId) {
         this.currentUser = userRepository.findById(userId);
         // 다른 요청이 currentUser를 덮어쓸 수 있음
@@ -634,7 +634,7 @@ public class UserService {
 ```java
 @Service
 public class UserService {
-    
+
     // 상태 제거 - 메서드 파라미터로 전달
     public void process(User user) {
         // user는 메서드 스택에 저장되므로 스레드 안전
@@ -652,14 +652,14 @@ public class UserService {
 @Service
 @RequiredArgsConstructor
 public class NotificationService {
-    
+
     private final EmailService emailService;
     private final Optional<SmsService> smsService; // 선택적
-    
+
     public void notify(User user, String message) {
         emailService.send(user.getEmail(), message);
-        
-        smsService.ifPresent(service -> 
+
+        smsService.ifPresent(service ->
             service.send(user.getPhone(), message)
         );
     }
@@ -691,10 +691,10 @@ public class BankTransferPayment implements PaymentGateway {
 ```java
 @Service
 public class PaymentService {
-    
+
     private final PaymentGateway creditCardPayment;
     private final PaymentGateway bankTransferPayment;
-    
+
     public PaymentService(
             @Qualifier("creditCard") PaymentGateway creditCardPayment,
             @Qualifier("bankTransfer") PaymentGateway bankTransferPayment) {
@@ -710,9 +710,9 @@ public class PaymentService {
 @Service
 @RequiredArgsConstructor
 public class PaymentService {
-    
+
     private final List<PaymentGateway> gateways;
-    
+
     public void payAll(int amount) {
         gateways.forEach(gateway -> gateway.pay(amount));
     }
@@ -725,9 +725,9 @@ Map으로 받으면 Bean 이름을 키로 사용할 수 있다.
 @Service
 @RequiredArgsConstructor
 public class PaymentService {
-    
+
     private final Map<String, PaymentGateway> gatewayMap;
-    
+
     public void pay(String method, int amount) {
         PaymentGateway gateway = gatewayMap.get(method);
         gateway.pay(amount);
@@ -756,7 +756,7 @@ public class BankTransferPayment implements PaymentGateway {
 @Service
 @RequiredArgsConstructor
 public class PaymentService {
-    
+
     private final PaymentGateway gateway; // CreditCardPayment가 주입됨
 }
 ```
@@ -769,7 +769,7 @@ Bean을 실제로 사용할 때까지 생성을 미루고 싶을 때 사용한�
 @Service
 @Lazy
 public class HeavyService {
-    
+
     public HeavyService() {
         // 무거운 초기화 작업
         System.out.println("HeavyService created");
@@ -781,9 +781,9 @@ public class HeavyService {
 @Service
 @RequiredArgsConstructor
 public class UserService {
-    
+
     private final HeavyService heavyService; // 아직 생성 안 됨
-    
+
     public void someMethod() {
         heavyService.doSomething(); // 이 시점에 생성됨
     }
@@ -795,10 +795,10 @@ public class UserService {
 ```java
 @Service
 public class UserService {
-    
+
     private final EmailService emailService;
     private final HeavyService heavyService;
-    
+
     public UserService(
             EmailService emailService,
             @Lazy HeavyService heavyService) { // 이것만 지연

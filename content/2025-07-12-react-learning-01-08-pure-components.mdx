@@ -31,8 +31,8 @@ function double(number) {
   return number * 2;
 }
 
-double(3)  // 6
-double(3)  // 6 (항상 같은 결과)
+double(3); // 6
+double(3); // 6 (항상 같은 결과)
 ```
 
 - 같은 입력(`3`)이면 항상 같은 결과(`6`)를 반환한다.
@@ -45,12 +45,12 @@ double(3)  // 6 (항상 같은 결과)
 let count = 0;
 
 function increment() {
-  count = count + 1;  // 외부 변수 수정
+  count = count + 1; // 외부 변수 수정
   return count;
 }
 
-increment()  // 1
-increment()  // 2 (다른 결과)
+increment(); // 1
+increment(); // 2 (다른 결과)
 ```
 
 - 외부 변수 `count`를 수정한다.
@@ -171,9 +171,9 @@ Tea cup for guest #3
 // 이벤트 핸들러는 순수할 필요 없음
 function Button() {
   function handleClick() {
-    alert('Clicked!');  // 부작용 OK
+    alert("Clicked!"); // 부작용 OK
   }
-  
+
   return <button onClick={handleClick}>Click me</button>;
 }
 ```
@@ -181,14 +181,14 @@ function Button() {
 #### 2. useEffect Hook 사용
 
 ```jsx
-import { useEffect } from 'react';
+import { useEffect } from "react";
 
 function Component() {
   useEffect(() => {
     // 부작용 코드 (API 호출, 타이머 등)
-    console.log('Component rendered');
+    console.log("Component rendered");
   }, []);
-  
+
   return <div>Content</div>;
 }
 ```
@@ -200,12 +200,12 @@ function Component() {
 ```jsx
 // 렌더링 중 생성된 변수/객체 수정은 OK
 function Cup({ guest }) {
-  const cups = [];  // 렌더링 중 생성
-  
+  const cups = []; // 렌더링 중 생성
+
   for (let i = 1; i <= guest; i++) {
     cups.push(<div key={i}>Cup #{i}</div>);
   }
-  
+
   return <>{cups}</>;
 }
 ```
@@ -219,14 +219,14 @@ React는 개발 모드에서 비순수 함수를 찾아내기 위해 컴포넌�
 React는 Strict Mode에서 각 컴포넌트를 2번 호출하여 비순수 함수를 감지한다.
 
 ```jsx
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
 
-const root = createRoot(document.getElementById('root'));
+const root = createRoot(document.getElementById("root"));
 root.render(
   <StrictMode>
     <App />
-  </StrictMode>
+  </StrictMode>,
 );
 ```
 
@@ -241,25 +241,27 @@ root.render(
 ```jsx
 // 잘못된 코드: 렌더링 중 API 호출
 function ProductList() {
-  const products = fetch('/api/products');  // 비순수
+  const products = fetch("/api/products"); // 비순수
   return <div>{products}</div>;
 }
 
 // 올바른 코드: useEffect 사용
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 function ProductList() {
   const [products, setProducts] = useState([]);
-  
+
   useEffect(() => {
-    fetch('/api/products')
-      .then(res => res.json())
-      .then(data => setProducts(data));
+    fetch("/api/products")
+      .then((res) => res.json())
+      .then((data) => setProducts(data));
   }, []);
-  
+
   return (
     <ul>
-      {products.map(p => <li key={p.id}>{p.name}</li>)}
+      {products.map((p) => (
+        <li key={p.id}>{p.name}</li>
+      ))}
     </ul>
   );
 }
@@ -277,25 +279,25 @@ function ProductList() {
 ```html
 <!-- Vue: setup()에서 반응성 시스템이 관리 -->
 <script setup>
-import { ref } from 'vue'
+  import { ref } from "vue";
 
-let count = ref(0)  // Vue가 관리
+  let count = ref(0); // Vue가 관리
 
-function increment() {
-  count.value++  // 안전함
-}
+  function increment() {
+    count.value++; // 안전함
+  }
 </script>
 ```
 
 ```jsx
 // React: 순수성 유지 필수
 function Counter() {
-  const [count, setCount] = useState(0)
-  
+  const [count, setCount] = useState(0);
+
   function increment() {
-    setCount(count + 1)  // 순수하게 상태 업데이트
+    setCount(count + 1); // 순수하게 상태 업데이트
   }
-  
-  return <button onClick={increment}>{count}</button>
+
+  return <button onClick={increment}>{count}</button>;
 }
 ```

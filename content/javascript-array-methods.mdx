@@ -13,7 +13,7 @@ tags: ["JavaScript", "프론트엔드"]
 
 배열을 정렬하는 메서드이다.
 
-###  중요: 원본 배열을 변경한다
+### 중요: 원본 배열을 변경한다
 
 ```javascript
 const arr = [3, 1, 2];
@@ -72,7 +72,7 @@ products.sort((a, b) => a.price - b.price);
 
 배열의 모든 요소가 조건을 만족하는지 테스트한다.
 
-###  원본 배열을 변경하지 않다
+### 원본 배열을 변경하지 않다
 
 ### 특징
 
@@ -101,7 +101,7 @@ numbers.every((num) => num > 1); // true
 
 배열의 요소 중 하나라도 조건을 만족하는지 테스트한다.
 
-###  원본 배열을 변경하지 않다
+### 원본 배열을 변경하지 않다
 
 ### 특징
 
@@ -127,7 +127,7 @@ numbers.some((num) => num === 3); // true
 
 조건을 만족하는 첫 번째 요소의 값을 반환한다.
 
-###  원본 배열을 변경하지 않다
+### 원본 배열을 변경하지 않다
 
 ### 반환값
 
@@ -156,7 +156,7 @@ const oldUser = users.find((user) => user.age >= 35);
 
 조건을 만족하는 첫 번째 요소의 인덱스를 반환한다.
 
-###  원본 배열을 변경하지 않다
+### 원본 배열을 변경하지 않다
 
 ### 반환값
 
@@ -179,7 +179,7 @@ const notFound = numbers.findIndex((num) => num > 1000); // -1
 
 배열이 특정 요소를 포함하고 있는지 확인한다.
 
-###  원본 배열을 변경하지 않다
+### 원본 배열을 변경하지 않다
 
 ### 매개변수
 
@@ -202,7 +202,7 @@ fruits.includes("apple", 1); // false (인덱스 1부터 검색)
 
 조건을 만족하는 모든 요소를 모아 새로운 배열을 반환한다.
 
-###  원본 배열을 변경하지 않다
+### 원본 배열을 변경하지 않다
 
 ### 반환값
 
@@ -241,7 +241,7 @@ const expensiveProducts = products.filter((product) => product.price >= 500);
 
 배열의 각 요소에 대해 함수를 실행한다.
 
-###  원본 배열을 변경하지 않다 (단, callback이 변경할 수는 있음)
+### 원본 배열을 변경하지 않다 (단, callback이 변경할 수는 있음)
 
 ### 반환값
 
@@ -272,7 +272,7 @@ fruits.forEach((fruit, index) => {
 
 배열의 모든 요소에 함수를 적용한 결과로 새로운 배열을 생성한다.
 
-###  원본 배열을 변경하지 않다
+### 원본 배열을 변경하지 않다
 
 ### 반환값
 
@@ -313,14 +313,14 @@ const userSummary = users.map((user) => ({
 
 배열의 각 요소에 대해 reducer 함수를 실행하여 하나의 값으로 축약한다.
 
-###  원본 배열을 변경하지 않다
+### 원본 배열을 변경하지 않다
 
 ### 매개변수
 
 ```javascript
 arr.reduce(
   callback(accumulator, currentValue, currentIndex, array),
-  initialValue
+  initialValue,
 );
 ```
 
@@ -378,7 +378,7 @@ const flattened = nestedArray.reduce((acc, cur) => acc.concat(cur), []);
 
 중첩된 배열을 평탄화한다.
 
-###  원본 배열을 변경하지 않다
+### 원본 배열을 변경하지 않다
 
 ### 매개변수
 
@@ -401,7 +401,7 @@ deepArray.flat(Infinity); // [1, 2, 3, 4, 5]
 
 ## Array.prototype.splice() vs Array.prototype.slice()
 
-### splice() - 원본 배열 변경 
+### splice() - 원본 배열 변경
 
 배열의 기존 요소를 삭제하거나 교체하고 새 요소를 추가한다.
 
@@ -411,7 +411,7 @@ arr.splice(2, 1, "new"); // [3] (제거된 요소 반환)
 console.log(arr); // [1, 2, 'new', 4, 5] (원본 변경됨)
 ```
 
-### slice() - 원본 배열 유지 
+### slice() - 원본 배열 유지
 
 배열의 일부를 얕은 복사하여 새로운 배열을 반환한다.
 

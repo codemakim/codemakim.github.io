@@ -20,11 +20,13 @@ Effect는 React 코드에서 "벗어나" 외부 시스템과 동기화하는 데
 Effect를 작성하기 전에 항상 질문해야 한다: "이 코드가 정말 외부 시스템과 동기화하나?" 만약 아니라면, Effect가 필요하지 않을 수 있다.
 
 **Effect가 필요한 경우:** (다음 챕터에서 자세히 다룸)
+
 - 서버 연결
 - 브라우저 API (타이머, 이벤트 리스너)
 - 서드파티 라이브러리
 
 **Effect가 필요하지 않은 경우:**
+
 - 렌더링을 위한 데이터 변환
 - 사용자 이벤트 처리
 
@@ -38,15 +40,15 @@ Effect를 작성하기 전에 항상 질문해야 한다: "이 코드가 정말 
 
 ```jsx
 function Form() {
-  const [firstName, setFirstName] = useState('Taylor');
-  const [lastName, setLastName] = useState('Swift');
-  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState("Taylor");
+  const [lastName, setLastName] = useState("Swift");
+  const [fullName, setFullName] = useState("");
 
   // 불필요한 Effect
   useEffect(() => {
-    setFullName(firstName + ' ' + lastName);
+    setFullName(firstName + " " + lastName);
   }, [firstName, lastName]);
-  
+
   return <h1>{fullName}</h1>;
 }
 ```
@@ -54,6 +56,7 @@ function Form() {
 **왜 나쁜가?**
 
 이 코드는 불필요하게 두 번 렌더링된다:
+
 1. 첫 렌더링: `fullName`이 빈 문자열
 2. Effect 실행: `setFullName` 호출
 3. 두 번째 렌더링: `fullName`이 계산된 값
@@ -62,17 +65,18 @@ function Form() {
 
 ```jsx
 function Form() {
-  const [firstName, setFirstName] = useState('Taylor');
-  const [lastName, setLastName] = useState('Swift');
-  
+  const [firstName, setFirstName] = useState("Taylor");
+  const [lastName, setLastName] = useState("Swift");
+
   // 그냥 계산하면 된다
-  const fullName = firstName + ' ' + lastName;
-  
+  const fullName = firstName + " " + lastName;
+
   return <h1>{fullName}</h1>;
 }
 ```
 
 이렇게 하면:
+
 1. 렌더링: `fullName`이 바로 계산됨
 
 한 번의 렌더링으로 끝난다.
@@ -87,10 +91,10 @@ function Form() {
 function TodoList({ todos, filter }) {
   // 이 함수가 매우 느리다고 가정 (수천 개의 항목을 처리)
   const visibleTodos = getFilteredTodos(todos, filter);
-  
+
   return (
     <ul>
-      {visibleTodos.map(todo => (
+      {visibleTodos.map((todo) => (
         <li key={todo.id}>{todo.text}</li>
       ))}
     </ul>
@@ -98,11 +102,11 @@ function TodoList({ todos, filter }) {
 }
 
 function getFilteredTodos(todos, filter) {
-  console.log('Filtering... (느린 작업)');
-  
+  console.log("Filtering... (느린 작업)");
+
   // 복잡한 필터링과 정렬 작업
   return todos
-    .filter(todo => {
+    .filter((todo) => {
       // 복잡한 로직...
     })
     .sort((a, b) => {
@@ -118,17 +122,17 @@ function getFilteredTodos(todos, filter) {
 `useMemo`는 값을 메모이제이션(캐싱)한다. 의존성이 변경될 때만 다시 계산한다.
 
 ```jsx
-import { useMemo } from 'react';
+import { useMemo } from "react";
 
 function TodoList({ todos, filter }) {
   const visibleTodos = useMemo(() => {
-    console.log('Filtering... (느린 작업)');
+    console.log("Filtering... (느린 작업)");
     return getFilteredTodos(todos, filter);
   }, [todos, filter]);
-  
+
   return (
     <ul>
-      {visibleTodos.map(todo => (
+      {visibleTodos.map((todo) => (
         <li key={todo.id}>{todo.text}</li>
       ))}
     </ul>
@@ -175,13 +179,13 @@ const visibleTodos = useMemo(() => {
 
 ```jsx
 export default function ProfilePage({ userId }) {
-  const [comment, setComment] = useState('');
+  const [comment, setComment] = useState("");
 
   // userId가 변경되면 comment를 리셋
   useEffect(() => {
-    setComment('');
+    setComment("");
   }, [userId]);
-  
+
   return <CommentBox comment={comment} onChange={setComment} />;
 }
 ```
@@ -193,15 +197,15 @@ export default function ProfilePage({ userId }) {
   return (
     <Profile
       userId={userId}
-      key={userId}  // userId가 변경되면 새 컴포넌트로 취급
+      key={userId} // userId가 변경되면 새 컴포넌트로 취급
     />
   );
 }
 
 function Profile({ userId }) {
-  const [comment, setComment] = useState('');
+  const [comment, setComment] = useState("");
   // userId가 변경되면 Profile이 재마운트되어 comment가 자동으로 ''로 리셋됨
-  
+
   return <CommentBox comment={comment} onChange={setComment} />;
 }
 ```
@@ -222,7 +226,7 @@ function List({ items }) {
   useEffect(() => {
     setSelection(null);
   }, [items]);
-  
+
   return <ItemList items={items} selection={selection} />;
 }
 ```
@@ -233,15 +237,15 @@ function List({ items }) {
 function List({ items }) {
   const [selectedId, setSelectedId] = useState(null);
   const [prevItems, setPrevItems] = useState(items);
-  
+
   // items가 변경되었는지 확인
   if (items !== prevItems) {
     setPrevItems(items);
     setSelectedId(null);
   }
-  
-  const selection = items.find(item => item.id === selectedId) ?? null;
-  
+
+  const selection = items.find((item) => item.id === selectedId) ?? null;
+
   return <ItemList items={items} selection={selection} />;
 }
 ```
@@ -251,10 +255,10 @@ function List({ items }) {
 ```jsx
 function List({ items }) {
   const [selectedId, setSelectedId] = useState(null);
-  
+
   // ID만 저장하고, 항목은 items에서 찾기
-  const selection = items.find(item => item.id === selectedId) ?? null;
-  
+  const selection = items.find((item) => item.id === selectedId) ?? null;
+
   return <ItemList items={items} selection={selection} />;
 }
 ```
@@ -280,9 +284,9 @@ function ProductPage({ product, addToCart }) {
 
   function handleCheckoutClick() {
     addToCart(product);
-    navigateTo('/checkout');
+    navigateTo("/checkout");
   }
-  
+
   return <>{/* UI */}</>;
 }
 ```
@@ -304,9 +308,9 @@ function ProductPage({ product, addToCart }) {
 
   function handleCheckoutClick() {
     buyProduct();
-    navigateTo('/checkout');
+    navigateTo("/checkout");
   }
-  
+
   return <>{/* UI */}</>;
 }
 ```
@@ -319,24 +323,24 @@ function ProductPage({ product, addToCart }) {
 
 ```jsx
 function Form() {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
 
   // 마운트 시 분석 이벤트
   useEffect(() => {
-    post('/analytics/event', { eventName: 'visit_form' });
+    post("/analytics/event", { eventName: "visit_form" });
   }, []);
 
   // firstName이나 lastName이 변경될 때마다 분석 이벤트
   useEffect(() => {
-    post('/analytics/event', { eventName: 'edit_form' });
+    post("/analytics/event", { eventName: "edit_form" });
   }, [firstName, lastName]);
 
   function handleSubmit(e) {
     e.preventDefault();
-    post('/api/register', { firstName, lastName });
+    post("/api/register", { firstName, lastName });
   }
-  
+
   return <form onSubmit={handleSubmit}>{/* ... */}</form>;
 }
 ```
@@ -347,28 +351,28 @@ function Form() {
 
 ```jsx
 function Form() {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
 
   // 마운트 시 한 번만
   useEffect(() => {
-    post('/analytics/event', { eventName: 'visit_form' });
+    post("/analytics/event", { eventName: "visit_form" });
   }, []);
 
   function handleSubmit(e) {
     e.preventDefault();
-    post('/api/register', { firstName, lastName });
-    post('/analytics/event', { eventName: 'submit_form' });
+    post("/api/register", { firstName, lastName });
+    post("/analytics/event", { eventName: "submit_form" });
   }
 
   function handleChange(field, value) {
-    if (field === 'firstName') setFirstName(value);
+    if (field === "firstName") setFirstName(value);
     else setLastName(value);
-    
+
     // 입력 시작 시에만 한 번 전송하려면 추가 로직 필요
-    post('/analytics/event', { eventName: 'edit_form' });
+    post("/analytics/event", { eventName: "edit_form" });
   }
-  
+
   return <form onSubmit={handleSubmit}>{/* ... */}</form>;
 }
 ```
@@ -387,14 +391,14 @@ function Game() {
   // Effect 1: 카드가 골드면 카운트 증가
   useEffect(() => {
     if (card !== null && card.gold) {
-      setGoldCardCount(c => c + 1);
+      setGoldCardCount((c) => c + 1);
     }
   }, [card]);
 
   // Effect 2: 골드 카드 3개 이상이면 라운드 증가
   useEffect(() => {
     if (goldCardCount > 3) {
-      setRound(r => r + 1);
+      setRound((r) => r + 1);
       setGoldCardCount(0);
     }
   }, [goldCardCount]);
@@ -409,10 +413,10 @@ function Game() {
   // Effect 4: 게임 종료 시 알림
   useEffect(() => {
     if (isGameOver) {
-      alert('Good game!');
+      alert("Good game!");
     }
   }, [isGameOver]);
-  
+
   // ...
 }
 ```
@@ -432,25 +436,25 @@ function Game() {
 
   function handlePlaceCard(nextCard) {
     if (isGameOver) {
-      throw Error('Game already ended.');
+      throw Error("Game already ended.");
     }
 
     setCard(nextCard);
-    
+
     if (nextCard.gold) {
       if (goldCardCount <= 3) {
         setGoldCardCount(goldCardCount + 1);
       } else {
         setGoldCardCount(0);
         setRound(round + 1);
-        
+
         if (round === 5) {
-          alert('Good game!');
+          alert("Good game!");
         }
       }
     }
   }
-  
+
   // ...
 }
 ```
@@ -467,7 +471,7 @@ function App() {
     loadDataFromLocalStorage();
     checkAuthToken();
   }, []);
-  
+
   return <Main />;
 }
 ```
@@ -478,7 +482,7 @@ function App() {
 
 ```jsx
 // App.js 최상단
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
   loadDataFromLocalStorage();
   checkAuthToken();
 }
@@ -506,8 +510,8 @@ function Toggle({ onChange }) {
   function handleClick() {
     setIsOn(!isOn);
   }
-  
-  return <button onClick={handleClick}>{isOn ? 'On' : 'Off'}</button>;
+
+  return <button onClick={handleClick}>{isOn ? "On" : "Off"}</button>;
 }
 ```
 
@@ -520,10 +524,10 @@ function Toggle({ onChange }) {
   function handleClick() {
     const nextIsOn = !isOn;
     setIsOn(nextIsOn);
-    onChange(nextIsOn);  // 동시에 부모에게 알림
+    onChange(nextIsOn); // 동시에 부모에게 알림
   }
-  
-  return <button onClick={handleClick}>{isOn ? 'On' : 'Off'}</button>;
+
+  return <button onClick={handleClick}>{isOn ? "On" : "Off"}</button>;
 }
 ```
 
@@ -539,13 +543,13 @@ function Parent() {
 
 function Child({ onFetched }) {
   const data = useSomeAPI();
-  
+
   useEffect(() => {
     if (data) {
       onFetched(data);
     }
   }, [onFetched, data]);
-  
+
   return <div>{/* ... */}</div>;
 }
 ```

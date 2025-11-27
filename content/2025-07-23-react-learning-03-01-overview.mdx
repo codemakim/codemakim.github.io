@@ -9,11 +9,14 @@ seriesOrder: 19
 
 # React 학습 가이드 - State 관리 개요
 
-
 ---
+
 ## 개요
+
 애플리케이션이 커질수록 state를 어떻게 구성하고 컴포넌트 간에 데이터가 어떻게 흐르는지 의도적으로 설계하는 것이 중요한다.
+
 ### 이 챕터에서 배울 내용
+
 - UI 변경을 state 변경으로 생각하는 방법
 - State를 잘 구조화하는 방법
 - State를 "끌어올려" 컴포넌트 간에 공유하는 방법
@@ -21,6 +24,7 @@ seriesOrder: 19
 - 복잡한 state 로직을 함수로 통합하는 방법
 - "prop drilling" 없이 정보를 전달하는 방법
 - 앱이 커질수록 state 관리를 확장하는 방법
+
 ---
 
 ## State로 입력에 반응하기
@@ -37,13 +41,13 @@ function submitForm() {
   // 1. 버튼 비활성화
   button.disabled = true;
   // 2. 스피너 표시
-  spinner.style.display = 'block';
+  spinner.style.display = "block";
   // 3. 폼 숨기기
-  form.style.display = 'none';
+  form.style.display = "none";
   // 4. Ajax 요청
-  ajax.post('/submit', data, () => {
+  ajax.post("/submit", data, () => {
     // 5. 성공 메시지 표시
-    successMessage.style.display = 'block';
+    successMessage.style.display = "block";
   });
 }
 ```
@@ -53,20 +57,20 @@ function submitForm() {
 ```jsx
 // 선언적: state에 따라 UI 자동 결정
 function Form() {
-  const [status, setStatus] = useState('empty');
-  
-  if (status === 'submitting') {
+  const [status, setStatus] = useState("empty");
+
+  if (status === "submitting") {
     return <Spinner />;
   }
-  
-  if (status === 'success') {
+
+  if (status === "success") {
     return <SuccessMessage />;
   }
-  
+
   return (
     <form onSubmit={handleSubmit}>
-      <input disabled={status === 'submitting'} />
-      <button disabled={status === 'empty' || status === 'submitting'}>
+      <input disabled={status === "submitting"} />
+      <button disabled={status === "empty" || status === "submitting"}>
         Submit
       </button>
     </form>
@@ -87,11 +91,11 @@ UI가 가질 수 있는 모든 "상태"를 시각화한다.
 ```jsx
 // 폼의 가능한 state들
 const states = [
-  'empty',      // 입력 없음
-  'typing',     // 입력 중
-  'submitting', // 제출 중
-  'success',    // 성공
-  'error',      // 에러
+  "empty", // 입력 없음
+  "typing", // 입력 중
+  "submitting", // 제출 중
+  "success", // 성공
+  "error", // 에러
 ];
 ```
 
@@ -118,10 +122,10 @@ state를 변경하는 두 가지 입력:
 
 ```jsx
 function Form() {
-  const [answer, setAnswer] = useState('');
+  const [answer, setAnswer] = useState("");
   const [error, setError] = useState(null);
-  const [status, setStatus] = useState('typing'); // 'typing', 'submitting', 'success'
-  
+  const [status, setStatus] = useState("typing"); // 'typing', 'submitting', 'success'
+
   // ...
 }
 ```
@@ -138,20 +142,20 @@ state가 많아지면 관리가 어려워집니다. 최소한으로 유지하라
   //  나쁨: 둘 다 true일 수 없음
   const [isSending, setIsSending] = useState(false);
   const [isSent, setIsSent] = useState(false);
-  
+
   //  좋음: 하나의 status로 통합
-  const [status, setStatus] = useState('typing');
+  const [status, setStatus] = useState("typing");
   ```
 
 - 다른 state에서 이미 같은 정보를 얻을 수 있는가?
 
   ```jsx
   //  나쁨: isEmpty는 계산 가능
-  const [answer, setAnswer] = useState('');
+  const [answer, setAnswer] = useState("");
   const [isEmpty, setIsEmpty] = useState(true);
-  
+
   //  좋음: 계산으로 처리
-  const [answer, setAnswer] = useState('');
+  const [answer, setAnswer] = useState("");
   const isEmpty = answer.length === 0;
   ```
 
@@ -161,7 +165,7 @@ state가 많아지면 관리가 어려워집니다. 최소한으로 유지하라
   //  나쁨: isError는 error의 반대
   const [error, setError] = useState(null);
   const [isError, setIsError] = useState(false);
-  
+
   //  좋음: error로부터 계산
   const [error, setError] = useState(null);
   const isError = error !== null;
@@ -172,25 +176,25 @@ state가 많아지면 관리가 어려워집니다. 최소한으로 유지하라
 마지막으로 사용자 상호작용에 따라 state를 변경하는 이벤트 핸들러를 연결한다.
 
 ```jsx
-import { useState } from 'react';
+import { useState } from "react";
 
 export default function Form() {
-  const [answer, setAnswer] = useState('');
+  const [answer, setAnswer] = useState("");
   const [error, setError] = useState(null);
-  const [status, setStatus] = useState('typing');
+  const [status, setStatus] = useState("typing");
 
-  if (status === 'success') {
+  if (status === "success") {
     return <h1>정답이다!</h1>;
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setStatus('submitting');
+    setStatus("submitting");
     try {
       await submitForm(answer);
-      setStatus('success');
+      setStatus("success");
     } catch (err) {
-      setStatus('typing');
+      setStatus("typing");
       setError(err);
     }
   }
@@ -202,27 +206,18 @@ export default function Form() {
   return (
     <>
       <h2>도시 퀴즈</h2>
-      <p>
-        공기를 물로 바꾸는 광고판이 있는 도시는?
-      </p>
+      <p>공기를 물로 바꾸는 광고판이 있는 도시는?</p>
       <form onSubmit={handleSubmit}>
         <textarea
           value={answer}
           onChange={handleTextareaChange}
-          disabled={status === 'submitting'}
+          disabled={status === "submitting"}
         />
         <br />
-        <button disabled={
-          answer.length === 0 ||
-          status === 'submitting'
-        }>
+        <button disabled={answer.length === 0 || status === "submitting"}>
           제출
         </button>
-        {error !== null &&
-          <p className="Error">
-            {error.message}
-          </p>
-        }
+        {error !== null && <p className="Error">{error.message}</p>}
       </form>
     </>
   );
@@ -231,9 +226,9 @@ export default function Form() {
 function submitForm(answer) {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
-      let shouldError = answer.toLowerCase() !== 'lima';
+      let shouldError = answer.toLowerCase() !== "lima";
       if (shouldError) {
-        reject(new Error('좋은 추측이지만 틀린 답이다. 다시 시도해보세요!'));
+        reject(new Error("좋은 추측이지만 틀린 답이다. 다시 시도해보세요!"));
       } else {
         resolve();
       }
@@ -247,20 +242,20 @@ function submitForm(answer) {
 ```html
 <!-- Vue: v-if, v-else로 선언적 UI -->
 <script setup>
-import { ref } from 'vue'
+  import { ref } from "vue";
 
-const status = ref('typing')
-const answer = ref('')
+  const status = ref("typing");
+  const answer = ref("");
 
-async function handleSubmit() {
-  status.value = 'submitting'
-  try {
-    await submitForm(answer.value)
-    status.value = 'success'
-  } catch (err) {
-    status.value = 'typing'
+  async function handleSubmit() {
+    status.value = "submitting";
+    try {
+      await submitForm(answer.value);
+      status.value = "success";
+    } catch (err) {
+      status.value = "typing";
+    }
   }
-}
 </script>
 
 <template>
@@ -275,4 +270,3 @@ async function handleSubmit() {
   </form>
 </template>
 ```
-

@@ -39,8 +39,8 @@ seriesOrder: 35
 **시작 코드:**
 
 ```jsx
-import { useState } from 'react';
-import { useInterval } from './useInterval';
+import { useState } from "react";
+import { useInterval } from "./useInterval";
 
 export default function Timer() {
   // 여기에 코드 작성
@@ -56,9 +56,12 @@ function Timer() {
   const [seconds, setSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
 
-  useInterval(() => {
-    setSeconds(s => s + 1);
-  }, isRunning ? 1000 : null);
+  useInterval(
+    () => {
+      setSeconds((s) => s + 1);
+    },
+    isRunning ? 1000 : null,
+  );
 
   function handleStart() {
     setIsRunning(true);
@@ -79,8 +82,8 @@ function Timer() {
   return (
     <div>
       <h1>
-        {String(minutes).padStart(2, '0')}:
-        {String(remainingSeconds).padStart(2, '0')}
+        {String(minutes).padStart(2, "0")}:
+        {String(remainingSeconds).padStart(2, "0")}
       </h1>
       <button onClick={handleStart}>Start</button>
       <button onClick={handleStop}>Stop</button>
@@ -103,7 +106,7 @@ function Timer() {
 **시작 코드:**
 
 ```jsx
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from "react";
 
 function useIntersectionObserver(callback, options) {
   // 여기에 IntersectionObserver 로직 구현
@@ -114,7 +117,7 @@ function InfiniteList() {
   const [items, setItems] = useState([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
-  
+
   // 여기에 코드 작성
 }
 ```
@@ -155,22 +158,22 @@ function InfiniteList() {
 
   const loadMore = () => {
     if (loading) return;
-    
+
     setLoading(true);
-    fetchItems(page).then(newItems => {
-      setItems(prev => [...prev, ...newItems]);
-      setPage(p => p + 1);
+    fetchItems(page).then((newItems) => {
+      setItems((prev) => [...prev, ...newItems]);
+      setPage((p) => p + 1);
       setLoading(false);
     });
   };
 
   const observerTarget = useIntersectionObserver(loadMore, {
-    threshold: 1.0
+    threshold: 1.0,
   });
 
   return (
     <div>
-      {items.map(item => (
+      {items.map((item) => (
         <div key={item.id}>{item.text}</div>
       ))}
       {loading && <p>Loading...</p>}
@@ -202,22 +205,22 @@ function useFormValidation(initialValues, validate) {
 function SignupForm() {
   const validate = (values) => {
     const errors = {};
-    
+
     if (!values.email) {
-      errors.email = 'Email is required';
+      errors.email = "Email is required";
     } else if (!/\S+@\S+\.\S+/.test(values.email)) {
-      errors.email = 'Email is invalid';
+      errors.email = "Email is invalid";
     }
-    
+
     if (!values.password) {
-      errors.password = 'Password is required';
+      errors.password = "Password is required";
     } else if (values.password.length < 8) {
-      errors.password = 'Password must be at least 8 characters';
+      errors.password = "Password must be at least 8 characters";
     }
-    
+
     return errors;
   };
-  
+
   // 여기에 코드 작성
 }
 ```
@@ -232,12 +235,12 @@ function useFormValidation(initialValues, validate) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setValues(prev => ({ ...prev, [name]: value }));
+    setValues((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleBlur = (e) => {
     const { name } = e.target;
-    setTouched(prev => ({ ...prev, [name]: true }));
+    setTouched((prev) => ({ ...prev, [name]: true }));
   };
 
   useEffect(() => {
@@ -247,7 +250,7 @@ function useFormValidation(initialValues, validate) {
 
   const handleSubmit = (callback) => (e) => {
     e.preventDefault();
-    
+
     // 모든 필드를 touched로 표시
     const allTouched = Object.keys(values).reduce((acc, key) => {
       acc[key] = true;
@@ -267,26 +270,26 @@ function useFormValidation(initialValues, validate) {
     handleChange,
     handleBlur,
     handleSubmit,
-    isValid: Object.keys(errors).length === 0
+    isValid: Object.keys(errors).length === 0,
   };
 }
 
 function SignupForm() {
   const validate = (values) => {
     const errors = {};
-    
+
     if (!values.email) {
-      errors.email = 'Email is required';
+      errors.email = "Email is required";
     } else if (!/\S+@\S+\.\S+/.test(values.email)) {
-      errors.email = 'Email is invalid';
+      errors.email = "Email is invalid";
     }
-    
+
     if (!values.password) {
-      errors.password = 'Password is required';
+      errors.password = "Password is required";
     } else if (values.password.length < 8) {
-      errors.password = 'Password must be at least 8 characters';
+      errors.password = "Password must be at least 8 characters";
     }
-    
+
     return errors;
   };
 
@@ -297,11 +300,11 @@ function SignupForm() {
     handleChange,
     handleBlur,
     handleSubmit,
-    isValid
-  } = useFormValidation({ email: '', password: '' }, validate);
+    isValid,
+  } = useFormValidation({ email: "", password: "" }, validate);
 
   const onSubmit = (values) => {
-    console.log('Submitted:', values);
+    console.log("Submitted:", values);
   };
 
   return (
@@ -316,7 +319,7 @@ function SignupForm() {
         />
         {touched.email && errors.email && <p>{errors.email}</p>}
       </div>
-      
+
       <div>
         <input
           name="password"
@@ -328,7 +331,7 @@ function SignupForm() {
         />
         {touched.password && errors.password && <p>{errors.password}</p>}
       </div>
-      
+
       <button type="submit" disabled={!isValid}>
         Sign Up
       </button>
@@ -359,6 +362,7 @@ React 공식 문서의 **Learn React** 섹션을 모두 완료했다. 축하한�
 ### 더 배울 것들
 
 **1. 성능 최적화**
+
 - React.memo
 - useMemo와 useCallback
 - 가상화 (react-window, react-virtualized)
@@ -366,21 +370,25 @@ React 공식 문서의 **Learn React** 섹션을 모두 완료했다. 축하한�
 - Lazy Loading
 
 **2. 고급 패턴**
+
 - Compound Components
 - Render Props
 - Higher-Order Components (HOC)
 - Context 최적화
 
 **3. 상태 관리**
+
 - Context API 심화
 - useReducer 패턴
 - 외부 라이브러리 (Zustand, Jotai, Redux Toolkit)
 
 **4. 라우팅**
+
 - React Router
 - Next.js Pages Router / App Router
 
 **5. 실전 프로젝트**
+
 - 인증 시스템
 - CRUD 애플리케이션
 - 실시간 채팅
@@ -389,14 +397,17 @@ React 공식 문서의 **Learn React** 섹션을 모두 완료했다. 축하한�
 ### 추천 학습 자료
 
 **공식 문서:**
+
 - [React 공식 문서](https://react.dev)
 - [React API Reference](https://react.dev/reference/react)
 
 **블로그 & 튜토리얼:**
+
 - [Kent C. Dodds의 블로그](https://kentcdodds.com/blog)
 - [Dan Abramov의 블로그](https://overreacted.io)
 
 **오픈소스 프로젝트:**
+
 - GitHub에서 인기 있는 React 프로젝트 코드 읽기
 - 작은 기능부터 기여해보기
 

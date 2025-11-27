@@ -46,21 +46,21 @@ Spring MVC의 중심이 되는 프론트 컨트롤러이다. 모든 HTTP 요청�
 protected void doDispatch(HttpServletRequest request, HttpServletResponse response) {
     // 1. 요청을 처리할 핸들러 찾기
     HandlerExecutionChain handler = getHandler(request);
-    
+
     // 2. 핸들러를 실행할 어댑터 찾기
     HandlerAdapter adapter = getHandlerAdapter(handler);
-    
+
     // 3. 인터셉터 전처리
     if (!handler.applyPreHandle(request, response)) {
         return;
     }
-    
+
     // 4. 실제 핸들러 실행
     ModelAndView mv = adapter.handle(request, response, handler);
-    
+
     // 5. 인터셉터 후처리
     handler.applyPostHandle(request, response, mv);
-    
+
     // 6. 뷰 렌더링
     processDispatchResult(request, response, handler, mv);
 }
@@ -76,7 +76,7 @@ Spring Boot에서는 자동으로 설정되지만, 내부적으로는 다음과 
 @ConditionalOnWebApplication(type = Type.SERVLET)
 @ConditionalOnClass(DispatcherServlet.class)
 public class DispatcherServletAutoConfiguration {
-    
+
     @Bean
     public DispatcherServlet dispatcherServlet() {
         DispatcherServlet servlet = new DispatcherServlet();
@@ -108,13 +108,13 @@ public interface HandlerMapping {
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
-    
+
     // GET /api/users/{id}
     @GetMapping("/{id}")
     public User getUser(@PathVariable Long id) {
         return userService.findById(id);
     }
-    
+
     // POST /api/users
     @PostMapping
     public User createUser(@RequestBody UserRequest request) {
@@ -153,8 +153,8 @@ public String user(@PathVariable String id) { ... }
 ```java
 public interface HandlerAdapter {
     boolean supports(Object handler);
-    ModelAndView handle(HttpServletRequest request, 
-                       HttpServletResponse response, 
+    ModelAndView handle(HttpServletRequest request,
+                       HttpServletResponse response,
                        Object handler) throws Exception;
 }
 ```
@@ -164,23 +164,23 @@ public interface HandlerAdapter {
 ```java
 @Component
 public class RequestMappingHandlerAdapter extends AbstractHandlerMethodAdapter {
-    
+
     private List<HandlerMethodArgumentResolver> argumentResolvers;
     private List<HandlerMethodReturnValueHandler> returnValueHandlers;
-    
+
     @Override
     protected ModelAndView handleInternal(HttpServletRequest request,
                                          HttpServletResponse response,
                                          HandlerMethod handlerMethod) {
         // ArgumentResolver로 파라미터 준비
         Object[] args = getMethodArgumentValues(request, handlerMethod);
-        
+
         // 컨트롤러 메서드 실행
         Object returnValue = handlerMethod.invoke(args);
-        
+
         // ReturnValueHandler로 반환값 처리
         handleReturnValue(returnValue, request, response);
-        
+
         return null;
     }
 }
@@ -196,7 +196,7 @@ public class RequestMappingHandlerAdapter extends AbstractHandlerMethodAdapter {
 public interface HandlerMethodArgumentResolver {
     // 이 Resolver가 해당 파라미터를 처리할 수 있는지 확인
     boolean supportsParameter(MethodParameter parameter);
-    
+
     // 실제 파라미터 값을 생성
     Object resolveArgument(MethodParameter parameter,
                           ModelAndViewContainer mavContainer,
@@ -212,21 +212,21 @@ Spring MVC는 30개 이상의 기본 ArgumentResolver를 제공한다.
 ```java
 // @PathVariable 처리
 public class PathVariableMethodArgumentResolver implements HandlerMethodArgumentResolver {
-    
+
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
         return parameter.hasParameterAnnotation(PathVariable.class);
     }
-    
+
     @Override
     public Object resolveArgument(...) {
         PathVariable annotation = parameter.getParameterAnnotation(PathVariable.class);
         String name = annotation.value();
-        
+
         // URI 템플릿 변수에서 값 추출
         Map<String, String> uriVariables = getUriVariables(request);
         Object value = uriVariables.get(name);
-        
+
         // 타입 변환
         return convertValue(value, parameter.getParameterType());
     }
@@ -245,7 +245,7 @@ public class PathVariableMethodArgumentResolver implements HandlerMethodArgument
 
 ```java
 @GetMapping("/users/{id}")
-public User getUser(@PathVariable Long id, 
+public User getUser(@PathVariable Long id,
                    @RequestParam(required = false) String detail,
                    HttpServletRequest request) {
     // 메서드 본문
@@ -277,12 +277,12 @@ public User getUser(@PathVariable Long id,
 ```java
 // 현재 로그인한 사용자 정보를 주입하는 Resolver
 public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolver {
-    
+
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
         return parameter.hasParameterAnnotation(CurrentUser.class);
     }
-    
+
     @Override
     public Object resolveArgument(...) {
         // 세션이나 JWT에서 사용자 정보 추출
@@ -294,7 +294,7 @@ public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolve
 // 등록
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
-    
+
     @Override
     public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
         resolvers.add(new CurrentUserArgumentResolver());
@@ -317,7 +317,7 @@ public UserProfile getProfile(@CurrentUser User user) {
 public Object invoke(Object... args) throws Exception {
     Method method = getBridgedMethod();
     Object bean = getBean(); // 컨트롤러 인스턴스
-    
+
     // 리플렉션으로 메서드 실행
     return method.invoke(bean, args);
 }
@@ -328,14 +328,14 @@ public Object invoke(Object... args) throws Exception {
 ```java
 @RestController
 public class UserController {
-    
+
     private final UserService userService;
-    
+
     // 생성자 주입
     public UserController(UserService userService) {
         this.userService = userService;
     }
-    
+
     @GetMapping("/users/{id}")
     public User getUser(@PathVariable Long id) {
         return userService.findById(id); // 주입된 서비스 사용
@@ -353,7 +353,7 @@ public class UserController {
 public interface HandlerMethodReturnValueHandler {
     // 이 Handler가 해당 반환 타입을 처리할 수 있는지 확인
     boolean supportsReturnType(MethodParameter returnType);
-    
+
     // 반환값을 처리
     void handleReturnValue(Object returnValue,
                           MethodParameter returnType,
@@ -408,13 +408,13 @@ public ResponseEntity<User> getUser(@PathVariable Long id) {
 public interface HttpMessageConverter<T> {
     // 읽기 가능 여부 확인
     boolean canRead(Class<?> clazz, MediaType mediaType);
-    
+
     // 쓰기 가능 여부 확인
     boolean canWrite(Class<?> clazz, MediaType mediaType);
-    
+
     // 요청 본문 읽기 (@RequestBody)
     T read(Class<? extends T> clazz, HttpInputMessage inputMessage);
-    
+
     // 응답 본문 쓰기 (@ResponseBody)
     void write(T t, MediaType contentType, HttpOutputMessage outputMessage);
 }
@@ -430,7 +430,7 @@ public interface HttpMessageConverter<T> {
 ```java
 @RestController
 public class UserController {
-    
+
     @GetMapping("/api/users/{id}")
     public User getUser(@PathVariable Long id) {
         User user = userService.findById(id);
@@ -446,7 +446,7 @@ public class UserController {
 public void handleReturnValue(Object returnValue, ...) {
     // Accept 헤더와 반환 타입을 보고 적절한 Converter 선택
     HttpMessageConverter converter = selectConverter(returnValue, acceptHeader);
-    
+
     // 객체를 JSON으로 변환해서 응답에 작성
     converter.write(returnValue, MediaType.APPLICATION_JSON, response);
 }
@@ -506,13 +506,13 @@ jakarta.persistence.*
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
-    
+
     @GetMapping("/{id}")
-    public User getUser(@PathVariable Long id, 
+    public User getUser(@PathVariable Long id,
                        HttpServletRequest request) { // jakarta.servlet
         return userService.findById(id);
     }
-    
+
     @PostMapping
     public User createUser(@Valid @RequestBody UserRequest request) { // jakarta.validation
         return userService.create(request);
@@ -528,10 +528,10 @@ Spring Boot 3.x는 Spring Framework 6.0 기반이며 몇 가지 새로운 기능
 // 1. HTTP Interface Client (선언적 HTTP 클라이언트)
 @HttpExchange("/api/users")
 public interface UserClient {
-    
+
     @GetExchange("/{id}")
     User getUser(@PathVariable Long id);
-    
+
     @PostExchange
     User createUser(@RequestBody UserRequest request);
 }
@@ -539,7 +539,7 @@ public interface UserClient {
 // 2. ProblemDetail (RFC 7807 표준 에러 응답)
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-    
+
     @ExceptionHandler(UserNotFoundException.class)
     public ProblemDetail handleUserNotFound(UserNotFoundException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
@@ -578,21 +578,21 @@ logging:
 ```java
 @Component
 public class RequestLoggingInterceptor implements HandlerInterceptor {
-    
+
     private static final Logger log = LoggerFactory.getLogger(RequestLoggingInterceptor.class);
-    
+
     @Override
     public boolean preHandle(HttpServletRequest request,
                             HttpServletResponse response,
                             Object handler) {
         HandlerMethod method = (HandlerMethod) handler;
         log.info("Request URI: {}", request.getRequestURI());
-        log.info("Handler: {}.{}", 
+        log.info("Handler: {}.{}",
             method.getBeanType().getSimpleName(),
             method.getMethod().getName());
         return true;
     }
-    
+
     @Override
     public void postHandle(HttpServletRequest request,
                           HttpServletResponse response,
@@ -604,10 +604,10 @@ public class RequestLoggingInterceptor implements HandlerInterceptor {
 
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
-    
+
     @Autowired
     private RequestLoggingInterceptor loggingInterceptor;
-    
+
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(loggingInterceptor);
@@ -622,20 +622,20 @@ public class WebMvcConfig implements WebMvcConfigurer {
 ```java
 @RestController
 public class MappingController {
-    
+
     @Autowired
     private RequestMappingHandlerMapping handlerMapping;
-    
+
     @GetMapping("/debug/mappings")
     public Map<String, String> getMappings() {
         Map<String, String> mappings = new HashMap<>();
-        
+
         handlerMapping.getHandlerMethods().forEach((key, value) -> {
             String path = key.getPatternValues().toString();
             String method = value.getMethod().getName();
             mappings.put(path, method);
         });
-        
+
         return mappings;
     }
 }
@@ -648,21 +648,21 @@ public class MappingController {
 ```java
 @Component
 public class ArgumentResolverLogger implements HandlerMethodArgumentResolver {
-    
+
     private static final Logger log = LoggerFactory.getLogger(ArgumentResolverLogger.class);
     private final HandlerMethodArgumentResolver delegate;
-    
+
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
         boolean supports = delegate.supportsParameter(parameter);
         if (supports) {
-            log.info("Parameter {} will be resolved by {}", 
+            log.info("Parameter {} will be resolved by {}",
                 parameter.getParameterName(),
                 delegate.getClass().getSimpleName());
         }
         return supports;
     }
-    
+
     @Override
     public Object resolveArgument(MethodParameter parameter, ...) throws Exception {
         Object result = delegate.resolveArgument(parameter, ...);

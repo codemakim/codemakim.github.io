@@ -11,13 +11,16 @@ draft: true
 > 6년차 Vue 개발자가 Next.js를 빠르게 마스터하기 위한 실전 가이드
 
 ---
+
 ## 📚 목차
+
 1. [프로젝트 개요](#프로젝트-개요)
 2. [Vue vs Next.js 핵심 비교](#vue-vs-nextjs-핵심-비교)
 3. [프로젝트 구조 이해하기](#프로젝트-구조-이해하기)
 4. [설정 파일 분석](#설정-파일-분석)
 5. [핵심 개념 및 패턴](#핵심-개념-및-패턴)
 6. [실전 학습 로드맵](#실전-학습-로드맵)
+
 ---
 
 ## 프로젝트 개요
@@ -40,26 +43,32 @@ Tailwind CSS 4        # 유틸리티 CSS (Vue에서도 사용 가능)
 - 서버 컴포넌트: 기본값, 성능 최적화
 
 ---
+
 ## Vue vs Next.js 핵심 비교
+
 ### 1. 프레임워크 구조
-| 개념 | Vue 3 / Nuxt 3 | React / Next.js 15 |
-|------|----------------|-------------------|
-| 프레임워크 | Vue (Core) + Nuxt (Meta) | React (Core) + Next.js (Meta) |
-| 파일 라우팅 | `pages/` 또는 `app/` | `app/` (App Router) |
-| 상태 관리 | Composition API, Pinia | React Hooks, Context API |
-| 템플릿 | `<template>` + SFC | JSX (함수 반환값) |
-| 반응성 | `ref()`, `reactive()` | `useState()`, `useEffect()` |
-| 라이프사이클 | `onMounted()`, `onUnmounted()` | `useEffect()` |
+
+| 개념         | Vue 3 / Nuxt 3                 | React / Next.js 15            |
+| ------------ | ------------------------------ | ----------------------------- |
+| 프레임워크   | Vue (Core) + Nuxt (Meta)       | React (Core) + Next.js (Meta) |
+| 파일 라우팅  | `pages/` 또는 `app/`           | `app/` (App Router)           |
+| 상태 관리    | Composition API, Pinia         | React Hooks, Context API      |
+| 템플릿       | `<template>` + SFC             | JSX (함수 반환값)             |
+| 반응성       | `ref()`, `reactive()`          | `useState()`, `useEffect()`   |
+| 라이프사이클 | `onMounted()`, `onUnmounted()` | `useEffect()`                 |
+
 ### 2. 컴포넌트 작성 방식 비교
+
 #### Vue 3 (Composition API)
+
 ```html
 <script setup>
-import { ref, onMounted } from 'vue'
-const count = ref(0)
-const increment = () => count.value++
-onMounted(() => {
-  console.log('컴포넌트 마운트됨')
-})
+  import { ref, onMounted } from "vue";
+  const count = ref(0);
+  const increment = () => count.value++;
+  onMounted(() => {
+    console.log("컴포넌트 마운트됨");
+  });
 </script>
 <template>
   <div>
@@ -68,60 +77,72 @@ onMounted(() => {
   </div>
 </template>
 <style scoped>
-h1 { color: blue; }
+  h1 {
+    color: blue;
+  }
 </style>
 ```
+
 #### React (Next.js 15 - 클라이언트 컴포넌트)
+
 ```tsx
-'use client' // 클라이언트 컴포넌트 선언
-import { useState, useEffect } from 'react'
+"use client"; // 클라이언트 컴포넌트 선언
+import { useState, useEffect } from "react";
 export default function Counter() {
-  const [count, setCount] = useState(0)
-  const increment = () => setCount(count + 1)
+  const [count, setCount] = useState(0);
+  const increment = () => setCount(count + 1);
   useEffect(() => {
-    console.log('컴포넌트 마운트됨')
-  }, [])
+    console.log("컴포넌트 마운트됨");
+  }, []);
   return (
     <div>
       <h1 className="text-blue-600">{count}</h1>
       <button onClick={increment}>증가</button>
     </div>
-  )
+  );
 }
 ```
+
 핵심 차이점:
+
 - Vue: `ref().value`로 값 접근 → React: 직접 변수 사용
 - Vue: `@click` → React: `onClick` (camelCase)
 - Vue: `<template>` 분리 → React: JSX 반환
 - Vue: `<style scoped>` → React: Tailwind 또는 CSS Modules
+
 ### 3. 서버 컴포넌트 (Next.js 15의 새로운 개념)
+
 Vue에는 없는 Next.js만의 혁신적 기능이다.
+
 ```tsx
 // 기본값: 서버 컴포넌트 (자동으로 서버에서 실행)
 export default async function PostList() {
   // 서버에서만 실행됨 (DB 직접 접근 가능!)
-  const posts = await fetch('https://api.example.com/posts')
-  const data = await posts.json()
+  const posts = await fetch("https://api.example.com/posts");
+  const data = await posts.json();
   return (
     <div>
-      {data.map(post => (
+      {data.map((post) => (
         <article key={post.id}>
           <h2>{post.title}</h2>
         </article>
       ))}
     </div>
-  )
+  );
 }
 ```
+
 서버 컴포넌트의 장점:
--  번들 크기 0KB (JavaScript가 클라이언트로 전송 안됨)
--  데이터베이스 직접 접근 가능
--  민감한 API 키 사용 가능
--  초기 로딩 속도 향상
-언제 클라이언트 컴포넌트를 사용하나?
+
+- 번들 크기 0KB (JavaScript가 클라이언트로 전송 안됨)
+- 데이터베이스 직접 접근 가능
+- 민감한 API 키 사용 가능
+- 초기 로딩 속도 향상
+  언제 클라이언트 컴포넌트를 사용하나?
 - 이벤트 핸들러 필요 (`onClick`, `onChange` 등)
 - React Hooks 사용 (`useState`, `useEffect` 등)
 - 브라우저 전용 API (`window`, `localStorage` 등)
+
 ---
 
 ## 프로젝트 구조 이해하기
@@ -171,13 +192,13 @@ blog/
 
 Next.js 13+의 파일 기반 라우팅 시스템이다.
 
-| 파일명 | 역할 | Vue/Nuxt 비교 |
-|--------|------|--------------|
-| `layout.tsx` | 공통 레이아웃 | `layouts/default.vue` |
-| `page.tsx` | 페이지 컴포넌트 | `pages/index.vue` |
-| `loading.tsx` | 로딩 UI | `<Suspense>` |
-| `error.tsx` | 에러 UI | `error.vue` |
-| `not-found.tsx` | 404 페이지 | `error.vue` |
+| 파일명          | 역할            | Vue/Nuxt 비교         |
+| --------------- | --------------- | --------------------- |
+| `layout.tsx`    | 공통 레이아웃   | `layouts/default.vue` |
+| `page.tsx`      | 페이지 컴포넌트 | `pages/index.vue`     |
+| `loading.tsx`   | 로딩 UI         | `<Suspense>`          |
+| `error.tsx`     | 에러 UI         | `error.vue`           |
+| `not-found.tsx` | 404 페이지      | `error.vue`           |
 
 라우팅 예시:
 
@@ -233,66 +254,73 @@ Contentlayer가 자동으로 처리:
 4. 빌드 시 정적 생성
 
 ---
+
 ## 설정 파일 분석
+
 ### 1. `package.json` - 프로젝트 메타데이터
+
 ```json
 {
   "name": "blog",
   "version": "0.1.0",
   "scripts": {
-    "dev": "next dev --turbopack",      // 개발 서버 (Turbopack 사용)
-    "build": "next build --turbopack",  // 프로덕션 빌드
-    "start": "next start",              // 프로덕션 서버
-    "lint": "eslint"                    // 린트 검사
+    "dev": "next dev --turbopack", // 개발 서버 (Turbopack 사용)
+    "build": "next build --turbopack", // 프로덕션 빌드
+    "start": "next start", // 프로덕션 서버
+    "lint": "eslint" // 린트 검사
   },
   "dependencies": {
-    "next": "15.5.3",                   // Next.js 프레임워크
-    "react": "19.1.0",                  // React 라이브러리
-    "react-dom": "19.1.0",              // React DOM 렌더러
-    "contentlayer2": "^0.5.8",          // MDX 블로그 엔진
-    "next-contentlayer2": "^0.5.8",     // Next.js 통합
+    "next": "15.5.3", // Next.js 프레임워크
+    "react": "19.1.0", // React 라이브러리
+    "react-dom": "19.1.0", // React DOM 렌더러
+    "contentlayer2": "^0.5.8", // MDX 블로그 엔진
+    "next-contentlayer2": "^0.5.8", // Next.js 통합
     "@tailwindcss/typography": "^0.5.16", // 타이포그래피 플러그인
-    "date-fns": "^4.1.0",               // 날짜 포맷팅
-    "katex": "^0.16.11",                // 수학 공식 렌더링
-    "rehype-highlight": "^7.0.2",       // 코드 하이라이팅
-    "rehype-katex": "^7.0.0",           // KaTeX 통합
-    "remark-gfm": "^4.0.1",             // GitHub Flavored Markdown
-    "remark-math": "^6.0.0"             // 수학 공식 파싱
+    "date-fns": "^4.1.0", // 날짜 포맷팅
+    "katex": "^0.16.11", // 수학 공식 렌더링
+    "rehype-highlight": "^7.0.2", // 코드 하이라이팅
+    "rehype-katex": "^7.0.0", // KaTeX 통합
+    "remark-gfm": "^4.0.1", // GitHub Flavored Markdown
+    "remark-math": "^6.0.0" // 수학 공식 파싱
   },
   "devDependencies": {
-    "typescript": "^5",                 // TypeScript
-    "tailwindcss": "^4",                // Tailwind CSS
-    "eslint": "^9",                     // 린터
-    "eslint-config-next": "15.5.3"      // Next.js ESLint 설정
+    "typescript": "^5", // TypeScript
+    "tailwindcss": "^4", // Tailwind CSS
+    "eslint": "^9", // 린터
+    "eslint-config-next": "15.5.3" // Next.js ESLint 설정
   }
 }
 ```
+
 주요 의존성 설명:
+
 - next: Vue의 Nuxt와 동일한 역할 (SSR, 라우팅, 빌드)
 - contentlayer2: MDX 파일을 TypeScript 객체로 변환
 - @tailwindcss/typography: 블로그 포스트 스타일링
 - rehype/remark: MDX 처리 플러그인
+
 ### 2. `next.config.ts` - Next.js 설정 (핵심!)
+
 ```typescript
 import type { NextConfig } from "next";
 import { withContentlayer } from "next-contentlayer2";
 const nextConfig: NextConfig = {
   // GitHub Pages용 정적 빌드 (SSG)
-  output: 'export',
-  
+  output: "export",
+
   // URL 끝에 / 추가 (GitHub Pages 요구사항)
   trailingSlash: true,
-  
+
   // 이미지 최적화 비활성화 (정적 호스팅)
   images: {
     unoptimized: true,
   },
-  
+
   // 실험적 기능: MDX Rust 컴파일러 (빠름!)
   experimental: {
     mdxRs: true,
   },
-  
+
   // GitHub Pages 서브 경로 배포 시 (필요하면 주석 해제)
   // basePath: '/codemakim.github.io',
   // assetPrefix: '/codemakim.github.io',
@@ -300,87 +328,96 @@ const nextConfig: NextConfig = {
 // Contentlayer와 통합
 export default withContentlayer(nextConfig);
 ```
+
 설정 옵션 설명:
-| 옵션 | 의미 | 이유 |
-|------|------|------|
-| `output: 'export'` | 정적 HTML 생성 | GitHub Pages는 정적 사이트만 지원 |
-| `trailingSlash: true` | URL 끝에 `/` 추가 | `/posts/hello-world/` |
-| `images.unoptimized` | 이미지 최적화 비활성화 | 정적 호스팅에서 작동 안함 |
-| `experimental.mdxRs` | Rust 기반 MDX 컴파일러 | 빌드 속도 5-10배 향상 |
+
+| 옵션                  | 의미                   | 이유                              |
+| --------------------- | ---------------------- | --------------------------------- |
+| `output: 'export'`    | 정적 HTML 생성         | GitHub Pages는 정적 사이트만 지원 |
+| `trailingSlash: true` | URL 끝에 `/` 추가      | `/posts/hello-world/`             |
+| `images.unoptimized`  | 이미지 최적화 비활성화 | 정적 호스팅에서 작동 안함         |
+| `experimental.mdxRs`  | Rust 기반 MDX 컴파일러 | 빌드 속도 5-10배 향상             |
+
 Vue/Nuxt와 비교:
+
 ```javascript
 // nuxt.config.ts (Nuxt 3)
 export default defineNuxtConfig({
-  ssr: false,        // 정적 생성
-  target: 'static',  // Next.js의 output: 'export'
-})
+  ssr: false, // 정적 생성
+  target: "static", // Next.js의 output: 'export'
+});
 ```
+
 ### 3. `contentlayer.config.ts` - MDX 블로그 설정
+
 ```typescript
-import { defineDocumentType, makeSource } from 'contentlayer2/source-files'
-import rehypeHighlight from 'rehype-highlight'
-import rehypeSlug from 'rehype-slug'
-import remarkGfm from 'remark-gfm'
-import remarkMath from 'remark-math'
-import rehypeKatex from 'rehype-katex'
+import { defineDocumentType, makeSource } from "contentlayer2/source-files";
+import rehypeHighlight from "rehype-highlight";
+import rehypeSlug from "rehype-slug";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
 // Post 문서 타입 정의 (TypeScript 타입 자동 생성)
 export const Post = defineDocumentType(() => ({
-  name: 'Post',
-  filePathPattern: `**/*.mdx`,  // content/*.mdx 파일들
-  contentType: 'mdx',
-  
+  name: "Post",
+  filePathPattern: `**/*.mdx`, // content/*.mdx 파일들
+  contentType: "mdx",
+
   // Frontmatter 필드 정의
   fields: {
     title: {
-      type: 'string',
-      description: '포스트 제목',
-      required: true,  // 필수 필드
+      type: "string",
+      description: "포스트 제목",
+      required: true, // 필수 필드
     },
     description: {
-      type: 'string',
-      description: '포스트 설명',
-      required: false,  // 선택 필드
+      type: "string",
+      description: "포스트 설명",
+      required: false, // 선택 필드
     },
     date: {
-      type: 'date',
-      description: '작성 날짜',
+      type: "date",
+      description: "작성 날짜",
       required: true,
     },
     tags: {
-      type: 'list',
-      of: { type: 'string' },
-      description: '태그 목록',
+      type: "list",
+      of: { type: "string" },
+      description: "태그 목록",
       required: false,
     },
   },
-  
+
   // 계산된 필드 (자동 생성)
   computedFields: {
     url: {
-      type: 'string',
+      type: "string",
       resolve: (post) => `/posts/${post._raw.flattenedPath}`,
     },
     slug: {
-      type: 'string',
+      type: "string",
       resolve: (post) => post._raw.flattenedPath,
     },
   },
-}))
+}));
 // Contentlayer 소스 설정
 export default makeSource({
-  contentDirPath: './content',    // MDX 파일 위치
-  documentTypes: [Post],           // 문서 타입
+  contentDirPath: "./content", // MDX 파일 위치
+  documentTypes: [Post], // 문서 타입
   mdx: {
-    remarkPlugins: [remarkGfm, remarkMath],  // Markdown 처리
-    rehypePlugins: [                         // HTML 처리
+    remarkPlugins: [remarkGfm, remarkMath], // Markdown 처리
+    rehypePlugins: [
+      // HTML 처리
       rehypeKatex,
       rehypeSlug,
       [rehypeHighlight, { ignoreMissing: true }],
     ],
   },
-})
+});
 ```
+
 이 설정이 하는 일:
+
 1. 타입 정의: `content/hello-world.mdx` → TypeScript 객체로 변환
 2. Frontmatter 파싱: YAML 메타데이터를 객체로
 3. MDX 변환: Markdown + JSX → React 컴포넌트
@@ -389,48 +426,51 @@ export default makeSource({
    - `remarkMath`: 수학 공식 `$E=mc^2$`
    - `rehypeHighlight`: 코드 블록 하이라이팅
    - `rehypeKatex`: 수학 공식 렌더링
-자동 생성되는 타입:
+     자동 생성되는 타입:
+
 ```typescript
 // .contentlayer/generated/index.d.ts (자동 생성)
 export interface Post {
-  _id: string
-  _raw: DocumentRaw
-  type: 'Post'
-  title: string          // required
-  description?: string   // optional
-  date: string          // required
-  tags?: string[]       // optional
-  url: string           // computed
-  slug: string          // computed
-  body: MDX
+  _id: string;
+  _raw: DocumentRaw;
+  type: "Post";
+  title: string; // required
+  description?: string; // optional
+  date: string; // required
+  tags?: string[]; // optional
+  url: string; // computed
+  slug: string; // computed
+  body: MDX;
 }
-export const allPosts: Post[]  // 모든 포스트 배열
+export const allPosts: Post[]; // 모든 포스트 배열
 ```
+
 ### 4. `tsconfig.json` - TypeScript 설정
+
 ```json
 {
   "compilerOptions": {
-    "target": "ES2017",              // 컴파일 타겟
+    "target": "ES2017", // 컴파일 타겟
     "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,                 // .js 파일 허용
-    "skipLibCheck": true,            // 라이브러리 타입 체크 스킵
-    "strict": true,                  // 엄격 모드 (권장!)
-    "noEmit": true,                  // JS 파일 생성 안함 (Next.js가 함)
+    "allowJs": true, // .js 파일 허용
+    "skipLibCheck": true, // 라이브러리 타입 체크 스킵
+    "strict": true, // 엄격 모드 (권장!)
+    "noEmit": true, // JS 파일 생성 안함 (Next.js가 함)
     "esModuleInterop": true,
     "module": "esnext",
-    "moduleResolution": "bundler",   // Next.js 15+ 권장
+    "moduleResolution": "bundler", // Next.js 15+ 권장
     "resolveJsonModule": true,
-    "isolatedModules": true,         // 각 파일을 독립적으로 처리
-    "jsx": "preserve",               // JSX를 Next.js가 처리
-    "incremental": true,             // 증분 컴파일 (빠름!)
-    
+    "isolatedModules": true, // 각 파일을 독립적으로 처리
+    "jsx": "preserve", // JSX를 Next.js가 처리
+    "incremental": true, // 증분 컴파일 (빠름!)
+
     // 경로 별칭 설정 (중요!)
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],                        // @/components/Button
+      "@/*": ["./src/*"], // @/components/Button
       "contentlayer/generated": ["./.contentlayer/generated"]
     },
-    
+
     // Next.js 플러그인
     "plugins": [{ "name": "next" }]
   },
@@ -444,18 +484,23 @@ export const allPosts: Post[]  // 모든 포스트 배열
   "exclude": ["node_modules"]
 }
 ```
+
 핵심 설정:
+
 - `strict: true`: 타입 안정성 최대화
 - `paths`: 경로 별칭 (Vue의 `~` 또는 `@`와 동일)
 - `jsx: "preserve"`: JSX를 그대로 유지 (Next.js가 변환)
-경로 별칭 사용 예:
+  경로 별칭 사용 예:
+
 ```typescript
 //  상대 경로 (지저분함)
-import Button from '../../../../components/Button'
+import Button from "../../../../components/Button";
 //  절대 경로 (깔끔!)
-import Button from '@/components/Button'
+import Button from "@/components/Button";
 ```
+
 ### 5. `src/app/layout.tsx` - 루트 레이아웃
+
 ```typescript
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -491,22 +536,29 @@ export default function RootLayout({
   );
 }
 ```
+
 Vue와 비교:
+
 ```html
 <!-- Vue: layouts/default.vue -->
 <template>
   <div>
-    <Header />
-    <slot />  <!-- Next.js의 {children} -->
-    <Footer />
+    <header />
+    <slot />
+    <!-- Next.js의 {children} -->
+    <footer />
   </div>
 </template>
 ```
+
 핵심 개념:
+
 - `layout.tsx`: 모든 페이지의 공통 레이아웃
 - `metadata`: SEO를 위한 메타 태그 (정적 또는 동적)
 - `children`: Vue의 `<slot>`과 동일
+
 ### 6. `src/app/page.tsx` - 홈페이지
+
 ```typescript
 import Link from "next/link";
 import { format } from "date-fns";
@@ -515,7 +567,7 @@ import { allPosts } from "contentlayer/generated";  // 타입 안전!
 // 서버 컴포넌트 (기본값)
 export default function Home() {
   // 포스트 정렬 (최신순)
-  const posts = allPosts.sort((a, b) => 
+  const posts = allPosts.sort((a, b) =>
     new Date(b.date).getTime() - new Date(a.date).getTime()
   );
   return (
@@ -543,18 +595,18 @@ export default function Home() {
                     {post.title}
                   </h2>
                 </Link>
-                
+
                 {post.description && (
                   <p className="text-gray-600 dark:text-gray-300 mt-2">
                     {post.description}
                   </p>
                 )}
-                
+
                 <div className="flex items-center justify-between mt-4 gap-4">
                   <time className="text-sm text-gray-500 dark:text-gray-400">
                     {format(new Date(post.date), "yyyy년 M월 d일", { locale: ko })}
                   </time>
-                  
+
                   {post.tags && (
                     <div className="flex gap-2 flex-wrap">
                       {post.tags.map((tag) => (
@@ -577,16 +629,19 @@ export default function Home() {
   );
 }
 ```
+
 핵심 포인트:
+
 1. 서버 컴포넌트: `'use client'`가 없으면 자동으로 서버에서 실행
 2. Contentlayer 데이터: `allPosts`는 타입 안전하게 자동 생성됨
 3. Link 컴포넌트: Next.js의 `<Link>`는 자동으로 prefetch (빠름!)
 4. Tailwind CSS: 유틸리티 클래스 (`className`)
-Vue와 비교:
+   Vue와 비교:
+
 ```html
 <!-- Vue: pages/index.vue -->
 <script setup>
-const posts = await queryContent('posts').sort({ date: -1 }).find()
+  const posts = await queryContent('posts').sort({ date: -1 }).find()
 </script>
 <template>
   <div>
@@ -598,7 +653,9 @@ const posts = await queryContent('posts').sort({ date: -1 }).find()
   </div>
 </template>
 ```
+
 ### 7. `src/app/posts/[slug]/page.tsx` - 동적 라우트
+
 ```typescript
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -641,7 +698,7 @@ export default async function PostPage({ params }: PageProps) {
     <div className="min-h-screen bg-white dark:bg-gray-900">
       <header className="bg-white dark:bg-gray-900 shadow-sm border-b dark:border-gray-800">
         <div className="max-w-4xl mx-auto px-4 py-6">
-          <Link 
+          <Link
             href="/"
             className="text-blue-600 dark:text-blue-400 hover:underline text-sm mb-4 block"
           >
@@ -683,22 +740,25 @@ export default async function PostPage({ params }: PageProps) {
   );
 }
 ```
+
 핵심 개념:
+
 1. `[slug]`: 동적 라우트 (Vue의 `[slug].vue`와 동일)
 2. `generateStaticParams()`: 정적 경로 생성 (SSG)
 3. `generateMetadata()`: 동적 SEO 메타데이터
 4. `notFound()`: 404 페이지로 리다이렉트
-Vue/Nuxt와 비교:
+   Vue/Nuxt와 비교:
+
 ```html
 <!-- Nuxt: pages/posts/[slug].vue -->
 <script setup>
-const route = useRoute()
-const { data: post } = await useAsyncData('post', () => 
-  queryContent('posts').where({ slug: route.params.slug }).findOne()
-)
-if (!post.value) {
-  throw createError({ statusCode: 404 })
-}
+  const route = useRoute()
+  const { data: post } = await useAsyncData('post', () =>
+    queryContent('posts').where({ slug: route.params.slug }).findOne()
+  )
+  if (!post.value) {
+    throw createError({ statusCode: 404 })
+  }
 </script>
 <template>
   <article>
@@ -707,7 +767,9 @@ if (!post.value) {
   </article>
 </template>
 ```
+
 ### 8. `src/app/posts/[slug]/MDXContent.tsx` - 클라이언트 컴포넌트
+
 ```typescript
 "use client";  // 클라이언트 컴포넌트 선언
 import { useMDXComponent } from "next-contentlayer2/hooks";
@@ -720,10 +782,14 @@ export function MDXContent({ code }: MDXContentProps) {
   return <Component />;
 }
 ```
+
 왜 클라이언트 컴포넌트인가?
+
 - `useMDXComponent`는 React Hook이므로 클라이언트에서 실행되어야 함
 - MDX 컴포넌트는 인터랙티브할 수 있음 (버튼, 폼 등)
+
 ### 9. `eslint.config.mjs` - ESLint 설정
+
 ```javascript
 import { dirname } from "path";
 import { fileURLToPath } from "url";
@@ -747,35 +813,42 @@ const eslintConfig = [
 ];
 export default eslintConfig;
 ```
+
 설정 설명:
+
 - `next/core-web-vitals`: Next.js 권장 규칙 + 성능 규칙
 - `next/typescript`: TypeScript 규칙
 - `ignores`: 린트 제외 폴더
+
 ### 10. `postcss.config.mjs` - PostCSS 설정
+
 ```javascript
 const config = {
   plugins: ["@tailwindcss/postcss"],
 };
 export default config;
 ```
+
 Tailwind CSS 4의 새로운 방식:
+
 - Tailwind CSS 4는 PostCSS 플러그인으로 작동
 - `@import "tailwindcss";`로 CSS에서 직접 import
+
 ---
 
 ## 핵심 개념 및 패턴
 
 ### 1. 서버 컴포넌트 vs 클라이언트 컴포넌트
 
-| 특징 | 서버 컴포넌트 | 클라이언트 컴포넌트 |
-|------|--------------|-------------------|
-| 선언 | 기본값 (아무것도 안씀) | `"use client"` |
-| 실행 위치 | 서버 | 브라우저 |
-| 번들 크기 | 0KB | JavaScript 포함 |
-| 데이터 페칭 | async/await 가능 | useEffect 필요 |
-| Hooks 사용 |  불가능 |  가능 |
-| 이벤트 핸들러 |  불가능 |  가능 |
-| 브라우저 API |  불가능 |  가능 |
+| 특징          | 서버 컴포넌트          | 클라이언트 컴포넌트 |
+| ------------- | ---------------------- | ------------------- |
+| 선언          | 기본값 (아무것도 안씀) | `"use client"`      |
+| 실행 위치     | 서버                   | 브라우저            |
+| 번들 크기     | 0KB                    | JavaScript 포함     |
+| 데이터 페칭   | async/await 가능       | useEffect 필요      |
+| Hooks 사용    | 불가능                 | 가능                |
+| 이벤트 핸들러 | 불가능                 | 가능                |
+| 브라우저 API  | 불가능                 | 가능                |
 
 사용 규칙:
 
@@ -800,8 +873,8 @@ export default function Counter() {
 
 ```html
 <script setup>
-// 클라이언트에서 실행
-const { data: posts } = await useFetch('/api/posts')
+  // 클라이언트에서 실행
+  const { data: posts } = await useFetch('/api/posts')
 </script>
 ```
 
@@ -812,7 +885,7 @@ const { data: posts } = await useFetch('/api/posts')
 export default async function PostList() {
   const posts = await fetch('https://api.example.com/posts')
   const data = await posts.json()
-  
+
   return (
     <div>
       {data.map(post => <Post key={post.id} {...post} />)}
@@ -831,33 +904,33 @@ export default async function PostList() {
 
 #### 파일 시스템 라우팅
 
-| Next.js 파일 경로 | URL | Vue/Nuxt 비교 |
-|------------------|-----|--------------|
-| `app/page.tsx` | `/` | `pages/index.vue` |
-| `app/about/page.tsx` | `/about` | `pages/about.vue` |
-| `app/posts/[slug]/page.tsx` | `/posts/:slug` | `pages/posts/[slug].vue` |
-| `app/posts/[...slug]/page.tsx` | `/posts/*` | `pages/posts/[...slug].vue` |
+| Next.js 파일 경로              | URL            | Vue/Nuxt 비교               |
+| ------------------------------ | -------------- | --------------------------- |
+| `app/page.tsx`                 | `/`            | `pages/index.vue`           |
+| `app/about/page.tsx`           | `/about`       | `pages/about.vue`           |
+| `app/posts/[slug]/page.tsx`    | `/posts/:slug` | `pages/posts/[slug].vue`    |
+| `app/posts/[...slug]/page.tsx` | `/posts/*`     | `pages/posts/[...slug].vue` |
 
 #### 프로그래밍 방식 네비게이션
 
 ```typescript
 // Next.js
-import { useRouter } from 'next/navigation'
+import { useRouter } from "next/navigation";
 
 function MyComponent() {
-  const router = useRouter()
-  router.push('/about')  // 페이지 이동
-  router.back()          // 뒤로 가기
-  router.refresh()       // 새로고침
+  const router = useRouter();
+  router.push("/about"); // 페이지 이동
+  router.back(); // 뒤로 가기
+  router.refresh(); // 새로고침
 }
 ```
 
 ```html
 <!-- Vue -->
 <script setup>
-const router = useRouter()
-router.push('/about')  // 동일!
-router.back()
+  const router = useRouter();
+  router.push("/about"); // 동일!
+  router.back();
 </script>
 ```
 
@@ -867,10 +940,10 @@ router.back()
 
 ```html
 <script setup>
-import { ref } from 'vue'
+  import { ref } from "vue";
 
-const count = ref(0)
-const increment = () => count.value++
+  const count = ref(0);
+  const increment = () => count.value++;
 </script>
 
 <template>
@@ -887,7 +960,7 @@ import { useState } from 'react'
 export default function Counter() {
   const [count, setCount] = useState(0)
   const increment = () => setCount(count + 1)
-  
+
   return (
     <button onClick={increment}>{count}</button>
   )
@@ -905,40 +978,40 @@ export default function Counter() {
 
 ```html
 <script setup>
-import { onMounted, onUnmounted, watch } from 'vue'
+  import { onMounted, onUnmounted, watch } from "vue";
 
-onMounted(() => {
-  console.log('마운트됨')
-})
+  onMounted(() => {
+    console.log("마운트됨");
+  });
 
-onUnmounted(() => {
-  console.log('언마운트됨')
-})
+  onUnmounted(() => {
+    console.log("언마운트됨");
+  });
 
-watch(count, (newVal) => {
-  console.log('count 변경:', newVal)
-})
+  watch(count, (newVal) => {
+    console.log("count 변경:", newVal);
+  });
 </script>
 ```
 
 #### React
 
 ```typescript
-'use client'
-import { useEffect } from 'react'
+"use client";
+import { useEffect } from "react";
 
 export default function MyComponent() {
   useEffect(() => {
-    console.log('마운트됨')
-    
+    console.log("마운트됨");
+
     return () => {
-      console.log('언마운트됨')
-    }
-  }, [])  // 빈 배열 = onMounted + onUnmounted
-  
+      console.log("언마운트됨");
+    };
+  }, []); // 빈 배열 = onMounted + onUnmounted
+
   useEffect(() => {
-    console.log('count 변경:', count)
-  }, [count])  // count 변경 감지 = watch
+    console.log("count 변경:", count);
+  }, [count]); // count 변경 감지 = watch
 }
 ```
 
@@ -957,8 +1030,8 @@ export default function MyComponent() {
 
 <!-- 자식 -->
 <script setup>
-const props = defineProps<{ title: string }>()
-const emit = defineEmits<{ update: [value: string] }>()
+  const props = defineProps<{ title: string }>()
+  const emit = defineEmits<{ update: [value: string] }>()
 </script>
 ```
 
@@ -1050,14 +1123,20 @@ export function MDXContent({ code }: { code: string }) {
 ```
 
 ---
+
 ## 실전 학습 로드맵
+
 ### 1주차: React 기초 마스터
+
 목표: Vue → React 사고방식 전환
+
 #### Day 1-2: JSX와 컴포넌트
--  JSX 문법 익히기
--  함수 컴포넌트 작성
--  Props 전달 및 사용
-실습:
+
+- JSX 문법 익히기
+- 함수 컴포넌트 작성
+- Props 전달 및 사용
+  실습:
+
 ```typescript
 // src/components/Button.tsx 생성
 interface ButtonProps {
@@ -1067,10 +1146,10 @@ interface ButtonProps {
 }
 export default function Button({ label, onClick, variant = 'primary' }: ButtonProps) {
   const baseClass = "px-4 py-2 rounded"
-  const variantClass = variant === 'primary' 
-    ? 'bg-blue-500 text-white' 
+  const variantClass = variant === 'primary'
+    ? 'bg-blue-500 text-white'
     : 'bg-gray-200 text-gray-900'
-  
+
   return (
     <button className={`${baseClass} ${variantClass}`} onClick={onClick}>
       {label}
@@ -1078,28 +1157,31 @@ export default function Button({ label, onClick, variant = 'primary' }: ButtonPr
   )
 }
 ```
+
 #### Day 3-4: useState와 이벤트 처리
--  `useState` Hook 마스터
--  이벤트 핸들러 작성
--  폼 처리
-실습:
+
+- `useState` Hook 마스터
+- 이벤트 핸들러 작성
+- 폼 처리
+  실습:
+
 ```typescript
 'use client'
 import { useState } from 'react'
 export default function TodoList() {
   const [todos, setTodos] = useState<string[]>([])
   const [input, setInput] = useState('')
-  
+
   const addTodo = () => {
     if (input.trim()) {
       setTodos([...todos, input])
       setInput('')
     }
   }
-  
+
   return (
     <div>
-      <input 
+      <input
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyPress={(e) => e.key === 'Enter' && addTodo()}
@@ -1112,41 +1194,50 @@ export default function TodoList() {
   )
 }
 ```
+
 #### Day 5-7: useEffect와 생명주기
--  `useEffect` Hook 이해
--  데이터 페칭
--  클린업 함수
-실습:
+
+- `useEffect` Hook 이해
+- 데이터 페칭
+- 클린업 함수
+  실습:
+
 ```typescript
 'use client'
 import { useState, useEffect } from 'react'
 export default function Timer() {
   const [seconds, setSeconds] = useState(0)
-  
+
   useEffect(() => {
     const interval = setInterval(() => {
       setSeconds(s => s + 1)
     }, 1000)
-    
+
     return () => clearInterval(interval)  // 클린업
   }, [])
-  
+
   return <div>경과 시간: {seconds}초</div>
 }
 ```
+
 ### 2주차: Next.js 핵심 개념
+
 목표: App Router와 서버 컴포넌트 이해
+
 #### Day 8-10: App Router와 라우팅
--  파일 기반 라우팅
--  동적 라우트
--  레이아웃과 템플릿
-실습:
+
+- 파일 기반 라우팅
+- 동적 라우트
+- 레이아웃과 템플릿
+  실습:
+
 ```bash
 # 새 페이지 생성
 touch src/app/about/page.tsx
 touch src/app/blog/page.tsx
 touch src/app/blog/[slug]/page.tsx
 ```
+
 ```typescript
 // src/app/blog/[slug]/page.tsx
 interface PageProps {
@@ -1154,7 +1245,7 @@ interface PageProps {
 }
 export default async function BlogPost({ params }: PageProps) {
   const { slug } = await params
-  
+
   return (
     <article>
       <h1>블로그 포스트: {slug}</h1>
@@ -1162,11 +1253,14 @@ export default async function BlogPost({ params }: PageProps) {
   )
 }
 ```
+
 #### Day 11-12: 서버 컴포넌트와 데이터 페칭
--  서버 vs 클라이언트 컴포넌트 구분
--  async/await로 데이터 페칭
--  캐싱 전략
-실습:
+
+- 서버 vs 클라이언트 컴포넌트 구분
+- async/await로 데이터 페칭
+- 캐싱 전략
+  실습:
+
 ```typescript
 // 서버 컴포넌트
 export default async function ProductList() {
@@ -1174,7 +1268,7 @@ export default async function ProductList() {
     next: { revalidate: 3600 }  // 1시간 캐시
   })
   const products = await res.json()
-  
+
   return (
     <div>
       {products.map(product => (
@@ -1184,29 +1278,37 @@ export default async function ProductList() {
   )
 }
 ```
+
 #### Day 13-14: 메타데이터와 SEO
--  정적/동적 메타데이터
--  Open Graph
--  구조화된 데이터
-실습:
+
+- 정적/동적 메타데이터
+- Open Graph
+- 구조화된 데이터
+  실습:
+
 ```typescript
 export const metadata = {
-  title: '상품 목록',
-  description: '최고의 상품들을 만나보세요',
+  title: "상품 목록",
+  description: "최고의 상품들을 만나보세요",
   openGraph: {
-    title: '상품 목록',
-    description: '최고의 상품들을 만나보세요',
-    images: ['/og-image.jpg'],
+    title: "상품 목록",
+    description: "최고의 상품들을 만나보세요",
+    images: ["/og-image.jpg"],
   },
-}
+};
 ```
+
 ### 3주차: 고급 패턴과 최적화
+
 목표: 실전 프로젝트 수준의 코드 작성
+
 #### Day 15-17: Context API와 전역 상태
--  React Context 사용
--  전역 상태 관리
--  Provider 패턴
-실습:
+
+- React Context 사용
+- 전역 상태 관리
+- Provider 패턴
+  실습:
+
 ```typescript
 // src/contexts/ThemeContext.tsx
 'use client'
@@ -1217,11 +1319,11 @@ const ThemeContext = createContext<{
 }>({ theme: 'light', toggleTheme: () => {} })
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
-  
+
   const toggleTheme = () => {
     setTheme(t => t === 'light' ? 'dark' : 'light')
   }
-  
+
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
       {children}
@@ -1230,11 +1332,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 }
 export const useTheme = () => useContext(ThemeContext)
 ```
+
 #### Day 18-19: 성능 최적화
--  `useMemo`와 `useCallback`
--  `React.memo`로 리렌더링 방지
--  이미지 최적화
-실습:
+
+- `useMemo`와 `useCallback`
+- `React.memo`로 리렌더링 방지
+- 이미지 최적화
+  실습:
+
 ```typescript
 'use client'
 import { useMemo, useCallback } from 'react'
@@ -1244,17 +1349,17 @@ export default function ExpensiveComponent({ data }: { data: any[] }) {
   const sortedData = useMemo(() => {
     return data.sort((a, b) => b.price - a.price)
   }, [data])
-  
+
   // 함수 메모이제이션
   const handleClick = useCallback(() => {
     console.log('클릭됨')
   }, [])
-  
+
   return (
     <div>
       {/* Next.js 이미지 최적화 */}
-      <Image 
-        src="/hero.jpg" 
+      <Image
+        src="/hero.jpg"
         alt="Hero"
         width={800}
         height={600}
@@ -1264,11 +1369,14 @@ export default function ExpensiveComponent({ data }: { data: any[] }) {
   )
 }
 ```
+
 #### Day 20-21: 에러 처리와 로딩 상태
--  Error Boundary
--  Suspense와 로딩
--  스트리밍 SSR
-실습:
+
+- Error Boundary
+- Suspense와 로딩
+- 스트리밍 SSR
+  실습:
+
 ```typescript
 // src/app/posts/error.tsx
 'use client'
@@ -1292,6 +1400,7 @@ export default function Loading() {
   return <div>로딩 중...</div>
 }
 ```
+
 ---
 
 ## 🚨 실무 필수: Suspense와 정적 빌드 (GitHub Pages)
@@ -1312,7 +1421,7 @@ Error occurred prerendering page "/"
 - URL 정보는 클라이언트에서만 알 수 있음
 - → Suspense로 감싸서 "이 부분은 클라이언트에서 처리할게요"라고 알려줘야 함
 
-###  잘못된 방법
+### 잘못된 방법
 
 ```tsx
 // src/app/page.tsx
@@ -1323,7 +1432,7 @@ import { useSearchParams } from "next/navigation";
 export default function Home() {
   const searchParams = useSearchParams(); //  빌드 에러!
   const tag = searchParams.get("tag");
-  
+
   return <div>...</div>;
 }
 ```
@@ -1333,7 +1442,7 @@ export default function Home() {
 - 정적 빌드 시 에러 발생
 - GitHub Pages 배포 실패
 
-###  올바른 방법 1: Suspense 사용 (권장)
+### 올바른 방법 1: Suspense 사용 (권장)
 
 ```tsx
 // src/app/page.tsx (서버 컴포넌트)
@@ -1380,18 +1489,12 @@ export default function HomeContent() {
     <>
       {/* 태그 필터 */}
       <div>
-        <button onClick={() => handleTagSelect("React")}>
-          React
-        </button>
-        <button onClick={() => handleTagSelect(null)}>
-          전체
-        </button>
+        <button onClick={() => handleTagSelect("React")}>React</button>
+        <button onClick={() => handleTagSelect(null)}>전체</button>
       </div>
 
       {/* 필터링된 컨텐츠 */}
-      <div>
-        현재 선택된 태그: {selectedTag || "전체"}
-      </div>
+      <div>현재 선택된 태그: {selectedTag || "전체"}</div>
     </>
   );
 }
@@ -1399,22 +1502,20 @@ export default function HomeContent() {
 
 장점:
 
--  Next.js 15 권장 패턴
--  정적 빌드 성공
--  점진적 렌더링 (헤더 먼저 → 컨텐츠 나중에)
--  로딩 상태 표시 가능
--  SEO 친화적
+- Next.js 15 권장 패턴
+- 정적 빌드 성공
+- 점진적 렌더링 (헤더 먼저 → 컨텐츠 나중에)
+- 로딩 상태 표시 가능
+- SEO 친화적
 
-###  올바른 방법 2: 글래스모피즘 스타일 적용
+### 올바른 방법 2: 글래스모피즘 스타일 적용
 
 ```tsx
 <Suspense
   fallback={
     <div className="flex items-center justify-center py-12">
       <div className="glass-card px-8 py-4">
-        <p className="text-gray-600 dark:text-gray-400">
-          🔄 로딩 중...
-        </p>
+        <p className="text-gray-600 dark:text-gray-400">🔄 로딩 중...</p>
       </div>
     </div>
   }
@@ -1454,22 +1555,22 @@ Vue 3 (Composition API):
 </template>
 
 <script setup>
-// HomeContent.vue
-const route = useRoute();
-const tag = computed(() => route.query.tag);
+  // HomeContent.vue
+  const route = useRoute();
+  const tag = computed(() => route.query.tag);
 </script>
 ```
 
 차이점:
 
-| 항목 | Vue 3 | Next.js 15 |
-|------|-------|------------|
-| Suspense | `<Suspense>` 컴포넌트 | `<Suspense>` 컴포넌트 |
-| URL 쿼리 | `useRoute().query` | `useSearchParams()` |
-| 클라이언트 표시 | 자동 | `"use client"` 필요 |
-| 정적 빌드 | 문제 없음 | Suspense 필수 |
+| 항목            | Vue 3                 | Next.js 15            |
+| --------------- | --------------------- | --------------------- |
+| Suspense        | `<Suspense>` 컴포넌트 | `<Suspense>` 컴포넌트 |
+| URL 쿼리        | `useRoute().query`    | `useSearchParams()`   |
+| 클라이언트 표시 | 자동                  | `"use client"` 필요   |
+| 정적 빌드       | 문제 없음             | Suspense 필수         |
 
-### 실무 팁 
+### 실무 팁
 
 1. Suspense 경계 설정
 
@@ -1495,11 +1596,13 @@ const tag = computed(() => route.query.tag);
 
 ```tsx
 //  레이아웃 시프트 방지
-<Suspense fallback={
-  <div className="h-96 animate-pulse bg-gray-200">
-    {/* 실제 컨텐츠와 비슷한 높이 */}
-  </div>
-}>
+<Suspense
+  fallback={
+    <div className="h-96 animate-pulse bg-gray-200">
+      {/* 실제 컨텐츠와 비슷한 높이 */}
+    </div>
+  }
+>
   <PostsList />
 </Suspense>
 ```
@@ -1512,7 +1615,7 @@ const tag = computed(() => route.query.tag);
     <Suspense fallback={<HeaderLoading />}>
       <Header />
     </Suspense>
-    
+
     <Suspense fallback={<ContentLoading />}>
       <Content />
     </Suspense>
@@ -1557,10 +1660,10 @@ npm run build
 
 체크리스트:
 
--  `useSearchParams` 사용 → Suspense 체크
--  빌드 에러 → 에러 메시지 읽고 Suspense 추가
--  로딩 UI → 실제 컨텐츠와 비슷한 크기
--  테스트 → `npm run build`로 정적 빌드 확인
+- `useSearchParams` 사용 → Suspense 체크
+- 빌드 에러 → 에러 메시지 읽고 Suspense 추가
+- 로딩 UI → 실제 컨텐츠와 비슷한 크기
+- 테스트 → `npm run build`로 정적 빌드 확인
 
 ### 4주차: 실전 프로젝트
 
@@ -1575,12 +1678,12 @@ import { allPosts } from 'contentlayer/generated'
 
 export default function SearchPosts() {
   const [query, setQuery] = useState('')
-  
+
   const filteredPosts = allPosts.filter(post =>
     post.title.toLowerCase().includes(query.toLowerCase()) ||
     post.description?.toLowerCase().includes(query.toLowerCase())
   )
-  
+
   return (
     <div>
       <input
@@ -1600,7 +1703,7 @@ export default function SearchPosts() {
 ```typescript
 export default function TagFilter() {
   const allTags = [...new Set(allPosts.flatMap(post => post.tags || []))]
-  
+
   return (
     <div>
       {allTags.map(tag => (
@@ -1619,7 +1722,7 @@ import { useEffect, useRef } from 'react'
 
 export default function Comments() {
   const ref = useRef<HTMLDivElement>(null)
-  
+
   useEffect(() => {
     const script = document.createElement('script')
     script.src = 'https://giscus.app/client.js'
@@ -1627,27 +1730,35 @@ export default function Comments() {
     script.async = true
     ref.current?.appendChild(script)
   }, [])
-  
+
   return <div ref={ref} />
 }
 ```
 
 ---
+
 ## 추가 학습 자료
+
 ### 공식 문서
+
 - [Next.js 공식 문서](https://nextjs.org/docs)
 - [React 공식 문서](https://react.dev)
 - [Contentlayer 문서](https://contentlayer.dev)
+
 ### 유용한 도구
+
 - [React DevTools](https://react.dev/learn/react-developer-tools)
 - [Next.js DevTools](https://nextjs.org/docs/app/building-your-application/optimizing)
+
 ### 연습 프로젝트 아이디어
-1.  블로그 검색 기능
-2.  태그 기반 필터링
-3.  다크모드 토글
-4.  조회수 카운터
-5.  RSS 피드 생성
-6.  관련 포스트 추천
+
+1. 블로그 검색 기능
+2. 태그 기반 필터링
+3. 다크모드 토글
+4. 조회수 카운터
+5. RSS 피드 생성
+6. 관련 포스트 추천
+
 ---
 
 ## 마무리

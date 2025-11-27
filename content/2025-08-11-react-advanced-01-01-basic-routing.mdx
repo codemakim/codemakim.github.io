@@ -13,13 +13,20 @@ seriesOrder: 37
 > 출처: [React Router Documentation](https://reactrouter.com/)
 
 ---
+
 ## 기본 라우팅
+
 기본 라우팅
 개요
+
 ### React Router란?
+
 React Router는 React 애플리케이션에서 클라이언트 사이드 라우팅을 구현하는 표준 라이브러리이다.
-###  클라이언트 사이드 라우팅의 동작 원리
+
+### 클라이언트 사이드 라우팅의 동작 원리
+
 전통적인 서버 사이드 라우팅:
+
 ```
 사용자가 /about 클릭
   ↓
@@ -29,7 +36,9 @@ React Router는 React 애플리케이션에서 클라이언트 사이드 라우�
   ↓
 페이지 전체 새로고침 (깜빡임!)
 ```
+
 클라이언트 사이드 라우팅 (SPA):
+
 ```
 사용자가 /about 클릭
   ↓
@@ -41,54 +50,67 @@ React Router가 URL 감지
   ↓
 해당 컴포넌트만 교체 (깜빡임 없음!)
 ```
+
 핵심 원리:
+
 1. History API 활용: `pushState()`, `replaceState()`, `popstate` 이벤트
 2. 컴포넌트 매칭: URL 패턴과 컴포넌트 매핑
 3. 상태 보존: 페이지 전환 없이 UI만 업데이트
-실제 코드로 보는 원리:
+   실제 코드로 보는 원리:
+
 ```javascript
 // React Router가 내부적으로 하는 일 (단순화)
-window.addEventListener('popstate', () => {
+window.addEventListener("popstate", () => {
   const path = window.location.pathname;
-  const component = matchRoute(path);  // URL → 컴포넌트 매칭
-  renderComponent(component);           // 컴포넌트 렌더링
+  const component = matchRoute(path); // URL → 컴포넌트 매칭
+  renderComponent(component); // 컴포넌트 렌더링
 });
 function navigate(path) {
-  window.history.pushState({}, '', path);  // URL 변경
+  window.history.pushState({}, "", path); // URL 변경
   const component = matchRoute(path);
   renderComponent(component);
 }
 ```
+
 장점:
--  빠른 페이지 전환 (네트워크 요청 없음)
--  부드러운 UX (깜빡임 없음)
--  상태 유지 (전역 state 보존)
--  애니메이션 가능
-단점:
--  초기 번들 크기 증가 (해결책: 코드 분할)
--  SEO 어려움 (해결책: SSR - Next.js)
-###  실무 TIP: "SPA 라우팅을 설명해보세요"
+
+- 빠른 페이지 전환 (네트워크 요청 없음)
+- 부드러운 UX (깜빡임 없음)
+- 상태 유지 (전역 state 보존)
+- 애니메이션 가능
+  단점:
+- 초기 번들 크기 증가 (해결책: 코드 분할)
+- SEO 어려움 (해결책: SSR - Next.js)
+
+### 실무 TIP: "SPA 라우팅을 설명해보세요"
+
 답변 예시:
 "SPA에서 라우팅은 History API를 활용한다.
 사용자가 링크를 클릭하면 React Router가 기본 동작을 막고 (`preventDefault`), `history.pushState`로 URL만 변경한다. 이때 페이지는 새로고침되지 않다.
 React Router는 URL 변경을 감지하여 해당 경로에 매핑된 컴포넌트만 교체한다. 이를 통해 빠르고 부드러운 페이지 전환이 가능하며, 전역 상태도 유지된다.
 다만 초기 번들 크기가 커질 수 있어 코드 분할이 중요하고, SEO를 위해서는 Next.js 같은 SSR 프레임워크를 고려해야 한다."
 주요 기능:
+
 - 선언적 라우팅
 - 중첩 라우트
 - 동적 라우트 매칭
 - 프로그래밍 방식 네비게이션
 - 지연 로딩
+
 ### 설치
+
 ```bash
 npm install react-router-dom
 ```
+
 ### Vue Router와 비교
-| 기능 | Vue Router | React Router |
-|------|-----------|--------------|
-| 라우트 정의 | 객체 배열 | JSX 컴포넌트 |
-| 중첩 라우트 | `children` | `<Outlet />` |
-| 네비게이션 | `<router-link>` | `<Link>` |
-| 프로그래밍 네비게이션 | `router.push()` | `navigate()` |
-| 파라미터 접근 | `route.params` | `useParams()` |
+
+| 기능                  | Vue Router      | React Router  |
+| --------------------- | --------------- | ------------- |
+| 라우트 정의           | 객체 배열       | JSX 컴포넌트  |
+| 중첩 라우트           | `children`      | `<Outlet />`  |
+| 네비게이션            | `<router-link>` | `<Link>`      |
+| 프로그래밍 네비게이션 | `router.push()` | `navigate()`  |
+| 파라미터 접근         | `route.params`  | `useParams()` |
+
 ---

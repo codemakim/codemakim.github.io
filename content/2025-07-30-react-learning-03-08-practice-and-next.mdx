@@ -9,9 +9,10 @@ seriesOrder: 26
 
 # React 학습 가이드 - 연습문제 & 다음 단계
 
-
 ---
+
 ## 이 챕터에서 배운 내용 요약
+
 선언적 UI: state로 UI 표현  
 State 구조화: 중복, 모순 피하기  
 State 끌어올리기: 컴포넌트 간 공유  
@@ -19,6 +20,7 @@ State 보존/재설정: key로 제어
 Reducer: 복잡한 state 로직 통합  
 Context: prop drilling 없이 데이터 전달  
 Reducer + Context: 확장 가능한 구조
+
 ---
 
 ## 연습 문제
@@ -31,7 +33,7 @@ Reducer + Context: 확장 가능한 구조
 // - 비밀번호 8자 이상
 // - 비밀번호 확인 일치
 // - 에러 메시지 표시
-import { useState } from 'react';
+import { useState } from "react";
 
 export default function SignupForm() {
   // 여기에 코드 작성
@@ -46,7 +48,7 @@ export default function SignupForm() {
 - 실시간 에러 메시지 표시
 - State 구조화 원칙 적용
 
-import CodeOrderingQuiz from '@/app/components/CodeOrderingQuiz';
+import CodeOrderingQuiz from "@/app/components/CodeOrderingQuiz";
 
 <CodeOrderingQuiz
   title="🧩 폼 검증 로직 순서 맞추기"
@@ -76,13 +78,13 @@ import CodeOrderingQuiz from '@/app/components/CodeOrderingQuiz';
 <summary><strong> 정답 전체 코드 보기</strong></summary>
 
 ```jsx
-import { useState } from 'react';
+import { useState } from "react";
 
 export default function SignupForm() {
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    confirmPassword: ''
+    email: "",
+    password: "",
+    confirmPassword: "",
   });
   const [errors, setErrors] = useState({});
 
@@ -96,36 +98,36 @@ export default function SignupForm() {
     const newErrors = {};
 
     if (!validateEmail(formData.email)) {
-      newErrors.email = '올바른 이메일 형식이 아닙니다.';
+      newErrors.email = "올바른 이메일 형식이 아닙니다.";
     }
 
     if (formData.password.length < 8) {
-      newErrors.password = '비밀번호는 8자 이상이어야 한다.';
+      newErrors.password = "비밀번호는 8자 이상이어야 한다.";
     }
 
     if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = '비밀번호가 일치하지 않다.';
+      newErrors.confirmPassword = "비밀번호가 일치하지 않다.";
     }
 
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length === 0) {
-      alert('회원가입이 완료되었다!');
+      alert("회원가입이 완료되었다!");
     }
   }
 
   function handleChange(e) {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
-    
+
     // 실시간 검증
     if (errors[name]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [name]: ''
+        [name]: "",
       }));
     }
   }
@@ -140,9 +142,9 @@ export default function SignupForm() {
           value={formData.email}
           onChange={handleChange}
         />
-        {errors.email && <span style={{color: 'red'}}>{errors.email}</span>}
+        {errors.email && <span style={{ color: "red" }}>{errors.email}</span>}
       </div>
-      
+
       <div>
         <label>비밀번호:</label>
         <input
@@ -151,9 +153,11 @@ export default function SignupForm() {
           value={formData.password}
           onChange={handleChange}
         />
-        {errors.password && <span style={{color: 'red'}}>{errors.password}</span>}
+        {errors.password && (
+          <span style={{ color: "red" }}>{errors.password}</span>
+        )}
       </div>
-      
+
       <div>
         <label>비밀번호 확인:</label>
         <input
@@ -162,9 +166,11 @@ export default function SignupForm() {
           value={formData.confirmPassword}
           onChange={handleChange}
         />
-        {errors.confirmPassword && <span style={{color: 'red'}}>{errors.confirmPassword}</span>}
+        {errors.confirmPassword && (
+          <span style={{ color: "red" }}>{errors.confirmPassword}</span>
+        )}
       </div>
-      
+
       <button type="submit">회원가입</button>
     </form>
   );
@@ -226,19 +232,22 @@ export default function SignupForm() {
 - 사용자 경험 개선
 
 ---
+
 ## 해답 예시
+
 ### 2. 다크 모드 해답
+
 ```jsx
 // ThemeContext.js
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect } from "react";
 const ThemeContext = createContext();
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('theme') || 'light';
+    return localStorage.getItem("theme") || "light";
   });
   useEffect(() => {
-    localStorage.setItem('theme', theme);
-    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem("theme", theme);
+    document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
   return (
     <ThemeContext.Provider value={{ theme, setTheme }}>
@@ -250,15 +259,16 @@ export function useTheme() {
   return useContext(ThemeContext);
 }
 ```
+
 ```jsx
 // App.js
-import { ThemeProvider, useTheme } from './ThemeContext';
+import { ThemeProvider, useTheme } from "./ThemeContext";
 function ThemeToggle() {
   const { theme, setTheme } = useTheme();
-  
+
   return (
-    <button onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
-      {theme === 'light' ? '🌙' : '☀️'}
+    <button onClick={() => setTheme(theme === "light" ? "dark" : "light")}>
+      {theme === "light" ? "🌙" : "☀️"}
     </button>
   );
 }
@@ -278,6 +288,7 @@ export default function App() {
   );
 }
 ```
+
 ---
 
 ## 학습 체크리스트
@@ -291,10 +302,12 @@ export default function App() {
 - [ ] Reducer와 Context를 결합할 수 있다
 - [ ] 언제 Context를 사용해야 할지 안다
 
-모든 항목을 체크했다면 다음 챕터로 넘어가세요! 
+모든 항목을 체크했다면 다음 챕터로 넘어가세요!
 
 ---
+
 ## 참고 자료
+
 - [React 공식 문서 - Managing State](https://react.dev/learn/managing-state)
 - [React 공식 문서 - Escape Hatches](https://react.dev/learn/escape-hatches)
 - [useReducer Hook](https://react.dev/reference/react/useReducer)

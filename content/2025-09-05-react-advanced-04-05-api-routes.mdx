@@ -12,15 +12,18 @@ seriesOrder: 63
 > Next.js 15의 고급 기능을 다루는 학습 자료
 
 ---
+
 ## API Routes 고급
+
 ### Route Handlers (App Router)
+
 ```jsx
 // app/api/posts/route.js
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
 // GET /api/posts
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
-  const page = searchParams.get('page') || '1';
+  const page = searchParams.get("page") || "1";
   const posts = await db.posts.findMany({
     skip: (parseInt(page) - 1) * 10,
     take: 10,
@@ -36,20 +39,19 @@ export async function POST(request) {
   return NextResponse.json(post, { status: 201 });
 }
 ```
+
 ### 동적 Route Handlers
+
 ```jsx
 // app/api/posts/[id]/route.js
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
 // GET /api/posts/:id
 export async function GET(request, { params }) {
   const post = await db.posts.findUnique({
     where: { id: params.id },
   });
   if (!post) {
-    return NextResponse.json(
-      { error: 'Post not found' },
-      { status: 404 }
-    );
+    return NextResponse.json({ error: "Post not found" }, { status: 404 });
   }
   return NextResponse.json(post);
 }
@@ -70,7 +72,9 @@ export async function DELETE(request, { params }) {
   return new NextResponse(null, { status: 204 });
 }
 ```
+
 ### 스트리밍 응답
+
 ```jsx
 // app/api/stream/route.js
 export async function GET() {
@@ -86,24 +90,26 @@ export async function GET() {
   });
   return new Response(stream, {
     headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
     },
   });
 }
 ```
+
 ### CORS 설정
+
 ```jsx
 // app/api/posts/route.js
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
 export async function GET(request) {
   const posts = await fetchPosts();
   return NextResponse.json(posts, {
     headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
     },
   });
 }
@@ -111,11 +117,12 @@ export async function OPTIONS(request) {
   return new NextResponse(null, {
     status: 200,
     headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
     },
   });
 }
 ```
+
 ---

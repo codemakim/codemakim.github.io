@@ -12,14 +12,16 @@ seriesOrder: 65
 > Next.js 15의 고급 기능을 다루는 학습 자료
 
 ---
+
 ## 실전 예제: 블로그 플랫폼
+
 ```jsx
 // app/posts/page.jsx
 export const revalidate = 3600; // 1시간마다
 export default async function Posts() {
-  const posts = await fetch('https://api.example.com/posts', {
-    next: { tags: ['posts'] }
-  }).then(res => res.json());
+  const posts = await fetch("https://api.example.com/posts", {
+    next: { tags: ["posts"] },
+  }).then((res) => res.json());
   return (
     <div>
       <h1>Blog Posts</h1>
@@ -30,36 +32,38 @@ export default async function Posts() {
   );
 }
 ```
+
 ```jsx
 // app/actions.js
-'use server';
-import { revalidateTag } from 'next/cache';
-import { redirect } from 'next/navigation';
+"use server";
+import { revalidateTag } from "next/cache";
+import { redirect } from "next/navigation";
 export async function createPost(formData) {
-  const title = formData.get('title');
-  const content = formData.get('content');
+  const title = formData.get("title");
+  const content = formData.get("content");
   await db.posts.create({
     data: { title, content },
   });
-  revalidateTag('posts');
-  redirect('/posts');
+  revalidateTag("posts");
+  redirect("/posts");
 }
 export async function deletePost(id) {
   await db.posts.delete({
     where: { id },
   });
-  revalidateTag('posts');
+  revalidateTag("posts");
 }
 ```
+
 ```jsx
 // middleware.js
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
 export function middleware(request) {
-  const token = request.cookies.get('auth-token');
+  const token = request.cookies.get("auth-token");
   // 인증 필요한 경로
-  if (request.nextUrl.pathname.startsWith('/admin')) {
+  if (request.nextUrl.pathname.startsWith("/admin")) {
     if (!token) {
-      return NextResponse.redirect(new URL('/login', request.url));
+      return NextResponse.redirect(new URL("/login", request.url));
     }
   }
   // 로깅
@@ -67,7 +71,8 @@ export function middleware(request) {
   return NextResponse.next();
 }
 export const config = {
-  matcher: ['/admin/:path*', '/api/:path*'],
+  matcher: ["/admin/:path*", "/api/:path*"],
 };
 ```
+
 ---

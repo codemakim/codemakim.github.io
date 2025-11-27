@@ -13,18 +13,22 @@ seriesOrder: 41
 > 출처: [React Router Documentation](https://reactrouter.com/)
 
 ---
+
 ## Router Hooks
+
 Router Hooks
 프로그래밍 방식 네비게이션
+
 ### 1. useNavigate Hook
+
 ```jsx
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
 export default function LoginForm() {
   const navigate = useNavigate();
   function handleSubmit(e) {
     e.preventDefault();
     // 로그인 로직
-    navigate('/dashboard');
+    navigate("/dashboard");
   }
   return (
     <form onSubmit={handleSubmit}>
@@ -33,46 +37,52 @@ export default function LoginForm() {
   );
 }
 ```
+
 ### 2. Navigate 옵션
+
 ```jsx
 const navigate = useNavigate();
 // 기본 네비게이션
-navigate('/about');
+navigate("/about");
 // 상대 경로
-navigate('profile');
-navigate('../settings');
+navigate("profile");
+navigate("../settings");
 // Replace (히스토리에 추가 안함)
-navigate('/login', { replace: true });
+navigate("/login", { replace: true });
 // State 전달
-navigate('/dashboard', { 
-  state: { from: '/login', userId: 123 } 
+navigate("/dashboard", {
+  state: { from: "/login", userId: 123 },
 });
 // 뒤로 가기 / 앞으로 가기
-navigate(-1);  // 뒤로
-navigate(1);   // 앞으로
-navigate(-2);  // 2단계 뒤로
+navigate(-1); // 뒤로
+navigate(1); // 앞으로
+navigate(-2); // 2단계 뒤로
 ```
+
 ### 3. Navigate 컴포넌트 (리다이렉트)
+
 ```jsx
-import { Navigate } from 'react-router-dom';
+import { Navigate } from "react-router-dom";
 function ProtectedRoute({ isAuthenticated, children }) {
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
-  
+
   return children;
 }
 ```
+
 ### 4. 조건부 네비게이션
+
 ```jsx
 function ProductPage() {
   const navigate = useNavigate();
   const [product, setProduct] = useState(null);
   async function deleteProduct() {
     await api.delete(`/products/${product.id}`);
-    navigate('/products', { 
+    navigate("/products", {
       replace: true,
-      state: { message: 'Product deleted successfully' }
+      state: { message: "Product deleted successfully" },
     });
   }
   return (
@@ -83,25 +93,29 @@ function ProductPage() {
   );
 }
 ```
+
 ### Vue Router와 비교
+
 ```javascript
 // Vue Router
-import { useRouter } from 'vue-router'
-const router = useRouter()
+import { useRouter } from "vue-router";
+const router = useRouter();
 // 네비게이션
-router.push('/about')
-router.push({ path: '/user', query: { id: 123 } })
-router.replace('/login')
-router.go(-1)
+router.push("/about");
+router.push({ path: "/user", query: { id: 123 } });
+router.replace("/login");
+router.go(-1);
 ```
+
 ```jsx
 // React Router
-import { useNavigate } from 'react-router-dom'
-const navigate = useNavigate()
+import { useNavigate } from "react-router-dom";
+const navigate = useNavigate();
 // 네비게이션
-navigate('/about')
-navigate('/user?id=123')
-navigate('/login', { replace: true })
-navigate(-1)
+navigate("/about");
+navigate("/user?id=123");
+navigate("/login", { replace: true });
+navigate(-1);
 ```
+
 ---

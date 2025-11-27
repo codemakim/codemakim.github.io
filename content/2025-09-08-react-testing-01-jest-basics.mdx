@@ -12,7 +12,9 @@ seriesOrder: 1
 > Jest를 사용한 JavaScript 테스팅 학습 자료
 
 ---
+
 ## 📚 목차
+
 1. [개요](#개요)
 2. [설치 및 설정](#설치-및-설정)
 3. [기본 테스트 작성](#기본-테스트-작성)
@@ -20,6 +22,7 @@ seriesOrder: 1
 5. [Mock 함수](#mock-함수)
 6. [비동기 테스트](#비동기-테스트)
 7. [Setup과 Teardown](#setup과-teardown)
+
 ---
 
 ## 개요
@@ -29,6 +32,7 @@ seriesOrder: 1
 Jest는 Facebook이 만든 JavaScript 테스팅 프레임워크이다.
 
 특징:
+
 - 제로 설정 (Zero Config)
 - 빠른 실행 속도
 - 스냅샷 테스팅
@@ -55,30 +59,34 @@ npm install --save-dev @types/jest  # TypeScript
 ```
 
 ---
+
 ## 설치 및 설정
+
 ### Jest 설정 파일
+
 ```javascript
 // jest.config.js
 module.exports = {
-  testEnvironment: 'node',
-  coveragePathIgnorePatterns: ['/node_modules/'],
-  collectCoverageFrom: [
-    'src/**/*.{js,jsx,ts,tsx}',
-    '!src/**/*.d.ts',
-  ],
+  testEnvironment: "node",
+  coveragePathIgnorePatterns: ["/node_modules/"],
+  collectCoverageFrom: ["src/**/*.{js,jsx,ts,tsx}", "!src/**/*.d.ts"],
 };
 ```
+
 ### TypeScript 설정
+
 ```bash
 npm install --save-dev ts-jest @types/jest
 ```
+
 ```javascript
 // jest.config.js
 module.exports = {
-  preset: 'ts-jest',
-  testEnvironment: 'node',
+  preset: "ts-jest",
+  testEnvironment: "node",
 };
 ```
+
 ---
 
 ## 기본 테스트 작성
@@ -96,9 +104,9 @@ module.exports = sum;
 
 ```javascript
 // sum.test.js
-const sum = require('./sum');
+const sum = require("./sum");
 
-test('1 + 2는 3이다', () => {
+test("1 + 2는 3이다", () => {
   expect(sum(1, 2)).toBe(3);
 });
 ```
@@ -107,21 +115,21 @@ test('1 + 2는 3이다', () => {
 
 ```javascript
 // calculator.test.js
-const { add, subtract, multiply, divide } = require('./calculator');
+const { add, subtract, multiply, divide } = require("./calculator");
 
-describe('Calculator', () => {
-  describe('add', () => {
-    test('두 수를 더한다', () => {
+describe("Calculator", () => {
+  describe("add", () => {
+    test("두 수를 더한다", () => {
       expect(add(1, 2)).toBe(3);
     });
 
-    test('음수를 더한다', () => {
+    test("음수를 더한다", () => {
       expect(add(-1, -2)).toBe(-3);
     });
   });
 
-  describe('subtract', () => {
-    test('두 수를 뺀다', () => {
+  describe("subtract", () => {
+    test("두 수를 뺀다", () => {
       expect(subtract(5, 3)).toBe(2);
     });
   });
@@ -132,41 +140,46 @@ describe('Calculator', () => {
 
 ```javascript
 // 동일한 기능
-test('배열에 요소를 추가한다', () => {
+test("배열에 요소를 추가한다", () => {
   expect([1, 2, 3]).toContain(2);
 });
 
-it('배열에 요소를 추가한다', () => {
+it("배열에 요소를 추가한다", () => {
   expect([1, 2, 3]).toContain(2);
 });
 ```
 
 ---
+
 ## Matchers
+
 ### 기본 Matchers
+
 ```javascript
 // 정확한 일치
-test('toBe', () => {
+test("toBe", () => {
   expect(2 + 2).toBe(4);
-  expect('hello').toBe('hello');
+  expect("hello").toBe("hello");
 });
 // 객체/배열 비교
-test('toEqual', () => {
-  expect({ name: 'John' }).toEqual({ name: 'John' });
+test("toEqual", () => {
+  expect({ name: "John" }).toEqual({ name: "John" });
   expect([1, 2, 3]).toEqual([1, 2, 3]);
 });
 // Truthiness
-test('truthiness', () => {
+test("truthiness", () => {
   expect(true).toBeTruthy();
   expect(false).toBeFalsy();
   expect(null).toBeNull();
   expect(undefined).toBeUndefined();
-  expect('hello').toBeDefined();
+  expect("hello").toBeDefined();
 });
 ```
+
 ### 숫자 Matchers
+
 ```javascript
-test('숫자 비교', () => {
+test("숫자 비교", () => {
   expect(2 + 2).toBe(4);
   expect(2 + 2).toBeGreaterThan(3);
   expect(2 + 2).toBeGreaterThanOrEqual(4);
@@ -176,62 +189,73 @@ test('숫자 비교', () => {
   expect(0.1 + 0.2).toBeCloseTo(0.3);
 });
 ```
+
 ### 문자열 Matchers
+
 ```javascript
-test('문자열 비교', () => {
-  expect('hello world').toMatch(/world/);
-  expect('hello').not.toMatch(/goodbye/);
-  expect('JavaScript').toContain('Script');
+test("문자열 비교", () => {
+  expect("hello world").toMatch(/world/);
+  expect("hello").not.toMatch(/goodbye/);
+  expect("JavaScript").toContain("Script");
 });
 ```
+
 ### 배열 Matchers
+
 ```javascript
-test('배열 비교', () => {
-  const arr = ['apple', 'banana', 'orange'];
-  expect(arr).toContain('banana');
+test("배열 비교", () => {
+  const arr = ["apple", "banana", "orange"];
+  expect(arr).toContain("banana");
   expect(arr).toHaveLength(3);
-  expect(arr).toEqual(expect.arrayContaining(['apple', 'banana']));
+  expect(arr).toEqual(expect.arrayContaining(["apple", "banana"]));
 });
 ```
+
 ### 객체 Matchers
+
 ```javascript
-test('객체 비교', () => {
+test("객체 비교", () => {
   const user = {
-    name: 'John',
+    name: "John",
     age: 30,
-    email: 'john@example.com',
+    email: "john@example.com",
   };
-  expect(user).toHaveProperty('name');
-  expect(user).toHaveProperty('name', 'John');
-  expect(user).toMatchObject({ name: 'John', age: 30 });
+  expect(user).toHaveProperty("name");
+  expect(user).toHaveProperty("name", "John");
+  expect(user).toMatchObject({ name: "John", age: 30 });
   expect(user).toEqual(
     expect.objectContaining({
       name: expect.any(String),
       age: expect.any(Number),
-    })
+    }),
   );
 });
 ```
+
 ### 예외 Matchers
+
 ```javascript
 function throwError() {
-  throw new Error('Something went wrong');
+  throw new Error("Something went wrong");
 }
-test('예외 발생', () => {
+test("예외 발생", () => {
   expect(() => throwError()).toThrow();
-  expect(() => throwError()).toThrow('Something went wrong');
+  expect(() => throwError()).toThrow("Something went wrong");
   expect(() => throwError()).toThrow(/went wrong/);
   expect(() => throwError()).toThrow(Error);
 });
 ```
+
 ### not Matcher
+
 ```javascript
-test('not 사용', () => {
+test("not 사용", () => {
   expect(2 + 2).not.toBe(5);
-  expect('hello').not.toMatch(/goodbye/);
+  expect("hello").not.toMatch(/goodbye/);
   expect([1, 2, 3]).not.toContain(4);
 });
 ```
+
 ---
 
 ## Mock 함수
@@ -239,31 +263,29 @@ test('not 사용', () => {
 ### Mock 함수 생성
 
 ```javascript
-test('mock 함수', () => {
+test("mock 함수", () => {
   const mockFn = jest.fn();
 
-  mockFn('hello');
-  mockFn('world');
+  mockFn("hello");
+  mockFn("world");
 
   expect(mockFn).toHaveBeenCalled();
   expect(mockFn).toHaveBeenCalledTimes(2);
-  expect(mockFn).toHaveBeenCalledWith('hello');
-  expect(mockFn).toHaveBeenLastCalledWith('world');
+  expect(mockFn).toHaveBeenCalledWith("hello");
+  expect(mockFn).toHaveBeenLastCalledWith("world");
 });
 ```
 
 ### Mock 반환값
 
 ```javascript
-test('mock 반환값', () => {
+test("mock 반환값", () => {
   const mockFn = jest.fn();
 
   mockFn.mockReturnValue(42);
   expect(mockFn()).toBe(42);
 
-  mockFn.mockReturnValueOnce(1)
-        .mockReturnValueOnce(2)
-        .mockReturnValue(3);
+  mockFn.mockReturnValueOnce(1).mockReturnValueOnce(2).mockReturnValue(3);
 
   expect(mockFn()).toBe(1);
   expect(mockFn()).toBe(2);
@@ -275,7 +297,7 @@ test('mock 반환값', () => {
 ### Mock 구현
 
 ```javascript
-test('mock 구현', () => {
+test("mock 구현", () => {
   const mockFn = jest.fn((x) => x * 2);
 
   expect(mockFn(2)).toBe(4);
@@ -288,18 +310,18 @@ test('mock 구현', () => {
 ```javascript
 // api.js
 export function fetchUser(id) {
-  return fetch(`/api/users/${id}`).then(res => res.json());
+  return fetch(`/api/users/${id}`).then((res) => res.json());
 }
 
 // api.test.js
-jest.mock('./api');
-import { fetchUser } from './api';
+jest.mock("./api");
+import { fetchUser } from "./api";
 
-test('fetchUser를 mock한다', async () => {
-  fetchUser.mockResolvedValue({ id: 1, name: 'John' });
+test("fetchUser를 mock한다", async () => {
+  fetchUser.mockResolvedValue({ id: 1, name: "John" });
 
   const user = await fetchUser(1);
-  expect(user.name).toBe('John');
+  expect(user.name).toBe("John");
 });
 ```
 
@@ -309,53 +331,60 @@ test('fetchUser를 mock한다', async () => {
 // api.js
 export const api = {
   fetchUser: (id) => fetch(`/api/users/${id}`),
-  fetchPosts: () => fetch('/api/posts'),
+  fetchPosts: () => fetch("/api/posts"),
 };
 
 // api.test.js
-jest.mock('./api', () => ({
-  ...jest.requireActual('./api'),
+jest.mock("./api", () => ({
+  ...jest.requireActual("./api"),
   fetchUser: jest.fn(),
 }));
 ```
 
 ---
+
 ## 비동기 테스트
+
 ### Promises
+
 ```javascript
 // async.js
 export function fetchData() {
-  return fetch('/api/data').then(res => res.json());
+  return fetch("/api/data").then((res) => res.json());
 }
 // async.test.js
-test('Promise 테스트', () => {
-  return fetchData().then(data => {
+test("Promise 테스트", () => {
+  return fetchData().then((data) => {
     expect(data).toEqual({ id: 1 });
   });
 });
 // 또는
-test('Promise 테스트 (resolves)', () => {
+test("Promise 테스트 (resolves)", () => {
   return expect(fetchData()).resolves.toEqual({ id: 1 });
 });
 ```
+
 ### Async/Await
+
 ```javascript
-test('async/await 테스트', async () => {
+test("async/await 테스트", async () => {
   const data = await fetchData();
   expect(data).toEqual({ id: 1 });
 });
-test('async/await 테스트 (에러)', async () => {
-  await expect(fetchData()).rejects.toThrow('Network error');
+test("async/await 테스트 (에러)", async () => {
+  await expect(fetchData()).rejects.toThrow("Network error");
 });
 ```
+
 ### Callbacks
+
 ```javascript
 function fetchDataWithCallback(callback) {
   setTimeout(() => {
     callback({ id: 1 });
   }, 100);
 }
-test('callback 테스트', (done) => {
+test("callback 테스트", (done) => {
   function callback(data) {
     expect(data).toEqual({ id: 1 });
     done();
@@ -363,6 +392,7 @@ test('callback 테스트', (done) => {
   fetchDataWithCallback(callback);
 });
 ```
+
 ---
 
 ## Setup과 Teardown
@@ -370,7 +400,7 @@ test('callback 테스트', (done) => {
 ### beforeEach / afterEach
 
 ```javascript
-describe('Database tests', () => {
+describe("Database tests", () => {
   let db;
 
   beforeEach(() => {
@@ -381,13 +411,13 @@ describe('Database tests', () => {
     db.close();
   });
 
-  test('데이터 추가', () => {
-    db.add({ id: 1, name: 'John' });
+  test("데이터 추가", () => {
+    db.add({ id: 1, name: "John" });
     expect(db.count()).toBe(1);
   });
 
-  test('데이터 삭제', () => {
-    db.add({ id: 1, name: 'John' });
+  test("데이터 삭제", () => {
+    db.add({ id: 1, name: "John" });
     db.remove(1);
     expect(db.count()).toBe(0);
   });
@@ -397,7 +427,7 @@ describe('Database tests', () => {
 ### beforeAll / afterAll
 
 ```javascript
-describe('Server tests', () => {
+describe("Server tests", () => {
   beforeAll(() => {
     // 서버 시작 (한 번만)
     return startServer();
@@ -408,8 +438,8 @@ describe('Server tests', () => {
     return stopServer();
   });
 
-  test('서버 응답', async () => {
-    const res = await fetch('http://localhost:3000');
+  test("서버 응답", async () => {
+    const res = await fetch("http://localhost:3000");
     expect(res.status).toBe(200);
   });
 });
@@ -418,17 +448,17 @@ describe('Server tests', () => {
 ### 중첩된 describe
 
 ```javascript
-describe('User', () => {
+describe("User", () => {
   beforeEach(() => {
-    console.log('User beforeEach');
+    console.log("User beforeEach");
   });
 
-  describe('login', () => {
+  describe("login", () => {
     beforeEach(() => {
-      console.log('login beforeEach');
+      console.log("login beforeEach");
     });
 
-    test('성공', () => {
+    test("성공", () => {
       // User beforeEach → login beforeEach → test
     });
   });
@@ -436,60 +466,67 @@ describe('User', () => {
 ```
 
 ---
+
 ## 실전 예제
+
 ### API 테스트
+
 ```javascript
 // userService.js
 export async function getUser(id) {
   const response = await fetch(`/api/users/${id}`);
   if (!response.ok) {
-    throw new Error('User not found');
+    throw new Error("User not found");
   }
   return response.json();
 }
 // userService.test.js
 global.fetch = jest.fn();
-describe('getUser', () => {
+describe("getUser", () => {
   beforeEach(() => {
     fetch.mockClear();
   });
-  test('사용자를 가져온다', async () => {
-    const mockUser = { id: 1, name: 'John' };
+  test("사용자를 가져온다", async () => {
+    const mockUser = { id: 1, name: "John" };
     fetch.mockResolvedValueOnce({
       ok: true,
       json: async () => mockUser,
     });
     const user = await getUser(1);
-    expect(fetch).toHaveBeenCalledWith('/api/users/1');
+    expect(fetch).toHaveBeenCalledWith("/api/users/1");
     expect(user).toEqual(mockUser);
   });
-  test('사용자를 찾을 수 없으면 에러', async () => {
+  test("사용자를 찾을 수 없으면 에러", async () => {
     fetch.mockResolvedValueOnce({
       ok: false,
     });
-    await expect(getUser(999)).rejects.toThrow('User not found');
+    await expect(getUser(999)).rejects.toThrow("User not found");
   });
 });
 ```
+
 ### Timer Mock
+
 ```javascript
 // timer.js
 export function delayedGreeting(callback) {
   setTimeout(() => {
-    callback('Hello!');
+    callback("Hello!");
   }, 1000);
 }
 // timer.test.js
 jest.useFakeTimers();
-test('1초 후 인사', () => {
+test("1초 후 인사", () => {
   const callback = jest.fn();
   delayedGreeting(callback);
   expect(callback).not.toHaveBeenCalled();
   jest.runAllTimers();
-  expect(callback).toHaveBeenCalledWith('Hello!');
+  expect(callback).toHaveBeenCalledWith("Hello!");
 });
 ```
+
 ### 스냅샷 테스트
+
 ```javascript
 // component.js
 export function renderUser(user) {
@@ -501,11 +538,12 @@ export function renderUser(user) {
   `;
 }
 // component.test.js
-test('사용자 렌더링 스냅샷', () => {
-  const user = { name: 'John', email: 'john@example.com' };
+test("사용자 렌더링 스냅샷", () => {
+  const user = { name: "John", email: "john@example.com" };
   expect(renderUser(user)).toMatchSnapshot();
 });
 ```
+
 ---
 
 ## 다음 단계
@@ -524,6 +562,4 @@ test('사용자 렌더링 스냅샷', () => {
 - [Jest 공식 문서](https://jestjs.io/)
 - [Testing Best Practices](https://github.com/goldbergyoni/javascript-testing-best-practices)
 
-
-모든 항목을 체크했다면 다음 주제로 넘어가세요! 
-
+모든 항목을 체크했다면 다음 주제로 넘어가세요!

@@ -28,25 +28,25 @@ React에서는 JavaScript의 `filter()`와 `map()`을 사용하여 데이터 배
 export const people = [
   {
     id: 0,
-    name: 'Creola Katherine Johnson',
-    profession: 'mathematician',
-    accomplishment: 'spaceflight calculations',
-    imageId: 'MK3eW3A'
+    name: "Creola Katherine Johnson",
+    profession: "mathematician",
+    accomplishment: "spaceflight calculations",
+    imageId: "MK3eW3A",
   },
   {
     id: 1,
-    name: 'Mario José Molina-Pasquel Henríquez',
-    profession: 'chemist',
-    accomplishment: 'discovery of Arctic ozone hole',
-    imageId: 'mynHUSa'
+    name: "Mario José Molina-Pasquel Henríquez",
+    profession: "chemist",
+    accomplishment: "discovery of Arctic ozone hole",
+    imageId: "mynHUSa",
   },
   {
     id: 2,
-    name: 'Mohammad Abdus Salam',
-    profession: 'physicist',
-    accomplishment: 'electromagnetism theory',
-    imageId: 'bE7W1ji'
-  }
+    name: "Mohammad Abdus Salam",
+    profession: "physicist",
+    accomplishment: "electromagnetism theory",
+    imageId: "bE7W1ji",
+  },
 ];
 ```
 
@@ -63,25 +63,22 @@ export function getImageUrl(person) {
 
 ```jsx
 // App.js
-import { people } from './data.js';
-import { getImageUrl } from './utils.js';
+import { people } from "./data.js";
+import { getImageUrl } from "./utils.js";
 
 export default function List() {
   // 배열을 JSX 배열로 변환
-  const listItems = people.map(person =>
+  const listItems = people.map((person) => (
     <li key={person.id}>
-      <img
-        src={getImageUrl(person)}
-        alt={person.name}
-      />
+      <img src={getImageUrl(person)} alt={person.name} />
       <p>
         <b>{person.name}:</b>
-        {' ' + person.profession + ' '}
+        {" " + person.profession + " "}
         known for {person.accomplishment}
       </p>
     </li>
-  );
-  
+  ));
+
   return (
     <article>
       <h1>Scientists</h1>
@@ -99,9 +96,7 @@ JavaScript의 `map()` 메서드를 사용해 배열의 각 요소를 JSX로 변�
 const numbers = [1, 2, 3, 4, 5];
 
 // 배열을 JSX 배열로 변환
-const listItems = numbers.map(number =>
-  <li key={number}>{number * 2}</li>
-);
+const listItems = numbers.map((number) => <li key={number}>{number * 2}</li>);
 
 return <ul>{listItems}</ul>;
 ```
@@ -111,9 +106,9 @@ return <ul>{listItems}</ul>;
 ```jsx
 return (
   <ul>
-    {numbers.map(number =>
+    {numbers.map((number) => (
       <li key={number}>{number * 2}</li>
-    )}
+    ))}
   </ul>
 );
 ```
@@ -123,26 +118,24 @@ return (
 특정 조건에 맞는 데이터만 표시할 때 `filter()`를 먼저 사용한다.
 
 ```jsx
-import { people } from './data.js';
+import { people } from "./data.js";
 
 export default function List() {
   // 직업이 'chemist'인 사람만 필터링
-  const chemists = people.filter(person =>
-    person.profession === 'chemist'
-  );
-  
+  const chemists = people.filter((person) => person.profession === "chemist");
+
   // JSX 배열로 변환
-  const listItems = chemists.map(person =>
+  const listItems = chemists.map((person) => (
     <li key={person.id}>
       <img src={getImageUrl(person)} alt={person.name} />
       <p>
         <b>{person.name}:</b>
-        {' ' + person.profession + ' '}
+        {" " + person.profession + " "}
         known for {person.accomplishment}
       </p>
     </li>
-  );
-  
+  ));
+
   return <ul>{listItems}</ul>;
 }
 ```
@@ -154,16 +147,15 @@ export default function List() {
   return (
     <ul>
       {people
-        .filter(person => person.profession === 'chemist')
-        .map(person => (
+        .filter((person) => person.profession === "chemist")
+        .map((person) => (
           <li key={person.id}>
             <img src={getImageUrl(person)} alt={person.name} />
             <p>
               <b>{person.name}:</b> {person.profession}
             </p>
           </li>
-        ))
-      }
+        ))}
     </ul>
   );
 }
@@ -177,18 +169,14 @@ export default function List() {
 
 ```jsx
 // 올바른 코드: key 사용
-{people.map(person =>
-  <li key={person.id}>
-    {person.name}
-  </li>
-)}
+{
+  people.map((person) => <li key={person.id}>{person.name}</li>);
+}
 
 // 잘못된 코드: key 없음
-{people.map(person =>
-  <li>
-    {person.name}
-  </li>
-)}
+{
+  people.map((person) => <li>{person.name}</li>);
+}
 ```
 
 ### Key 규칙
@@ -210,14 +198,14 @@ export default function List() {
 
 ```jsx
 // 배열 인덱스를 key로 사용 (비추천)
-{people.map((person, index) =>
-  <li key={index}>{person.name}</li>
-)}
+{
+  people.map((person, index) => <li key={index}>{person.name}</li>);
+}
 
 // 고유한 ID 사용
-{people.map(person =>
-  <li key={person.id}>{person.name}</li>
-)}
+{
+  people.map((person) => <li key={person.id}>{person.name}</li>);
+}
 ```
 
 배열 인덱스를 사용하지 말아야 하는 이유:
@@ -230,59 +218,57 @@ export default function List() {
 
 ```jsx
 // 렌더링할 때마다 새로운 key 생성 (최악)
-{items.map(item =>
-  <li key={Math.random()}>...</li>
-)}
+{
+  items.map((item) => <li key={Math.random()}>...</li>);
+}
 
-{items.map(item =>
-  <li key={crypto.randomUUID()}>...</li>
-)}
+{
+  items.map((item) => <li key={crypto.randomUUID()}>...</li>);
+}
 
 // 데이터에 안정적인 ID 포함
-{people.map(person =>
-  <li key={person.id}>...</li>
-)}
+{
+  people.map((person) => <li key={person.id}>...</li>);
+}
 ```
 
 핵심: key는 렌더링 중에 생성하지 말고, 데이터를 생성할 때 한 번만 할당해야 한다.
 
 ### Key로 사용할 수 있는 값
 
-| 상황 | 추천 Key |
-|------|---------|
-| 데이터베이스에서 가져온 데이터 | 데이터베이스 ID (`user.id`, `post.id`) |
-| 로컬에서 생성한 데이터 | UUID 라이브러리 (`crypto.randomUUID()`, `uuid`) |
-| 안정적인 고유 속성 | 이메일 주소, 사용자명 등 |
+| 상황                           | 추천 Key                                        |
+| ------------------------------ | ----------------------------------------------- |
+| 데이터베이스에서 가져온 데이터 | 데이터베이스 ID (`user.id`, `post.id`)          |
+| 로컬에서 생성한 데이터         | UUID 라이브러리 (`crypto.randomUUID()`, `uuid`) |
+| 안정적인 고유 속성             | 이메일 주소, 사용자명 등                        |
 
 UUID를 key로 사용하는 올바른 방법:
 
 ```jsx
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 
 // 올바른 방법: 데이터 생성 시점에 UUID 할당
 const [items, setItems] = useState([
-  { id: uuidv4(), text: 'Item 1' },
-  { id: uuidv4(), text: 'Item 2' },
+  { id: uuidv4(), text: "Item 1" },
+  { id: uuidv4(), text: "Item 2" },
 ]);
 
 // 새 아이템 추가 함수
 const addItem = (text) => {
-  setItems([
-    ...items,
-    { id: uuidv4(), text }
-  ]);
+  setItems([...items, { id: uuidv4(), text }]);
 };
 
 return (
   <ul>
-    {items.map(item =>
+    {items.map((item) => (
       <li key={item.id}>{item.text}</li>
-    )}
+    ))}
   </ul>
 );
 ```
 
 왜 이 방법이 올바른가?
+
 - UUID는 데이터를 생성하는 시점에 한 번만 생성
 - 생성된 ID는 데이터 객체에 저장되어 렌더링 시마다 동일한 값 사용
 - React가 각 항목을 안정적으로 추적할 수 있음
@@ -291,9 +277,9 @@ return (
 // 잘못된 방법: 렌더링 중에 UUID 생성
 return (
   <ul>
-    {items.map(item =>
+    {items.map((item) => (
       <li key={crypto.randomUUID()}>{item.text}</li>
-    )}
+    ))}
   </ul>
 );
 ```
@@ -303,12 +289,12 @@ return (
 각 항목이 여러 요소로 구성된 경우 Fragment를 사용한다.
 
 ```jsx
-import { Fragment } from 'react';
+import { Fragment } from "react";
 
 export default function List() {
   return (
     <div>
-      {people.map(person => (
+      {people.map((person) => (
         <Fragment key={person.id}>
           <h2>{person.name}</h2>
           <p>{person.bio}</p>
@@ -341,9 +327,7 @@ export default function List() {
 <!-- Vue: v-for -->
 <template>
   <ul>
-    <li v-for="person in people" :key="person.id">
-      {{ person.name }}
-    </li>
+    <li v-for="person in people" :key="person.id">{{ person.name }}</li>
   </ul>
 </template>
 ```
@@ -353,13 +337,11 @@ export default function List() {
 export default function List() {
   return (
     <ul>
-      {people.map(person =>
-        <li key={person.id}>
-          {person.name}
-        </li>
-      )}
+      {people.map((person) => (
+        <li key={person.id}>{person.name}</li>
+      ))}
     </ul>
-  )
+  );
 }
 ```
 

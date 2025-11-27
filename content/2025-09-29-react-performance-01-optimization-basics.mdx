@@ -12,13 +12,16 @@ seriesOrder: 1
 > React 애플리케이션 성능 최적화 학습 자료
 
 ---
+
 ## 📚 목차
+
 1. [개요](#개요)
 2. [React.memo](#reactmemo)
 3. [useMemo](#usememo)
 4. [useCallback](#usecallback)
 5. [성능 측정](#성능-측정)
 6. [최적화 체크리스트](#최적화-체크리스트)
+
 ---
 
 ## 개요
@@ -30,7 +33,7 @@ seriesOrder: 1
 - 부모 컴포넌트가 리렌더링되면 모든 자식도 리렌더링
 - 큰 리스트나 복잡한 계산은 성능 저하
 
-###  React 렌더링의 동작 원리 (핵심!)
+### React 렌더링의 동작 원리 (핵심!)
 
 렌더링이 발생하는 3가지 경우:
 
@@ -38,14 +41,13 @@ seriesOrder: 1
 
    ```jsx
    const [count, setCount] = useState(0);
-   setCount(1);  // 이 컴포넌트 리렌더링 트리거!
+   setCount(1); // 이 컴포넌트 리렌더링 트리거!
    ```
 
 2. Props 변경
 
    ```jsx
-   <Child name={name} />  // name 변경 → Child 리렌더링
-
+   <Child name={name} /> // name 변경 → Child 리렌더링
    ```
 
 3. 부모 리렌더링
@@ -55,16 +57,14 @@ seriesOrder: 1
      const [count, setCount] = useState(0);
      return (
        <div>
-         <button onClick={() => setCount(count + 1)}>
-           {count}
-         </button>
-         <Child />  {/* count 변경 → Child도 리렌더링! */}
+         <button onClick={() => setCount(count + 1)}>{count}</button>
+         <Child /> {/* count 변경 → Child도 리렌더링! */}
        </div>
      );
    }
    ```
 
-###  React의 렌더링 프로세스 (상세)
+### React의 렌더링 프로세스 (상세)
 
 ```text
 1. 렌더 단계 (Render Phase)
@@ -85,13 +85,13 @@ seriesOrder: 1
 // 문제 상황
 function App() {
   const [count, setCount] = useState(0);
-  
+
   return (
     <div>
       <button onClick={() => setCount(count + 1)}>{count}</button>
-      
+
       {/* 10,000개 항목 */}
-      {items.map(item => (
+      {items.map((item) => (
         <ExpensiveItem key={item.id} data={item} />
       ))}
     </div>
@@ -106,7 +106,7 @@ function App() {
 // → 불필요한 작업 9,999개!
 ```
 
-###  실무 TIP: "리렌더링은 왜 발생하고 어떻게 방지하나요?"
+### 실무 TIP: "리렌더링은 왜 발생하고 어떻게 방지하나요?"
 
 답변 예시:
 
@@ -144,45 +144,46 @@ function App() {
 - `useCallback`: 함수 메모이제이션
 
 ---
+
 ## React.memo
+
 ### 기본 사용
+
 ```jsx
 //  최적화 전
 function Child({ name }) {
-  console.log('Child rendered');
+  console.log("Child rendered");
   return <div>{name}</div>;
 }
 function Parent() {
   const [count, setCount] = useState(0);
-  
+
   return (
     <div>
-      <button onClick={() => setCount(count + 1)}>
-        Count: {count}
-      </button>
-      <Child name="John" />  {/* count 변경 시마다 리렌더링! */}
+      <button onClick={() => setCount(count + 1)}>Count: {count}</button>
+      <Child name="John" /> {/* count 변경 시마다 리렌더링! */}
     </div>
   );
 }
 //  최적화 후
 const Child = React.memo(function Child({ name }) {
-  console.log('Child rendered');
+  console.log("Child rendered");
   return <div>{name}</div>;
 });
 function Parent() {
   const [count, setCount] = useState(0);
-  
+
   return (
     <div>
-      <button onClick={() => setCount(count + 1)}>
-        Count: {count}
-      </button>
-      <Child name="John" />  {/* props 변경 없으면 리렌더링 안함! */}
+      <button onClick={() => setCount(count + 1)}>Count: {count}</button>
+      <Child name="John" /> {/* props 변경 없으면 리렌더링 안함! */}
     </div>
   );
 }
 ```
+
 ### 커스텀 비교 함수
+
 ```jsx
 const Child = React.memo(
   function Child({ user }) {
@@ -191,9 +192,10 @@ const Child = React.memo(
   (prevProps, nextProps) => {
     // true 반환 = 리렌더링 하지 않음
     return prevProps.user.id === nextProps.user.id;
-  }
+  },
 );
 ```
+
 ---
 
 ## useMemo
@@ -201,22 +203,22 @@ const Child = React.memo(
 ### 기본 사용
 
 ```jsx
-import { useMemo } from 'react';
+import { useMemo } from "react";
 
 function TodoList({ todos, filter }) {
   // 비싼 계산 메모이제이션
   const filteredTodos = useMemo(() => {
-    console.log('Filtering todos...');
-    return todos.filter(todo => {
-      if (filter === 'all') return true;
-      if (filter === 'active') return !todo.completed;
-      if (filter === 'completed') return todo.completed;
+    console.log("Filtering todos...");
+    return todos.filter((todo) => {
+      if (filter === "all") return true;
+      if (filter === "active") return !todo.completed;
+      if (filter === "completed") return todo.completed;
     });
-  }, [todos, filter]);  // todos나 filter 변경 시에만 재계산
+  }, [todos, filter]); // todos나 filter 변경 시에만 재계산
 
   return (
     <ul>
-      {filteredTodos.map(todo => (
+      {filteredTodos.map((todo) => (
         <li key={todo.id}>{todo.text}</li>
       ))}
     </ul>
@@ -233,51 +235,55 @@ const sortedList = useMemo(() => {
 }, [items]);
 
 //  불필요: 간단한 계산
-const doubled = useMemo(() => count * 2, [count]);  // 오버헤드만 증가
+const doubled = useMemo(() => count * 2, [count]); // 오버헤드만 증가
 
 //  좋음: 참조 동일성이 중요한 경우
 const config = useMemo(() => ({ theme, locale }), [theme, locale]);
 ```
 
 ---
+
 ## useCallback
+
 ### 기본 사용
+
 ```jsx
-import { useCallback } from 'react';
+import { useCallback } from "react";
 function Parent() {
   const [count, setCount] = useState(0);
   // 함수 메모이제이션
   const handleClick = useCallback(() => {
-    console.log('Clicked!');
-  }, []);  // 의존성 없음 = 절대 재생성 안됨
+    console.log("Clicked!");
+  }, []); // 의존성 없음 = 절대 재생성 안됨
   return (
     <div>
-      <button onClick={() => setCount(count + 1)}>
-        Count: {count}
-      </button>
+      <button onClick={() => setCount(count + 1)}>Count: {count}</button>
       <Child onClick={handleClick} />
     </div>
   );
 }
 const Child = React.memo(function Child({ onClick }) {
-  console.log('Child rendered');
+  console.log("Child rendered");
   return <button onClick={onClick}>Click me</button>;
 });
 ```
+
 ### 의존성 배열
+
 ```jsx
 function SearchResults({ query }) {
   const [results, setResults] = useState([]);
   const handleSearch = useCallback(async () => {
     const data = await fetch(`/api/search?q=${query}`);
     setResults(data);
-  }, [query]);  // query 변경 시에만 재생성
+  }, [query]); // query 변경 시에만 재생성
   useEffect(() => {
     handleSearch();
   }, [handleSearch]);
   return <ResultList results={results} />;
 }
 ```
+
 ---
 
 ## 성능 측정
@@ -285,7 +291,7 @@ function SearchResults({ query }) {
 ### React DevTools Profiler
 
 ```jsx
-import { Profiler } from 'react';
+import { Profiler } from "react";
 
 function onRenderCallback(
   id,
@@ -293,7 +299,7 @@ function onRenderCallback(
   actualDuration,
   baseDuration,
   startTime,
-  commitTime
+  commitTime,
 ) {
   console.log(`${id} (${phase}) took ${actualDuration}ms`);
 }
@@ -310,28 +316,33 @@ function App() {
 ### Performance API
 
 ```javascript
-performance.mark('start');
+performance.mark("start");
 
 // 작업 수행
 doExpensiveWork();
 
-performance.mark('end');
-performance.measure('work', 'start', 'end');
+performance.mark("end");
+performance.measure("work", "start", "end");
 
-const measure = performance.getEntriesByName('work')[0];
+const measure = performance.getEntriesByName("work")[0];
 console.log(`Duration: ${measure.duration}ms`);
 ```
 
 ---
+
 ## 최적화 체크리스트
+
 ### 필수 최적화
+
 - [ ] 리스트에 `key` 사용
 - [ ] 이미지 최적화 (next/image)
 - [ ] 코드 분할 (React.lazy)
 - [ ] 필요한 곳에만 React.memo
 - [ ] 큰 계산에만 useMemo
 - [ ] Props로 전달되는 함수에 useCallback
+
 ### 고급 최적화
+
 - [ ] 가상화 (react-window)
 - [ ] Web Workers
 - [ ] Service Workers

@@ -9,12 +9,15 @@ seriesOrder: 24
 
 # React 학습 가이드 - Context로 데이터 깊이 전달하기
 
-
 ---
+
 ## Context로 데이터 깊이 전달하기
+
 ### Context란 무엇인가?
+
 Context는 React 컴포넌트 트리에서 "텔레포트"처럼 데이터를 전달하는 기능이다.
 일반적으로 React는 부모에서 자식으로 props를 통해 데이터를 전달한다. 하지만 여러 단계를 거쳐야 하거나 많은 컴포넌트가 같은 데이터를 필요로 할 때, props 전달은 불편해집니다.
+
 ```
 일반 Props 전달:
 App → Layout → Header → Button
@@ -23,18 +26,25 @@ Context 사용:
 App ········→ Button
 (중간 단계를 건너뛰고 직접 전달)
 ```
+
 #### React의 데이터 흐름 철학
+
 React는 "단방향 데이터 흐름"을 기본 철학으로 한다:
+
 1. 명시적 props 전달: 데이터가 어디서 오는지 명확함
 2. 예측 가능한 흐름: 부모 → 자식 방향으로만 흐름
 3. 컴포넌트 독립성: 각 컴포넌트는 props만 알면 됨
-하지만 이런 철학에도 예외가 필요한 경우가 있다:
+   하지만 이런 철학에도 예외가 필요한 경우가 있다:
+
 - 테마 (모든 UI가 사용)
 - 현재 사용자 정보 (어디서든 필요)
 - 언어 설정 (전체 앱에 영향)
-이런 "전역적인 데이터"를 위해 Context가 등장했다.
+  이런 "전역적인 데이터"를 위해 Context가 등장했다.
+
 #### Context의 핵심 개념
+
 Context는 3가지 요소로 구성된다:
+
 ```
 1. Context 생성 (createContext)
    ↓
@@ -42,20 +52,26 @@ Context는 3가지 요소로 구성된다:
    ↓
 3. useContext로 데이터 소비
 ```
+
 비유로 이해하기:
 Context는 "무선 충전기"와 같다:
+
 - Provider: 무선 충전 패드 (전력 공급)
 - Context: 전력이 흐르는 공간
 - useContext: 휴대폰 (전력 수신)
-중간에 케이블(props)이 없어도 전력(데이터)이 전달된다!
+  중간에 케이블(props)이 없어도 전력(데이터)이 전달된다!
+
 ### Props Drilling 문제
+
 Props를 여러 레벨을 거쳐 전달해야 할 때 코드가 복잡해집니다.
+
 #### 실제 시나리오: 사용자 정보 전달
+
 ```jsx
 //  Props Drilling: 5단계 컴포넌트 트리
 function App() {
-  const user = { name: 'Alice', avatar: 'alice.jpg' };
-  
+  const user = { name: "Alice", avatar: "alice.jpg" };
+
   return <Dashboard user={user} />;
 }
 function Dashboard({ user }) {
@@ -88,7 +104,9 @@ function UserProfile({ user }) {
   return <div>{user.name}</div>;
 }
 ```
+
 데이터 흐름 시각화:
+
 ```
 App (user 생성)
  ↓ props
@@ -100,20 +118,25 @@ Menu (통과만 함)
  ↓ props
 UserProfile (드디어 사용!)
 ```
+
 #### Props Drilling의 3가지 문제
+
 1. 코드 중복 (Boilerplate)
+
 ```jsx
 // 모든 중간 컴포넌트에서 반복
 function Component({ user }) {
   return <ChildComponent user={user} />;
 }
 ```
+
 2. 유지보수 어려움
+
 ```jsx
 // user를 profile로 이름 변경하려면?
 // 5개 컴포넌트를 모두 수정해야 함!
 function App() {
-  const profile = { name: 'Alice' };
+  const profile = { name: "Alice" };
   return <Dashboard profile={profile} />;
 }
 function Dashboard({ profile }) {
@@ -121,7 +144,9 @@ function Dashboard({ profile }) {
 }
 // ... 모든 컴포넌트 수정 필요
 ```
+
 3. 컴포넌트 오염
+
 ```jsx
 // Dashboard는 user를 사용하지 않는데
 // props 인터페이스가 오염됨
@@ -130,23 +155,30 @@ function Dashboard({ user, theme, language, settings }) {
   return <Sidebar user={user} theme={theme} ... />;
 }
 ```
+
 ### Context가 해결하는 방법
+
 Context를 사용하면 중간 컴포넌트를 거치지 않고 데이터를 전달할 수 있다.
+
 #### Props vs Context 비교
+
 Props 방식:
+
 ```jsx
 // 모든 컴포넌트가 theme을 전달해야 함
 <App theme="dark">
   <Dashboard theme="dark">
     <Sidebar theme="dark">
       <Menu theme="dark">
-        <Button theme="dark" />  ← 여기서 사용
+        <Button theme="dark" /> ← 여기서 사용
       </Menu>
     </Sidebar>
   </Dashboard>
 </App>
 ```
+
 Context 방식:
+
 ```jsx
 // Provider만 설정하면 끝!
 <ThemeContext.Provider value="dark">
@@ -154,31 +186,39 @@ Context 방식:
     <Dashboard>
       <Sidebar>
         <Menu>
-          <Button />  ← useContext로 직접 접근
+          <Button /> ← useContext로 직접 접근
         </Menu>
       </Sidebar>
     </Dashboard>
   </App>
 </ThemeContext.Provider>
 ```
+
 #### Context의 3가지 장점
+
 1. 중간 컴포넌트 간소화: props 전달 불필요
 2. 유지보수 용이: Provider만 수정하면 모든 곳에 반영
 3. 명확한 의도: "이건 전역 데이터이다" 선언
+
 ### Context 사용 방법
+
 Context를 사용하려면 3단계를 거칩니다.
+
 #### 0단계: 언제 Context를 사용할까?
+
 Context를 사용하면 좋은 경우:
+
 - 🎨 테마: 다크/라이트 모드
 - 👤 현재 사용자: 로그인 정보
 - 🌍 언어/지역: i18n 설정
 - 🧭 라우팅: 현재 경로 정보
 - 📱 앱 설정: 전역 설정값
-Context를 피해야 하는 경우:
+  Context를 피해야 하는 경우:
 - 단순히 props 2-3단계 전달
 - 자주 변경되는 데이터 (성능 문제)
 - 컴포넌트 재사용성이 중요한 경우
-판단 기준:
+  판단 기준:
+
 ```
  5개 이상 컴포넌트가 같은 데이터 필요 → Context
  props를 5단계 이상 전달 → Context
@@ -186,17 +226,22 @@ Context를 피해야 하는 경우:
  props 1-2단계 전달 → 그냥 props 사용
  한두 개 컴포넌트만 사용 → props 사용
 ```
+
 #### 1단계: Context 생성
+
 createContext로 Context 객체를 만듭니다.
+
 ```jsx
-import { createContext } from 'react';
+import { createContext } from "react";
 // 기본값 'light'를 가진 Context 생성
-export const ThemeContext = createContext('light');
+export const ThemeContext = createContext("light");
 ```
+
 기본값의 역할:
+
 ```jsx
 // 기본값은 Provider 없을 때만 사용됨
-const ThemeContext = createContext('light');
+const ThemeContext = createContext("light");
 // Provider 없이 사용 → 기본값 'light' 사용
 function Button() {
   const theme = useContext(ThemeContext); // 'light'
@@ -204,116 +249,125 @@ function Button() {
 }
 // Provider 있으면 → Provider의 value 사용
 <ThemeContext.Provider value="dark">
-  <Button />  {/* 'dark' 사용 */}
-</ThemeContext.Provider>
+  <Button /> {/* 'dark' 사용 */}
+</ThemeContext.Provider>;
 ```
+
 실무 팁: Provider를 필수로 만드는 패턴
 기본값을 설정하면 Provider 없이도 동작하는데, 이게 오히려 버그의 원인이 될 수 있다.
 문제 상황:
+
 ```jsx
 // 기본값 설정
-const UserContext = createContext({ name: 'Guest', id: 0 });
+const UserContext = createContext({ name: "Guest", id: 0 });
 function UserProfile() {
   const user = useContext(UserContext);
-  return <div>{user.name}</div>;  // 'Guest' 출력
+  return <div>{user.name}</div>; // 'Guest' 출력
 }
 //  Provider를 깜빡함 - 그런데 에러가 안 남!
 function App() {
-  return <UserProfile />;  // 'Guest' 표시 - 버그인지 의도인지 모름
+  return <UserProfile />; // 'Guest' 표시 - 버그인지 의도인지 모름
 }
 ```
+
 해결 방법: null로 초기화
+
 ```jsx
 // 1. null로 초기화 (Provider 없으면 에러 내기 위해)
 const UserContext = createContext(null);
 // 2. 커스텀 Hook 만들기
 function useUser() {
   const user = useContext(UserContext);
-  
+
   // Provider 없으면 user가 null → 에러 발생
   if (user === null) {
-    throw new Error('useUser는 UserProvider 안에서만 사용 가능한다');
+    throw new Error("useUser는 UserProvider 안에서만 사용 가능한다");
   }
-  
+
   return user;
 }
 // 3. 사용하기
 function UserProfile() {
-  const user = useUser();  // Provider 없으면 에러!
+  const user = useUser(); // Provider 없으면 에러!
   return <div>{user.name}</div>;
 }
 ```
+
 전체 예제로 이해하기:
+
 ```jsx
 // UserContext.js
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState } from "react";
 // 1. null로 초기화
 const UserContext = createContext(null);
 // 2. Provider 컴포넌트 만들기
 export function UserProvider({ children }) {
-  const [user, setUser] = useState({ name: 'Alice', id: 1 });
-  
-  return (
-    <UserContext.Provider value={user}>
-      {children}
-    </UserContext.Provider>
-  );
+  const [user, setUser] = useState({ name: "Alice", id: 1 });
+
+  return <UserContext.Provider value={user}>{children}</UserContext.Provider>;
 }
 // 3. 안전한 커스텀 Hook
 export function useUser() {
   const user = useContext(UserContext);
-  
+
   if (user === null) {
-    throw new Error('useUser는 UserProvider 안에서만 사용 가능한다');
+    throw new Error("useUser는 UserProvider 안에서만 사용 가능한다");
   }
-  
+
   return user;
 }
 ```
+
 ```jsx
 // App.js
-import { UserProvider, useUser } from './UserContext.js';
+import { UserProvider, useUser } from "./UserContext.js";
 function UserProfile() {
-  const user = useUser();  // 안전하게 사용
+  const user = useUser(); // 안전하게 사용
   return <div>Hello, {user.name}!</div>;
 }
 //  올바른 사용
 function App() {
   return (
     <UserProvider>
-      <UserProfile />  {/* 정상 동작 */}
+      <UserProfile /> {/* 정상 동작 */}
     </UserProvider>
   );
 }
 //  잘못된 사용 - 명확한 에러 발생
 function WrongApp() {
-  return <UserProfile />;  // 에러: "useUser는 UserProvider 안에서만 사용 가능한다"
+  return <UserProfile />; // 에러: "useUser는 UserProvider 안에서만 사용 가능한다"
 }
 ```
+
 이 패턴의 장점:
+
 1. 버그 조기 발견: Provider 빠뜨리면 즉시 에러
 2. 명확한 에러 메시지: 어떻게 고쳐야 하는지 알려줌
 3. TypeScript와 궁합 좋음: null 체크로 타입 안전성 확보
-요약:
+   요약:
+
 ```jsx
 //  나쁨: 기본값 설정 → Provider 없어도 동작 → 버그 발견 어려움
-const Context = createContext('default');
+const Context = createContext("default");
 //  좋음: null 초기화 → 커스텀 Hook → Provider 필수화
 const Context = createContext(null);
 function useMyContext() {
   const value = useContext(Context);
-  if (value === null) throw new Error('Provider 필요!');
+  if (value === null) throw new Error("Provider 필요!");
   return value;
 }
 ```
+
 #### 2단계: Context 제공 (Provider)
+
 Provider로 컴포넌트 트리에 데이터를 제공한다.
+
 ```jsx
-import { useState } from 'react';
-import { ThemeContext } from './ThemeContext.js';
+import { useState } from "react";
+import { ThemeContext } from "./ThemeContext.js";
 export default function App() {
-  const [theme, setTheme] = useState('light');
-  
+  const [theme, setTheme] = useState("light");
+
   return (
     <ThemeContext.Provider value={theme}>
       <Page />
@@ -321,52 +375,60 @@ export default function App() {
   );
 }
 ```
+
 Provider의 핵심 개념:
+
 1. 범위 설정: Provider 하위 컴포넌트만 접근 가능
+
    ```jsx
    <div>
-     <ComponentA />  {/*  Context 접근 불가 */}
+     <ComponentA /> {/*  Context 접근 불가 */}
      <ThemeContext.Provider value="dark">
-       <ComponentB />  {/*  Context 접근 가능 */}
+       <ComponentB /> {/*  Context 접근 가능 */}
      </ThemeContext.Provider>
    </div>
    ```
+
 2. 동적 값: state를 value로 전달 가능
+
    ```jsx
-   const [theme, setTheme] = useState('light');
-   
+   const [theme, setTheme] = useState("light");
+
    // theme이 변경되면 모든 useContext가 자동 업데이트
    <ThemeContext.Provider value={theme}>
      <App />
-   </ThemeContext.Provider>
+   </ThemeContext.Provider>;
    ```
+
 3. 중첩 가능: 가장 가까운 Provider 값 사용
+
    ```jsx
    <ThemeContext.Provider value="light">
-     <ComponentA />  {/* 'light' 사용 */}
-     
+     <ComponentA /> {/* 'light' 사용 */}
      <ThemeContext.Provider value="dark">
-       <ComponentB />  {/* 'dark' 사용 (재정의됨) */}
+       <ComponentB /> {/* 'dark' 사용 (재정의됨) */}
      </ThemeContext.Provider>
    </ThemeContext.Provider>
    ```
+
 #### 3단계: Context 사용 (Consumer)
+
 useContext Hook으로 데이터를 읽다.
+
 ```jsx
-import { useContext } from 'react';
-import { ThemeContext } from './ThemeContext.js';
+import { useContext } from "react";
+import { ThemeContext } from "./ThemeContext.js";
 function Button() {
   const theme = useContext(ThemeContext);
-  
-  return (
-    <button className={theme}>
-      Click me
-    </button>
-  );
+
+  return <button className={theme}>Click me</button>;
 }
 ```
+
 useContext의 핵심 개념:
+
 1. 자동 구독: Context 값이 바뀌면 자동 리렌더링
+
    ```jsx
    function Button() {
      const theme = useContext(ThemeContext);
@@ -374,31 +436,37 @@ useContext의 핵심 개념:
      return <button className={theme}>Click</button>;
    }
    ```
+
 2. 트리 탐색: 가장 가까운 Provider 찾기
+
    ```jsx
    // React가 컴포넌트 트리를 위로 올라가며 Provider 탐색
    <ThemeContext.Provider value="light">
      <div>
        <div>
          <div>
-           <Button />  {/* 3단계 위의 Provider 찾아서 사용 */}
+           <Button /> {/* 3단계 위의 Provider 찾아서 사용 */}
          </div>
        </div>
      </div>
    </ThemeContext.Provider>
    ```
+
 3. 여러 Context 사용 가능
+
    ```jsx
    function UserProfile() {
      const theme = useContext(ThemeContext);
      const user = useContext(UserContext);
      const language = useContext(LanguageContext);
-     
+
      // 여러 Context를 동시에 사용 가능
      return <div className={theme}>{user.name}</div>;
    }
    ```
+
 주의사항:
+
 ```jsx
 //  나쁨: Provider 밖에서 사용
 function Button() {
@@ -411,29 +479,33 @@ function Button() {
   <Button />  // 'dark' 사용
 </ThemeContext.Provider>
 ```
+
 ### 전체 예제
+
 세 단계를 모두 통합한 예제를 보겠다.
+
 ```jsx
 // ThemeContext.js
-import { createContext } from 'react';
-export const ThemeContext = createContext('light');
+import { createContext } from "react";
+export const ThemeContext = createContext("light");
 ```
+
 ```jsx
 // App.js
-import { useState } from 'react';
-import { ThemeContext } from './ThemeContext.js';
+import { useState } from "react";
+import { ThemeContext } from "./ThemeContext.js";
 export default function App() {
-  const [theme, setTheme] = useState('light');
-  
+  const [theme, setTheme] = useState("light");
+
   return (
     <ThemeContext.Provider value={theme}>
       <Page />
       <label>
         <input
           type="checkbox"
-          checked={theme === 'dark'}
+          checked={theme === "dark"}
           onChange={(e) => {
-            setTheme(e.target.checked ? 'dark' : 'light')
+            setTheme(e.target.checked ? "dark" : "light");
           }}
         />
         Use dark mode
@@ -459,21 +531,20 @@ function Header() {
 }
 function Button() {
   const theme = useContext(ThemeContext);
-  const className = 'button-' + theme;
-  
-  return (
-    <button className={className}>
-      Click me
-    </button>
-  );
+  const className = "button-" + theme;
+
+  return <button className={className}>Click me</button>;
 }
 ```
+
 ### Context와 Reducer 결합하기
+
 Context와 Reducer를 함께 사용하면 강력한 state 관리 패턴을 만들 수 있다.
 복잡한 state 관리는 Context + Reducer를 함께 사용한다.
+
 ```jsx
 // TasksContext.js
-import { createContext, useContext } from 'react';
+import { createContext, useContext } from "react";
 export const TasksContext = createContext(null);
 export const TasksDispatchContext = createContext(null);
 export function useTasks() {
@@ -483,6 +554,7 @@ export function useTasksDispatch() {
   return useContext(TasksDispatchContext);
 }
 ```
+
 ```jsx
 // TasksProvider.js
 import { useReducer } from 'react';
@@ -506,11 +578,12 @@ const initialTasks = [
   { id: 2, text: 'Drink matcha', done: false }
 ];
 ```
+
 ```jsx
 // App.js
-import { TasksProvider } from './TasksProvider.js';
-import TaskList from './TaskList.js';
-import AddTask from './AddTask.js';
+import { TasksProvider } from "./TasksProvider.js";
+import TaskList from "./TaskList.js";
+import AddTask from "./AddTask.js";
 export default function TaskApp() {
   return (
     <TasksProvider>
@@ -521,36 +594,39 @@ export default function TaskApp() {
   );
 }
 ```
+
 ```jsx
 // TaskList.js
-import { useTasks, useTasksDispatch } from './TasksContext.js';
+import { useTasks, useTasksDispatch } from "./TasksContext.js";
 export default function TaskList() {
   const tasks = useTasks();
   const dispatch = useTasksDispatch();
   return (
     <ul>
-      {tasks.map(task => (
+      {tasks.map((task) => (
         <li key={task.id}>
           <input
             type="checkbox"
             checked={task.done}
-            onChange={e => {
+            onChange={(e) => {
               dispatch({
-                type: 'changed',
+                type: "changed",
                 task: {
                   ...task,
-                  done: e.target.checked
-                }
+                  done: e.target.checked,
+                },
               });
             }}
           />
           {task.text}
-          <button onClick={() => {
-            dispatch({
-              type: 'deleted',
-              id: task.id
-            });
-          }}>
+          <button
+            onClick={() => {
+              dispatch({
+                type: "deleted",
+                id: task.id,
+              });
+            }}
+          >
             Delete
           </button>
         </li>
@@ -559,37 +635,46 @@ export default function TaskList() {
   );
 }
 ```
+
 ```jsx
 // AddTask.js
-import { useState } from 'react';
-import { useTasksDispatch } from './TasksContext.js';
+import { useState } from "react";
+import { useTasksDispatch } from "./TasksContext.js";
 export default function AddTask() {
-  const [text, setText] = useState('');
+  const [text, setText] = useState("");
   const dispatch = useTasksDispatch();
-  
+
   return (
     <>
       <input
         placeholder="Add task"
         value={text}
-        onChange={e => setText(e.target.value)}
+        onChange={(e) => setText(e.target.value)}
       />
-      <button onClick={() => {
-        setText('');
-        dispatch({
-          type: 'added',
-          id: nextId++,
-          text: text,
-        });
-      }}>Add</button>
+      <button
+        onClick={() => {
+          setText("");
+          dispatch({
+            type: "added",
+            id: nextId++,
+            text: text,
+          });
+        }}
+      >
+        Add
+      </button>
     </>
   );
 }
 let nextId = 3;
 ```
+
 ### Context 사용 시 주의사항
+
 Context는 강력하지만 남용하면 오히려 코드가 복잡해집니다.
+
 #### 1. 과도한 사용 피하기
+
 ```jsx
 //  나쁨: 모든 것을 Context로
 <UserContext.Provider>
@@ -608,7 +693,9 @@ Context는 강력하지만 남용하면 오히려 코드가 복잡해집니다.
 // 2. 컴포넌트 추출 및 children으로 JSX 전달
 // 3. 그래도 불편하면 Context 사용
 ```
+
 #### 2. Props 전달을 먼저 고려하라
+
 ```jsx
 //  좋음: Props 전달이 명확함
 <Layout posts={posts}>
@@ -616,18 +703,21 @@ Context는 강력하지만 남용하면 오히려 코드가 복잡해집니다.
 </Layout>
 // Context는 정말 많은 컴포넌트가 같은 데이터를 필요로 할 때만
 ```
+
 ### Vue와 비교
+
 ```html
 <!-- Vue: provide/inject -->
 <script setup>
-import { provide } from 'vue'
-provide('theme', 'dark')
+  import { provide } from "vue";
+  provide("theme", "dark");
 </script>
 ```
+
 ```html
 <!-- 자식 컴포넌트 -->
 <script setup>
-import { inject } from 'vue'
-const theme = inject('theme')
+  import { inject } from "vue";
+  const theme = inject("theme");
 </script>
 ```

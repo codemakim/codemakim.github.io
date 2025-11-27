@@ -49,12 +49,7 @@ React 애플리케이션은 `컴포넌트`라는 독립적인 UI 조각으로 �
 ```jsx
 // Profile 컴포넌트 정의
 function Profile() {
-  return (
-    <img
-      src="https://i.imgur.com/MK3eW3As.jpg"
-      alt="Katherine Johnson"
-    />
-  );
+  return <img src="https://i.imgur.com/MK3eW3As.jpg" alt="Katherine Johnson" />;
 }
 
 // Gallery 컴포넌트: Profile을 3번 재사용
@@ -107,7 +102,7 @@ export default function Gallery() {
 </template>
 
 <script setup>
-import Profile from './Profile.vue'
+  import Profile from "./Profile.vue";
 </script>
 ```
 

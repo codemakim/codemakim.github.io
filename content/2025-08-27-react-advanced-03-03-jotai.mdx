@@ -12,26 +12,35 @@ seriesOrder: 56
 > Zustand, Redux Toolkit을 중심으로 한 상태 관리 학습 자료
 
 ---
+
 ## Jotai
+
 Jotai
 Redux Toolkit
+
 ### 개요
+
 Redux Toolkit은 Redux의 공식 권장 방법이다.
 특징:
+
 - Redux 보일러플레이트 대폭 감소
 - Immer 내장 (불변성 자동 처리)
 - Redux DevTools 내장
 - RTK Query (데이터 페칭)
+
 ### 설치
+
 ```bash
 npm install @reduxjs/toolkit react-redux
 ```
+
 ### 기본 설정
+
 ```jsx
 // store.js
-import { configureStore } from '@reduxjs/toolkit';
-import counterReducer from './slices/counterSlice';
-import userReducer from './slices/userSlice';
+import { configureStore } from "@reduxjs/toolkit";
+import counterReducer from "./slices/counterSlice";
+import userReducer from "./slices/userSlice";
 export const store = configureStore({
   reducer: {
     counter: counterReducer,
@@ -39,28 +48,31 @@ export const store = configureStore({
   },
 });
 ```
+
 ```jsx
 // index.jsx
-import { Provider } from 'react-redux';
-import { store } from './store';
+import { Provider } from "react-redux";
+import { store } from "./store";
 root.render(
   <Provider store={store}>
     <App />
-  </Provider>
+  </Provider>,
 );
 ```
+
 ### Slice 생성
+
 ```jsx
 // slices/counterSlice.js
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice } from "@reduxjs/toolkit";
 const counterSlice = createSlice({
-  name: 'counter',
+  name: "counter",
   initialState: {
     value: 0,
   },
   reducers: {
     increment: (state) => {
-      state.value += 1;  // Immer 덕분에 직접 수정 가능!
+      state.value += 1; // Immer 덕분에 직접 수정 가능!
     },
     decrement: (state) => {
       state.value -= 1;
@@ -73,14 +85,17 @@ const counterSlice = createSlice({
     },
   },
 });
-export const { increment, decrement, incrementByAmount, reset } = counterSlice.actions;
+export const { increment, decrement, incrementByAmount, reset } =
+  counterSlice.actions;
 export default counterSlice.reducer;
 ```
+
 ### 컴포넌트에서 사용
+
 ```jsx
 // components/Counter.jsx
-import { useSelector, useDispatch } from 'react-redux';
-import { increment, decrement, reset } from '../slices/counterSlice';
+import { useSelector, useDispatch } from "react-redux";
+import { increment, decrement, reset } from "../slices/counterSlice";
 export default function Counter() {
   const count = useSelector((state) => state.counter.value);
   const dispatch = useDispatch();
@@ -94,19 +109,18 @@ export default function Counter() {
   );
 }
 ```
+
 ### 비동기 Thunk
+
 ```jsx
 // slices/userSlice.js
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-export const fetchUsers = createAsyncThunk(
-  'users/fetchUsers',
-  async () => {
-    const response = await fetch('/api/users');
-    return response.json();
-  }
-);
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+export const fetchUsers = createAsyncThunk("users/fetchUsers", async () => {
+  const response = await fetch("/api/users");
+  return response.json();
+});
 const userSlice = createSlice({
-  name: 'users',
+  name: "users",
   initialState: {
     list: [],
     loading: false,
@@ -131,11 +145,12 @@ const userSlice = createSlice({
 });
 export default userSlice.reducer;
 ```
+
 ```jsx
 // components/UserList.jsx
-import { useEffect } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { fetchUsers } from '../slices/userSlice';
+import { useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { fetchUsers } from "../slices/userSlice";
 export default function UserList() {
   const { list, loading, error } = useSelector((state) => state.users);
   const dispatch = useDispatch();
@@ -153,38 +168,40 @@ export default function UserList() {
   );
 }
 ```
+
 ### RTK Query
+
 ```jsx
 // api/apiSlice.js
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 export const apiSlice = createApi({
-  reducerPath: 'api',
-  baseQuery: fetchBaseQuery({ baseUrl: '/api' }),
-  tagTypes: ['Users', 'Posts'],
+  reducerPath: "api",
+  baseQuery: fetchBaseQuery({ baseUrl: "/api" }),
+  tagTypes: ["Users", "Posts"],
   endpoints: (builder) => ({
     getUsers: builder.query({
-      query: () => '/users',
-      providesTags: ['Users'],
+      query: () => "/users",
+      providesTags: ["Users"],
     }),
     getUser: builder.query({
       query: (id) => `/users/${id}`,
-      providesTags: (result, error, id) => [{ type: 'Users', id }],
+      providesTags: (result, error, id) => [{ type: "Users", id }],
     }),
     addUser: builder.mutation({
       query: (user) => ({
-        url: '/users',
-        method: 'POST',
+        url: "/users",
+        method: "POST",
         body: user,
       }),
-      invalidatesTags: ['Users'],
+      invalidatesTags: ["Users"],
     }),
     updateUser: builder.mutation({
       query: ({ id, ...user }) => ({
         url: `/users/${id}`,
-        method: 'PUT',
+        method: "PUT",
         body: user,
       }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'Users', id }],
+      invalidatesTags: (result, error, { id }) => [{ type: "Users", id }],
     }),
   }),
 });
@@ -195,10 +212,11 @@ export const {
   useUpdateUserMutation,
 } = apiSlice;
 ```
+
 ```jsx
 // store.js
-import { configureStore } from '@reduxjs/toolkit';
-import { apiSlice } from './api/apiSlice';
+import { configureStore } from "@reduxjs/toolkit";
+import { apiSlice } from "./api/apiSlice";
 export const store = configureStore({
   reducer: {
     [apiSlice.reducerPath]: apiSlice.reducer,
@@ -207,14 +225,15 @@ export const store = configureStore({
     getDefaultMiddleware().concat(apiSlice.middleware),
 });
 ```
+
 ```jsx
 // components/UserList.jsx
-import { useGetUsersQuery, useAddUserMutation } from '../api/apiSlice';
+import { useGetUsersQuery, useAddUserMutation } from "../api/apiSlice";
 export default function UserList() {
   const { data: users, isLoading, error } = useGetUsersQuery();
   const [addUser, { isLoading: isAdding }] = useAddUserMutation();
   async function handleAdd() {
-    await addUser({ name: 'New User', email: 'new@example.com' });
+    await addUser({ name: "New User", email: "new@example.com" });
   }
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>Error</div>;
@@ -232,29 +251,31 @@ export default function UserList() {
   );
 }
 ```
+
 ### Selector 최적화
+
 ```jsx
 // selectors/userSelectors.js
-import { createSelector } from '@reduxjs/toolkit';
+import { createSelector } from "@reduxjs/toolkit";
 // 기본 selector
 export const selectUsers = (state) => state.users.list;
 // Memoized selector
-export const selectActiveUsers = createSelector(
-  [selectUsers],
-  (users) => users.filter((user) => user.active)
+export const selectActiveUsers = createSelector([selectUsers], (users) =>
+  users.filter((user) => user.active),
 );
 export const selectUserById = createSelector(
   [selectUsers, (state, userId) => userId],
-  (users, userId) => users.find((user) => user.id === userId)
+  (users, userId) => users.find((user) => user.id === userId),
 );
 ```
+
 ```jsx
 // components/ActiveUsers.jsx
-import { useSelector } from 'react-redux';
-import { selectActiveUsers } from '../selectors/userSelectors';
+import { useSelector } from "react-redux";
+import { selectActiveUsers } from "../selectors/userSelectors";
 export default function ActiveUsers() {
   const activeUsers = useSelector(selectActiveUsers);
-  
+
   return (
     <ul>
       {activeUsers.map((user) => (
@@ -264,39 +285,43 @@ export default function ActiveUsers() {
   );
 }
 ```
+
 ### Vuex와 비교
+
 ```javascript
 // Vue: Vuex
-import { createStore } from 'vuex'
+import { createStore } from "vuex";
 const store = createStore({
   state: {
-    count: 0
+    count: 0,
   },
   mutations: {
     increment(state) {
-      state.count++
-    }
+      state.count++;
+    },
   },
   actions: {
     incrementAsync({ commit }) {
       setTimeout(() => {
-        commit('increment')
-      }, 1000)
-    }
-  }
-})
+        commit("increment");
+      }, 1000);
+    },
+  },
+});
 ```
+
 ```javascript
 // React: Redux Toolkit
-import { createSlice } from '@reduxjs/toolkit'
+import { createSlice } from "@reduxjs/toolkit";
 const counterSlice = createSlice({
-  name: 'counter',
+  name: "counter",
   initialState: { count: 0 },
   reducers: {
     increment: (state) => {
-      state.count++
-    }
-  }
-})
+      state.count++;
+    },
+  },
+});
 ```
+
 ---

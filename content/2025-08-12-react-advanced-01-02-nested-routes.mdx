@@ -13,16 +13,20 @@ seriesOrder: 38
 > 출처: [React Router Documentation](https://reactrouter.com/)
 
 ---
+
 ## 중첩 라우트
+
 중첩 라우트
 기본 라우팅
+
 ### 1. 라우터 설정
+
 ```jsx
 // App.jsx
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Home from './pages/Home';
-import About from './pages/About';
-import Contact from './pages/Contact';
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Home from "./pages/Home";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
 export default function App() {
   return (
     <BrowserRouter>
@@ -35,9 +39,11 @@ export default function App() {
   );
 }
 ```
+
 ### 2. Link 컴포넌트
+
 ```jsx
-import { Link } from 'react-router-dom';
+import { Link } from "react-router-dom";
 export default function Navigation() {
   return (
     <nav>
@@ -48,22 +54,21 @@ export default function Navigation() {
   );
 }
 ```
+
 ### 3. NavLink (활성 링크)
+
 ```jsx
-import { NavLink } from 'react-router-dom';
+import { NavLink } from "react-router-dom";
 export default function Navigation() {
   return (
     <nav>
-      <NavLink 
-        to="/"
-        className={({ isActive }) => isActive ? 'active' : ''}
-      >
+      <NavLink to="/" className={({ isActive }) => (isActive ? "active" : "")}>
         Home
       </NavLink>
-      <NavLink 
+      <NavLink
         to="/about"
         style={({ isActive }) => ({
-          color: isActive ? 'red' : 'black'
+          color: isActive ? "red" : "black",
         })}
       >
         About
@@ -72,7 +77,9 @@ export default function Navigation() {
   );
 }
 ```
+
 ### Vue Router와 비교
+
 ```html
 <!-- Vue Router -->
 <template>
@@ -81,19 +88,20 @@ export default function Navigation() {
   <router-link to="/about">About</router-link>
 </template>
 <script>
-import { createRouter, createWebHistory } from 'vue-router'
-const router = createRouter({
-  history: createWebHistory(),
-  routes: [
-    { path: '/', component: Home },
-    { path: '/about', component: About }
-  ]
-})
+  import { createRouter, createWebHistory } from "vue-router";
+  const router = createRouter({
+    history: createWebHistory(),
+    routes: [
+      { path: "/", component: Home },
+      { path: "/about", component: About },
+    ],
+  });
 </script>
 ```
+
 ```jsx
 // React Router
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 function App() {
   return (
     <BrowserRouter>
@@ -106,7 +114,8 @@ function App() {
         <Route path="/about" element={<About />} />
       </Routes>
     </BrowserRouter>
-  )
+  );
 }
 ```
+
 ---

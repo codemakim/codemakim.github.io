@@ -34,12 +34,7 @@ Profile 컴포넌트를 별도 파일로 분리하고, Gallery에서 불러와 �
 ```jsx
 // Profile.js
 export default function Profile() {
-  return (
-    <img
-      src="https://i.imgur.com/MK3eW3As.jpg"
-      alt="Katherine Johnson"
-    />
-  );
+  return <img src="https://i.imgur.com/MK3eW3As.jpg" alt="Katherine Johnson" />;
 }
 ```
 
@@ -50,7 +45,7 @@ export default function Profile() {
 
 ```jsx
 // Gallery.js
-import Profile from './Profile.js';
+import Profile from "./Profile.js";
 
 export default function Gallery() {
   return (
@@ -72,10 +67,10 @@ export default function Gallery() {
 
 React에서는 두 가지 Export 방식을 사용한다.
 
-| 방식 | Export | Import | 설명 |
-|------|--------|--------|------|
-| Default Export | `export default function Button() {}` | `import Button from './Button.js'` | 파일당 하나의 주요 컴포넌트 |
-| Named Export | `export function Button() {}` | `import { Button } from './Button.js'` | 파일당 여러 컴포넌트 |
+| 방식           | Export                                | Import                                 | 설명                        |
+| -------------- | ------------------------------------- | -------------------------------------- | --------------------------- |
+| Default Export | `export default function Button() {}` | `import Button from './Button.js'`     | 파일당 하나의 주요 컴포넌트 |
+| Named Export   | `export function Button() {}`         | `import { Button } from './Button.js'` | 파일당 여러 컴포넌트        |
 
 차이점:
 
@@ -103,13 +98,13 @@ React에서는 두 가지 Export 방식을 사용한다.
 </template>
 
 <script setup>
-// 자동으로 export됨
+  // 자동으로 export됨
 </script>
 ```
 
 ```jsx
 // React: Profile.js
 export default function Profile() {
-  return <img src="..." alt="Katherine Johnson" />
+  return <img src="..." alt="Katherine Johnson" />;
 }
 ```

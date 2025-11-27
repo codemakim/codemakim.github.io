@@ -55,7 +55,7 @@ export default function PackingList() {
 ```jsx
 function Item({ name, isPacked }) {
   if (isPacked) {
-    return null;  // 아무것도 렌더링하지 않음
+    return null; // 아무것도 렌더링하지 않음
   }
   return <li className="item">{name}</li>;
 }
@@ -69,11 +69,7 @@ JSX 안에서 직접 조건부 표현식을 사용할 때 유용하다.
 
 ```jsx
 function Item({ name, isPacked }) {
-  return (
-    <li className="item">
-      {isPacked ? name + ' ✅' : name}
-    </li>
-  );
+  return <li className="item">{isPacked ? name + " ✅" : name}</li>;
 }
 ```
 
@@ -81,15 +77,7 @@ function Item({ name, isPacked }) {
 
 ```jsx
 function Item({ name, isPacked }) {
-  return (
-    <li className="item">
-      {isPacked ? (
-        <del>{name} ✅</del>
-      ) : (
-        name
-      )}
-    </li>
-  );
+  return <li className="item">{isPacked ? <del>{name} ✅</del> : name}</li>;
 }
 ```
 
@@ -101,7 +89,7 @@ function Item({ name, isPacked }) {
 function Item({ name, isPacked }) {
   return (
     <li className="item">
-      {name} {isPacked && '✅'}
+      {name} {isPacked && "✅"}
     </li>
   );
 }
@@ -116,25 +104,25 @@ function Item({ name, isPacked }) {
 
 ```jsx
 // JavaScript 논리 연산
-true && 'hello'   // 'hello'
-false && 'hello'  // false (React는 false를 렌더링하지 않음)
+true && "hello"; // 'hello'
+false && "hello"; // false (React는 false를 렌더링하지 않음)
 ```
 
 ### 주의: `&&` 왼쪽에 숫자를 두지 말아야 한다
 
 ```jsx
 // 잘못된 코드
-messageCount && <p>New messages</p>
+messageCount && <p>New messages</p>;
 
 // messageCount가 0이면 0이 렌더링됨 (빈 것이 아님)
 ```
 
 ```jsx
 // 올바른 코드
-messageCount > 0 && <p>New messages</p>
+messageCount > 0 && <p>New messages</p>;
 
 // 또는
-!!messageCount && <p>New messages</p>
+!!messageCount && <p>New messages</p>;
 ```
 
 ### 방법 5: 변수에 JSX 할당
@@ -144,16 +132,12 @@ messageCount > 0 && <p>New messages</p>
 ```jsx
 function Item({ name, isPacked }) {
   let itemContent = name;
-  
+
   if (isPacked) {
-    itemContent = name + ' ✅';
+    itemContent = name + " ✅";
   }
-  
-  return (
-    <li className="item">
-      {itemContent}
-    </li>
-  );
+
+  return <li className="item">{itemContent}</li>;
 }
 ```
 
@@ -162,17 +146,17 @@ function Item({ name, isPacked }) {
 ```jsx
 function Item({ name, isPacked, priority }) {
   let itemContent;
-  
-  if (isPacked && priority === 'high') {
+
+  if (isPacked && priority === "high") {
     itemContent = <strong>{name} ✅ 🔥</strong>;
   } else if (isPacked) {
-    itemContent = name + ' ✅';
-  } else if (priority === 'high') {
+    itemContent = name + " ✅";
+  } else if (priority === "high") {
     itemContent = <strong>{name} 🔥</strong>;
   } else {
     itemContent = name;
   }
-  
+
   return <li className="item">{itemContent}</li>;
 }
 ```
@@ -211,11 +195,7 @@ function LoginButton({ isLoggedIn, userName }) {
 ```jsx
 // React: JavaScript 문법 사용
 function Item({ name, isPacked }) {
-  return (
-    <li className="item">
-      {isPacked ? `${name} ✅` : name}
-    </li>
-  )
+  return <li className="item">{isPacked ? `${name} ✅` : name}</li>;
 }
 ```
 

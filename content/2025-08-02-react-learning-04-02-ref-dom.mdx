@@ -31,7 +31,7 @@ DOM 노드에 접근하는 방법은 3단계다:
 **1단계: ref 선언**
 
 ```jsx
-import { useRef } from 'react';
+import { useRef } from "react";
 
 const inputRef = useRef(null);
 ```
@@ -53,7 +53,7 @@ inputRef.current.focus();
 ### 완전한 예제: input 포커스
 
 ```jsx
-import { useRef } from 'react';
+import { useRef } from "react";
 
 export default function Form() {
   const inputRef = useRef(null);
@@ -65,9 +65,7 @@ export default function Form() {
   return (
     <>
       <input ref={inputRef} />
-      <button onClick={handleClick}>
-        Focus the input
-      </button>
+      <button onClick={handleClick}>Focus the input</button>
     </>
   );
 }
@@ -101,7 +99,7 @@ export default function Form() {
 여러 고양이 사진 중 하나를 클릭하면 해당 항목으로 스크롤하는 예제다.
 
 ```jsx
-import { useRef } from 'react';
+import { useRef } from "react";
 
 export default function CatFriends() {
   const itemsRef = useRef(null);
@@ -110,9 +108,9 @@ export default function CatFriends() {
     const map = getMap();
     const node = map.get(itemId);
     node.scrollIntoView({
-      behavior: 'smooth',
-      block: 'nearest',
-      inline: 'center'
+      behavior: "smooth",
+      block: "nearest",
+      inline: "center",
     });
   }
 
@@ -133,7 +131,7 @@ export default function CatFriends() {
       </nav>
       <div>
         <ul>
-          {catList.map(cat => (
+          {catList.map((cat) => (
             <li
               key={cat.id}
               ref={(node) => {
@@ -161,7 +159,7 @@ for (let i = 0; i < 10; i++) {
   catList.push({
     id: i,
     name: `Cat ${i}`,
-    imageUrl: 'https://placekitten.com/250/200?image=' + i
+    imageUrl: "https://placekitten.com/250/200?image=" + i,
   });
 }
 ```
@@ -172,6 +170,7 @@ for (let i = 0; i < 10; i++) {
 2. **요소가 DOM에서 제거될 때**: React가 `null`과 함께 ref 콜백을 호출한다
 
 이 예제에서는:
+
 - ref 하나(`itemsRef`)에 Map을 저장한다
 - 각 항목이 마운트될 때 Map에 추가한다
 - 각 항목이 언마운트될 때 Map에서 제거한다
@@ -188,7 +187,7 @@ function MyInput() {
 
 export default function Form() {
   const inputRef = useRef(null);
-  return <MyInput ref={inputRef} />;  // 에러 발생
+  return <MyInput ref={inputRef} />; // 에러 발생
 }
 ```
 
@@ -207,7 +206,7 @@ export default function Form() {
 `forwardRef`는 컴포넌트가 ref를 받아서 자식 요소로 "전달(forward)"할 수 있게 해주는 함수다.
 
 ```jsx
-import { forwardRef, useRef } from 'react';
+import { forwardRef, useRef } from "react";
 
 // forwardRef로 감싸기
 const MyInput = forwardRef((props, ref) => {
@@ -224,9 +223,7 @@ export default function Form() {
   return (
     <>
       <MyInput ref={inputRef} />
-      <button onClick={handleClick}>
-        Focus the input
-      </button>
+      <button onClick={handleClick}>Focus the input</button>
     </>
   );
 }
@@ -249,9 +246,9 @@ DOM 노드를 통째로 노출하면 부모 컴포넌트가 예상치 못한 방
 
 ```jsx
 // DOM 전체를 노출하면...
-inputRef.current.style.color = 'red';  // CSS 변경 가능
-inputRef.current.remove();  // 요소 삭제 가능
-inputRef.current.value = 'hacked';  // 값 직접 수정 가능
+inputRef.current.style.color = "red"; // CSS 변경 가능
+inputRef.current.remove(); // 요소 삭제 가능
+inputRef.current.value = "hacked"; // 값 직접 수정 가능
 ```
 
 이런 위험을 막기 위해 필요한 메서드만 노출한다.
@@ -259,11 +256,11 @@ inputRef.current.value = 'hacked';  // 값 직접 수정 가능
 #### useImperativeHandle 사용법
 
 ```jsx
-import { forwardRef, useRef, useImperativeHandle } from 'react';
+import { forwardRef, useRef, useImperativeHandle } from "react";
 
 const MyInput = forwardRef((props, ref) => {
   const realInputRef = useRef(null);
-  
+
   // ref로 노출할 객체를 직접 정의
   useImperativeHandle(ref, () => ({
     // focus만 노출
@@ -275,7 +272,7 @@ const MyInput = forwardRef((props, ref) => {
       realInputRef.current.scrollIntoView();
     },
   }));
-  
+
   return <input {...props} ref={realInputRef} />;
 });
 
@@ -283,16 +280,14 @@ export default function Form() {
   const inputRef = useRef(null);
 
   function handleClick() {
-    inputRef.current.focus();  // 가능
+    inputRef.current.focus(); // 가능
     // inputRef.current.value = 'Hi';  // 불가능 (노출 안 됨)
   }
 
   return (
     <>
       <MyInput ref={inputRef} />
-      <button onClick={handleClick}>
-        Focus the input
-      </button>
+      <button onClick={handleClick}>Focus the input</button>
     </>
   );
 }
@@ -324,15 +319,15 @@ React의 업데이트는 두 단계로 나뉜다:
 ```jsx
 function MyComponent() {
   const divRef = useRef(null);
-  
+
   // 렌더링 중에는 null일 수 있음
-  console.log(divRef.current);  // null (첫 렌더링)
-  
+  console.log(divRef.current); // null (첫 렌더링)
+
   useEffect(() => {
     // 커밋 후에는 DOM 노드가 설정됨
-    console.log(divRef.current);  // <div> DOM 노드
+    console.log(divRef.current); // <div> DOM 노드
   });
-  
+
   return <div ref={divRef}>Hello</div>;
 }
 ```
@@ -353,14 +348,14 @@ function TodoList() {
   function handleAdd() {
     const newTodo = { id: nextId++, text: text };
     setTodos([...todos, newTodo]);
-    
+
     // 스크롤하려고 하지만...
     listRef.current.lastChild.scrollIntoView();
   }
 
   return (
     <ul ref={listRef}>
-      {todos.map(todo => (
+      {todos.map((todo) => (
         <li key={todo.id}>{todo.text}</li>
       ))}
     </ul>
@@ -375,36 +370,36 @@ function TodoList() {
 `flushSync`를 사용하면 React가 DOM을 동기적으로 업데이트하도록 강제할 수 있다.
 
 ```jsx
-import { useState, useRef } from 'react';
-import { flushSync } from 'react-dom';
+import { useState, useRef } from "react";
+import { flushSync } from "react-dom";
 
 export default function TodoList() {
   const listRef = useRef(null);
-  const [text, setText] = useState('');
+  const [text, setText] = useState("");
   const [todos, setTodos] = useState(initialTodos);
 
   function handleAdd() {
     const newTodo = { id: nextId++, text: text };
-    
+
     // flushSync로 감싸서 DOM을 즉시 업데이트
     flushSync(() => {
-      setText('');
+      setText("");
       setTodos([...todos, newTodo]);
     });
-    
+
     // 이제 lastChild는 새로 추가된 항목
     listRef.current.lastChild.scrollIntoView({
-      behavior: 'smooth',
-      block: 'nearest'
+      behavior: "smooth",
+      block: "nearest",
     });
   }
 
   return (
     <>
       <button onClick={handleAdd}>Add</button>
-      <input value={text} onChange={e => setText(e.target.value)} />
+      <input value={text} onChange={(e) => setText(e.target.value)} />
       <ul ref={listRef}>
-        {todos.map(todo => (
+        {todos.map((todo) => (
           <li key={todo.id}>{todo.text}</li>
         ))}
       </ul>
@@ -417,7 +412,7 @@ const initialTodos = [];
 for (let i = 0; i < 20; i++) {
   initialTodos.push({
     id: nextId++,
-    text: 'Todo #' + (i + 1)
+    text: "Todo #" + (i + 1),
   });
 }
 ```
@@ -450,14 +445,14 @@ React가 관리하는 DOM을 수정하면 React와 충돌이 발생한다.
 const divRef = useRef(null);
 
 // 이런 조작은 피해야 함
-divRef.current.remove();  // React가 관리하는 요소를 삭제
-divRef.current.appendChild(child);  // React 모르게 자식 추가
-divRef.current.innerHTML = '<p>New content</p>';  // 내용 직접 변경
+divRef.current.remove(); // React가 관리하는 요소를 삭제
+divRef.current.appendChild(child); // React 모르게 자식 추가
+divRef.current.innerHTML = "<p>New content</p>"; // 내용 직접 변경
 
 // 좋은 예: React가 업데이트하지 않는 부분만 수정
-divRef.current.scrollIntoView();  // 스크롤 위치 변경
-divRef.current.focus();  // 포커스 제어
-divRef.current.play();  // 비디오 재생 제어
+divRef.current.scrollIntoView(); // 스크롤 위치 변경
+divRef.current.focus(); // 포커스 제어
+divRef.current.play(); // 비디오 재생 제어
 ```
 
 **원칙:** React가 관리하는 DOM 구조나 내용을 변경하지 않는다. 스크롤, 포커스, 크기 측정 같은 것만 조작한다.
@@ -467,13 +462,13 @@ divRef.current.play();  // 비디오 재생 제어
 ```html
 <!-- Vue: template ref -->
 <script setup>
-import { ref, onMounted } from 'vue'
+  import { ref, onMounted } from "vue";
 
-const inputRef = ref(null)
+  const inputRef = ref(null);
 
-onMounted(() => {
-  inputRef.value.focus()
-})
+  onMounted(() => {
+    inputRef.value.focus();
+  });
 </script>
 
 <template>
@@ -484,21 +479,21 @@ onMounted(() => {
 
 ```jsx
 // React: useRef + ref 속성
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect } from "react";
 
 function Form() {
-  const inputRef = useRef(null)
-  
+  const inputRef = useRef(null);
+
   useEffect(() => {
-    inputRef.current.focus()
-  }, [])
-  
+    inputRef.current.focus();
+  }, []);
+
   return (
     <>
       <input ref={inputRef} />
       <button onClick={() => inputRef.current.focus()}>Focus</button>
     </>
-  )
+  );
 }
 ```
 

@@ -13,34 +13,33 @@ seriesOrder: 52
 > 출처: [TanStack Query Documentation](https://tanstack.com/query/)
 
 ---
+
 ## 고급 패턴
+
 고급 패턴
 무한 스크롤
+
 ### useInfiniteQuery
+
 ```jsx
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from "@tanstack/react-query";
 function Posts() {
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading,
-  } = useInfiniteQuery({
-    queryKey: ['posts'],
-    queryFn: ({ pageParam = 0 }) => fetchPosts(pageParam),
-    getNextPageParam: (lastPage, allPages) => {
-      // 다음 페이지 번호 반환
-      return lastPage.nextCursor;
-    },
-    initialPageParam: 0,
-  });
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
+    useInfiniteQuery({
+      queryKey: ["posts"],
+      queryFn: ({ pageParam = 0 }) => fetchPosts(pageParam),
+      getNextPageParam: (lastPage, allPages) => {
+        // 다음 페이지 번호 반환
+        return lastPage.nextCursor;
+      },
+      initialPageParam: 0,
+    });
   if (isLoading) return <div>Loading...</div>;
   return (
     <div>
       {data.pages.map((page, i) => (
         <div key={i}>
-          {page.posts.map(post => (
+          {page.posts.map((post) => (
             <PostCard key={post.id} post={post} />
           ))}
         </div>
@@ -50,10 +49,10 @@ function Posts() {
         disabled={!hasNextPage || isFetchingNextPage}
       >
         {isFetchingNextPage
-          ? 'Loading more...'
+          ? "Loading more..."
           : hasNextPage
-          ? 'Load More'
-          : 'Nothing more to load'}
+            ? "Load More"
+            : "Nothing more to load"}
       </button>
     </div>
   );
@@ -63,23 +62,21 @@ async function fetchPosts(pageParam) {
   return response.json();
 }
 ```
+
 ### 자동 무한 스크롤
+
 ```jsx
-import { useInfiniteQuery } from '@tanstack/react-query';
-import { useInView } from 'react-intersection-observer';
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInView } from "react-intersection-observer";
 function Posts() {
   const { ref, inView } = useInView();
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteQuery({
-    queryKey: ['posts'],
-    queryFn: ({ pageParam = 0 }) => fetchPosts(pageParam),
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
-    initialPageParam: 0,
-  });
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useInfiniteQuery({
+      queryKey: ["posts"],
+      queryFn: ({ pageParam = 0 }) => fetchPosts(pageParam),
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+      initialPageParam: 0,
+    });
   // 화면에 보이면 자동으로 다음 페이지 로드
   useEffect(() => {
     if (inView && hasNextPage) {
@@ -90,33 +87,29 @@ function Posts() {
     <div>
       {data?.pages.map((page, i) => (
         <div key={i}>
-          {page.posts.map(post => (
+          {page.posts.map((post) => (
             <PostCard key={post.id} post={post} />
           ))}
         </div>
       ))}
       {/* 감지 영역 */}
-      <div ref={ref}>
-        {isFetchingNextPage && <LoadingSpinner />}
-      </div>
+      <div ref={ref}>{isFetchingNextPage && <LoadingSpinner />}</div>
     </div>
   );
 }
 ```
+
 ### 양방향 무한 스크롤
+
 ```jsx
-const {
-  data,
-  fetchNextPage,
-  fetchPreviousPage,
-  hasNextPage,
-  hasPreviousPage,
-} = useInfiniteQuery({
-  queryKey: ['posts'],
-  queryFn: ({ pageParam = 0 }) => fetchPosts(pageParam),
-  getNextPageParam: (lastPage) => lastPage.nextCursor,
-  getPreviousPageParam: (firstPage) => firstPage.previousCursor,
-  initialPageParam: 0,
-});
+const { data, fetchNextPage, fetchPreviousPage, hasNextPage, hasPreviousPage } =
+  useInfiniteQuery({
+    queryKey: ["posts"],
+    queryFn: ({ pageParam = 0 }) => fetchPosts(pageParam),
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    getPreviousPageParam: (firstPage) => firstPage.previousCursor,
+    initialPageParam: 0,
+  });
 ```
+
 ---

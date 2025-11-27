@@ -13,23 +13,29 @@ seriesOrder: 40
 > 출처: [React Router Documentation](https://reactrouter.com/)
 
 ---
+
 ## 프로그래밍 방식 네비게이션
+
 프로그래밍 방식 네비게이션
 동적 라우트
+
 ### 1. URL 파라미터
+
 ```jsx
 // 라우트 정의
 <Route path="/users/:userId" element={<User />} />
 <Route path="/posts/:postId" element={<Post />} />
 <Route path="/products/:category/:productId" element={<Product />} />
 ```
+
 ### 2. useParams Hook
+
 ```jsx
 // pages/User.jsx
-import { useParams } from 'react-router-dom';
+import { useParams } from "react-router-dom";
 export default function User() {
   const { userId } = useParams();
-  
+
   return (
     <div>
       <h1>User Profile</h1>
@@ -38,13 +44,15 @@ export default function User() {
   );
 }
 ```
+
 ### 3. 복수 파라미터
+
 ```jsx
 // pages/Product.jsx
-import { useParams } from 'react-router-dom';
+import { useParams } from "react-router-dom";
 export default function Product() {
   const { category, productId } = useParams();
-  
+
   return (
     <div>
       <h1>Product Details</h1>
@@ -54,45 +62,53 @@ export default function Product() {
   );
 }
 ```
+
 ### 4. Optional 파라미터
+
 ```jsx
-<Route path="/users/:userId?" element={<Users />} />
+<Route path="/users/:userId?" element={<Users />} />;
 function Users() {
   const { userId } = useParams();
-  
+
   if (userId) {
     return <UserDetail userId={userId} />;
   }
-  
+
   return <UserList />;
 }
 ```
-### 5. Wildcard (*)
+
+### 5. Wildcard (\*)
+
 ```jsx
-<Route path="/docs/*" element={<Docs />} />
+<Route path="/docs/*" element={<Docs />} />;
 function Docs() {
   const params = useParams();
-  const path = params['*'];  // /docs/ 이후의 모든 경로
-  
+  const path = params["*"]; // /docs/ 이후의 모든 경로
+
   return <div>Docs path: {path}</div>;
 }
 ```
+
 ### Vue Router와 비교
+
 ```html
 <!-- Vue Router -->
 <script setup>
-import { useRoute } from 'vue-router'
-const route = useRoute()
-const userId = route.params.userId
-const category = route.params.category
+  import { useRoute } from "vue-router";
+  const route = useRoute();
+  const userId = route.params.userId;
+  const category = route.params.category;
 </script>
 ```
+
 ```jsx
 // React Router
-import { useParams } from 'react-router-dom'
+import { useParams } from "react-router-dom";
 function Component() {
-  const { userId, category } = useParams()
+  const { userId, category } = useParams();
   // ...
 }
 ```
+
 ---

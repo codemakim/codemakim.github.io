@@ -13,16 +13,20 @@ seriesOrder: 44
 > 출처: [React Router Documentation](https://reactrouter.com/)
 
 ---
+
 ## 고급 패턴
+
 고급 패턴
 로딩 및 에러 처리
+
 ### 1. Suspense와 Lazy Loading
+
 ```jsx
-import { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-const Home = lazy(() => import('./pages/Home'));
-const About = lazy(() => import('./pages/About'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
+import { Suspense, lazy } from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+const Home = lazy(() => import("./pages/Home"));
+const About = lazy(() => import("./pages/About"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
 export default function App() {
   return (
     <BrowserRouter>
@@ -44,9 +48,11 @@ function LoadingSpinner() {
   );
 }
 ```
+
 ### 2. 에러 바운더리
+
 ```jsx
-import { Component } from 'react';
+import { Component } from "react";
 class ErrorBoundary extends Component {
   constructor(props) {
     super(props);
@@ -56,7 +62,7 @@ class ErrorBoundary extends Component {
     return { hasError: true, error };
   }
   componentDidCatch(error, errorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo);
+    console.error("Error caught by boundary:", error, errorInfo);
   }
   render() {
     if (this.state.hasError) {
@@ -64,9 +70,7 @@ class ErrorBoundary extends Component {
         <div>
           <h1>Something went wrong</h1>
           <p>{this.state.error?.message}</p>
-          <button onClick={() => window.location.reload()}>
-            Reload
-          </button>
+          <button onClick={() => window.location.reload()}>Reload</button>
         </div>
       );
     }
@@ -82,15 +86,17 @@ class ErrorBoundary extends Component {
       </Routes>
     </Suspense>
   </ErrorBoundary>
-</BrowserRouter>
+</BrowserRouter>;
 ```
+
 ### 3. 404 Not Found
+
 ```jsx
 <Routes>
   <Route path="/" element={<Home />} />
   <Route path="/about" element={<About />} />
   <Route path="*" element={<NotFound />} />
-</Routes>
+</Routes>;
 function NotFound() {
   return (
     <div>
@@ -100,7 +106,9 @@ function NotFound() {
   );
 }
 ```
+
 ### 4. 데이터 로딩 패턴
+
 ```jsx
 function UserProfile() {
   const { userId } = useParams();
@@ -110,15 +118,15 @@ function UserProfile() {
   useEffect(() => {
     setLoading(true);
     fetch(`/api/users/${userId}`)
-      .then(res => {
-        if (!res.ok) throw new Error('User not found');
+      .then((res) => {
+        if (!res.ok) throw new Error("User not found");
         return res.json();
       })
-      .then(data => {
+      .then((data) => {
         setUser(data);
         setLoading(false);
       })
-      .catch(err => {
+      .catch((err) => {
         setError(err);
         setLoading(false);
       });
@@ -134,4 +142,5 @@ function UserProfile() {
   );
 }
 ```
+
 ---

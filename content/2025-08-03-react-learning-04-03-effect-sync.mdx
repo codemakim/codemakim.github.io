@@ -33,13 +33,13 @@ Effect를 작성하는 과정은 3단계로 나뉜다.
 #### 1단계: Effect 선언하기
 
 ```jsx
-import { useEffect } from 'react';
+import { useEffect } from "react";
 
 function MyComponent() {
   useEffect(() => {
     // 여기에 코드 작성
   });
-  
+
   return <div />;
 }
 ```
@@ -88,7 +88,7 @@ useEffect(() => {
   // 설정
   const connection = createConnection();
   connection.connect();
-  
+
   // 클린업
   return () => {
     connection.disconnect();
@@ -106,18 +106,18 @@ useEffect(() => {
 Effect를 사용하여 채팅 서버에 연결하는 실전 예제를 살펴본다.
 
 ```jsx
-import { useState, useEffect } from 'react';
-import { createConnection } from './chat.js';
+import { useState, useEffect } from "react";
+import { createConnection } from "./chat.js";
 
 export default function ChatRoom() {
-  const [serverUrl, setServerUrl] = useState('https://localhost:1234');
-  const [roomId, setRoomId] = useState('general');
+  const [serverUrl, setServerUrl] = useState("https://localhost:1234");
+  const [roomId, setRoomId] = useState("general");
 
   useEffect(() => {
     // 연결 설정
     const connection = createConnection(serverUrl, roomId);
     connection.connect();
-    
+
     // 클린업
     return () => {
       connection.disconnect();
@@ -127,18 +127,15 @@ export default function ChatRoom() {
   return (
     <>
       <label>
-        Server URL:{' '}
+        Server URL:{" "}
         <input
           value={serverUrl}
-          onChange={e => setServerUrl(e.target.value)}
+          onChange={(e) => setServerUrl(e.target.value)}
         />
       </label>
       <label>
-        Choose the chat room:{' '}
-        <select
-          value={roomId}
-          onChange={e => setRoomId(e.target.value)}
-        >
+        Choose the chat room:{" "}
+        <select value={roomId} onChange={(e) => setRoomId(e.target.value)}>
           <option value="general">general</option>
           <option value="travel">travel</option>
           <option value="music">music</option>
@@ -175,12 +172,12 @@ export default function ChatRoom() {
 
 ```jsx
 useEffect(() => {
-  console.log('연결 중...');
+  console.log("연결 중...");
   const connection = createConnection();
   connection.connect();
-  
+
   return () => {
-    console.log('연결 해제 중...');
+    console.log("연결 해제 중...");
     connection.disconnect();
   };
 }, []);
@@ -212,28 +209,30 @@ Effect로 state를 업데이트하면 불필요한 렌더링이 두 번 발생�
 
 ```jsx
 // 나쁜 예: Effect로 계산
-const [firstName, setFirstName] = useState('');
-const [lastName, setLastName] = useState('');
-const [fullName, setFullName] = useState('');
+const [firstName, setFirstName] = useState("");
+const [lastName, setLastName] = useState("");
+const [fullName, setFullName] = useState("");
 
 useEffect(() => {
-  setFullName(firstName + ' ' + lastName);
+  setFullName(firstName + " " + lastName);
 }, [firstName, lastName]);
 
 // 좋은 예: 렌더링 중 계산
-const [firstName, setFirstName] = useState('');
-const [lastName, setLastName] = useState('');
-const fullName = firstName + ' ' + lastName;
+const [firstName, setFirstName] = useState("");
+const [lastName, setLastName] = useState("");
+const fullName = firstName + " " + lastName;
 ```
 
 **왜 나쁜가?**
 
 첫 번째 방법은:
+
 1. 렌더링 → `firstName`이나 `lastName`이 이전 값
 2. Effect 실행 → `setFullName` 호출
 3. 다시 렌더링 → `fullName`이 새 값
 
 두 번째 방법은:
+
 1. 렌더링 → 모든 값이 최신
 
 #### 2. 사용자 이벤트 처리
@@ -244,13 +243,13 @@ const fullName = firstName + ' ' + lastName;
 // 나쁜 예: Effect로 처리
 function Form() {
   const [submitted, setSubmitted] = useState(false);
-  
+
   useEffect(() => {
     if (submitted) {
-      post('/api/register', { email });
+      post("/api/register", { email });
     }
   }, [submitted, email]);
-  
+
   function handleSubmit() {
     setSubmitted(true);
   }
@@ -259,7 +258,7 @@ function Form() {
 // 좋은 예: 이벤트 핸들러에서 처리
 function Form() {
   function handleSubmit() {
-    post('/api/register', { email });
+    post("/api/register", { email });
   }
 }
 ```
@@ -274,7 +273,7 @@ function Form() {
 페이지 제목을 현재 메시지 수로 업데이트하는 예제다.
 
 ```jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 export default function ChatRoom() {
   const [messages, setMessages] = useState([]);
@@ -287,7 +286,7 @@ export default function ChatRoom() {
     <div>
       <h1>Welcome to chat!</h1>
       <MessageList messages={messages} />
-      <MessageInput onSend={msg => setMessages([...messages, msg])} />
+      <MessageInput onSend={(msg) => setMessages([...messages, msg])} />
     </div>
   );
 }
@@ -303,43 +302,43 @@ export default function ChatRoom() {
 ```html
 <!-- Vue: onMounted, onUnmounted, watch -->
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+  import { ref, onMounted, onUnmounted, watch } from "vue";
 
-const roomId = ref('general')
+  const roomId = ref("general");
 
-onMounted(() => {
-  const connection = createConnection(roomId.value)
-  connection.connect()
-  
-  onUnmounted(() => {
-    connection.disconnect()
-  })
-})
+  onMounted(() => {
+    const connection = createConnection(roomId.value);
+    connection.connect();
 
-watch(roomId, (newId, oldId) => {
-  // roomId가 변경되면 재연결
-  connection.disconnect()
-  connection = createConnection(newId)
-  connection.connect()
-})
+    onUnmounted(() => {
+      connection.disconnect();
+    });
+  });
+
+  watch(roomId, (newId, oldId) => {
+    // roomId가 변경되면 재연결
+    connection.disconnect();
+    connection = createConnection(newId);
+    connection.connect();
+  });
 </script>
 ```
 
 ```jsx
 // React: useEffect
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from "react";
 
 function ChatRoom() {
-  const [roomId, setRoomId] = useState('general')
+  const [roomId, setRoomId] = useState("general");
 
   useEffect(() => {
-    const connection = createConnection(roomId)
-    connection.connect()
-    
+    const connection = createConnection(roomId);
+    connection.connect();
+
     return () => {
-      connection.disconnect()
-    }
-  }, [roomId])
+      connection.disconnect();
+    };
+  }, [roomId]);
 }
 ```
 
