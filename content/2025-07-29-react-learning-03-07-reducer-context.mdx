@@ -423,25 +423,61 @@ test('should add a task', () => {
 ### 안티패턴 (피해야 할 것들)
 
 **1. Reducer에서 부작용 실행**
+
+Reducer는 **순수 함수**여야 한다. 순수 함수란 같은 입력에 대해 항상 같은 출력을 반환하고, 외부 세계와 상호작용하지 않는 함수다.
+
+**부작용이란?**
+
+함수의 주된 목적(값 반환) 외에 외부 세계와 상호작용하는 모든 것:
+- 네트워크 요청 (`fetch`, `axios` 등)
+- DOM 조작
+- 타이머 설정 (`setTimeout`, `setInterval`)
+- 콘솔 출력 (`console.log`)
+- 로컬 스토리지 접근
+
 ```tsx
-// 나쁨
+// 나쁨: Reducer에서 네트워크 요청
 function tasksReducer(state, action) {
   if (action.type === 'added') {
-    fetch('/api/tasks', { method: 'POST', ... }); // 부작용
+    // 문제: fetch는 네트워크 요청을 보내는 부작용
+    // 외부 스코프 상태 접근 여부와 무관하게, 
+    // "네트워크 요청을 보낸다"는 행위 자체가 부작용
+    fetch('/api/tasks', { method: 'POST', body: JSON.stringify(action.task) });
     return [...state, action.task];
   }
 }
+```
 
+**왜 문제인가?**
+
+1. **예측 불가능**: 같은 action을 dispatch해도 네트워크 상태에 따라 결과가 다를 수 있다
+2. **테스트 어려움**: Reducer 테스트 시 네트워크를 모킹해야 한다
+3. **디버깅 어려움**: 시간 여행 디버깅 (Redux DevTools 등)이 불가능하다
+
+```tsx
 // 좋음: 컴포넌트나 useEffect에서 실행
 function AddTask() {
   const dispatch = useTasksDispatch();
   
-  async function handleAdd() {
-    await fetch('/api/tasks', { method: 'POST', ... });
-    dispatch({ type: 'added', ... });
+  async function handleAdd(newTask) {
+    // 1. 먼저 API 호출
+    await fetch('/api/tasks', { 
+      method: 'POST', 
+      body: JSON.stringify(newTask) 
+    });
+    
+    // 2. 성공하면 Reducer 업데이트
+    dispatch({ type: 'added', task: newTask });
   }
+  
+  return <button onClick={() => handleAdd(...)}>Add</button>;
 }
 ```
+
+이렇게 분리하면:
+- Reducer는 순수 함수로 유지 (테스트 쉬움)
+- 네트워크 요청은 컴포넌트에서 처리 (에러 처리 쉬움)
+- 각자의 역할이 명확함
 
 **2. 거대한 단일 Context**
 ```tsx
