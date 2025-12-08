@@ -38,6 +38,8 @@ Effect를 작성하기 전에 항상 질문해야 한다: "이 코드가 정말 
 
 **나쁜 예: Effect로 state 업데이트**
 
+firstName과 lastName을 합쳐서 fullName을 만들고, 이를 별도의 state로 관리하려는 코드다.
+
 ```jsx
 function Form() {
   const [firstName, setFirstName] = useState("Taylor");
@@ -86,6 +88,8 @@ function Form() {
 위 예제에서는 문자열 결합이 매우 빠르므로 매번 계산해도 괜찮다. 하지만 계산 비용이 큰 경우는 어떨까?
 
 #### 문제 상황
+
+수천 개의 할 일 목록을 필터링하고 정렬하는 코드로, 컴포넌트가 리렌더링될 때마다 이 무거운 계산이 반복된다.
 
 ```jsx
 function TodoList({ todos, filter }) {
@@ -177,6 +181,8 @@ const visibleTodos = useMemo(() => {
 
 **나쁜 예: Effect로 재설정**
 
+사용자가 다른 프로필로 이동할 때, 이전 프로필에서 작성하던 댓글을 초기화하려는 코드다.
+
 ```jsx
 export default function ProfilePage({ userId }) {
   const [comment, setComment] = useState("");
@@ -217,6 +223,8 @@ React는 `key`가 변경되면 이전 컴포넌트를 파괴하고 새 컴포넌
 ### 4. Props 변경 시 일부 state 조정
 
 **나쁜 예: Effect로 동기화**
+
+목록(items)이 변경될 때, 현재 선택된 항목(selection)을 초기화하려는 코드다.
 
 ```jsx
 function List({ items }) {
@@ -269,6 +277,8 @@ function List({ items }) {
 
 **나쁜 예: Effect로 처리**
 
+상품이 장바구니에 담길 때마다 알림을 표시하려는 코드다.
+
 ```jsx
 function ProductPage({ product, addToCart }) {
   // product.isInCart가 변경될 때마다 알림 표시
@@ -320,6 +330,8 @@ function ProductPage({ product, addToCart }) {
 ### 6. POST 요청 보내기
 
 **나쁜 예: 렌더링마다 전송**
+
+폼 방문 시점과 입력 필드 수정 시점을 분석 서버로 전송하려는 코드다.
 
 ```jsx
 function Form() {
@@ -380,6 +392,8 @@ function Form() {
 ### 7. 연쇄 계산
 
 **나쁜 예: 연쇄 Effect**
+
+카드 게임에서 골드 카드를 3개 모으면 라운드가 올라가고, 5라운드가 되면 게임이 종료되는 로직을 구현한 코드다.
 
 ```jsx
 function Game() {
@@ -465,6 +479,8 @@ function Game() {
 
 **나쁜 예: Effect로 초기화 (두 번 실행될 수 있음)**
 
+앱이 시작될 때 로컬 스토리지에서 데이터를 불러오고 인증 토큰을 확인하려는 코드다.
+
 ```jsx
 function App() {
   useEffect(() => {
@@ -497,6 +513,8 @@ function App() {
 ### 9. 부모에게 state 변경 알리기
 
 **나쁜 예: Effect로 부모에게 알림**
+
+토글 버튼의 상태(On/Off)가 변경될 때마다 부모 컴포넌트에 알리려는 코드다.
 
 ```jsx
 function Toggle({ onChange }) {
@@ -534,6 +552,8 @@ function Toggle({ onChange }) {
 ### 10. 부모에게 데이터 전달
 
 **나쁜 예: 자식이 데이터를 페칭해서 부모에게 전달**
+
+자식 컴포넌트에서 API로 데이터를 가져와서 부모 컴포넌트로 전달하려는 코드다.
 
 ```jsx
 function Parent() {
