@@ -66,6 +66,33 @@ function counterReducer(state, action) {
 
 이 패턴의 핵심은 "무엇을(what) 할지"만 선언하고, "어떻게(how)"는 reducer가 처리한다는 점이다.
 
+#### State 스냅샷과 Reducer
+
+Reducer도 State 스냅샷 개념을 그대로 따른다. reducer 함수가 받는 `state`는 현재 렌더링 시점의 스냅샷이다.
+
+```jsx
+function tasksReducer(tasks, action) {
+  // tasks는 현재 렌더링 시점의 스냅샷
+  // action은 이번 업데이트에서 발생한 이벤트
+  switch (action.type) {
+    case "added":
+      return [...tasks, newTask]; // 새 배열 반환 (불변성 유지)
+  }
+}
+```
+
+dispatch를 여러 번 호출해도 각 reducer 호출은 독립적으로 동작한다:
+
+```jsx
+// 같은 렌더링에서 여러 dispatch 호출
+dispatch({ type: "added", text: "할일 1" });
+dispatch({ type: "added", text: "할일 2" });
+// 각 reducer 호출은 같은 tasks 스냅샷을 받음
+// React는 모든 dispatch를 처리한 후 한 번만 리렌더링
+```
+
+이전에 배운 State 스냅샷 개념이 reducer에도 동일하게 적용된다.
+
 ### 언제 Reducer를 사용해야 할까?
 
 #### useState vs useReducer 비교
@@ -81,7 +108,7 @@ function counterReducer(state, action) {
 
 #### 실용적 판단 기준
 
-useState를 쓰세요:
+useState를 써라:
 
 ```jsx
 // 단순한 값 하나만 관리
@@ -395,6 +422,106 @@ dispatch({ type: "user_logged_in", userId: 123 });
 dispatch({ type: "profile_updated", profile: newProfile });
 ```
 
+#### 3. 복잡한 State 구조 다루기
+
+중첩된 객체나 배열을 업데이트할 때는 불변성을 유지하면서 깊은 복사를 해야 한다.
+
+```jsx
+// 중첩된 객체 업데이트
+function appReducer(state, action) {
+  switch (action.type) {
+    case "update_user_name": {
+      return {
+        ...state,
+        user: {
+          ...state.user, // 기존 user 속성 유지
+          name: action.name, // name만 업데이트
+        },
+      };
+    }
+    case "add_task_to_category": {
+      return {
+        ...state,
+        categories: state.categories.map((category) => {
+          if (category.id === action.categoryId) {
+            return {
+              ...category,
+              tasks: [...category.tasks, action.task], // 배열에 추가
+            };
+          }
+          return category;
+        }),
+      };
+    }
+    default:
+      return state;
+  }
+}
+```
+
+#### 4. 액션 타입 정의 (TypeScript)
+
+TypeScript를 사용하면 액션 타입을 명확히 정의할 수 있다.
+
+```typescript
+// 액션 타입 정의
+type TaskAction =
+  | { type: "added"; id: number; text: string }
+  | { type: "changed"; task: Task }
+  | { type: "deleted"; id: number };
+
+// Reducer에 타입 적용
+function tasksReducer(tasks: Task[], action: TaskAction): Task[] {
+  switch (action.type) {
+    case "added":
+      return [...tasks, { id: action.id, text: action.text, done: false }];
+    case "changed":
+      return tasks.map((t) => (t.id === action.task.id ? action.task : t));
+    case "deleted":
+      return tasks.filter((t) => t.id !== action.id);
+    default:
+      // TypeScript가 모든 케이스를 처리했는지 확인
+      const _exhaustive: never = action;
+      throw Error("Unknown action");
+  }
+}
+```
+
+#### 5. 에러 처리
+
+Reducer에서 에러가 발생하면 React는 에러를 던진다. 복잡한 로직에서는 try-catch로 감싸거나, 액션에 에러 상태를 포함시킬 수 있다.
+
+```jsx
+// 방법 1: 액션에 에러 상태 포함
+function tasksReducer(state, action) {
+  switch (action.type) {
+    case "added": {
+      if (!action.text.trim()) {
+        return {
+          ...state,
+          error: "할일 내용을 입력하세요",
+        };
+      }
+      return {
+        tasks: [...state.tasks, newTask],
+        error: null,
+      };
+    }
+    case "clear_error":
+      return { ...state, error: null };
+  }
+}
+
+// 방법 2: dispatch 전에 검증
+function handleAddTask(text) {
+  if (!text.trim()) {
+    alert("할일 내용을 입력하세요");
+    return;
+  }
+  dispatch({ type: "added", text });
+}
+```
+
 ### 실전 예제: 할 일 앱
 
 모든 개념을 통합한 완성된 예제를 보겠다.
@@ -510,6 +637,54 @@ export default function TaskApp() {
 }
 ```
 
+### 성능 최적화 팁
+
+Reducer를 사용할 때 성능을 최적화하는 방법들:
+
+#### 1. 불필요한 리렌더링 방지
+
+Reducer는 항상 새로운 객체를 반환하므로, React.memo와 함께 사용하면 효과적이다.
+
+```jsx
+// 자식 컴포넌트 메모이제이션
+const TaskList = React.memo(function TaskList({ tasks, onDelete }) {
+  return (
+    <ul>
+      {tasks.map((task) => (
+        <TaskItem key={task.id} task={task} onDelete={onDelete} />
+      ))}
+    </ul>
+  );
+});
+```
+
+#### 2. 초기값 계산 최적화
+
+초기값 계산이 비용이 크다면 초기화 함수를 사용한다.
+
+```jsx
+// 나쁨: 매 렌더링마다 계산
+const [state, dispatch] = useReducer(reducer, expensiveCalculation());
+
+// 좋음: 초기화 함수로 한 번만 계산
+function init(initialValue) {
+  return expensiveCalculation(initialValue);
+}
+const [state, dispatch] = useReducer(reducer, initialValue, init);
+```
+
+#### 3. 액션 크기 최소화
+
+액션 객체는 작게 유지하고, 필요한 데이터만 전달한다.
+
+```jsx
+// 나쁨: 큰 객체 전달
+dispatch({ type: "updated", entireState: hugeObject });
+
+// 좋음: 변경된 부분만 전달
+dispatch({ type: "updated", id: 1, field: "name", value: "새 이름" });
+```
+
 ### Vue와 비교
 
 Vue에서는 Pinia나 Vuex를 사용하여 유사한 패턴을 구현한다:
@@ -537,3 +712,14 @@ export const useTaskStore = defineStore("tasks", {
   },
 });
 ```
+
+#### 주요 차이점
+
+| 항목 | React useReducer | Vue Pinia |
+|------|-----------------|-----------|
+| 불변성 | 필수 (새 객체 반환) | 선택 (직접 수정 가능) |
+| 액션 타입 | 명시적 (type 필수) | 메서드 이름이 액션 |
+| 테스트 | reducer 함수만 테스트 | actions 메서드 테스트 |
+| 타입 안전성 | TypeScript로 보장 | TypeScript 지원 |
+
+React의 reducer는 불변성을 강제하지만, Vue는 직접 수정을 허용한다.

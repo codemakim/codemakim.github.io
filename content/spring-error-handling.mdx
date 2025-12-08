@@ -42,7 +42,7 @@ public class UserService {
 }
 ```
 
-이렇게 하면 에러가 발생했을 때 Spring의 기본 응답이 나갑니다.
+이렇게 하면 에러가 발생했을 때 Spring의 기본 응답이 나간다.
 
 ```json
 {
@@ -153,7 +153,7 @@ public class GlobalExceptionHandler {
 }
 ```
 
-이제 컨트롤러는 예외 처리 코드 없이 깔끔해집니다.
+이제 컨트롤러는 예외 처리 코드 없이 깔끔해진다.
 
 ```java
 @RestController
@@ -433,7 +433,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
 ## 커스텀 예외 계층 설계
 
-비즈니스 예외를 계층화하면 관리가 쉬워집니다.
+비즈니스 예외를 계층화하면 관리가 쉬워진다.
 
 ```java
 public abstract class BusinessException extends RuntimeException {
@@ -765,7 +765,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 }
 ```
 
-비즈니스 예외는 `warn` 레벨로, 예상치 못한 예외는 `error` 레벨로 로그를 남깁니다.
+비즈니스 예외는 `warn` 레벨로, 예상치 못한 예외는 `error` 레벨로 로그를 남긴다.
 
 ## 프로덕션 환경 설정
 

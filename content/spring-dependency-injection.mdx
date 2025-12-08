@@ -175,7 +175,7 @@ public class OrderService {
 }
 ```
 
-필드 주입은 이 코드가 실행되기 전까지 문제를 모릅니다. 생성자 주입이었다면 애플리케이션 시작이 실패해서 즉시 알 수 있다.
+필드 주입은 이 코드가 실행되기 전까지 문제를 모른다. 생성자 주입이었다면 애플리케이션 시작이 실패해서 즉시 알 수 있다.
 
 ```java
 @Service
@@ -200,7 +200,7 @@ public class OrderService {
 
 ### 의존성이 많을 때 경고 신호를 놓침
 
-필드 주입은 의존성을 계속 추가해도 코드가 짧아서 문제를 못 느낍니다.
+필드 주입은 의존성을 계속 추가해도 코드가 짧아서 문제를 못 느낀다.
 
 ```java
 @Service
@@ -217,7 +217,7 @@ public class UserService {
 }
 ```
 
-생성자 주입은 생성자가 길어져서 클래스가 너무 많은 책임을 가지고 있다는 신호를 줍니다.
+생성자 주입은 생성자가 길어져서 클래스가 너무 많은 책임을 가지고 있다는 신호를 준다.
 
 ```java
 @Service
@@ -335,7 +335,7 @@ private Optional<CacheService> cacheService;
 
 ### RequiredArgsConstructor
 
-`final` 필드만 포함하는 생성자를 자동으로 생성해줍니다.
+`final` 필드만 포함하는 생성자를 자동으로 생성해 준다.
 
 ```java
 import lombok.RequiredArgsConstructor;
@@ -810,6 +810,9 @@ public class UserService {
 
 ## 정리
 
-Spring의 의존성 주입은 생성자 주입을 기본으로 사용하는 것이 좋다. Lombok의 `@RequiredArgsConstructor`를 함께 사용하면 코드도 간결해집니다. 필드 주입은 테스트가 어렵고 불변성을 보장하지 못하며 순환 참조를 늦게 발견하는 등 여러 문제가 있어서 피하는 것이 좋다.
+Spring의 의존성 주입은 생성자 주입을 기본으로 사용하는 것이 좋다.
+Lombok의 `@RequiredArgsConstructor`를 함께 사용하면 코드도 간결해진다.
+필드 주입은 테스트가 어렵고 불변성을 보장하지 못하며 순환 참조를 늦게 발견하는 등 여러 문제가 있어서 피하는 것이 좋다.
 
-Bean 스코프는 대부분 Singleton을 사용하고, 특별한 경우에만 Prototype, Request, Session 같은 다른 스코프를 고려한다. 상태를 가지는 Bean은 동시성 문제를 일으킬 수 있으므로 주의해야 한다.
+Bean 스코프는 대부분 Singleton을 사용하고, 특별한 경우에만 Prototype, Request, Session 같은 다른 스코프를 고려한다.
+상태를 가지는 Bean은 동시성 문제를 일으킬 수 있으므로 주의해야 한다.
