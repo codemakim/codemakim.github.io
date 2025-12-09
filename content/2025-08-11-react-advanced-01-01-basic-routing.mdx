@@ -1,7 +1,7 @@
 ---
 title: "[React Router 1/9] React Router - 기본 라우팅"
 date: "2025-08-15"
-description: "BrowserRouter, Routes, Route, Link, NavLink 사용법"
+description: "React Router 소개와 클라이언트 사이드 라우팅의 기본 원리"
 tags: ["React", "고급", "프론트엔드"]
 series: "React 라이브러리"
 seriesOrder: 5
@@ -14,18 +14,13 @@ seriesOrder: 5
 
 ---
 
-## 기본 라우팅
+## React Router란?
 
-기본 라우팅
-개요
+React Router는 React 애플리케이션에서 클라이언트 사이드 라우팅을 구현하는 표준 라이브러리이다. 사용자가 URL을 통해 다른 화면으로 이동할 때, 페이지 전체를 새로고침하지 않고 필요한 컴포넌트만 교체하여 빠르고 부드러운 화면 전환을 제공한다.
 
-### React Router란?
+## 클라이언트 사이드 라우팅의 동작 원리
 
-React Router는 React 애플리케이션에서 클라이언트 사이드 라우팅을 구현하는 표준 라이브러리이다.
-
-### 클라이언트 사이드 라우팅의 동작 원리
-
-전통적인 서버 사이드 라우팅:
+### 전통적인 서버 사이드 라우팅
 
 ```
 사용자가 /about 클릭
@@ -34,10 +29,10 @@ React Router는 React 애플리케이션에서 클라이언트 사이드 라우�
   ↓
 서버가 about.html 전송
   ↓
-페이지 전체 새로고침 (깜빡임!)
+페이지 전체 새로고침 (깜빡임 발생)
 ```
 
-클라이언트 사이드 라우팅 (SPA):
+### 클라이언트 사이드 라우팅 (SPA)
 
 ```
 사용자가 /about 클릭
@@ -48,874 +43,181 @@ History API로 URL만 변경 (window.history.pushState)
   ↓
 React Router가 URL 감지
   ↓
-해당 컴포넌트만 교체 (깜빡임 없음!)
+해당 컴포넌트만 교체 (깜빡임 없음)
 ```
 
-### History API 깊이 이해하기
+### History API의 핵심 개념
 
-브라우저의 History API는 SPA 라우팅의 핵심이다. 세 가지 주요 메서드가 있다:
+브라우저의 History API는 SPA 라우팅의 핵심이다:
 
-#### 1. pushState() - 새 히스토리 추가
-
-```javascript
-// 문법: history.pushState(state, unused, url)
-window.history.pushState(
-  { page: 1, data: "some data" }, // state: 임의의 데이터 저장 가능
-  "", // unused: 역사적 이유로 존재, 빈 문자열 사용
-  "/about" // url: 변경할 URL (새로고침 없이!)
-);
-```
-
-동작 원리:
-
-1. 브라우저 히스토리 스택에 새 항목 추가
-2. URL 바의 주소 변경 (페이지는 새로고침 안 됨!)
-3. state 객체를 히스토리 항목과 함께 저장
-4. **중요**: `popstate` 이벤트는 발생하지 않음!
+1. **pushState()**: 새로운 히스토리 항목 추가 (뒤로가기 가능)
+2. **replaceState()**: 현재 히스토리 항목 교체 (뒤로가기 불가)
+3. **popstate 이벤트**: 브라우저 뒤로가기/앞으로가기 버튼 클릭 시 발생
 
 ```javascript
-// 히스토리 스택 시각화
-// 초기: [홈]
-history.pushState(null, "", "/about");
-// → [홈, About] ← 현재 위치
-
-history.pushState(null, "", "/contact");
-// → [홈, About, Contact] ← 현재 위치
-```
-
-#### 2. replaceState() - 현재 히스토리 교체
-
-```javascript
-// 현재 히스토리 항목을 교체 (스택에 추가하지 않음)
-window.history.replaceState({ redirected: true }, "", "/login");
-```
-
-pushState와의 차이:
-
-```javascript
-// pushState: 스택에 추가
-// [홈] → pushState('/a') → [홈, /a] → pushState('/b') → [홈, /a, /b]
-// 뒤로가기 3번 필요
-
-// replaceState: 현재 항목 교체
-// [홈] → pushState('/a') → [홈, /a] → replaceState('/b') → [홈, /b]
-// 뒤로가기 2번 필요 (/a는 사라짐!)
-```
-
-사용 사례:
-
-- 로그인 후 리다이렉트 (로그인 페이지를 히스토리에서 제거)
-- 폼 제출 후 URL 정리
-- 검색 필터 적용 (이전 필터 상태 제거)
-
-#### 3. popstate 이벤트 - 히스토리 변경 감지
-
-```javascript
-// 뒤로가기/앞으로가기 버튼을 눌렀을 때만 발생!
-window.addEventListener("popstate", (event) => {
-  console.log("현재 URL:", window.location.pathname);
-  console.log("저장된 state:", event.state); // pushState의 첫 번째 인자
-});
-```
-
-주의사항:
-
-```javascript
-// ❌ pushState 호출 시에는 popstate 이벤트 발생 안 함!
-history.pushState(null, "", "/new");
-// popstate 이벤트 발생 안 함
-
-// ✅ 브라우저 뒤로가기/앞으로가기 버튼 클릭 시에만 발생
-// 사용자가 뒤로가기 버튼 클릭
-// → popstate 이벤트 발생
-```
-
-따라서 React Router는 두 가지를 모두 감지해야 한다:
-
-```javascript
-// 1. Link 클릭 시 (pushState 사용)
-function Link({ to, children }) {
-  const handleClick = (e) => {
-    e.preventDefault();
-    window.history.pushState(null, "", to);
-    // pushState는 popstate를 발생시키지 않으므로
-    // 직접 라우터에게 URL 변경을 알려야 함
-    notifyRouter(to);
-  };
-  return (
-    <a href={to} onClick={handleClick}>
-      {children}
-    </a>
-  );
-}
-
-// 2. 브라우저 버튼 클릭 시 (popstate 이벤트)
-window.addEventListener("popstate", () => {
-  notifyRouter(window.location.pathname);
-});
-```
-
-### React Router의 내부 구현 원리
-
-React Router는 Context API와 Hook을 활용하여 구현된다. 핵심 구조를 살펴보자:
-
-#### 1. Router 컨텍스트 구조
-
-```javascript
-// 단순화된 BrowserRouter 구현
-const RouterContext = React.createContext(null);
-
-function BrowserRouter({ children }) {
-  const [location, setLocation] = useState({
-    pathname: window.location.pathname,
-    search: window.location.search,
-    hash: window.location.hash,
-  });
-
-  useEffect(() => {
-    // popstate: 브라우저 뒤로가기/앞으로가기 감지
-    const handlePopState = () => {
-      setLocation({
-        pathname: window.location.pathname,
-        search: window.location.search,
-        hash: window.location.hash,
-      });
-    };
-
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
-
-  const navigate = (to, { replace = false } = {}) => {
-    if (replace) {
-      window.history.replaceState(null, "", to);
-    } else {
-      window.history.pushState(null, "", to);
-    }
-    // pushState는 popstate를 발생시키지 않으므로 수동으로 업데이트
-    setLocation({
-      pathname: to,
-      search: "",
-      hash: "",
-    });
-  };
-
-  return (
-    <RouterContext.Provider value={{ location, navigate }}>
-      {children}
-    </RouterContext.Provider>
-  );
-}
-```
-
-#### 2. useLocation과 useNavigate 구현
-
-```javascript
-// 현재 URL 정보 가져오기
-function useLocation() {
-  const context = useContext(RouterContext);
-  if (!context) {
-    throw new Error("useLocation must be used within a Router");
-  }
-  return context.location;
-}
-
-// 프로그래밍 방식 네비게이션
-function useNavigate() {
-  const context = useContext(RouterContext);
-  if (!context) {
-    throw new Error("useNavigate must be used within a Router");
-  }
-  return context.navigate;
-}
-```
-
-사용 예시:
-
-```javascript
-function MyComponent() {
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  console.log(location.pathname); // '/about'
-
-  const goToHome = () => {
-    navigate("/"); // pushState 사용
-  };
-
-  const replaceToLogin = () => {
-    navigate("/login", { replace: true }); // replaceState 사용
-  };
-
-  return <div>Current path: {location.pathname}</div>;
-}
-```
-
-#### 3. Routes와 Route 매칭 알고리즘
-
-```javascript
-// 단순화된 Routes 구현
-function Routes({ children }) {
-  const location = useLocation();
-
-  // Route 컴포넌트들을 배열로 변환
-  const routes = React.Children.toArray(children);
-
-  // 현재 경로와 매칭되는 첫 번째 라우트 찾기
-  for (const route of routes) {
-    const { path, element } = route.props;
-
-    // 경로 매칭 (정확히 일치하거나 동적 파라미터 매칭)
-    if (matchPath(location.pathname, path)) {
-      return element;
-    }
-  }
-
-  // 매칭되는 라우트 없음
-  return null;
-}
-
-// 경로 매칭 함수
-function matchPath(pathname, pattern) {
-  // 정확한 일치
-  if (pathname === pattern) return true;
-
-  // 동적 세그먼트 처리: /users/:id
-  const patternParts = pattern.split("/");
-  const pathnameParts = pathname.split("/");
-
-  if (patternParts.length !== pathnameParts.length) return false;
-
-  for (let i = 0; i < patternParts.length; i++) {
-    const patternPart = patternParts[i];
-    const pathnamePart = pathnameParts[i];
-
-    // 동적 파라미터 (:id, :slug 등)
-    if (patternPart.startsWith(":")) {
-      continue; // 매칭 성공
-    }
-
-    // 일반 세그먼트 비교
-    if (patternPart !== pathnamePart) {
-      return false;
-    }
-  }
-
-  return true;
-}
-```
-
-실제 동작 예시:
-
-```javascript
-<Routes>
-  <Route path="/" element={<Home />} />
-  <Route path="/about" element={<About />} />
-  <Route path="/users/:id" element={<User />} />
-</Routes>
-
-// URL: /users/123
-// matchPath('/users/123', '/') → false
-// matchPath('/users/123', '/about') → false
-// matchPath('/users/123', '/users/:id') → true ✅
-// → <User /> 렌더링
-```
-
-#### 4. Link 컴포넌트 구현
-
-```javascript
-function Link({ to, children, replace = false, ...props }) {
-  const navigate = useNavigate();
-
-  const handleClick = (e) => {
-    // 기본 동작 방지 (페이지 새로고침 방지)
-    e.preventDefault();
-
-    // 특수 키 처리
-    if (
-      e.ctrlKey || // Ctrl+클릭: 새 탭
-      e.metaKey || // Cmd+클릭 (Mac)
-      e.button !== 0 // 마우스 좌클릭 아님
-    ) {
-      return; // 브라우저 기본 동작 허용
-    }
-
-    // React Router의 navigate 사용
-    navigate(to, { replace });
-  };
-
-  return (
-    <a href={to} onClick={handleClick} {...props}>
-      {children}
-    </a>
-  );
-}
-```
-
-### 간단한 라우터 직접 구현하기
-
-원리를 이해하기 위해 20줄로 만드는 초간단 라우터:
-
-```javascript
-import { useState, useEffect, createContext, useContext } from "react";
-
-// 1. 라우터 컨텍스트
-const RouterContext = createContext(null);
-
-// 2. Router 컴포넌트 (BrowserRouter 역할)
-export function Router({ children }) {
-  const [path, setPath] = useState(window.location.pathname);
-
-  useEffect(() => {
-    const handlePopState = () => setPath(window.location.pathname);
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
-
-  const navigate = (to) => {
-    window.history.pushState(null, "", to);
-    setPath(to);
-  };
-
-  return (
-    <RouterContext.Provider value={{ path, navigate }}>
-      {children}
-    </RouterContext.Provider>
-  );
-}
-
-// 3. Route 컴포넌트
-export function Route({ path: routePath, component: Component }) {
-  const { path } = useContext(RouterContext);
-  return path === routePath ? <Component /> : null;
-}
-
-// 4. Link 컴포넌트
-export function Link({ to, children }) {
-  const { navigate } = useContext(RouterContext);
-  return (
-    <a
-      href={to}
-      onClick={(e) => {
-        e.preventDefault();
-        navigate(to);
-      }}
-    >
-      {children}
-    </a>
-  );
-}
-
-// 5. 사용 예시
-function App() {
-  return (
-    <Router>
-      <nav>
-        <Link to="/">Home</Link>
-        <Link to="/about">About</Link>
-      </nav>
-
-      <Route path="/" component={() => <h1>Home Page</h1>} />
-      <Route path="/about" component={() => <h1>About Page</h1>} />
-    </Router>
-  );
-}
-```
-
-이 20줄 코드가 하는 일:
-
-1. URL 변경을 감지한다 (popstate)
-2. Link 클릭 시 URL을 변경한다 (pushState)
-3. 현재 URL에 맞는 컴포넌트를 렌더링한다
-4. 페이지 새로고침 없이 동작한다!
-
-물론 실제 React Router는 훨씬 더 많은 기능이 있다:
-
-- 중첩 라우팅 (Outlet)
-- 동적 파라미터 (:id)
-- 쿼리 스트링 파싱
-- 리다이렉트
-- 404 처리
-- 코드 스플리팅
-- 트랜지션 애니메이션
-
-하지만 핵심 원리는 동일하다!
-
-### BrowserRouter vs HashRouter 원리 비교
-
-#### BrowserRouter - History API 사용
-
-```javascript
-// URL: https://example.com/about
+// URL 변경 (페이지 새로고침 없음)
 window.history.pushState(null, "", "/about");
-// → 깔끔한 URL
-```
 
-작동 방식:
-
-1. History API의 pushState/replaceState 사용
-2. 서버에 `/about` 요청이 가지 않음 (클라이언트에서 처리)
-3. **문제**: 서버가 모든 경로에 대해 `index.html`을 반환해야 함
-
-서버 설정 필요:
-
-```nginx
-# Nginx 설정 예시
-location / {
-  try_files $uri /index.html;
-}
-
-# 설정 없으면?
-# 사용자가 https://example.com/about을 직접 입력하거나 새로고침
-# → 서버가 /about 파일을 찾음
-# → 404 Not Found! (서버에 about 파일 없음)
-```
-
-#### HashRouter - URL Hash 사용
-
-```javascript
-// URL: https://example.com/#/about
-window.location.hash = "#/about";
-// → URL에 # 포함
-```
-
-작동 방식:
-
-1. URL의 hash 부분 (`#` 뒤)만 변경
-2. Hash 변경은 서버 요청을 발생시키지 않음!
-3. `hashchange` 이벤트로 감지
-
-```javascript
-// HashRouter 내부 구현 (단순화)
-window.addEventListener("hashchange", () => {
-  const path = window.location.hash.slice(1); // '#/about' → '/about'
-  renderComponent(path);
+// 브라우저 버튼 클릭 감지
+window.addEventListener("popstate", () => {
+  // URL 변경 감지하여 해당 컴포넌트 렌더링
 });
 ```
 
-서버 설정 불필요:
+**중요한 특징**: `pushState()`를 호출해도 `popstate` 이벤트는 발생하지 않는다. 따라서 React Router는 Link 클릭과 브라우저 버튼 클릭을 별도로 처리해야 한다.
 
-```
-사용자가 https://example.com/#/about 접속
-  ↓
-서버는 # 뒤를 무시하고 https://example.com만 봄
-  ↓
-index.html 반환
-  ↓
-JavaScript가 #/about 파싱
-  ↓
-About 컴포넌트 렌더링 ✅
-```
+### React Router의 작동 방식
 
-비교표:
+React Router는 Context API를 활용하여 구현된다:
 
-| 특징              | BrowserRouter       | HashRouter          |
-| ----------------- | ------------------- | ------------------- |
-| URL               | `/about`            | `/#/about`          |
-| API               | History API         | Hash + hashchange   |
-| 서버 설정         | 필요 ⚠️            | 불필요 ✅           |
-| SEO               | 좋음 ✅             | 나쁨 ⚠️            |
-| 모바일 앱         | 권장                | 권장 안 함          |
-| GitHub Pages      | 복잡한 설정 필요    | 간단 ✅             |
-| 사용 시나리오     | 프로덕션 앱         | 프로토타입, 테스트  |
+1. **BrowserRouter**: 현재 URL을 상태로 관리하고 Context로 제공
+2. **Routes**: 현재 URL과 매칭되는 라우트를 찾아 렌더링
+3. **Link**: 클릭 시 기본 동작을 막고 History API로 URL 변경
+4. **Hook들**: Context에서 라우터 정보를 가져와 컴포넌트에서 사용
 
-실제 구현 차이:
+### BrowserRouter vs HashRouter
 
-```javascript
-// BrowserRouter
-function BrowserRouter({ children }) {
-  // popstate 이벤트 사용
-  window.addEventListener("popstate", handleNavigation);
-  // pushState/replaceState 사용
-  window.history.pushState(null, "", path);
-}
+두 가지 라우터 타입이 있으며, 각각 다른 방식으로 URL을 관리한다:
 
-// HashRouter
-function HashRouter({ children }) {
-  // hashchange 이벤트 사용
-  window.addEventListener("hashchange", handleNavigation);
-  // location.hash 변경
-  window.location.hash = "#" + path;
-}
-```
-
-### 핵심 원리 요약
-
-1. **History API가 모든 것의 기초다**
-
-   - pushState: URL 변경 (페이지 새로고침 없이)
-   - popstate: 뒤로가기/앞으로가기 감지
-   - 히스토리 스택 관리
-
-2. **React Router는 Context + Hook이다**
-
-   - Context로 라우터 상태 공유
-   - Hook으로 컴포넌트에서 접근
-   - 상태 변경 시 리렌더링 트리거
-
-3. **경로 매칭은 패턴 비교다**
-
-   - URL 파싱 (pathname, search, hash)
-   - 패턴 매칭 (정확한 일치, 동적 파라미터)
-   - 첫 번째 매칭 라우트 렌더링
-
-4. **Link는 기본 동작을 가로챈다**
-   - `<a>` 태그 래핑
-   - onClick에서 preventDefault
-   - navigate() 함수로 라우팅
-
-장점:
-
-- 빠른 페이지 전환 (네트워크 요청 없음)
-- 부드러운 UX (깜빡임 없음)
-- 상태 유지 (전역 state 보존)
-- 애니메이션 가능
-
-단점:
-
-- 초기 번들 크기 증가 (해결책: 코드 분할)
-- SEO 어려움 (해결책: SSR - Next.js)
-- 서버 설정 필요 (BrowserRouter)
-
-### 라우팅 성능 최적화 원리
-
-#### 1. 코드 스플리팅 (Code Splitting)
-
-모든 라우트를 초기에 로드하면 번들 크기가 커진다. 해결책은 동적 import다:
-
-```javascript
-// ❌ 나쁜 예: 모든 컴포넌트를 초기에 로드
-import Home from "./Home";
-import About from "./About";
-import Dashboard from "./Dashboard";
-import Settings from "./Settings";
-import Profile from "./Profile";
-// 번들 크기: 500KB (모든 페이지 포함!)
-
-// ✅ 좋은 예: 필요할 때만 로드
-const Home = lazy(() => import("./Home"));
-const About = lazy(() => import("./About"));
-const Dashboard = lazy(() => import("./Dashboard"));
-const Settings = lazy(() => import("./Settings"));
-const Profile = lazy(() => import("./Profile"));
-// 초기 번들: 50KB (Home만)
-// 페이지 전환 시: 각 페이지 별도 로드
-
-function App() {
-  return (
-    <Suspense fallback={<Loading />}>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/profile" element={<Profile />} />
-      </Routes>
-    </Suspense>
-  );
-}
-```
-
-번들 분석:
-
-```javascript
-// 초기 로드
-main.js      // 50KB (React Router + Home)
-
-// /about 접속 시
-about.chunk.js  // 30KB (About 컴포넌트만)
-
-// /dashboard 접속 시
-dashboard.chunk.js  // 80KB (Dashboard + 차트 라이브러리)
-```
-
-#### 2. Prefetching - 사용자 행동 예측
-
-```javascript
-import { useEffect } from "react";
-import { Link } from "react-router-dom";
-
-// 링크에 마우스 올렸을 때 미리 로드
-function SmartLink({ to, children }) {
-  const handleMouseEnter = () => {
-    // 동적 import로 prefetch
-    import(`./pages${to}`);
-  };
-
-  return (
-    <Link to={to} onMouseEnter={handleMouseEnter}>
-      {children}
-    </Link>
-  );
-}
-
-// 사용자 행동:
-// 1. 링크에 마우스 올림 (hover)
-//    → 백그라운드에서 컴포넌트 로드 시작
-// 2. 링크 클릭 (보통 0.5~1초 후)
-//    → 이미 로드 완료! 즉시 렌더링 ✅
-```
-
-실제 효과:
-
-```
-일반 Link:
-  클릭 → 로드 시작 → 0.5초 대기 → 렌더링
-
-SmartLink:
-  마우스 올림 → 로드 시작 (백그라운드)
-  클릭 → 즉시 렌더링 (이미 로드됨!) ✅
-```
-
-#### 3. 메모리 관리 - 라우트 언마운트
-
-```javascript
-function RouteWithCleanup({ element }) {
-  useEffect(() => {
-    console.log("컴포넌트 마운트");
-
-    return () => {
-      console.log("컴포넌트 언마운트");
-      // 여기서 정리 작업!
-      clearInterval(timerId);
-      clearTimeout(timeoutId);
-      abortController.abort(); // 진행 중인 요청 취소
-    };
-  }, []);
-
-  return element;
-}
-
-// 라우트 전환 시:
-// /dashboard (타이머 3개 실행 중)
-//   → navigate('/settings')
-//   → Dashboard 언마운트
-//   → cleanup 함수 실행 ✅
-//   → 타이머 정리 완료
-//   → Settings 마운트
-```
-
-주의사항:
-
-```javascript
-// ❌ 나쁜 예: 정리 안 함
-function Dashboard() {
-  useEffect(() => {
-    const timer = setInterval(() => {
-      fetchData(); // 5초마다 실행
-    }, 5000);
-    // return 없음! 메모리 누수!
-  }, []);
-}
-
-// ✅ 좋은 예: 정리 함
-function Dashboard() {
-  useEffect(() => {
-    const timer = setInterval(() => {
-      fetchData();
-    }, 5000);
-
-    return () => clearInterval(timer); // 정리!
-  }, []);
-}
-```
-
-### 실무 면접 질문과 답변
-
-#### Q1: "SPA 라우팅을 설명해보세요"
-
-**기본 답변:**
-"SPA에서 라우팅은 History API를 활용한다. 사용자가 링크를 클릭하면 React Router가 기본 동작을 막고 (`preventDefault`), `history.pushState`로 URL만 변경한다. 이때 페이지는 새로고침되지 않는다. React Router는 URL 변경을 감지하여 해당 경로에 매핑된 컴포넌트만 교체한다."
-
-**심화 답변 (위 내용 학습 후):**
-"SPA 라우팅의 핵심은 History API와 이벤트 기반 렌더링이다.
-
-1. **URL 변경 메커니즘**: `pushState()`로 URL을 변경하면 브라우저는 새 요청을 보내지 않는다. 히스토리 스택에만 항목이 추가된다.
-
-2. **이중 감지 시스템**: `popstate` 이벤트로 브라우저 버튼을 감지하고, Link 컴포넌트의 `onClick`에서 프로그래밍 방식 네비게이션을 감지한다.
-
-3. **컨텍스트 기반 상태 관리**: Router는 Context API로 현재 location과 navigate 함수를 하위 컴포넌트에 제공한다.
-
-4. **경로 매칭 알고리즘**: URL 패턴을 파싱하여 동적 세그먼트(`:id`)를 처리하고 첫 번째 매칭 라우트를 렌더링한다.
-
-5. **성능 최적화**: 코드 스플리팅으로 초기 번들을 줄이고, prefetching으로 사용자 경험을 개선한다."
-
-#### Q2: "pushState를 호출하면 popstate 이벤트가 발생하나요?"
-
-**답변:**
-"아니다. `pushState()`나 `replaceState()` 호출 시에는 `popstate` 이벤트가 발생하지 않는다. `popstate`는 오직 브라우저의 뒤로가기/앞으로가기 버튼을 눌렀을 때만 발생한다.
-
-따라서 React Router는 두 가지를 모두 처리해야 한다:
-
-1. Link 클릭 시: `pushState` 호출 + 수동으로 컴포넌트 업데이트
-2. 브라우저 버튼 클릭 시: `popstate` 이벤트 리스너로 감지
-
-이것이 BrowserRouter가 내부적으로 state를 관리하면서 popstate 이벤트도 동시에 구독하는 이유다."
-
-#### Q3: "BrowserRouter와 HashRouter의 차이는 무엇인가요?"
-
-**답변:**
-"가장 큰 차이는 URL 형식과 서버 설정 필요 여부다.
-
-**BrowserRouter**:
-
-- URL: `/about` (깔끔)
-- History API (`pushState`) 사용
-- 서버 설정 필요: 모든 경로가 `index.html`을 반환하도록 설정
+**BrowserRouter** (권장):
+- URL: `/about` (깔끔한 URL)
+- History API 사용
+- 서버 설정 필요 (모든 경로에서 index.html 반환)
 - SEO 친화적
-- 프로덕션 권장
 
 **HashRouter**:
-
 - URL: `/#/about` (# 포함)
-- Hash 기반 라우팅 (`location.hash`)
-- 서버 설정 불필요: 서버는 # 뒤를 보지 않음
-- SEO 불리
-- 정적 호스팅(GitHub Pages)이나 프로토타입에 적합
+- Hash 기반 라우팅
+- 서버 설정 불필요
+- GitHub Pages 같은 정적 호스팅에 유용
 
-실무에서는 BrowserRouter를 사용하고, Nginx나 Apache에서 `try_files` 설정을 추가한다."
+실무에서는 BrowserRouter를 사용하며, 서버에서 모든 경로를 index.html로 리다이렉트하도록 설정한다.
 
-#### Q4: "코드 스플리팅은 어떻게 구현하나요?"
-
-**답변:**
-"`React.lazy()`와 동적 import를 사용한다:
-
-```javascript
-const Dashboard = lazy(() => import('./Dashboard'));
-
-<Suspense fallback={<Spinner />}>
-  <Route path="/dashboard" element={<Dashboard />} />
-</Suspense>
-```
-
-이렇게 하면:
-
-1. 초기 번들에서 Dashboard가 제외된다
-2. `/dashboard` 접속 시 별도 청크로 로드된다
-3. 로딩 중에는 Suspense의 fallback이 표시된다
-
-추가로 prefetching을 구현하면:
-
-```javascript
-<Link
-  to="/dashboard"
-  onMouseEnter={() => import('./Dashboard')}
->
-  Dashboard
-</Link>
-```
-
-마우스를 올리는 순간 백그라운드 로드가 시작되어 클릭 시 즉시 표시된다."
-
-#### Q5: "라우트 변경 시 메모리 누수를 방지하려면?"
-
-**답변:**
-"컴포넌트 언마운트 시 모든 비동기 작업을 정리해야 한다:
-
-```javascript
-useEffect(() => {
-  const timer = setInterval(() => {}, 1000);
-  const controller = new AbortController();
-
-  fetch('/api/data', { signal: controller.signal });
-
-  return () => {
-    clearInterval(timer);
-    clearTimeout(timeout);
-    controller.abort(); // 진행 중인 요청 취소
-  };
-}, []);
-```
-
-라우트 변경 시 React는 이전 컴포넌트의 cleanup 함수를 호출한다. 여기서 타이머, 이벤트 리스너, API 요청을 정리하지 않으면 백그라운드에서 계속 실행되어 메모리 누수가 발생한다."
-
-### 디버깅 팁
-
-#### 1. 현재 라우트 상태 확인
-
-```javascript
-import { useLocation, useNavigate } from "react-router-dom";
-
-function DebugRouter() {
-  const location = useLocation();
-
-  useEffect(() => {
-    console.log("=== Route Changed ===");
-    console.log("pathname:", location.pathname); // '/about'
-    console.log("search:", location.search); // '?id=123'
-    console.log("hash:", location.hash); // '#section1'
-    console.log("state:", location.state); // navigate 시 전달한 state
-  }, [location]);
-
-  return null;
-}
-
-// App.tsx에 추가
-<DebugRouter />
-```
-
-#### 2. History 스택 시각화
-
-```javascript
-useEffect(() => {
-  let historyStack = [window.location.pathname];
-
-  const originalPushState = window.history.pushState;
-  window.history.pushState = function (...args) {
-    historyStack.push(args[2]);
-    console.log("History Stack:", historyStack);
-    return originalPushState.apply(this, args);
-  };
-
-  window.addEventListener("popstate", () => {
-    historyStack.pop();
-    console.log("History Stack (back):", historyStack);
-  });
-}, []);
-```
-
-#### 3. 라우트 렌더링 성능 측정
-
-```javascript
-function PerformanceRoute({ path, element: Element }) {
-  const startTime = performance.now();
-
-  useEffect(() => {
-    const renderTime = performance.now() - startTime;
-    console.log(`${path} rendered in ${renderTime.toFixed(2)}ms`);
-  }, []);
-
-  return <Element />;
-}
-
-// 사용
-<Route path="/dashboard" element={
-  <PerformanceRoute path="/dashboard" element={Dashboard} />
-} />
-```
-
-주요 기능:
-
-- 선언적 라우팅
-- 중첩 라우트
-- 동적 라우트 매칭
-- 프로그래밍 방식 네비게이션
-- 지연 로딩
-
-### 설치
+## 설치
 
 ```bash
 npm install react-router-dom
 ```
 
-### Vue Router와 비교
+## 기본 사용법
 
-| 기능                  | Vue Router      | React Router  |
-| --------------------- | --------------- | ------------- |
-| 라우트 정의           | 객체 배열       | JSX 컴포넌트  |
-| 중첩 라우트           | `children`      | `<Outlet />`  |
-| 네비게이션            | `<router-link>` | `<Link>`      |
-| 프로그래밍 네비게이션 | `router.push()` | `navigate()`  |
-| 파라미터 접근         | `route.params`  | `useParams()` |
+### 1. Router 설정
+
+```jsx
+// App.jsx
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Home from "./pages/Home";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/contact" element={<Contact />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+```
+
+**구조 설명**:
+- `BrowserRouter`: 라우터의 최상위 컴포넌트. 현재 URL을 추적하고 하위 컴포넌트에 제공한다
+- `Routes`: 여러 Route 중 현재 URL과 매칭되는 하나를 선택한다
+- `Route`: 특정 경로(`path`)와 렌더링할 컴포넌트(`element`)를 정의한다
+
+### 2. Link 컴포넌트
+
+페이지 전환 시 `<a>` 태그 대신 `<Link>`를 사용한다:
+
+```jsx
+import { Link } from "react-router-dom";
+
+export default function Navigation() {
+  return (
+    <nav>
+      <Link to="/">Home</Link>
+      <Link to="/about">About</Link>
+      <Link to="/contact">Contact</Link>
+    </nav>
+  );
+}
+```
+
+**Link를 사용하는 이유**:
+- `<a>` 태그는 페이지를 새로고침한다 (서버 요청 발생)
+- `<Link>`는 JavaScript로 URL만 변경한다 (빠르고 부드러운 전환)
+
+### 3. NavLink (활성 링크 스타일링)
+
+현재 활성화된 링크에 스타일을 적용하려면 `NavLink`를 사용한다:
+
+```jsx
+import { NavLink } from "react-router-dom";
+
+export default function Navigation() {
+  return (
+    <nav>
+      <NavLink 
+        to="/" 
+        className={({ isActive }) => isActive ? "active" : ""}
+      >
+        Home
+      </NavLink>
+      <NavLink
+        to="/about"
+        style={({ isActive }) => ({
+          color: isActive ? "red" : "black",
+        })}
+      >
+        About
+      </NavLink>
+    </nav>
+  );
+}
+```
+
+**NavLink의 특징**:
+- `isActive` 속성으로 현재 경로와 일치하는지 확인한다
+- CSS 클래스나 인라인 스타일을 동적으로 적용할 수 있다
+
+### 4. 404 페이지 처리
+
+매칭되는 라우트가 없을 때 보여줄 페이지를 정의한다:
+
+```jsx
+<Routes>
+  <Route path="/" element={<Home />} />
+  <Route path="/about" element={<About />} />
+  <Route path="*" element={<NotFound />} />
+</Routes>
+
+function NotFound() {
+  return (
+    <div>
+      <h1>404 - 페이지를 찾을 수 없다</h1>
+      <Link to="/">홈으로 돌아가기</Link>
+    </div>
+  );
+}
+```
+
+**와일드카드 경로** (`*`): 다른 어떤 경로와도 매칭되지 않을 때 선택된다.
+
+## 핵심 원리 요약
+
+1. **History API**: URL을 변경하면서 페이지 새로고침을 방지한다
+2. **Context API**: 라우터 상태를 모든 하위 컴포넌트에 제공한다
+3. **경로 매칭**: 현재 URL과 정의된 경로를 비교하여 컴포넌트를 선택한다
+4. **선언적 라우팅**: JSX로 라우트 구조를 직관적으로 정의한다
+
+## 다음 단계
+
+- **02 - 중첩 라우트**: Layout 패턴과 Outlet 활용
+- **03 - 동적 라우트**: URL 파라미터와 useParams
+- **04 - 프로그래밍 방식 네비게이션**: useNavigate 활용
+- **05 - Router Hooks**: 다양한 라우터 Hook 사용법
 
 ---

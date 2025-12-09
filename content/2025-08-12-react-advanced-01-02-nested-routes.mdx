@@ -14,108 +14,179 @@ seriesOrder: 6
 
 ---
 
-## 중첩 라우트
+## 중첩 라우트란?
 
-중첩 라우트
-기본 라우팅
+중첩 라우트는 라우트 안에 또 다른 라우트를 정의하는 패턴이다. 이를 통해 공통 레이아웃(헤더, 사이드바, 푸터)을 유지하면서 내용 영역만 변경할 수 있다.
 
-### 1. 라우터 설정
+**사용 이유**:
+- 모든 페이지에서 동일한 네비게이션 바를 표시한다
+- 코드 중복을 줄이고 구조를 명확하게 한다
+- URL 구조를 계층적으로 표현한다 (`/blog`, `/blog/post-1`, `/blog/post-2`)
+
+## Layout 패턴
+
+### 1. Layout 컴포넌트 만들기
+
+공통 레이아웃을 담당하는 컴포넌트를 만든다. `<Outlet />`은 자식 라우트가 렌더링될 위치를 지정한다:
+
+```jsx
+// components/Layout.jsx
+import { Outlet, Link } from "react-router-dom";
+
+export default function Layout() {
+  return (
+    <div>
+      <header>
+        <nav>
+          <Link to="/">Home</Link>
+          <Link to="/about">About</Link>
+          <Link to="/blog">Blog</Link>
+        </nav>
+      </header>
+
+      <main>
+        <Outlet /> {/* 자식 라우트가 여기에 렌더링된다 */}
+      </main>
+
+      <footer>
+        <p>© 2025 My App</p>
+      </footer>
+    </div>
+  );
+}
+```
+
+**Outlet의 역할**:
+- 현재 URL과 매칭된 자식 라우트의 컴포넌트를 렌더링한다
+- Vue Router의 `<router-view />`와 동일한 개념이다
+
+### 2. 중첩 라우트 설정
+
+부모 라우트 안에 자식 라우트를 정의한다:
 
 ```jsx
 // App.jsx
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import About from "./pages/About";
-import Contact from "./pages/Contact";
+import Blog from "./pages/Blog";
+import Post from "./pages/Post";
+
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/contact" element={<Contact />} />
+        <Route path="/" element={<Layout />}>
+          <Route index element={<Home />} />
+          <Route path="about" element={<About />} />
+          <Route path="blog" element={<Blog />} />
+          <Route path="blog/:postId" element={<Post />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   );
 }
 ```
 
-### 2. Link 컴포넌트
+**구조 설명**:
+- `/` 경로에 접근하면 `<Layout>` + `<Home>`이 렌더링된다
+- `/about` 경로에 접근하면 `<Layout>` + `<About>`이 렌더링된다
+- Layout은 모든 경로에서 유지되고, Outlet 부분만 변경된다
+
+### 3. Index Route
+
+`index` 속성은 부모 경로와 동일한 경로를 의미한다:
 
 ```jsx
-import { Link } from "react-router-dom";
-export default function Navigation() {
+<Route path="/" element={<Layout />}>
+  <Route index element={<Home />} />        {/* / */}
+  <Route path="about" element={<About />} /> {/* /about */}
+</Route>
+```
+
+- `index`가 없으면 `/` 경로에서 Layout만 렌더링되고 Outlet은 비어있다
+- `index`를 추가하면 `/` 경로에서 Layout + Home이 렌더링된다
+
+## 다단계 중첩
+
+라우트를 여러 단계로 중첩할 수 있다:
+
+```jsx
+<Routes>
+  <Route path="/" element={<Layout />}>
+    <Route index element={<Home />} />
+
+    {/* 2단계 중첩: Dashboard 영역 */}
+    <Route path="dashboard" element={<DashboardLayout />}>
+      <Route index element={<DashboardHome />} />        {/* /dashboard */}
+      <Route path="settings" element={<Settings />} />   {/* /dashboard/settings */}
+      <Route path="profile" element={<Profile />} />     {/* /dashboard/profile */}
+    </Route>
+
+    {/* 2단계 중첩: Admin 영역 */}
+    <Route path="admin" element={<AdminLayout />}>
+      <Route index element={<AdminHome />} />            {/* /admin */}
+      <Route path="users" element={<Users />} />         {/* /admin/users */}
+      <Route path="posts" element={<Posts />} />         {/* /admin/posts */}
+    </Route>
+  </Route>
+</Routes>
+```
+
+**렌더링 구조** (예: `/dashboard/settings` 접속 시):
+```
+<Layout>
+  <DashboardLayout>
+    <Settings />
+  </DashboardLayout>
+</Layout>
+```
+
+### DashboardLayout 예시
+
+```jsx
+// components/DashboardLayout.jsx
+import { Outlet, Link } from "react-router-dom";
+
+export default function DashboardLayout() {
   return (
-    <nav>
-      <Link to="/">Home</Link>
-      <Link to="/about">About</Link>
-      <Link to="/contact">Contact</Link>
-    </nav>
+    <div className="dashboard">
+      <aside>
+        <Link to="/dashboard">Overview</Link>
+        <Link to="/dashboard/settings">Settings</Link>
+        <Link to="/dashboard/profile">Profile</Link>
+      </aside>
+      <div className="dashboard-content">
+        <Outlet /> {/* Settings 또는 Profile이 여기에 렌더링 */}
+      </div>
+    </div>
   );
 }
 ```
 
-### 3. NavLink (활성 링크)
+## 실전 활용 예시
+
+블로그 사이트의 라우트 구조:
 
 ```jsx
-import { NavLink } from "react-router-dom";
-export default function Navigation() {
-  return (
-    <nav>
-      <NavLink to="/" className={({ isActive }) => (isActive ? "active" : "")}>
-        Home
-      </NavLink>
-      <NavLink
-        to="/about"
-        style={({ isActive }) => ({
-          color: isActive ? "red" : "black",
-        })}
-      >
-        About
-      </NavLink>
-    </nav>
-  );
-}
+<Routes>
+  <Route path="/" element={<Layout />}>
+    <Route index element={<Home />} />
+    <Route path="about" element={<About />} />
+    
+    <Route path="blog" element={<BlogLayout />}>
+      <Route index element={<BlogList />} />              {/* /blog */}
+      <Route path=":postId" element={<BlogPost />} />     {/* /blog/123 */}
+      <Route path="category/:name" element={<Category />} /> {/* /blog/category/tech */}
+    </Route>
+  </Route>
+</Routes>
 ```
 
-### Vue Router와 비교
-
-```html
-<!-- Vue Router -->
-<template>
-  <router-view />
-  <router-link to="/">Home</router-link>
-  <router-link to="/about">About</router-link>
-</template>
-<script>
-  import { createRouter, createWebHistory } from "vue-router";
-  const router = createRouter({
-    history: createWebHistory(),
-    routes: [
-      { path: "/", component: Home },
-      { path: "/about", component: About },
-    ],
-  });
-</script>
-```
-
-```jsx
-// React Router
-import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
-function App() {
-  return (
-    <BrowserRouter>
-      <nav>
-        <Link to="/">Home</Link>
-        <Link to="/about">About</Link>
-      </nav>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/about" element={<About />} />
-      </Routes>
-    </BrowserRouter>
-  );
-}
-```
+**장점**:
+- 헤더/푸터는 Layout에서 한 번만 정의한다
+- 블로그 사이드바는 BlogLayout에서 한 번만 정의한다
+- URL 구조가 컴포넌트 계층과 일치하여 이해하기 쉽다
 
 ---

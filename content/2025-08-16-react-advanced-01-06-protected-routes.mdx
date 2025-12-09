@@ -14,171 +14,289 @@ seriesOrder: 10
 
 ---
 
-## Protected Routes
+## Protected Routes란?
 
-Protected Routes
-Router Hooks
+Protected Routes는 특정 조건(주로 인증 상태)을 만족하는 사용자만 접근할 수 있도록 보호하는 라우트다. 로그인하지 않은 사용자가 대시보드나 프로필 페이지에 접근하는 것을 막고 로그인 페이지로 리다이렉트한다.
 
-### 1. useLocation
+**사용 시나리오**:
+- 로그인이 필요한 페이지 보호
+- 관리자 전용 페이지 접근 제어
+- 특정 역할/권한이 필요한 기능 제한
+
+## 기본 인증 가드
+
+### 1. 간단한 Protected Route 컴포넌트
+
+인증되지 않은 사용자를 로그인 페이지로 리다이렉트한다:
 
 ```jsx
-import { useLocation } from "react-router-dom";
-export default function Header() {
-  const location = useLocation();
+import { Navigate } from "react-router-dom";
 
-  return (
-    <div>
-      <p>Current path: {location.pathname}</p>
-      <p>Search: {location.search}</p>
-      <p>Hash: {location.hash}</p>
-      <p>State: {JSON.stringify(location.state)}</p>
-    </div>
-  );
+function ProtectedRoute({ children }) {
+  const isAuthenticated = useAuth(); // 인증 상태 확인
+
+  if (!isAuthenticated) {
+    // 인증되지 않으면 로그인 페이지로 리다이렉트
+    return <Navigate to="/login" replace />;
+  }
+
+  // 인증되었으면 요청한 페이지 표시
+  return children;
 }
+
+// 사용
+<Route
+  path="/dashboard"
+  element={
+    <ProtectedRoute>
+      <Dashboard />
+    </ProtectedRoute>
+  }
+/>
 ```
 
-활용 예시: 이전 페이지 기억
+**동작 과정**:
+1. `/dashboard` 접근 시도
+2. `ProtectedRoute`가 인증 상태 확인
+3. 미인증 시 `/login`으로 리다이렉트
+4. 인증 시 `Dashboard` 컴포넌트 렌더링
+
+### 2. 이전 경로 기억하기
+
+로그인 후 원래 가려던 페이지로 돌아가도록 한다:
 
 ```jsx
+import { Navigate, useLocation } from "react-router-dom";
+
+function ProtectedRoute({ children }) {
+  const isAuthenticated = useAuth();
+  const location = useLocation();
+
+  if (!isAuthenticated) {
+    // 현재 위치를 state에 저장
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return children;
+}
+
+// 로그인 페이지
 function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const from = location.state?.from || "/";
+  const from = location.state?.from?.pathname || "/";
+
   function handleLogin() {
-    // 로그인 성공 후 원래 페이지로
-    navigate(from, { replace: true });
+    // 로그인 로직
+    login(email, password).then(() => {
+      // 원래 가려던 페이지로 이동
+      navigate(from, { replace: true });
+    });
   }
+
   return <button onClick={handleLogin}>Login</button>;
 }
 ```
 
-### 2. useSearchParams
+**흐름**:
+1. 사용자가 `/dashboard` 접근 시도
+2. 미인증 상태라 `/login`으로 리다이렉트 (from 정보 저장)
+3. 로그인 완료
+4. `/dashboard`로 자동 이동
+
+## 역할 기반 접근 제어 (RBAC)
+
+### 3. 단일 역할 체크
+
+특정 역할이 필요한 페이지를 보호한다:
 
 ```jsx
-import { useSearchParams } from "react-router-dom";
-export default function ProductList() {
-  const [searchParams, setSearchParams] = useSearchParams();
+function ProtectedRoute({ children, requiredRole }) {
+  const { isAuthenticated, user } = useAuth();
 
-  const category = searchParams.get("category");
-  const sort = searchParams.get("sort");
-
-  function handleFilter(newCategory) {
-    setSearchParams({ category: newCategory, sort });
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
   }
 
+  if (requiredRole && user.role !== requiredRole) {
+    // 권한이 없으면 403 페이지로
+    return <Navigate to="/unauthorized" replace />;
+  }
+
+  return children;
+}
+
+// 사용: 관리자 전용 페이지
+<Route
+  path="/admin"
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <AdminPanel />
+    </ProtectedRoute>
+  }
+/>
+```
+
+### 4. 복수 역할 지원
+
+여러 역할 중 하나라도 만족하면 접근을 허용한다:
+
+```jsx
+function ProtectedRoute({ children, allowedRoles = [] }) {
+  const { isAuthenticated, user } = useAuth();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/unauthorized" replace />;
+  }
+
+  return children;
+}
+
+// 사용: 관리자와 에디터 모두 접근 가능
+<Route
+  path="/dashboard"
+  element={
+    <ProtectedRoute allowedRoles={["admin", "editor"]}>
+      <Dashboard />
+    </ProtectedRoute>
+  }
+/>
+```
+
+## 인증 Hook 구현
+
+### 5. useAuth Hook
+
+인증 상태를 관리하고 제공한다:
+
+```jsx
+function useAuth() {
+  const [auth, setAuth] = useState({
+    isAuthenticated: false,
+    user: null,
+    loading: true,
+  });
+
+  useEffect(() => {
+    // 토큰 확인 등 인증 체크
+    checkAuth()
+      .then((user) => {
+        setAuth({ isAuthenticated: true, user, loading: false });
+      })
+      .catch(() => {
+        setAuth({ isAuthenticated: false, user: null, loading: false });
+      });
+  }, []);
+
+  return auth;
+}
+
+// Protected Route에서 사용
+function ProtectedRoute({ children }) {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return <div>Loading...</div>; // 인증 체크 중
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+}
+```
+
+**loading 상태가 중요한 이유**: 인증 체크 전에 리다이렉트하면 깜빡임이 발생한다.
+
+## 실전 패턴
+
+### 6. 권한별 라우트 구조화
+
+```jsx
+function App() {
   return (
-    <div>
-      <p>Category: {category}</p>
-      <p>Sort: {sort}</p>
-      <button onClick={() => handleFilter("electronics")}>Electronics</button>
-    </div>
+    <Routes>
+      {/* 공개 페이지 */}
+      <Route path="/" element={<Home />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
+
+      {/* 인증 필요 */}
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* 관리자 전용 */}
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute requiredRole="admin">
+            <AdminLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<AdminDashboard />} />
+        <Route path="users" element={<UserManagement />} />
+        <Route path="settings" element={<AdminSettings />} />
+      </Route>
+
+      {/* 에러 페이지 */}
+      <Route path="/unauthorized" element={<Unauthorized />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 }
 ```
 
-URLSearchParams API:
+### 7. 조건부 네비게이션 숨김
+
+권한이 없는 메뉴는 아예 표시하지 않는다:
 
 ```jsx
-const [searchParams, setSearchParams] = useSearchParams();
-// 읽기
-searchParams.get("category"); // 'books'
-searchParams.getAll("tags"); // ['fiction', 'bestseller']
-searchParams.has("category"); // true
-// 쓰기
-setSearchParams({ category: "movies" });
-setSearchParams((prev) => {
-  prev.set("page", "2");
-  return prev;
-});
-```
-
-### 3. useParams (재확인)
-
-```jsx
-import { useParams } from "react-router-dom";
-function BlogPost() {
-  const { postId } = useParams();
-  const [post, setPost] = useState(null);
-
-  useEffect(() => {
-    fetch(`/api/posts/${postId}`)
-      .then((res) => res.json())
-      .then(setPost);
-  }, [postId]);
-
-  return <article>{post?.title}</article>;
-}
-```
-
-### 4. useMatch
-
-```jsx
-import { useMatch } from "react-router-dom";
 function Navigation() {
-  const match = useMatch("/users/:userId");
+  const { user } = useAuth();
 
-  if (match) {
-    console.log("User ID:", match.params.userId);
-  }
-
-  return <nav>...</nav>;
+  return (
+    <nav>
+      <Link to="/">Home</Link>
+      <Link to="/profile">Profile</Link>
+      
+      {user?.role === "admin" && (
+        <Link to="/admin">Admin Panel</Link>
+      )}
+      
+      {["admin", "editor"].includes(user?.role) && (
+        <Link to="/dashboard">Dashboard</Link>
+      )}
+    </nav>
+  );
 }
 ```
 
-### 5. useRoutes (프로그래밍 방식 라우트)
+### 8. Unauthorized 페이지
 
 ```jsx
-import { useRoutes } from "react-router-dom";
-function App() {
-  const routes = useRoutes([
-    { path: "/", element: <Home /> },
-    { path: "/about", element: <About /> },
-    {
-      path: "/users",
-      element: <UsersLayout />,
-      children: [
-        { index: true, element: <UserList /> },
-        { path: ":userId", element: <UserDetail /> },
-      ],
-    },
-  ]);
+function Unauthorized() {
+  const navigate = useNavigate();
 
-  return routes;
-}
-```
-
-### Vue Router와 비교
-
-```html
-<!-- Vue Router -->
-<script setup>
-  import { useRoute, useRouter } from "vue-router";
-  const route = useRoute();
-  const router = useRouter();
-  // 현재 경로
-  const path = route.path;
-  const params = route.params;
-  const query = route.query;
-  // 쿼리 변경
-  router.push({ query: { page: 2 } });
-</script>
-```
-
-```jsx
-// React Router
-import { useLocation, useParams, useSearchParams } from "react-router-dom";
-function Component() {
-  const location = useLocation();
-  const params = useParams();
-  const [searchParams, setSearchParams] = useSearchParams();
-
-  // 현재 경로
-  const path = location.pathname;
-  const userId = params.userId;
-  const page = searchParams.get("page");
-
-  // 쿼리 변경
-  setSearchParams({ page: 2 });
+  return (
+    <div>
+      <h1>403 - 접근 권한이 없다</h1>
+      <p>이 페이지에 접근할 권한이 없다.</p>
+      <button onClick={() => navigate(-1)}>뒤로 가기</button>
+      <Link to="/">홈으로 이동</Link>
+    </div>
+  );
 }
 ```
 
