@@ -1,25 +1,7 @@
 import { Suspense } from "react";
 import HomeContent from "./components/HomeContent";
-import { getPublicPosts, getPublicTags } from "./lib/posts";
-import PostList from "./components/PostList";
-import { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: '개발 블로그',
-  description: '리액트, 타입스크립트, Vue, Spring 등 개발 관련 글 모음',
-}
 
 export default function Home() {
-  const publicPosts = getPublicPosts();
-  
-  const sortedPosts = [...publicPosts].sort((a, b) => {
-    const dateA = new Date(a.date).getTime();
-    const dateB = new Date(b.date).getTime();
-    return dateB - dateA;
-  });
-
-  const tags = getPublicTags();
-
   return (
     <div className="min-h-screen">
       <header className="glass-header md:sticky md:top-0 z-50">
@@ -45,7 +27,7 @@ export default function Home() {
             </div>
           }
         >
-          <HomeContent initialPosts={sortedPosts} tags={tags} />
+          <HomeContent />
         </Suspense>
       </main>
     </div>

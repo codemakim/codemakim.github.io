@@ -8,15 +8,8 @@ import SortOptions from "./SortOptions";
 import SearchBar from "./SearchBar";
 import { getPublicPosts, getPublicTags } from "../lib/posts";
 import { searchPosts } from "../lib/search";
-import type { Post } from "contentlayer/generated";
-import type { TagWithCount } from "../lib/tags";
 
-interface HomeContentProps {
-  initialPosts: Post[];
-  tags: TagWithCount[];
-}
-
-export default function HomeContent({ initialPosts, tags }: HomeContentProps) {
+export default function HomeContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -25,7 +18,7 @@ export default function HomeContent({ initialPosts, tags }: HomeContentProps) {
   const sortOrder = (searchParams.get("sort") as 'desc' | 'asc') || 'desc';
   const urlSearchQuery = searchParams.get("search") || "";
   
-  // 로컬 검색어 상태
+  // 로컬 검색어 상태 (한글 입력 문제 해결)
   const [searchQuery, setSearchQuery] = useState(urlSearchQuery);
   const [isSearching, setIsSearching] = useState(false);
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
@@ -35,10 +28,13 @@ export default function HomeContent({ initialPosts, tags }: HomeContentProps) {
     setSearchQuery(urlSearchQuery);
     setIsSearching(false); // URL 업데이트 완료
   }, [urlSearchQuery]);
+
+  // 공개 포스트만 가져오기
+  const publicPosts = getPublicPosts();
   
   // 포스트 필터링 및 정렬
   const filteredPosts = useMemo(() => {
-    let posts = [...initialPosts];
+    let posts = [...publicPosts];
 
     // 1. 정렬
     posts = posts.sort((a, b) => {
@@ -51,14 +47,20 @@ export default function HomeContent({ initialPosts, tags }: HomeContentProps) {
     if (searchQuery) {
       posts = searchPosts(posts, searchQuery);
     }
+
+    // 3. 태그 필터 (PostList에서 처리)
+
     return posts;
-  }, [initialPosts, sortOrder, searchQuery]);
+  }, [publicPosts, sortOrder, searchQuery]); // publicPosts 추가
 
   // 최종 필터링된 포스트 (태그 적용)
   const displayPosts = useMemo(() => {
     if (!selectedTag) return filteredPosts;
     return filteredPosts.filter(post => post.tags?.includes(selectedTag));
   }, [filteredPosts, selectedTag]);
+
+  // 공개 포스트의 태그만 추출
+  const tags = getPublicTags();
 
   // 검색 핸들러 (debounce 적용)
   function handleSearchChange(query: string) {
@@ -127,7 +129,7 @@ export default function HomeContent({ initialPosts, tags }: HomeContentProps) {
         searchQuery={searchQuery}
         onSearchChange={handleSearchChange}
         resultsCount={displayPosts.length}
-        totalCount={initialPosts.length}
+        totalCount={publicPosts.length}
         isSearching={isSearching}
       />
 
@@ -136,7 +138,7 @@ export default function HomeContent({ initialPosts, tags }: HomeContentProps) {
         tags={tags}
         selectedTag={selectedTag}
         onTagSelect={handleTagSelect}
-        totalCount={initialPosts.length}
+        totalCount={publicPosts.length}
       />
 
       {/* 정렬 옵션 */}
