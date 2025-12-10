@@ -10,7 +10,7 @@
   "MD028": false,
   "MD029": false,
   "MD033": {
-    "allowed_elements": ["br"]
+    "allowed_elements": ["br", "strong", "details", "summary"]
   },
   "MD036": false,
   "MD040": false,
