@@ -34,7 +34,19 @@ export default function Home() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-8">
-      <HomeContent initialPosts={sortedPosts} tags={tags} />
+        <Suspense
+          fallback={
+            <div className="flex items-center justify-center py-12">
+              <div className="glass-card px-8 py-4">
+                <p className="text-gray-600 dark:text-gray-400">
+                  로딩 중...
+                </p>
+              </div>
+            </div>
+          }
+        >
+          <HomeContent initialPosts={sortedPosts} tags={tags} />
+        </Suspense>
       </main>
     </div>
   );
