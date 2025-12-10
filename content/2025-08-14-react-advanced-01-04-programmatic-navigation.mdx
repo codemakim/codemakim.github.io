@@ -14,101 +14,270 @@ seriesOrder: 8
 
 ---
 
-## 프로그래밍 방식 네비게이션
+## 프로그래밍 방식 네비게이션이란?
 
-프로그래밍 방식 네비게이션
-동적 라우트
+Link 컴포넌트 없이 JavaScript 코드에서 직접 페이지를 이동하는 방식이다. 폼 제출, 버튼 클릭, API 응답 후 등 조건에 따라 페이지를 전환할 때 사용한다.
 
-### 1. URL 파라미터
+**사용 시나리오**:
+- 로그인 성공 후 대시보드로 이동
+- 폼 제출 완료 후 목록 페이지로 이동
+- 권한이 없을 때 로그인 페이지로 리다이렉트
+- 뒤로가기/앞으로가기 버튼 구현
+
+## useNavigate Hook
+
+### 1. 기본 사용법
+
+`useNavigate`는 페이지를 이동하는 함수를 반환한다:
 
 ```jsx
-// 라우트 정의
-<Route path="/users/:userId" element={<User />} />
-<Route path="/posts/:postId" element={<Post />} />
-<Route path="/products/:category/:productId" element={<Product />} />
+import { useNavigate } from "react-router-dom";
+
+export default function LoginForm() {
+  const navigate = useNavigate();
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    
+    // 로그인 로직
+    const success = login(email, password);
+    
+    if (success) {
+      navigate("/dashboard"); // 대시보드로 이동
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input type="email" />
+      <input type="password" />
+      <button type="submit">Login</button>
+    </form>
+  );
+}
 ```
 
-### 2. useParams Hook
+**동작**: `navigate("/dashboard")`를 호출하면 히스토리 스택에 새 항목이 추가되고 해당 경로로 이동한다 (뒤로가기 가능).
+
+### 2. 상대 경로 이동
+
+현재 경로를 기준으로 상대적으로 이동할 수 있다:
 
 ```jsx
-// pages/User.jsx
-import { useParams } from "react-router-dom";
-export default function User() {
-  const { userId } = useParams();
+const navigate = useNavigate();
+
+// 절대 경로
+navigate("/about"); // → /about
+
+// 상대 경로
+navigate("profile"); // 현재 /users → /users/profile
+navigate("../settings"); // 현재 /users/123 → /users/settings
+```
+
+**상대 경로의 장점**: 상위 경로가 변경되어도 코드를 수정하지 않아도 된다.
+
+### 3. replace 옵션
+
+히스토리 스택에 추가하지 않고 현재 항목을 교체한다:
+
+```jsx
+const navigate = useNavigate();
+
+// 일반 이동 (뒤로가기 가능)
+navigate("/dashboard");
+
+// 교체 (뒤로가기 불가)
+navigate("/login", { replace: true });
+```
+
+**replace 사용 시나리오**:
+- 로그인 페이지 → 대시보드 이동 시 (로그인 페이지로 뒤로가기 방지)
+- 리다이렉트 처리 시
+- 폼 제출 완료 후 (중복 제출 방지)
+
+```jsx
+// 예시: 로그인 처리
+function handleLogin() {
+  if (loginSuccess) {
+    // replace: true → 로그인 페이지가 히스토리에서 제거됨
+    // 사용자가 뒤로가기를 눌러도 로그인 페이지로 돌아가지 않음
+    navigate("/dashboard", { replace: true });
+  }
+}
+```
+
+### 4. state 전달
+
+페이지 이동 시 데이터를 함께 전달할 수 있다:
+
+```jsx
+// 데이터를 전달하며 이동
+navigate("/dashboard", {
+  state: { 
+    from: "/login", 
+    userId: 123,
+    message: "Welcome back!"
+  }
+});
+
+// 다른 페이지에서 받기
+import { useLocation } from "react-router-dom";
+
+function Dashboard() {
+  const location = useLocation();
+  const message = location.state?.message;
+
+  return <h1>{message}</h1>; // "Welcome back!"
+}
+```
+
+**사용 사례**:
+- 성공/에러 메시지 전달
+- 이전 페이지 정보 저장
+- 임시 데이터 전달 (URL에 노출하지 않고)
+
+### 5. 뒤로가기/앞으로가기
+
+숫자를 전달하여 히스토리를 탐색한다:
+
+```jsx
+const navigate = useNavigate();
+
+navigate(-1);  // 뒤로가기 (1페이지)
+navigate(-2);  // 뒤로가기 (2페이지)
+navigate(1);   // 앞으로가기 (1페이지)
+```
+
+**실제 사용 예시**:
+```jsx
+function DetailPage() {
+  const navigate = useNavigate();
 
   return (
     <div>
-      <h1>User Profile</h1>
-      <p>User ID: {userId}</p>
+      <button onClick={() => navigate(-1)}>뒤로가기</button>
+      <h1>Detail Page</h1>
     </div>
   );
 }
 ```
 
-### 3. 복수 파라미터
+## Navigate 컴포넌트 (선언적 리다이렉트)
+
+조건에 따라 자동으로 리다이렉트할 때 사용한다:
 
 ```jsx
-// pages/Product.jsx
-import { useParams } from "react-router-dom";
-export default function Product() {
-  const { category, productId } = useParams();
+import { Navigate } from "react-router-dom";
+
+function ProtectedRoute({ isAuthenticated, children }) {
+  if (!isAuthenticated) {
+    // 로그인하지 않았으면 로그인 페이지로 리다이렉트
+    return <Navigate to="/login" replace />;
+  }
+
+  // 로그인했으면 요청한 페이지 표시
+  return children;
+}
+
+// 사용
+<Route 
+  path="/dashboard" 
+  element={
+    <ProtectedRoute isAuthenticated={user !== null}>
+      <Dashboard />
+    </ProtectedRoute>
+  } 
+/>
+```
+
+**Navigate vs useNavigate**:
+- `Navigate`: 컴포넌트가 렌더링될 때 자동으로 리다이렉트 (선언적)
+- `useNavigate`: 이벤트 핸들러나 useEffect에서 호출 (명령적)
+
+## 조건부 네비게이션 패턴
+
+### 1. 폼 제출 후 이동
+
+```jsx
+function CreatePost() {
+  const navigate = useNavigate();
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    
+    const post = { title, content };
+    const result = await api.createPost(post);
+    
+    if (result.success) {
+      // 생성 완료 후 상세 페이지로 이동
+      navigate(`/posts/${result.id}`);
+    }
+  }
+
+  return <form onSubmit={handleSubmit}>...</form>;
+}
+```
+
+### 2. 삭제 후 목록으로 이동
+
+```jsx
+function ProductPage() {
+  const navigate = useNavigate();
+  const { productId } = useParams();
+
+  async function deleteProduct() {
+    await api.delete(`/products/${productId}`);
+    
+    // replace: true → 삭제된 상품 페이지가 히스토리에서 제거됨
+    navigate("/products", {
+      replace: true,
+      state: { message: "Product deleted successfully" }
+    });
+  }
 
   return (
     <div>
       <h1>Product Details</h1>
-      <p>Category: {category}</p>
-      <p>Product ID: {productId}</p>
+      <button onClick={deleteProduct}>Delete</button>
     </div>
   );
 }
 ```
 
-### 4. Optional 파라미터
+### 3. 이전 페이지 기억하기
 
 ```jsx
-<Route path="/users/:userId?" element={<Users />} />;
-function Users() {
-  const { userId } = useParams();
+// 보호된 페이지에 접근 시도
+function ProtectedRoute({ children }) {
+  const isAuthenticated = useAuth();
+  const location = useLocation();
 
-  if (userId) {
-    return <UserDetail userId={userId} />;
+  if (!isAuthenticated) {
+    // 현재 위치를 state에 저장
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  return <UserList />;
+  return children;
+}
+
+// 로그인 후 원래 페이지로 복귀
+function LoginPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from?.pathname || "/";
+
+  function handleLogin() {
+    // 로그인 로직
+    navigate(from, { replace: true }); // 원래 가려던 페이지로
+  }
+
+  return <button onClick={handleLogin}>Login</button>;
 }
 ```
 
-### 5. Wildcard (\*)
-
-```jsx
-<Route path="/docs/*" element={<Docs />} />;
-function Docs() {
-  const params = useParams();
-  const path = params["*"]; // /docs/ 이후의 모든 경로
-
-  return <div>Docs path: {path}</div>;
-}
-```
-
-### Vue Router와 비교
-
-```html
-<!-- Vue Router -->
-<script setup>
-  import { useRoute } from "vue-router";
-  const route = useRoute();
-  const userId = route.params.userId;
-  const category = route.params.category;
-</script>
-```
-
-```jsx
-// React Router
-import { useParams } from "react-router-dom";
-function Component() {
-  const { userId, category } = useParams();
-  // ...
-}
-```
+**시나리오**:
+1. 사용자가 `/dashboard` 접근 시도
+2. 미로그인 상태라 `/login`으로 리다이렉트 (from 정보 저장)
+3. 로그인 완료 후 `/dashboard`로 자동 이동
 
 ---
