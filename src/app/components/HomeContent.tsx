@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect, useRef } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import TagFilter from "./TagFilter";
 import PostList from "./PostList";
 import SortOptions from "./SortOptions";
@@ -12,6 +12,7 @@ import { searchPosts } from "../lib/search";
 export default function HomeContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const pathname = usePathname();
 
   // URL 파라미터 읽기
   const selectedTag = searchParams.get("tag");
@@ -77,7 +78,8 @@ export default function HomeContent() {
       setIsSearching(false);
       const params = new URLSearchParams(searchParams.toString());
       params.delete('search');
-      router.push(`/?${params.toString()}`);
+      const queryString = params.toString();
+      router.push(queryString ? `${pathname}?${queryString}` : pathname);
       return;
     }
     
@@ -88,7 +90,8 @@ export default function HomeContent() {
     debounceTimer.current = setTimeout(() => {
       const params = new URLSearchParams(searchParams.toString());
       params.set('search', query);
-      router.push(`/?${params.toString()}`);
+      const queryString = params.toString();
+      router.push(`${pathname}?${queryString}`);
       // isSearching은 useEffect에서 false로 변경됨
     }, 1200);
   }
@@ -112,14 +115,16 @@ export default function HomeContent() {
       params.delete('tag');
     }
     
-    router.push(`/?${params.toString()}`);
+    const queryString = params.toString();
+    router.push(queryString ? `${pathname}?${queryString}` : pathname);
   }
 
   // 정렬 변경 핸들러
   function handleSortChange(order: 'desc' | 'asc') {
     const params = new URLSearchParams(searchParams.toString());
     params.set('sort', order);
-    router.push(`/?${params.toString()}`);
+    const queryString = params.toString();
+    router.push(`${pathname}?${queryString}`);
   }
 
   return (

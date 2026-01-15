@@ -47,7 +47,7 @@ export default function PostHeader({ post }: PostHeaderProps) {
     >
       <div className="max-w-4xl mx-auto px-4">
         <Link
-          href="/"
+          href="/blog"
           className={`
             link text-sm block hover:underline
             transition-all duration-500 ease-in-out
