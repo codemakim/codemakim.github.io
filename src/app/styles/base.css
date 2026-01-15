@@ -15,8 +15,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #000000; /* Vercel 스타일: 순수 검은색 */
+    --foreground: #ffffff; /* Vercel 스타일: 흰색 텍스트 */
     color-scheme: dark;
   }
 }
@@ -40,13 +40,13 @@ body {
 /* 배경 - 미묘한 그라데이션 (Minimalist Flat Design) */
 body,
 .app-wrapper {
-  background: #FFFFFF;
+  background: var(--bg-primary);
 }
 
 @media (prefers-color-scheme: light) {
   body,
   .app-wrapper {
-    background: #FFFFFF;
+    background: var(--bg-primary);
   }
 }
 
@@ -63,7 +63,7 @@ body {
   html,
   body,
   .app-wrapper {
-    background: #111827;
+    background: var(--bg-primary);
   }
 }
 

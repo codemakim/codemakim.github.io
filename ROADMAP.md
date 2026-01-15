@@ -111,21 +111,22 @@ box-shadow: 0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23);
 - 텍스트 보조: `#6B7280` (중간 회색)
 - 텍스트 비활성: `#9CA3AF` (밝은 회색)
 - 경계선: `#E5E7EB` (연한 회색)
-- 액센트 1: `#6366F1` (인디고)
-- 액센트 2: `#8B5CF6` (보라)
-- 액센트 그라데이션: `linear-gradient(135deg, #6366F1, #8B5CF6)`
+- 액센트 기본: `#4B5563` (gray-600, 무채색)
+- 액센트 호버: `#374151` (gray-700, 무채색)
+- 액센트 단색 사용 (그라데이션 제거)
 
 **다크 모드**:
 
-- 배경: `#0F172A` (진한 슬레이트)
-- 배경 보조: `#1E293B` (슬레이트)
+- 배경: `#18181B` (진한 중립 회색, 푸른 기 제거)
+- 배경 보조: `#27272A` (중립 회색, 푸른 기 제거)
 - 텍스트 기본: `#F8FAFC` (거의 흰색)
-- 텍스트 보조: `#CBD5E1` (밝은 슬레이트)
-- 텍스트 비활성: `#94A3B8` (중간 슬레이트)
-- 경계선: `#334155` (어두운 슬레이트)
-- 액센트 1: `#818CF8` (밝은 인디고)
-- 액센트 2: `#A78BFA` (밝은 보라)
-- 액센트 그라데이션: `linear-gradient(135deg, #818CF8, #A78BFA)`
+- 텍스트 보조: `#D1D5DB` (밝은 회색)
+- 텍스트 비활성: `#9CA3AF` (중간 회색)
+- 경계선: `#3F3F46` (중립 회색 계열)
+- 액센트 기본: `#374151` (gray-700, 무채색, 가독성 향상)
+- 액센트 호버: `#4B5563` (gray-600, 무채색)
+- 액센트 단색 사용 (그라데이션 제거)
+- 버튼/태그 텍스트: 흰색 (진한 회색 배경과 대비 확보)
 
 **3. 타이포그래피**
 
@@ -166,8 +167,8 @@ box-shadow: 0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23);
 /* 다크모드 카드 */
 @media (prefers-color-scheme: dark) {
   .card {
-    background: #1E293B;
-    border-color: #334155;
+    background: #27272A;
+    border-color: #3F3F46;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.4);
   }
 }
@@ -187,8 +188,8 @@ box-shadow: 0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23);
 /* 다크모드 헤더 */
 @media (prefers-color-scheme: dark) {
   .header {
-    background: rgba(15, 23, 42, 0.95);
-    border-bottom-color: #334155;
+    background: rgba(24, 24, 27, 0.95);
+    border-bottom-color: #3F3F46;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   }
 }
@@ -197,19 +198,34 @@ box-shadow: 0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23);
 **7. 버튼 및 태그**
 
 ```css
-/* 기본 버튼 */
+/* 기본 버튼 - 무채색 계열 */
 .btn-primary {
-  background: linear-gradient(135deg, #6366F1, #8B5CF6);
+  background: #374151; /* gray-700 - 가독성 향상을 위해 더 진한 회색 */
   color: white;
   border-radius: 0.75rem; /* 12px */
   padding: 0.75rem 1.5rem;
-  box-shadow: 0 2px 4px rgba(99, 102, 241, 0.3);
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  box-shadow: 0 2px 4px rgba(55, 65, 81, 0.2);
+  transition: box-shadow 0.2s ease, transform 0.2s ease, background 0.2s ease;
 }
 
 .btn-primary:hover {
-  box-shadow: 0 4px 8px rgba(99, 102, 241, 0.4);
+  background: #27272A; /* zinc-800 - 더 진하게 */
+  box-shadow: 0 4px 8px rgba(55, 65, 81, 0.3);
   transform: translateY(-1px);
+}
+
+/* 다크모드 버튼 */
+@media (prefers-color-scheme: dark) {
+  .btn-primary {
+    background: #374151; /* gray-700 - 진한 회색 */
+    color: #FFFFFF; /* 흰색 텍스트로 가독성 향상 */
+    box-shadow: 0 2px 4px rgba(55, 65, 81, 0.2);
+  }
+
+  .btn-primary:hover {
+    background: #4B5563; /* gray-600 */
+    box-shadow: 0 4px 8px rgba(55, 65, 81, 0.3);
+  }
 }
 
 /* 태그 */
@@ -223,10 +239,29 @@ box-shadow: 0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23);
 }
 
 .tag.active {
-  background: linear-gradient(135deg, #6366F1, #8B5CF6);
+  background: #374151; /* gray-700, 무채색 - 가독성 향상 */
   color: white;
   border-color: transparent;
-  box-shadow: 0 2px 4px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 2px 4px rgba(55, 65, 81, 0.2);
+}
+
+.tag.active:hover {
+  background: #27272A; /* zinc-800 - 더 진하게 */
+  box-shadow: 0 2px 4px rgba(55, 65, 81, 0.3);
+}
+
+/* 다크모드 태그 */
+@media (prefers-color-scheme: dark) {
+  .tag.active {
+    background: #374151; /* gray-700, 무채색 - 진한 회색 */
+    color: #FFFFFF; /* 흰색 텍스트로 가독성 향상 */
+    box-shadow: 0 2px 4px rgba(55, 65, 81, 0.2);
+  }
+
+  .tag.active:hover {
+    background: #4B5563; /* gray-600 */
+    box-shadow: 0 2px 4px rgba(55, 65, 81, 0.3);
+  }
 }
 ```
 
@@ -268,7 +303,7 @@ box-shadow: 0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23);
 
 - ⚠️ `transform: scale()` (레이아웃 시프트 가능)
 - ⚠️ 다중 그림자 레이어 (3개 이상)
-- ⚠️ 복잡한 그라데이션 (3색 이상)
+- ⚠️ 그라데이션 (무채색 계열 디자인에서는 단색 사용)
 
 #### 관련 스펙 및 표준
 

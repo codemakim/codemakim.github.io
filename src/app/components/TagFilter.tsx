@@ -49,8 +49,8 @@ export default function TagFilter({
 
       {/* 필터 상태 표시 */}
       {selectedTag && (
-        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <p className="text-sm text-gray-700 dark:text-gray-300">
+        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-[#2A2A2A]">
+          <p className="text-sm text-gray-700 dark:text-[#A0A0A0]">
             <span className="font-medium text-gray-900 dark:text-white">
               [{selectedTag}]
             </span>{" "}

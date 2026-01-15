@@ -26,7 +26,7 @@
 }
 
 .post-content.prose :where(code):not(:where(pre *)) {
-  background-color: rgb(243 244 246);
+  background-color: var(--tag-bg);
   padding: 0.125rem 0.25rem;
   border-radius: 0.25rem;
 }
@@ -38,12 +38,12 @@
 
 @media (prefers-color-scheme: dark) {
   .post-content.prose {
-    color: #e5e7eb;
+    color: var(--text-primary);
   }
   
   .post-content.prose :where(code):not(:where(pre *)) {
-    background-color: rgb(31 41 55);
-    color: #e5e7eb;
+    background-color: var(--tag-bg);
+    color: var(--tag-text);
   }
 }
 
@@ -52,16 +52,16 @@
   display: block;
   overflow-x: auto;
   padding: 1.25em;
-  background: #f6f8fa !important;
-  color: #1f2328 !important;
-  border: 1px solid #d0d7de !important;
+  background: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-card) !important;
   border-radius: 0.5rem !important;
 }
 
 /* prose 클래스 내부의 pre 스타일 오버라이드 */
 .prose pre {
-  background: #f6f8fa !important;
-  border: 1px solid #d0d7de !important;
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-card) !important;
   border-radius: 0.5rem !important;
   padding: 0 !important;
   overflow: hidden !important; /* pre는 overflow 없음, code가 스크롤 */
@@ -69,12 +69,12 @@
 
 /* prose 내부의 인라인 코드 - 플랫 디자인 */
 .prose code {
-  color: #1f2328 !important;
-  background: #f6f8fa !important;
+  color: var(--text-primary) !important;
+  background: var(--bg-card) !important;
   padding: 0.2em 0.4em !important;
   border-radius: 0.25rem !important;
   font-size: 0.875em !important;
-  border: 1px solid #d0d7de !important;
+  border: 1px solid var(--border-card) !important;
 }
 
 /* prose 내부의 pre > code는 블록 코드 */
@@ -83,7 +83,7 @@
   padding: 1.25em !important;
   background: transparent !important;
   border: none !important;
-  color: #1f2328 !important;
+  color: var(--text-primary) !important;
   overflow-x: auto !important; /* code가 스크롤 */
   border-radius: 0 !important;
 }
@@ -173,27 +173,27 @@
 @media (prefers-color-scheme: dark) {
   /* 인라인 코드 */
   .prose code {
-    color: #e6edf3 !important;
-    background: #161b22 !important;
-    border: 1px solid #30363d !important;
+    color: var(--text-primary) !important;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-card) !important;
   }
   
   /* 블록 코드 */
   .prose pre {
-    background: #0d1117 !important;
-    border: 1px solid #30363d !important;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-card) !important;
   }
 
   .prose pre code {
-    color: #e6edf3 !important;
+    color: var(--text-primary) !important;
     background: transparent !important;
   }
 
   /* 코드 블록 다크모드 */
   .hljs {
-    background: #0d1117 !important;
-    color: #e6edf3 !important;
-    border: 1px solid #30363d !important;
+    background: var(--bg-card) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-card) !important;
   }
 
   .hljs-comment,
