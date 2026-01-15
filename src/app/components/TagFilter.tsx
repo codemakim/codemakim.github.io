@@ -16,7 +16,7 @@ export default function TagFilter({
   totalCount,
 }: TagFilterProps) {
   return (
-    <div className="glass-card p-6 mb-8">
+    <div className="card p-6 mb-8">
       <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
         🏷️ 태그로 필터링
       </h2>
@@ -25,10 +25,9 @@ export default function TagFilter({
         {/* 전체 보기 버튼 */}
         <button
           onClick={() => onTagSelect(null)}
-          className={`
-            chip px-3 py-1.5 text-sm rounded-full cursor-pointer
-            ${selectedTag === null ? "chip--active" : ""}
-          `}
+          className={`tag rounded-full cursor-pointer ${
+            selectedTag === null ? "tag-active" : ""
+          }`}
         >
           전체 <span className="ml-1 text-xs opacity-70">({totalCount})</span>
         </button>
@@ -38,10 +37,9 @@ export default function TagFilter({
           <button
             key={tag.name}
             onClick={() => onTagSelect(tag.name)}
-            className={`
-              chip px-3 py-1.5 text-sm rounded-full cursor-pointer
-              ${selectedTag === tag.name ? "chip--active" : ""}
-            `}
+            className={`tag rounded-full cursor-pointer ${
+              selectedTag === tag.name ? "tag-active" : ""
+            }`}
           >
             {tag.name}{" "}
             <span className="ml-1 text-xs opacity-70">({tag.count})</span>
@@ -51,7 +49,7 @@ export default function TagFilter({
 
       {/* 필터 상태 표시 */}
       {selectedTag && (
-        <div className="mt-4 pt-4 border-t border-white/30 dark:border-white/10">
+        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
           <p className="text-sm text-gray-700 dark:text-gray-300">
             <span className="font-medium text-gray-900 dark:text-white">
               [{selectedTag}]
@@ -63,7 +61,7 @@ export default function TagFilter({
           </p>
           <button
             onClick={() => onTagSelect(null)}
-            className="mt-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+            className="link mt-2 text-sm hover:underline"
           >
             ✕ 필터 해제
           </button>

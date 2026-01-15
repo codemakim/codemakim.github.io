@@ -31,7 +31,7 @@ export default function BackToTopButton() {
       type="button"
       aria-label="맨 위로 이동"
       onClick={scrollToTop}
-      className="fixed bottom-5 right-5 z-50 rounded-full shadow-lg backdrop-blur-md bg-white/70 dark:bg-gray-900/60 border border-white/40 dark:border-white/10 hover:scale-105 transition-transform p-3 md:p-4"
+      className="fixed bottom-5 right-5 z-50 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-elevation-2 hover:shadow-elevation-3 hover:scale-105 transition-all p-3 md:p-4"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"

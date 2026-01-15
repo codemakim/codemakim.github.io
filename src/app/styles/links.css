@@ -1,0 +1,82 @@
+/* 링크 및 인터랙티브 요소 스타일 - 무채색 계열 */
+
+.link {
+  color: var(--link-color);
+  transition: color 0.2s ease;
+}
+
+.link:hover {
+  color: var(--link-hover-color);
+}
+
+@media (prefers-color-scheme: dark) {
+  .link {
+    color: var(--link-color-dark);
+  }
+
+  .link:hover {
+    color: var(--link-hover-color-dark);
+  }
+}
+
+/* 프로그래스바 */
+.progress-bar {
+  background: var(--progress-color);
+}
+
+@media (prefers-color-scheme: dark) {
+  .progress-bar {
+    background: var(--progress-color-dark);
+  }
+}
+
+/* 검색 하이라이트 */
+.search-highlight {
+  color: var(--search-highlight);
+}
+
+@media (prefers-color-scheme: dark) {
+  .search-highlight {
+    color: var(--search-highlight-dark);
+  }
+}
+
+/* 검색 결과 메시지 */
+.search-result {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: #4B5563;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .search-result {
+    color: #9CA3AF;
+  }
+}
+
+.search-result-query {
+  color: var(--search-highlight);
+  font-weight: 500;
+}
+
+@media (prefers-color-scheme: dark) {
+  .search-result-query {
+    color: var(--search-highlight-dark);
+  }
+}
+
+.search-result-loading {
+  color: var(--search-highlight);
+  font-size: 0.75rem;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@media (prefers-color-scheme: dark) {
+  .search-result-loading {
+    color: var(--search-highlight-dark);
+  }
+}
+

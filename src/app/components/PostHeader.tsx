@@ -40,7 +40,7 @@ export default function PostHeader({ post }: PostHeaderProps) {
   return (
     <header
       className={`
-        glass-header md:sticky md:top-0 z-50
+        header md:sticky md:top-0 z-50
         transition-all duration-500 ease-in-out
         ${isScrolled ? "py-3" : "py-6"}
       `}
@@ -49,8 +49,7 @@ export default function PostHeader({ post }: PostHeaderProps) {
         <Link
           href="/"
           className={`
-            text-sm block hover:underline
-            text-blue-600 dark:text-purple-400
+            link text-sm block hover:underline
             transition-all duration-500 ease-in-out
             ${isScrolled ? "mb-2" : "mb-4"}
           `}
@@ -105,7 +104,7 @@ export default function PostHeader({ post }: PostHeaderProps) {
               {post.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="chip px-2 py-1 text-xs rounded whitespace-nowrap"
+                  className="tag text-xs whitespace-nowrap"
                 >
                   {tag}
                 </span>

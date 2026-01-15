@@ -4,8 +4,11 @@
 /* 기본 스타일 */
 @import "./styles/base.css";
 
-/* 글래스모피즘 효과 */
-@import "./styles/glass-effects.css";
+/* 디자인 시스템 */
+@import "./styles/design.css";
+
+/* 링크 및 인터랙티브 요소 */
+@import "./styles/links.css";
 
 /* 모바일 최적화 */
 @import "./styles/mobile.css";

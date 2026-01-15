@@ -10,7 +10,9 @@ export default function SortOptions({ sortOrder, onSortChange }: SortOptionsProp
     <div className="flex gap-2 mb-6">
       <button
         onClick={() => onSortChange('desc')}
-        className={`${sortOrder === 'desc' ? 'btn btn-primary' : 'chip'} px-4 py-2 text-sm font-medium`}
+        className={`${
+          sortOrder === 'desc' ? 'btn-primary' : 'tag'
+        } px-4 py-2 text-sm font-medium`}
       >
         <span className="flex items-center gap-2">
           최신순
@@ -22,7 +24,9 @@ export default function SortOptions({ sortOrder, onSortChange }: SortOptionsProp
 
       <button
         onClick={() => onSortChange('asc')}
-        className={`${sortOrder === 'asc' ? 'btn btn-primary' : 'chip'} px-4 py-2 text-sm font-medium`}
+        className={`${
+          sortOrder === 'asc' ? 'btn-primary' : 'tag'
+        } px-4 py-2 text-sm font-medium`}
       >
         <span className="flex items-center gap-2">
           오래된순

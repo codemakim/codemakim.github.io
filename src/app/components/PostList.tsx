@@ -28,9 +28,9 @@ export default function PostList({ posts, selectedTag }: PostListProps) {
   return (
     <div className="space-y-8">
       {filteredPosts.map((post) => (
-        <article key={post._id} className="glass-card p-6">
+        <article key={post._id} className="card p-6">
           <Link href={post.url}>
-            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+            <h2 className="link text-2xl font-semibold text-gray-900 dark:text-white transition-colors">
               {post.title}
             </h2>
           </Link>
@@ -51,7 +51,7 @@ export default function PostList({ posts, selectedTag }: PostListProps) {
                 {post.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="chip px-2 py-1 text-xs rounded whitespace-nowrap"
+                    className="tag text-xs whitespace-nowrap"
                   >
                     {tag}
                   </span>

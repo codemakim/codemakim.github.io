@@ -14,7 +14,7 @@ export default function SeriesNav({ seriesInfo }: SeriesNavProps) {
   const { prev, next, current, total, seriesName } = seriesInfo;
 
   return (
-    <div className="glass-card p-6 my-8">
+    <div className="card p-6 my-8">
       {/* 시리즈 제목 */}
       <div className="mb-4">
         <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -28,7 +28,7 @@ export default function SeriesNav({ seriesInfo }: SeriesNavProps) {
             <div className="flex-1">
               <div className="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-800 overflow-hidden">
                 <div
-                  className="h-2 rounded-full bg-blue-600 dark:bg-blue-400 transition-all"
+                  className="progress-bar h-2 rounded-full transition-all"
                   style={{ width: `${Math.min(100, Math.max(0, (current / total) * 100))}%` }}
                   aria-valuemin={0}
                   aria-valuemax={100}
@@ -50,7 +50,7 @@ export default function SeriesNav({ seriesInfo }: SeriesNavProps) {
         {prev ? (
           <Link
             href={prev.url}
-            className="btn btn-primary p-4 text-left"
+            className="btn-primary p-4 text-left"
           >
             <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
               ← 이전 글
@@ -70,7 +70,7 @@ export default function SeriesNav({ seriesInfo }: SeriesNavProps) {
         {next ? (
           <Link
             href={next.url}
-            className="btn btn-primary p-4 text-right"
+            className="btn-primary p-4 text-right"
           >
             <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
               다음 글 →

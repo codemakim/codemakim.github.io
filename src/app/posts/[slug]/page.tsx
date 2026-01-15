@@ -55,7 +55,7 @@ export default async function PostPage({ params }: PageProps) {
         </div>
 
         {/* 본문 */}
-        <article className="post-content prose dark:prose-invert">
+        <article className="post-content prose dark:prose-invert px-4 md:px-6 py-8">
           <MDXContent code={post.body.code} />
         </article>
 

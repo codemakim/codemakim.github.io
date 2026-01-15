@@ -62,10 +62,9 @@ function SortableLine({ item }: { item: LineItem }) {
       className={`
         group relative w-full
         p-4 md:p-5 rounded-xl
-        bg-white/10 dark:bg-slate-800/40
-        border border-white/20 dark:border-white/10
-        backdrop-blur-md
-        hover:bg-white/15 dark:hover:bg-slate-700/50
+        bg-gray-50 dark:bg-gray-800
+        border border-gray-200 dark:border-gray-700
+        hover:bg-gray-100 dark:hover:bg-gray-700
         active:scale-[0.98]
         transition-all duration-200
         select-none
@@ -134,7 +133,7 @@ export default function CodeOrderingQuiz({
   };
 
   return (
-    <div className="glass-card p-6 my-8 space-y-4">
+    <div className="card p-6 my-8 space-y-4">
       {/* 헤더 */}
       {title && (
         <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
@@ -169,14 +168,14 @@ export default function CodeOrderingQuiz({
       <div className="flex flex-wrap items-center gap-3 pt-4">
         <button
           onClick={checkAnswer}
-          className="btn btn-primary px-6 py-2.5 text-sm font-medium"
+          className="btn-primary px-6 py-2.5 text-sm font-medium"
         >
           ✓ 정답 확인
         </button>
         
         <button
           onClick={reset}
-          className="chip px-5 py-2.5 text-sm font-medium hover:bg-white/10 dark:hover:bg-white/5 transition-colors"
+          className="tag px-5 py-2.5 text-sm font-medium"
         >
           🔄 다시 섞기
         </button>

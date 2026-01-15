@@ -1,15 +1,8 @@
 /* 컴포넌트별 스타일 */
 
-/* 포스트 본문 스타일 */
+/* 포스트 본문 스타일 - 카드 없이 배경에 직접 표시 */
 .post-content {
-  padding: 2rem;
-  border-radius: 1rem;
-}
-
-@media (min-width: 768px) {
-  .post-content {
-    border-radius: 1.5rem;
-  }
+  /* 패딩은 Tailwind 클래스로 제어 */
 }
 
 .post-content.prose {

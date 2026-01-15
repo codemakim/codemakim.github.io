@@ -37,12 +37,12 @@ export default function SearchBar({
 
   return (
     <div className="mb-6">
-      <div className="relative glass-card p-1 group focus-elevate">
+      <div className="relative card p-1 group search-focus">
         <div className="flex items-center gap-3 px-4 py-3">
           {/* 검색 아이콘 또는 로딩 스피너 */}
           {isSearching ? (
             <svg
-              className="w-5 h-5 text-blue-400 dark:text-purple-400 animate-spin"
+              className="w-5 h-5 text-gray-500 dark:text-gray-400 animate-spin"
               fill="none"
               viewBox="0 0 24 24"
             >
@@ -62,7 +62,7 @@ export default function SearchBar({
             </svg>
           ) : (
           <svg
-              className="w-5 h-5 text-gray-400 dark:text-purple-300 group-focus-within:text-blue-500 dark:group-focus-within:text-purple-400 transition-colors"
+              className="w-5 h-5 text-gray-400 dark:text-gray-500 group-focus-within:text-gray-600 dark:group-focus-within:text-gray-300 transition-colors"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -100,9 +100,7 @@ export default function SearchBar({
               {/* 클리어 버튼 */}
               <button
                 onClick={() => onSearchChange("")}
-                className="
-                  chip px-2 py-1 rounded-full transition-all text-xs
-                "
+                className="tag px-2 py-1 rounded-full text-xs"
                 aria-label="검색어 지우기"
               >
                 <svg
@@ -126,13 +124,13 @@ export default function SearchBar({
 
       {/* 검색 결과 메시지 */}
       {searchQuery && (
-        <div className="mt-2 text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
-          <span className="font-medium text-blue-600 dark:text-purple-400">
+        <div className="search-result">
+          <span className="search-result-query">
             &ldquo;{searchQuery}&rdquo;
-          </span>{" "}
+          </span>
           검색 결과 {resultsCount}개
           {isSearching && (
-            <span className="text-xs text-blue-500 dark:text-purple-400 animate-pulse">
+            <span className="search-result-loading">
               • 검색 중...
             </span>
           )}
