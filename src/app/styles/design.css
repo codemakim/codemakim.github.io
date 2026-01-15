@@ -2,32 +2,51 @@
 /* 로드맵 스펙 기반 - backdrop-filter 완전 제거 */
 
 /* ===== CSS 변수 (색상 통일 관리) ===== */
+/* 통합 원칙: 같은 색상은 하나의 변수로 통합하여 관리 용이하게 */
+
 :root {
-  /* 배경 색상 */
-  --bg-primary: #FFFFFF;
-  --bg-card: #FFFFFF;
-  --bg-header: rgba(255, 255, 255, 0.95);
+  /* ===== 배경 색상 ===== */
+  --bg-primary: #FFFFFF; /* 기본 배경 (라이트모드) */
+  --bg-card: var(--bg-primary); /* 카드 배경 = 기본 배경과 동일 */
+  --bg-header: rgba(255, 255, 255, 0.95); /* 헤더 배경 (반투명) */
   
-  /* 경계선 색상 */
-  --border-primary: #E5E7EB; /* gray-200 */
-  --border-card: #E5E7EB;
-  --border-header: #E5E7EB;
+  /* ===== 경계선 색상 ===== */
+  --border-base: #E5E7EB; /* 기본 경계선 (gray-200) */
+  --border-card: var(--border-base);
+  --border-header: var(--border-base);
+  --border-divider: var(--border-base);
   
-  /* 태그 색상 */
-  --tag-bg: #F3F4F6; /* gray-100 */
-  --tag-text: #374151; /* gray-700 */
-  --tag-border: #E5E7EB; /* gray-200 */
-  --tag-hover-bg: #E5E7EB; /* gray-200 */
-  
-  /* 텍스트 색상 */
+  /* ===== 텍스트 색상 ===== */
+  --text-primary: #171717; /* 기본 텍스트 */
+  --text-secondary: #4B5563; /* 보조 텍스트 (gray-600) */
   --text-white: #FFFFFF;
-  --text-primary: #171717;
   
-  /* 태그/버튼 액센트 색상 - 무채색 계열 */
-  --accent-primary: #374151; /* gray-700 - 더 진한 회색으로 가독성 향상 */
-  --accent-primary-hover: #27272A; /* zinc-800 - 더 진하게, 중립 회색 */
+  /* ===== 태그/액센트 색상 ===== */
+  --accent-base: #374151; /* 기본 액센트 (gray-700) */
+  --accent-hover: #27272A; /* 호버 액센트 (zinc-800) */
   
-  /* 그림자 색상 - 무채색 계열 */
+  --tag-bg: #F3F4F6; /* 태그 배경 (gray-100) */
+  --tag-text: var(--accent-base); /* 태그 텍스트 = 액센트와 동일 */
+  --tag-border: var(--border-base); /* 태그 경계선 = 기본 경계선과 동일 */
+  --tag-hover-bg: var(--border-base); /* 태그 호버 = 기본 경계선과 동일 */
+  
+  /* ===== 버튼 Primary 색상 (라이트모드) ===== */
+  --btn-primary-bg: var(--accent-base); /* 버튼 배경 = 액센트와 동일 */
+  --btn-primary-text: var(--text-white); /* 버튼 텍스트 = 흰색 */
+  --btn-primary-hover-bg: var(--accent-hover); /* 버튼 호버 = 액센트 호버와 동일 */
+  
+  /* ===== 링크/인터랙티브 색상 ===== */
+  --interactive-base: var(--text-secondary); /* 링크 기본 색상 = 보조 텍스트와 동일 */
+  --interactive-hover: var(--accent-base); /* 링크 호버 = 액센트와 동일 */
+  
+  /* ===== 프로그래스바 색상 ===== */
+  --progress-color: var(--text-secondary); /* 프로그래스바 = 보조 텍스트와 동일 */
+  
+  /* ===== 검색 하이라이트 색상 ===== */
+  --search-highlight: var(--accent-base); /* 검색 하이라이트 = 액센트와 동일 */
+  --search-result-text: var(--text-secondary); /* 검색 결과 텍스트 = 보조 텍스트와 동일 */
+  
+  /* ===== 그림자 색상 ===== */
   --shadow-accent-light: rgba(55, 65, 81, 0.2);
   --shadow-accent-light-hover: rgba(55, 65, 81, 0.3);
   --shadow-elevation-1-light: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
@@ -37,55 +56,54 @@
   --shadow-tag-light: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-tag-hover-light: 0 2px 4px rgba(0, 0, 0, 0.1);
   
-  /* 검색 포커스 색상 */
+  /* ===== 검색 포커스 색상 ===== */
   --search-focus-ring-light: rgba(75, 85, 99, 0.5); /* gray-600 */
   --search-focus-shadow-light: 0 8px 24px rgba(0, 0, 0, 0.1);
-  
-  /* 링크 색상 - 무채색 계열 */
-  --link-color: #4B5563; /* gray-600 */
-  --link-hover-color: #374151; /* gray-700 */
-  
-  /* 프로그래스바 색상 - 무채색 계열 */
-  --progress-color: #4B5563; /* gray-600 */
-  
-  /* 검색 하이라이트 색상 */
-  --search-highlight: #374151; /* gray-700 */
-  --search-result-text: #4B5563; /* gray-600 */
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    /* 배경 색상 - Vercel 스타일: 순수 검은색 */
+    /* ===== 배경 색상 ===== */
     --bg-primary: #000000; /* 순수 검은색 */
     --bg-card: #1A1A1A; /* 매우 진한 회색 */
     --bg-header: rgba(0, 0, 0, 0.95); /* 검은색 반투명 */
     
-    /* 경계선 색상 - 얇은 밝은 회색 구분선 */
-    --border-primary: #2A2A2A; /* 얇은 구분선용 */
-    --border-card: #2A2A2A;
-    --border-header: #2A2A2A;
-    --border-divider: #2A2A2A; /* 섹션 구분선 */
+    /* ===== 경계선 색상 ===== */
+    --border-base: #2A2A2A; /* 기본 경계선 */
+    --border-card: var(--border-base);
+    --border-header: var(--border-base);
+    --border-divider: var(--border-base);
     
-    /* 태그 색상 - Vercel 스타일: 진한 회색 배경 + 흰색 텍스트 */
-    --tag-bg: #2A2A2A; /* 진한 회색 */
-    --tag-text: #FFFFFF; /* 흰색 */
-    --tag-border: transparent; /* 경계선 없음 */
-    --tag-hover-bg: #3A3A3A; /* 호버 시 약간 밝게 */
-    
-    /* 텍스트 색상 */
+    /* ===== 텍스트 색상 ===== */
     --text-primary: #FFFFFF; /* 흰색 */
-    --text-secondary: #A0A0A0; /* 보조 텍스트 */
+    --text-secondary: #A0A0A0; /* 밝은 회색 */
     
-    /* 태그/버튼 액센트 색상 */
-    --accent-primary: #2A2A2A; /* 진한 회색 */
-    --accent-primary-hover: #3A3A3A; /* 호버 시 약간 밝게 */
+    /* ===== 태그/액센트 색상 ===== */
+    --accent-base: #2A2A2A; /* 진한 회색 */
+    --accent-hover: #3A3A3A; /* 호버 시 약간 밝게 */
     
-    /* 버튼 Primary (흰색 배경 + 검은색 텍스트) */
-    --btn-primary-bg: #FFFFFF;
-    --btn-primary-text: #000000;
-    --btn-primary-hover-bg: #F5F5F5;
+    --tag-bg: var(--accent-base); /* 태그 배경 = 액센트와 동일 */
+    --tag-text: var(--text-primary); /* 태그 텍스트 = 기본 텍스트와 동일 */
+    --tag-border: transparent; /* 경계선 없음 */
+    --tag-hover-bg: var(--accent-hover); /* 태그 호버 = 액센트 호버와 동일 */
     
-    /* 그림자 색상 - 미묘한 그림자 */
+    /* ===== 버튼 Primary 색상 (다크모드) ===== */
+    --btn-primary-bg: #FFFFFF; /* 흰색 배경 */
+    --btn-primary-text: #000000; /* 검은색 텍스트 */
+    --btn-primary-hover-bg: #F5F5F5; /* 호버 시 약간 어둡게 */
+    
+    /* ===== 링크/인터랙티브 색상 ===== */
+    --interactive-base: var(--text-secondary); /* 링크 기본 = 보조 텍스트와 동일 */
+    --interactive-hover: var(--text-primary); /* 링크 호버 = 기본 텍스트와 동일 */
+    
+    /* ===== 프로그래스바 색상 ===== */
+    --progress-color: var(--text-primary); /* 프로그래스바 = 기본 텍스트와 동일 (흰색) */
+    
+    /* ===== 검색 하이라이트 색상 ===== */
+    --search-highlight: var(--text-primary); /* 검색 하이라이트 = 기본 텍스트와 동일 (흰색) */
+    --search-result-text: var(--text-secondary); /* 검색 결과 텍스트 = 보조 텍스트와 동일 */
+    
+    /* ===== 그림자 색상 ===== */
     --shadow-accent-dark: rgba(0, 0, 0, 0.2);
     --shadow-accent-dark-hover: rgba(0, 0, 0, 0.3);
     --shadow-accent-dark-active: rgba(0, 0, 0, 0.4);
@@ -94,20 +112,9 @@
     --shadow-elevation-3-dark: 0 10px 20px rgba(0, 0, 0, 0.6), 0 6px 6px rgba(0, 0, 0, 0.7);
     --shadow-header-dark: 0 1px 3px rgba(0, 0, 0, 0.4);
     
-    /* 검색 포커스 색상 */
+    /* ===== 검색 포커스 색상 ===== */
     --search-focus-ring-dark: rgba(255, 255, 255, 0.2);
     --search-focus-shadow-dark: 0 10px 24px rgba(0, 0, 0, 0.4);
-    
-    /* 링크 색상 */
-    --link-color: #A0A0A0; /* 밝은 회색 */
-    --link-hover-color: #FFFFFF; /* 흰색 */
-    
-    /* 프로그래스바 색상 - Vercel 스타일: 흰색으로 명확한 대비 */
-    --progress-color: #FFFFFF; /* 흰색 */
-    
-    /* 검색 하이라이트 색상 */
-    --search-highlight: #FFFFFF; /* 흰색 */
-    --search-result-text: #A0A0A0; /* 밝은 회색 */
   }
 }
 
@@ -216,13 +223,13 @@
 .tag-active {
   color: var(--text-white);
   border-color: transparent;
-  background: var(--accent-primary);
+  background: var(--accent-base);
   box-shadow: 0 2px 4px var(--shadow-accent-light);
-  font-weight: 500; /* btn-primary와 동일한 폰트 굵기 */
+  font-weight: 500;
 }
 
 .tag-active:hover {
-  background: var(--accent-primary-hover);
+  background: var(--accent-hover);
   box-shadow: 0 2px 4px var(--shadow-accent-light-hover);
 }
 
@@ -231,7 +238,7 @@
     background: var(--tag-bg);
     color: var(--tag-text);
     border-color: var(--tag-border);
-    box-shadow: none; /* Vercel 스타일: 그림자 없음 */
+    box-shadow: none;
   }
 
   .tag:hover {
@@ -240,37 +247,37 @@
   }
 
   .tag-active {
-    color: var(--btn-primary-text); /* 검은색 텍스트 */
-    background: var(--btn-primary-bg); /* 흰색 배경 */
+    color: var(--btn-primary-text);
+    background: var(--btn-primary-bg);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   }
 
   .tag-active:hover {
-    background: var(--btn-primary-hover-bg); /* 호버 시 약간 어둡게 */
+    background: var(--btn-primary-hover-bg);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
   }
 }
 
 /* ===== 버튼 디자인 ===== */
 .btn-primary {
-  color: var(--text-white);
+  color: var(--btn-primary-text);
   border-radius: 0.75rem;
   padding: 0.75rem 1.5rem;
   font-weight: 500;
-  background: var(--accent-primary);
+  background: var(--btn-primary-bg);
   box-shadow: 0 2px 4px var(--shadow-accent-light);
   transition: box-shadow 0.2s ease, transform 0.2s ease, background 0.2s ease;
 }
 
 .btn-primary:hover {
-  background: var(--accent-primary-hover);
+  background: var(--btn-primary-hover-bg);
   box-shadow: 0 4px 8px var(--shadow-accent-light-hover);
   transform: translateY(-1px);
 }
 
 .btn-primary:active {
   transform: translateY(0);
-  background: var(--accent-primary);
+  background: var(--btn-primary-bg);
   box-shadow: 0 2px 4px var(--shadow-accent-light);
 }
 
@@ -377,4 +384,3 @@
     box-shadow: var(--shadow-elevation-3-dark);
   }
 }
-
