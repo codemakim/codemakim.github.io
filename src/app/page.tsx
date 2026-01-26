@@ -3,6 +3,7 @@ import HeroSection from "./components/HeroSection";
 import FeatureTiles from "./components/FeatureTiles";
 import FeatureTile from "./components/FeatureTile";
 import LatestPosts from "./components/LatestPosts";
+import HeaderAuth from "./components/HeaderAuth";
 
 export default function LandingPage() {
   // 최신 포스트 8개 가져오기 (빌드 시점에 렌더링)
@@ -12,6 +13,9 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen">
+      <div className="max-w-6xl mx-auto px-4 pt-6 pb-4 flex justify-end">
+        <HeaderAuth />
+      </div>
       <HeroSection
         title="그냥 블로그"
         description="블로그, 습관 관리, 그리고 더 많은 것들"

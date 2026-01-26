@@ -17,7 +17,7 @@ export default function LatestPosts({
   return (
     <section className="mb-8">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+        <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">
           최신 포스트
         </h2>
         <Link href={viewAllHref} className="link text-sm hover:underline">
@@ -26,24 +26,24 @@ export default function LatestPosts({
       </div>
 
       <div className="card">
-        <div className="divide-y divide-gray-200 dark:divide-[#2A2A2A]">
+        <div className="divide-y divide-zinc-200 dark:divide-[#2A2A2A]">
           {posts.map((post) => (
             <Link
               key={post._id}
               href={post.url}
-              className="block hover:bg-gray-50 dark:hover:bg-[#1A1A1A] transition-colors -mx-1 px-4 py-3 rounded"
+              className="block hover:bg-zinc-50 dark:hover:bg-[#1A1A1A] transition-colors -mx-1 px-4 py-3 rounded"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-lg mb-1 text-gray-900 dark:text-white line-clamp-1">
+                  <h3 className="font-semibold text-lg mb-1 text-zinc-900 dark:text-white line-clamp-1">
                     {post.title}
                   </h3>
                   {post.description && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-1 mb-1">
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400 line-clamp-1 mb-1">
                       {post.description}
                     </p>
                   )}
-                  <time className="text-xs text-gray-500 dark:text-gray-500">
+                  <time className="text-xs text-zinc-500 dark:text-zinc-500">
                     {format(new Date(post.date), "yyyy년 M월 d일", {
                       locale: ko,
                     })}

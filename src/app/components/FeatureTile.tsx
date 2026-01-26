@@ -30,16 +30,16 @@ export default function FeatureTile({
     >
       <div className={`${padding} h-full flex flex-col justify-between`}>
         <div>
-          <h2 className={`${titleSize} font-bold mb-2 text-gray-900 dark:text-white`}>
+          <h2 className={`${titleSize} font-bold mb-2 text-zinc-900 dark:text-white`}>
             {title}
           </h2>
           {description && (
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-zinc-600 dark:text-zinc-400">
               {description}
             </p>
           )}
         </div>
-        <div className="text-sm text-gray-500 dark:text-gray-500">
+        <div className="text-sm text-zinc-500 dark:text-zinc-500">
           {actionText} →
         </div>
       </div>

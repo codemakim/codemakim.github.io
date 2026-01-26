@@ -17,7 +17,7 @@ export default function TagFilter({
 }: TagFilterProps) {
   return (
     <div className="card p-6 mb-8">
-      <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+      <h2 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">
         🏷️ 태그로 필터링
       </h2>
 
@@ -49,9 +49,9 @@ export default function TagFilter({
 
       {/* 필터 상태 표시 */}
       {selectedTag && (
-        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-[#2A2A2A]">
-          <p className="text-sm text-gray-700 dark:text-[#A0A0A0]">
-            <span className="font-medium text-gray-900 dark:text-white">
+        <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-[#2A2A2A]">
+          <p className="text-sm text-zinc-700 dark:text-[#A0A0A0]">
+            <span className="font-medium text-zinc-900 dark:text-white">
               [{selectedTag}]
             </span>{" "}
             태그가 포함된 포스트{" "}

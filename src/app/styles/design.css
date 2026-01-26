@@ -11,21 +11,21 @@
   --bg-header: rgba(255, 255, 255, 0.95); /* 헤더 배경 (반투명) */
   
   /* ===== 경계선 색상 ===== */
-  --border-base: #E5E7EB; /* 기본 경계선 (gray-200) */
+  --border-base: #e4e4e7; /* 기본 경계선 (zinc-200) */
   --border-card: var(--border-base);
   --border-header: var(--border-base);
   --border-divider: var(--border-base);
   
   /* ===== 텍스트 색상 ===== */
-  --text-primary: #171717; /* 기본 텍스트 */
-  --text-secondary: #4B5563; /* 보조 텍스트 (gray-600) */
+  --text-primary: #18181b; /* 기본 텍스트 (zinc-900) */
+  --text-secondary: #52525b; /* 보조 텍스트 (zinc-600) */
   --text-white: #FFFFFF;
   
   /* ===== 태그/액센트 색상 ===== */
-  --accent-base: #374151; /* 기본 액센트 (gray-700) */
-  --accent-hover: #27272A; /* 호버 액센트 (zinc-800) */
+  --accent-base: #3f3f46; /* 기본 액센트 (zinc-700) */
+  --accent-hover: #27272a; /* 호버 액센트 (zinc-800) */
   
-  --tag-bg: #F3F4F6; /* 태그 배경 (gray-100) */
+  --tag-bg: #f4f4f5; /* 태그 배경 (zinc-100) */
   --tag-text: var(--accent-base); /* 태그 텍스트 = 액센트와 동일 */
   --tag-border: var(--border-base); /* 태그 경계선 = 기본 경계선과 동일 */
   --tag-hover-bg: var(--border-base); /* 태그 호버 = 기본 경계선과 동일 */
@@ -57,8 +57,11 @@
   --shadow-tag-hover-light: 0 2px 4px rgba(0, 0, 0, 0.1);
   
   /* ===== 검색 포커스 색상 ===== */
-  --search-focus-ring-light: rgba(75, 85, 99, 0.5); /* gray-600 */
+  --search-focus-ring-light: rgba(82, 82, 91, 0.5); /* zinc-600 */
   --search-focus-shadow-light: 0 8px 24px rgba(0, 0, 0, 0.1);
+  
+  /* ===== 인풋 포커스 색상 ===== */
+  --input-focus-ring: rgba(82, 82, 91, 0.5); /* zinc-600 */
 }
 
 @media (prefers-color-scheme: dark) {

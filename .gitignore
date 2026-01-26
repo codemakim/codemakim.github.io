@@ -33,6 +33,10 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# OAuth keys (보안 정보)
+OAUTH_KEYS.md
+docs/OAUTH_KEYS.md
+
 # vercel
 .vercel
 

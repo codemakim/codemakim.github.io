@@ -62,9 +62,9 @@ function SortableLine({ item }: { item: LineItem }) {
       className={`
         group relative w-full
         p-4 md:p-5 rounded-xl
-        bg-gray-50 dark:bg-gray-800
-        border border-gray-200 dark:border-gray-700
-        hover:bg-gray-100 dark:hover:bg-gray-700
+        bg-zinc-50 dark:bg-zinc-800
+        border border-zinc-200 dark:border-zinc-700
+        hover:bg-zinc-100 dark:hover:bg-zinc-700
         active:scale-[0.98]
         transition-all duration-200
         select-none
@@ -72,7 +72,7 @@ function SortableLine({ item }: { item: LineItem }) {
       `}
     >
       {/* 코드 텍스트 - 전체 영역 드래그 가능, 텍스트 선택 불가 */}
-      <code className="block w-full text-sm md:text-base font-mono text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-all select-none pointer-events-none">
+      <code className="block w-full text-sm md:text-base font-mono text-zinc-800 dark:text-zinc-200 whitespace-pre-wrap break-all select-none pointer-events-none">
         {item.text}
       </code>
     </div>
@@ -136,12 +136,12 @@ export default function CodeOrderingQuiz({
     <div className="card p-6 my-8 space-y-4">
       {/* 헤더 */}
       {title && (
-        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+        <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">
           {title}
         </h3>
       )}
       {description && (
-        <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+        <p className="text-sm text-zinc-600 dark:text-zinc-300 mb-4">
           {description}
         </p>
       )}

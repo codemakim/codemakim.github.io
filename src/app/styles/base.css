@@ -79,6 +79,32 @@ body::after {
 }
 
 /* ============================================
+   인풋 필드 전역 스타일
+   ============================================ */
+
+/* 인풋 필드 focus ring 색상 통일 (파란색 완전 제거) */
+input[type="text"]:focus,
+input[type="date"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus,
+textarea:focus,
+input:focus,
+textarea:focus {
+  --tw-ring-color: var(--input-focus-ring) !important;
+  ring-color: var(--input-focus-ring) !important;
+  outline-color: var(--input-focus-ring) !important;
+  border-color: var(--border-base) !important;
+}
+
+/* 브라우저 기본 outline 완전 제거 */
+input:focus,
+textarea:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 2px var(--input-focus-ring) !important;
+}
+
+/* ============================================
    모바일 최적화
    ============================================ */
 

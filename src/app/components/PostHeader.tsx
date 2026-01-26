@@ -59,7 +59,7 @@ export default function PostHeader({ post }: PostHeaderProps) {
 
         <h1
           className={`
-            font-bold text-gray-900 dark:text-white
+            font-bold text-zinc-900 dark:text-white
             transition-all duration-500 ease-in-out
             ${isScrolled ? "text-xl" : "text-4xl"}
           `}
@@ -71,7 +71,7 @@ export default function PostHeader({ post }: PostHeaderProps) {
         {post.description && (
           <p
             className={`
-              text-xl text-gray-700 dark:text-gray-300 mt-2
+              text-xl text-zinc-700 dark:text-zinc-300 mt-2
               transition-all duration-500 ease-in-out
               ${
                 isScrolled
@@ -96,7 +96,7 @@ export default function PostHeader({ post }: PostHeaderProps) {
             }
           `}
         >
-          <time className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap flex-shrink-0 min-w-fit">
+          <time className="text-sm text-zinc-600 dark:text-zinc-400 whitespace-nowrap flex-shrink-0 min-w-fit">
             {format(new Date(post.date), "yyyy년 M월 d일", { locale: ko })}
           </time>
           {post.tags && (

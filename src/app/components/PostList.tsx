@@ -18,7 +18,7 @@ export default function PostList({ posts, selectedTag }: PostListProps) {
   if (filteredPosts.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500 dark:text-gray-400 text-lg">
+        <p className="text-zinc-500 dark:text-zinc-400 text-lg">
           해당 태그의 포스트가 없습니다.
         </p>
       </div>
@@ -30,19 +30,19 @@ export default function PostList({ posts, selectedTag }: PostListProps) {
       {filteredPosts.map((post) => (
         <article key={post._id} className="card p-6">
           <Link href={post.url}>
-            <h2 className="link text-2xl font-semibold text-gray-900 dark:text-white transition-colors">
+            <h2 className="link text-2xl font-semibold text-zinc-900 dark:text-white transition-colors">
               {post.title}
             </h2>
           </Link>
 
           {post.description && (
-            <p className="text-gray-700 dark:text-gray-300 mt-2">
+            <p className="text-zinc-700 dark:text-zinc-300 mt-2">
               {post.description}
             </p>
           )}
 
           <div className="flex items-center justify-between mt-4 gap-4">
-            <time className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap flex-shrink-0 min-w-fit">
+            <time className="text-sm text-zinc-600 dark:text-zinc-400 whitespace-nowrap flex-shrink-0 min-w-fit">
               {format(new Date(post.date), "yyyy년 M월 d일", { locale: ko })}
             </time>
 
