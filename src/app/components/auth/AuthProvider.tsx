@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/app/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
 interface AuthContextType {
   user: User | null;
@@ -22,14 +22,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // 세션 초기화 및 인증 상태 변경 감지
   useEffect(() => {
+    // 클라이언트 사이드에서만 실행
+    if (typeof window === 'undefined') {
+      setLoading(false);
+      return;
+    }
+
+    // Supabase 클라이언트 초기화 (환경 변수 체크)
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      // 환경 변수가 없으면 인증 기능 비활성화 (블로그만 사용하는 경우)
+      console.warn('Supabase not configured, authentication disabled');
+      setLoading(false);
+      return;
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
     // 초기 세션 확인
     const initSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        setSession(session);
+        setUser(session?.user ?? null);
+      } catch (error) {
+        console.error('Failed to get session:', error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     initSession();
@@ -49,7 +73,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  const getSupabaseClient = () => {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error(
+        'Missing Supabase environment variables. Please check your .env.local file.'
+      );
+    }
+
+    return createClient(supabaseUrl, supabaseAnonKey);
+  };
+
   const signInWithGoogle = async () => {
+    const supabase = getSupabaseClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -62,6 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signInWithGithub = async () => {
+    const supabase = getSupabaseClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'github',
       options: {
@@ -74,6 +113,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    const supabase = getSupabaseClient();
     const { error } = await supabase.auth.signOut();
     if (error) {
       throw error;
