@@ -70,7 +70,8 @@ function EditHabitContent() {
 
       // 2. 캐시에 없으면 fetchHabit으로 가져오기 (캐시에 저장됨)
       if (!habitData) {
-        habitData = await fetchHabit(habitId);
+        const fetched = await fetchHabit(habitId);
+        habitData = fetched || undefined; // null을 undefined로 변환
       }
 
       if (!habitData) {
