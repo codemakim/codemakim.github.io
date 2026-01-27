@@ -156,32 +156,28 @@ function HabitDetailContent() {
               className="card p-6"
               style={{ borderLeft: `4px solid ${habit.color}` }}
             >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <h2 className="text-3xl font-bold mb-4 text-zinc-900 dark:text-white">
-                    {habit.title}
-                  </h2>
-                  {habit.description && (
-                    <p className="text-zinc-600 dark:text-zinc-400 mb-4">
-                      {habit.description}
-                    </p>
-                  )}
-                </div>
-                <div className="flex gap-2 ml-4">
-                  <Link
-                    href={`/habits/edit?id=${habit.id}`}
-                    className="px-4 py-2 text-sm border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-                  >
-                    수정
-                  </Link>
-                  <button
-                    onClick={() => setShowDeleteConfirm(true)}
-                    className="px-4 py-2 text-sm border border-red-300 dark:border-red-700 rounded-lg bg-white dark:bg-zinc-900 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                    disabled={deleting}
-                  >
-                    삭제
-                  </button>
-                </div>
+              <h2 className="text-3xl font-bold mb-4 text-zinc-900 dark:text-white">
+                {habit.title}
+              </h2>
+              {habit.description && (
+                <p className="text-zinc-600 dark:text-zinc-400 mb-4">
+                  {habit.description}
+                </p>
+              )}
+              <div className="flex gap-2 mb-4">
+                <Link
+                  href={`/habits/edit?id=${habit.id}`}
+                  className="px-4 py-2 text-sm border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                >
+                  수정
+                </Link>
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="px-4 py-2 text-sm border border-red-300 dark:border-red-700 rounded-lg bg-white dark:bg-zinc-900 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                  disabled={deleting}
+                >
+                  삭제
+                </button>
               </div>
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2">
