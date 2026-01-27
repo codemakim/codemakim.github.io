@@ -40,9 +40,8 @@
   }
 
   /* 날짜 입력 필드가 카드 오른쪽 끝까지 늘어나지 않도록 제한 */
-  /* grid 내부 날짜 입력 필드 컨테이너만 제한 (border-radius 유지) */
-  .grid.grid-cols-1 > div,
-  .grid.grid-cols-1.md\\:grid-cols-2 > div {
+  /* grid 내부 컨테이너 제한 (border-radius 유지) */
+  .grid > div {
     min-width: 0; /* grid item이 부모를 넘지 않도록 */
   }
 
