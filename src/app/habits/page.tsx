@@ -5,6 +5,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import HabitsHeader from '@/app/components/habits/HabitsHeader';
 import HabitCard from '@/app/components/habits/HabitCard';
+import OverallCalendar from '@/app/components/habits/OverallCalendar';
 import { useHabits } from '@/app/components/habits/useHabits';
 import type { ViewMode } from '@/app/components/habits/types';
 
@@ -66,11 +67,7 @@ function HabitsContent() {
             </Link>
           </div>
         ) : viewMode === 'calendar' ? (
-          <div className="card p-8 text-center">
-            <p className="text-zinc-600 dark:text-zinc-400">
-              달력 뷰는 다음 단계에서 구현됩니다.
-            </p>
-          </div>
+          <OverallCalendar />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {habits.map((habit) => (

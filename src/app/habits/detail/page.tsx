@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { useAuth } from '@/app/components/auth/AuthProvider';
 import { supabase } from '@/app/lib/supabase';
 import { useRouter, useSearchParams } from 'next/navigation';
+import HabitCalendar from '@/app/components/habits/HabitCalendar';
+import HabitStats from '@/app/components/habits/HabitStats';
 
 type Habit = {
   id: string;
@@ -23,6 +25,8 @@ function HabitDetailContent() {
   const [habit, setHabit] = useState<Habit | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -68,6 +72,30 @@ function HabitDetailContent() {
       setError(err.message || '습관을 불러오는데 실패했습니다');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!user || !habitId || !habit) return;
+
+    setDeleting(true);
+    try {
+      const { error: deleteError } = await supabase
+        .from('habits')
+        .delete()
+        .eq('id', habitId)
+        .eq('user_id', user.id);
+
+      if (deleteError) {
+        throw deleteError;
+      }
+
+      // 삭제 성공 시 목록 페이지로 이동
+      router.push('/habits');
+    } catch (err: any) {
+      setError(err.message || '습관 삭제에 실패했습니다');
+      setDeleting(false);
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -128,14 +156,33 @@ function HabitDetailContent() {
               className="card p-6"
               style={{ borderLeft: `4px solid ${habit.color}` }}
             >
-              <h2 className="text-3xl font-bold mb-4 text-zinc-900 dark:text-white">
-                {habit.title}
-              </h2>
-              {habit.description && (
-                <p className="text-zinc-600 dark:text-zinc-400 mb-4">
-                  {habit.description}
-                </p>
-              )}
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  <h2 className="text-3xl font-bold mb-4 text-zinc-900 dark:text-white">
+                    {habit.title}
+                  </h2>
+                  {habit.description && (
+                    <p className="text-zinc-600 dark:text-zinc-400 mb-4">
+                      {habit.description}
+                    </p>
+                  )}
+                </div>
+                <div className="flex gap-2 ml-4">
+                  <Link
+                    href={`/habits/edit?id=${habit.id}`}
+                    className="px-4 py-2 text-sm border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                  >
+                    수정
+                  </Link>
+                  <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="px-4 py-2 text-sm border border-red-300 dark:border-red-700 rounded-lg bg-white dark:bg-zinc-900 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                    disabled={deleting}
+                  >
+                    삭제
+                  </button>
+                </div>
+              </div>
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2">
                   <span className="text-zinc-500 dark:text-zinc-400">기간:</span>
@@ -164,12 +211,41 @@ function HabitDetailContent() {
               </div>
             </div>
 
-            {/* TODO: 달력 뷰, 통계, 수정/삭제 버튼 추가 예정 */}
-            <div className="card p-6">
-              <p className="text-zinc-600 dark:text-zinc-400 text-center">
-                달력 뷰와 통계 기능은 다음 단계에서 구현됩니다.
-              </p>
-            </div>
+            {/* 통계 */}
+            <HabitStats habit={habit} />
+
+            {/* 달력 뷰 */}
+            <HabitCalendar habit={habit} />
+
+            {/* 삭제 확인 모달 */}
+            {showDeleteConfirm && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                <div className="card p-6 max-w-md w-full">
+                  <h3 className="text-xl font-bold mb-4 text-zinc-900 dark:text-white">
+                    습관 삭제
+                  </h3>
+                  <p className="text-zinc-600 dark:text-zinc-400 mb-6">
+                    정말로 이 습관을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setShowDeleteConfirm(false)}
+                      className="flex-1 px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                      disabled={deleting}
+                    >
+                      취소
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      className="flex-1 px-4 py-2 border border-red-300 dark:border-red-700 rounded-lg bg-red-600 dark:bg-red-700 text-white hover:bg-red-700 dark:hover:bg-red-600 transition-colors"
+                      disabled={deleting}
+                    >
+                      {deleting ? '삭제 중...' : '삭제'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         ) : null}
       </main>
