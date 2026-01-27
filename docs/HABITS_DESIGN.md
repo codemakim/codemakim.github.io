@@ -720,7 +720,16 @@ Response: {
 
 ### Phase 5: 최적화 및 개선
 
-1. ⏳ 성능 최적화
+1. ✅ 성능 최적화
+   - ✅ HabitsProvider 캐시 활용 최적화
+     - OverallCalendar: HabitsProvider 캐시 사용으로 습관 데이터 중복 패칭 제거
+     - detail/page.tsx: 캐시 우선 사용, 없으면 fetchHabit 호출
+     - HabitCalendar: useCallback 및 dependency 최적화로 불필요한 재실행 방지
+   - ✅ 캐시 갱신 확인: 모든 습관 CRUD 액션에서 캐시 자동 업데이트
+     - 생성: `addHabit` → 캐시에 추가
+     - 수정: `updateHabit` → 캐시 업데이트
+     - 삭제: `removeHabit` → 캐시에서 제거
+   - ✅ 메모리 캐싱: 페이지 새로고침 시 자동 초기화되어 최신 데이터 보장
 2. ⏳ 오프라인 지원 (향후)
 3. ⏳ 알림 기능 (향후)
 
