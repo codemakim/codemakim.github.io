@@ -3,6 +3,7 @@
 import ProtectedRoute from '@/app/components/auth/ProtectedRoute';
 import { useState } from 'react';
 import Link from 'next/link';
+import { formatDateToYYYYMMDD } from '@/app/lib/dateUtils';
 import HabitsHeader from '@/app/components/habits/HabitsHeader';
 import HabitCard from '@/app/components/habits/HabitCard';
 import OverallCalendar from '@/app/components/habits/OverallCalendar';
@@ -29,8 +30,8 @@ function HabitsContent() {
     );
   }
 
-  // mounted 후에만 today 계산 (Hydration 에러 방지)
-  const today = mounted ? new Date().toISOString().split('T')[0] : '';
+  // mounted 후에만 today 계산 (Hydration 에러 방지, 로컬 시간대 기준)
+  const today = mounted ? formatDateToYYYYMMDD(new Date()) : '';
 
   return (
     <div className="min-h-screen">

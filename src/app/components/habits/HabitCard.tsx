@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { formatDateKorean } from '@/app/lib/dateUtils';
 
 type Habit = {
   id: string;
@@ -104,10 +105,7 @@ export default function HabitCard({
           </p>
         )}
         <div className="text-xs text-zinc-500 dark:text-zinc-500 mt-auto">
-          {mounted
-            ? `${new Date(habit.start_date).toLocaleDateString('ko-KR')} ~ ${new Date(habit.end_date).toLocaleDateString('ko-KR')}`
-            : `${habit.start_date} ~ ${habit.end_date}`
-          }
+          {formatDateKorean(habit.start_date)} ~ {formatDateKorean(habit.end_date)}
         </div>
       </div>
     </div>

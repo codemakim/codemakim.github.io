@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/app/components/auth/AuthProvider';
 import { supabase } from '@/app/lib/supabase';
+import { formatDateToYYYYMMDD, compareDateStrings } from '@/app/lib/dateUtils';
 import { useHabitsContext } from './HabitsProvider';
 import type { HabitWithCompletion } from './types';
 
@@ -32,24 +33,20 @@ export function useHabits() {
     setError(null);
 
     try {
-      // 오늘 날짜
+      // 오늘 날짜 (로컬 시간대 기준)
       const today = new Date();
-      const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
+      const todayStr = formatDateToYYYYMMDD(today); // 로컬 시간대 기준 YYYY-MM-DD
       const todayWeekday = today.getDay(); // 0=일요일, 1=월요일, ..., 6=토요일
 
       // 캐시에서 모든 습관 가져오기
       const allHabits = Array.from(habitsCache.values());
 
-      // 오늘 수행해야 할 습관 필터링
+      // 오늘 수행해야 할 습관 필터링 (날짜 문자열 직접 비교)
       const todayHabits = allHabits.filter((habit) => {
-        const startDate = new Date(habit.start_date);
-        const endDate = new Date(habit.end_date);
-        const todayDate = new Date(todayStr);
-
         return (
           habit.weekdays.includes(todayWeekday) &&
-          startDate <= todayDate &&
-          endDate >= todayDate
+          compareDateStrings(habit.start_date, todayStr) <= 0 &&
+          compareDateStrings(habit.end_date, todayStr) >= 0
         );
       });
 

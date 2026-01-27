@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/app/components/auth/AuthProvider';
 import { supabase } from '@/app/lib/supabase';
+import { parseYYYYMMDD, formatDateToYYYYMMDD, compareDateStrings } from '@/app/lib/dateUtils';
 import type { Habit } from './types';
 
 interface HabitStatsProps {
@@ -42,15 +43,16 @@ export default function HabitStats({ habit }: HabitStatsProps) {
         }
 
         // 총 일수 계산 (기간 내 수행해야 하는 날짜 수)
-        const startDate = new Date(habit.start_date);
-        const endDate = new Date(habit.end_date);
+        const startDate = parseYYYYMMDD(habit.start_date);
+        const endDate = parseYYYYMMDD(habit.end_date);
         let totalDays = 0;
         const dateSet = new Set<string>();
 
+        // 날짜를 순회하면서 수행해야 하는 날짜 계산 (로컬 시간대 기준)
         for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
           const weekday = d.getDay();
           if (habit.weekdays.includes(weekday)) {
-            const dateStr = d.toISOString().split('T')[0];
+            const dateStr = formatDateToYYYYMMDD(d);
             dateSet.add(dateStr);
             totalDays++;
           }
@@ -65,7 +67,7 @@ export default function HabitStats({ habit }: HabitStatsProps) {
           totalDays > 0 ? Math.round((completedDays / totalDays) * 100) : 0;
 
         // 연속 달성 일수 계산
-        const today = new Date().toISOString().split('T')[0];
+        const today = formatDateToYYYYMMDD(new Date()); // 로컬 시간대 기준 오늘 날짜
         const recordsMap = new Map<string, boolean>();
         (recordsData || []).forEach((record) => {
           recordsMap.set(record.date, record.completed);
@@ -76,7 +78,7 @@ export default function HabitStats({ habit }: HabitStatsProps) {
         const sortedDates = Array.from(dateSet).sort((a, b) => b.localeCompare(a));
         
         for (const dateStr of sortedDates) {
-          if (dateStr > today) continue; // 미래 날짜는 제외
+          if (compareDateStrings(dateStr, today) > 0) continue; // 미래 날짜는 제외
           const completed = recordsMap.get(dateStr);
           if (completed) {
             currentStreak++;

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/app/components/auth/AuthProvider';
 import { supabase } from '@/app/lib/supabase';
+import { formatDateToYYYYMMDD, compareDateStrings } from '@/app/lib/dateUtils';
 import type { Habit } from './types';
 import OverallCalendarDay from './OverallCalendarDay';
 import BaseCalendar from './BaseCalendar';
@@ -44,8 +45,8 @@ export default function OverallCalendar({}: OverallCalendarProps) {
       setAllHabits(habitsData || []);
 
       // 2. 현재 월의 모든 기록 가져오기
-      const firstDay = new Date(year, month, 1).toISOString().split('T')[0];
-      const lastDay = new Date(year, month + 1, 0).toISOString().split('T')[0];
+      const firstDay = formatDateToYYYYMMDD(new Date(year, month, 1));
+      const lastDay = formatDateToYYYYMMDD(new Date(year, month + 1, 0));
 
       const { data: recordsData, error: recordsError } = await supabase
         .from('habit_records')
@@ -93,19 +94,15 @@ export default function OverallCalendar({}: OverallCalendarProps) {
 
   // 날짜별 성공률 계산 함수
   const calculateDayStats = (date: Date): DayStats => {
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = formatDateToYYYYMMDD(date); // 로컬 시간대 기준 YYYY-MM-DD
     const weekday = date.getDay(); // 0=일요일, 1=월요일, ..., 6=토요일
 
-    // 해당 날짜에 수행해야 할 습관 필터링
+    // 해당 날짜에 수행해야 할 습관 필터링 (날짜 문자열 직접 비교)
     const habitsForDate = allHabits.filter((habit) => {
-      const startDate = new Date(habit.start_date);
-      const endDate = new Date(habit.end_date);
-      const targetDate = new Date(dateStr);
-
       return (
         habit.weekdays.includes(weekday) &&
-        startDate <= targetDate &&
-        endDate >= targetDate
+        compareDateStrings(habit.start_date, dateStr) <= 0 &&
+        compareDateStrings(habit.end_date, dateStr) >= 0
       );
     });
 

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/app/components/auth/AuthProvider';
 import { supabase } from '@/app/lib/supabase';
+import { formatDateKorean } from '@/app/lib/dateUtils';
 import { useHabitsContext } from '@/app/components/habits/HabitsProvider';
 import type { Habit } from '@/app/components/habits/types';
 
@@ -342,8 +343,7 @@ function EditHabitContent() {
                   <div className="flex items-center gap-2">
                     <span className="text-zinc-500 dark:text-zinc-400">기간:</span>
                     <span className="text-zinc-900 dark:text-white">
-                      {new Date(habit.start_date).toLocaleDateString('ko-KR')} ~{' '}
-                      {new Date(habit.end_date).toLocaleDateString('ko-KR')}
+                      {formatDateKorean(habit.start_date)} ~ {formatDateKorean(habit.end_date)}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">

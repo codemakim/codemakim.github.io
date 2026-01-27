@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/app/components/auth/AuthProvider';
 import { supabase } from '@/app/lib/supabase';
+import { formatDateToYYYYMMDD, compareDateStrings } from '@/app/lib/dateUtils';
 import type { Habit } from './types';
 import HabitCalendarDay from './HabitCalendarDay';
 import BaseCalendar from './BaseCalendar';
@@ -28,8 +29,8 @@ export default function HabitCalendar({ habit }: HabitCalendarProps) {
 
     setLoading(true);
     try {
-      const firstDay = new Date(year, month, 1).toISOString().split('T')[0];
-      const lastDay = new Date(year, month + 1, 0).toISOString().split('T')[0];
+      const firstDay = formatDateToYYYYMMDD(new Date(year, month, 1));
+      const lastDay = formatDateToYYYYMMDD(new Date(year, month + 1, 0));
 
       const { data: recordsData, error: recordsError } = await supabase
         .from('habit_records')
@@ -73,17 +74,14 @@ export default function HabitCalendar({ habit }: HabitCalendarProps) {
 
   // 날짜별 상태 계산 함수
   const getDayStatus = (date: Date): HabitDayStatus => {
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = formatDateToYYYYMMDD(date); // 로컬 시간대 기준 YYYY-MM-DD
     const weekday = date.getDay(); // 0=일요일, 1=월요일, ..., 6=토요일
-    const targetDate = new Date(dateStr);
-    const startDate = new Date(habit.start_date);
-    const endDate = new Date(habit.end_date);
 
-    // 해당 날짜에 수행해야 하는지 확인
+    // 날짜 문자열 직접 비교 (타임존 문제 방지)
     const shouldDo =
       habit.weekdays.includes(weekday) &&
-      startDate <= targetDate &&
-      endDate >= targetDate;
+      compareDateStrings(habit.start_date, dateStr) <= 0 &&
+      compareDateStrings(habit.end_date, dateStr) >= 0;
 
     // 완료 여부 확인
     const completed = records.get(dateStr) || false;
