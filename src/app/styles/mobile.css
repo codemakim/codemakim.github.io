@@ -43,12 +43,18 @@
   /* grid 내부 컨테이너 제한 (border-radius 유지) */
   .grid > div {
     min-width: 0; /* grid item이 부모를 넘지 않도록 */
+    width: 100%; /* 부모의 width를 존중 */
+    max-width: 100%; /* 부모를 넘지 않도록 */
   }
 
+  /* 날짜 입력 필드가 부모 컨테이너를 넘지 않도록 강제 */
   input[type="date"].input {
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    /* 모바일 브라우저의 기본 스타일 오버라이드 */
+    -webkit-appearance: none;
+    appearance: none;
   }
 }
 
