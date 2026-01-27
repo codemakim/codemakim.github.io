@@ -8,6 +8,7 @@ import { supabase } from '@/app/lib/supabase';
 import { useRouter, useSearchParams } from 'next/navigation';
 import HabitCalendar from '@/app/components/habits/HabitCalendar';
 import HabitStats from '@/app/components/habits/HabitStats';
+import { useHabitsContext } from '@/app/components/habits/HabitsProvider';
 
 type Habit = {
   id: string;
@@ -31,6 +32,7 @@ function HabitDetailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const habitId = searchParams.get('id');
+  const { removeHabit } = useHabitsContext();
 
   useEffect(() => {
     setMounted(true);
@@ -88,6 +90,11 @@ function HabitDetailContent() {
 
       if (deleteError) {
         throw deleteError;
+      }
+
+      // HabitsProvider 캐시에서 제거
+      if (habitId) {
+        removeHabit(habitId);
       }
 
       // 삭제 성공 시 목록 페이지로 이동

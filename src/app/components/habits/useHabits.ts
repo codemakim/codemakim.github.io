@@ -1,21 +1,31 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/app/components/auth/AuthProvider';
 import { supabase } from '@/app/lib/supabase';
+import { useHabitsContext } from './HabitsProvider';
 import type { HabitWithCompletion } from './types';
 
 export function useHabits() {
   const [mounted, setMounted] = useState(false);
-  const [habits, setHabits] = useState<HabitWithCompletion[]>([]);
+  const [habitsWithCompletion, setHabitsWithCompletion] = useState<HabitWithCompletion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [processingHabits, setProcessingHabits] = useState<Set<string>>(new Set());
   const { user } = useAuth();
+  const { habits: habitsCache, loading: habitsLoading, error: habitsError, fetchAllHabits } = useHabitsContext();
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const fetchHabits = useCallback(async () => {
+  // HabitsProvider에서 습관 목록 가져오기
+  useEffect(() => {
+    if (mounted && user) {
+      fetchAllHabits();
+    }
+  }, [mounted, user, fetchAllHabits]);
+
+  // 오늘의 습관 필터링 및 완료 기록 가져오기
+  const fetchTodayHabits = useCallback(async () => {
     if (!user) return;
 
     setLoading(true);
@@ -27,19 +37,11 @@ export function useHabits() {
       const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
       const todayWeekday = today.getDay(); // 0=일요일, 1=월요일, ..., 6=토요일
 
-      // 습관 목록 가져오기
-      const { data: habitsData, error: habitsError } = await supabase
-        .from('habits')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (habitsError) {
-        throw habitsError;
-      }
+      // 캐시에서 모든 습관 가져오기
+      const allHabits = Array.from(habitsCache.values());
 
       // 오늘 수행해야 할 습관 필터링
-      const todayHabits = (habitsData || []).filter((habit) => {
+      const todayHabits = allHabits.filter((habit) => {
         const startDate = new Date(habit.start_date);
         const endDate = new Date(habit.end_date);
         const todayDate = new Date(todayStr);
@@ -53,6 +55,12 @@ export function useHabits() {
 
       // 오늘 완료 기록 가져오기
       const habitIds = todayHabits.map((h) => h.id);
+      if (habitIds.length === 0) {
+        setHabitsWithCompletion([]);
+        setLoading(false);
+        return;
+      }
+
       const { data: recordsData, error: recordsError } = await supabase
         .from('habit_records')
         .select('habit_id, completed')
@@ -77,19 +85,20 @@ export function useHabits() {
         completed: completedMap.get(habit.id) || false,
       }));
 
-      setHabits(habitsWithCompletion);
+      setHabitsWithCompletion(habitsWithCompletion);
     } catch (err: any) {
       setError(err.message || '습관 목록을 불러오는데 실패했습니다');
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, habitsCache]);
 
+  // 캐시가 업데이트되면 오늘의 습관 다시 계산
   useEffect(() => {
-    if (mounted && user) {
-      fetchHabits();
+    if (mounted && user && !habitsLoading && habitsCache.size >= 0) {
+      fetchTodayHabits();
     }
-  }, [mounted, user, fetchHabits]);
+  }, [mounted, user, habitsLoading, habitsCache, fetchTodayHabits]);
 
   const handleToggleComplete = useCallback(async (habitId: string, completed: boolean, date: string) => {
     if (!user) return;
@@ -142,7 +151,7 @@ export function useHabits() {
       }
 
       // 로컬 상태 업데이트
-      setHabits((prev) =>
+      setHabitsWithCompletion((prev) =>
         prev.map((habit) =>
           habit.id === habitId ? { ...habit, completed } : habit
         )
@@ -160,13 +169,17 @@ export function useHabits() {
     }
   }, [user, processingHabits]);
 
+  // 로딩 상태는 HabitsProvider의 로딩과 완료 기록 로딩을 합침
+  const isLoading = habitsLoading || loading;
+  const finalError = habitsError || error;
+
   return {
     mounted,
-    habits,
-    loading,
-    error,
+    habits: habitsWithCompletion,
+    loading: isLoading,
+    error: finalError,
     processingHabits,
-    fetchHabits,
+    fetchHabits: fetchTodayHabits,
     handleToggleComplete,
   };
 }

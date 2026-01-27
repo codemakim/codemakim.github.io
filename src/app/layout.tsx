@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import BackToTopButton from "./components/BackToTopButton";
 import { AuthProvider } from "./components/auth/AuthProvider";
+import { HabitsProvider } from "./components/habits/HabitsProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -52,10 +53,12 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <AuthProvider>
-          <div className="app-wrapper">
-            {children}
-            <BackToTopButton />
-          </div>
+          <HabitsProvider>
+            <div className="app-wrapper">
+              {children}
+              <BackToTopButton />
+            </div>
+          </HabitsProvider>
         </AuthProvider>
       </body>
     </html>

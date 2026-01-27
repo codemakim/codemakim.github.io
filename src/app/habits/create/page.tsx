@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/components/auth/AuthProvider';
 import { supabase } from '@/app/lib/supabase';
+import { useHabitsContext } from '@/app/components/habits/HabitsProvider';
 
 function CreateHabitContent() {
   const [mounted, setMounted] = useState(false);
@@ -19,6 +20,7 @@ function CreateHabitContent() {
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
   const router = useRouter();
+  const { addHabit } = useHabitsContext();
 
   // 달력 순서: 일월화수목금토 (JavaScript Date.getDay()와 동일: 일요일=0, 월요일=1, ..., 토요일=6)
   const weekdayLabels = ['일', '월', '화', '수', '목', '금', '토'];
@@ -101,6 +103,11 @@ function CreateHabitContent() {
 
       if (insertError) {
         throw insertError;
+      }
+
+      // HabitsProvider 캐시에 추가
+      if (data) {
+        addHabit(data);
       }
 
       // 성공 시 습관 목록 페이지로 리다이렉트
