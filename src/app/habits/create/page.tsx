@@ -195,7 +195,7 @@ function CreateHabitContent() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+              <div className="min-w-0">
                 <label htmlFor="startDate" className="block text-sm font-medium mb-2">
                   시작일 <span className="text-red-500">*</span>
                 </label>
@@ -206,11 +206,11 @@ function CreateHabitContent() {
                   onChange={(e) => setStartDate(e.target.value)}
                   required
                   min={mounted ? new Date().toISOString().split('T')[0] : undefined}
-                  className="input"
+                  className="input min-w-0"
                 />
               </div>
 
-              <div>
+              <div className="min-w-0">
                 <label htmlFor="endDate" className="block text-sm font-medium mb-2">
                   종료일 <span className="text-red-500">*</span>
                 </label>
@@ -222,7 +222,7 @@ function CreateHabitContent() {
                   required
                   min={startDate || (mounted ? new Date().toISOString().split('T')[0] : undefined)}
                   max={mounted ? new Date(Date.now() + 3 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] : undefined}
-                  className="input"
+                  className="input min-w-0"
                 />
               </div>
             </div>
