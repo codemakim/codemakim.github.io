@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/app/components/auth/AuthProvider';
 import { supabase } from '@/app/lib/supabase';
 import { formatDateToYYYYMMDD, compareDateStrings } from '@/app/lib/dateUtils';
@@ -24,7 +24,7 @@ export default function HabitCalendar({ habit }: HabitCalendarProps) {
   const { user } = useAuth();
 
   // 해당 습관의 기록 가져오기
-  const fetchRecords = async (year: number, month: number) => {
+  const fetchRecords = useCallback(async (year: number, month: number) => {
     if (!user) return;
 
     setLoading(true);
@@ -55,20 +55,20 @@ export default function HabitCalendar({ habit }: HabitCalendarProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, habit.id]);
 
-  // 초기 로드 및 사용자 변경 시
+  // 초기 로드 및 사용자/습관/월 변경 시
   useEffect(() => {
     if (!user) return;
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
     fetchRecords(year, month);
-  }, [user, habit.id]);
+  }, [user, habit.id, currentMonth, fetchRecords]);
 
   // 월 변경 시 데이터 다시 가져오기
   const handleMonthChange = (year: number, month: number) => {
     setCurrentMonth(new Date(year, month, 1));
-    fetchRecords(year, month);
+    // useEffect가 currentMonth 변경을 감지하여 자동으로 fetchRecords 호출
   };
 
 

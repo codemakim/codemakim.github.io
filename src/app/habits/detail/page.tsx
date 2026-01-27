@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import ProtectedRoute from '@/app/components/auth/ProtectedRoute';
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { useAuth } from '@/app/components/auth/AuthProvider';
-import { supabase } from '@/app/lib/supabase';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { formatDateKorean } from '@/app/lib/dateUtils';
-import HabitCalendar from '@/app/components/habits/HabitCalendar';
-import HabitStats from '@/app/components/habits/HabitStats';
-import { useHabitsContext } from '@/app/components/habits/HabitsProvider';
+import ProtectedRoute from "@/app/components/auth/ProtectedRoute";
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { useAuth } from "@/app/components/auth/AuthProvider";
+import { supabase } from "@/app/lib/supabase";
+import { useRouter, useSearchParams } from "next/navigation";
+import { formatDateKorean } from "@/app/lib/dateUtils";
+import HabitCalendar from "@/app/components/habits/HabitCalendar";
+import HabitStats from "@/app/components/habits/HabitStats";
+import { useHabitsContext } from "@/app/components/habits/HabitsProvider";
 
 type Habit = {
   id: string;
@@ -32,8 +32,12 @@ function HabitDetailContent() {
   const { user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const habitId = searchParams.get('id');
-  const { removeHabit } = useHabitsContext();
+  const habitId = searchParams.get("id");
+  const {
+    getHabit,
+    fetchHabit: fetchHabitFromProvider,
+    removeHabit,
+  } = useHabitsContext();
 
   useEffect(() => {
     setMounted(true);
@@ -41,38 +45,36 @@ function HabitDetailContent() {
 
   useEffect(() => {
     if (mounted && user && habitId) {
-      fetchHabit();
+      loadHabit();
     } else if (mounted && !habitId) {
-      setError('습관 ID가 없습니다');
+      setError("습관 ID가 없습니다");
       setLoading(false);
     }
   }, [mounted, user, habitId]);
 
-  const fetchHabit = async () => {
+  const loadHabit = async () => {
     if (!user || !habitId) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      const { data, error: fetchError } = await supabase
-        .from('habits')
-        .select('*')
-        .eq('id', habitId)
-        .eq('user_id', user.id)
-        .single();
+      // HabitsProvider 캐시에서 먼저 확인
+      let habitData = getHabit(habitId);
 
-      if (fetchError) {
-        throw fetchError;
+      // 캐시에 없으면 fetchHabit 호출 (캐시에 추가됨)
+      if (!habitData) {
+        const fetched = await fetchHabitFromProvider(habitId);
+        habitData = fetched || undefined; // null을 undefined로 변환
       }
 
-      if (!data) {
-        throw new Error('습관을 찾을 수 없습니다');
+      if (!habitData) {
+        throw new Error("습관을 찾을 수 없습니다");
       }
 
-      setHabit(data);
+      setHabit(habitData);
     } catch (err: any) {
-      setError(err.message || '습관을 불러오는데 실패했습니다');
+      setError(err.message || "습관을 불러오는데 실패했습니다");
     } finally {
       setLoading(false);
     }
@@ -84,10 +86,10 @@ function HabitDetailContent() {
     setDeleting(true);
     try {
       const { error: deleteError } = await supabase
-        .from('habits')
+        .from("habits")
         .delete()
-        .eq('id', habitId)
-        .eq('user_id', user.id);
+        .eq("id", habitId)
+        .eq("user_id", user.id);
 
       if (deleteError) {
         throw deleteError;
@@ -99,9 +101,9 @@ function HabitDetailContent() {
       }
 
       // 삭제 성공 시 목록 페이지로 이동
-      router.push('/habits');
+      router.push("/habits");
     } catch (err: any) {
-      setError(err.message || '습관 삭제에 실패했습니다');
+      setError(err.message || "습관 삭제에 실패했습니다");
       setDeleting(false);
       setShowDeleteConfirm(false);
     }
@@ -115,7 +117,7 @@ function HabitDetailContent() {
     );
   }
 
-  const weekdayLabels = ['일', '월', '화', '수', '목', '금', '토'];
+  const weekdayLabels = ["일", "월", "화", "수", "목", "금", "토"];
 
   return (
     <div className="min-h-screen">
@@ -123,17 +125,17 @@ function HabitDetailContent() {
         <div className="max-w-4xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <Link href="/habits" className="block hover:opacity-80 transition-opacity mb-2">
+              <Link
+                href="/habits"
+                className="block hover:opacity-80 transition-opacity mb-2"
+              >
                 <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">
                   그냥 블로그
                 </h1>
               </Link>
               <p className="text-zinc-600 dark:text-zinc-400">습관 상세</p>
             </div>
-            <button
-              onClick={() => router.back()}
-              className="text-sm link"
-            >
+            <button onClick={() => router.back()} className="text-sm link">
               뒤로
             </button>
           </div>
@@ -148,10 +150,7 @@ function HabitDetailContent() {
         ) : error ? (
           <div className="card p-8">
             <div className="text-red-600 dark:text-red-400 mb-4">{error}</div>
-            <button
-              onClick={fetchHabit}
-              className="btn-primary mr-2"
-            >
+            <button onClick={loadHabit} className="btn-primary mr-2">
               다시 시도
             </button>
             <Link href="/habits" className="btn-primary">
@@ -189,21 +188,26 @@ function HabitDetailContent() {
               </div>
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2">
-                  <span className="text-zinc-500 dark:text-zinc-400">기간:</span>
+                  <span className="text-zinc-500 dark:text-zinc-400">
+                    기간:
+                  </span>
                   <span className="text-zinc-900 dark:text-white">
-                    {formatDateKorean(habit.start_date)} ~ {formatDateKorean(habit.end_date)}
+                    {formatDateKorean(habit.start_date)} ~{" "}
+                    {formatDateKorean(habit.end_date)}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-zinc-500 dark:text-zinc-400">수행 요일:</span>
+                  <span className="text-zinc-500 dark:text-zinc-400">
+                    수행 요일:
+                  </span>
                   <div className="flex gap-1">
                     {weekdayLabels.map((label, index) => (
                       <span
                         key={index}
                         className={`px-2 py-1 rounded text-xs ${
                           habit.weekdays.includes(index)
-                            ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
-                            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'
+                            ? "bg-zinc-900 dark:bg-white text-white dark:text-zinc-900"
+                            : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400"
                         }`}
                       >
                         {label}
@@ -228,7 +232,8 @@ function HabitDetailContent() {
                     습관 삭제
                   </h3>
                   <p className="text-zinc-600 dark:text-zinc-400 mb-6">
-                    정말로 이 습관을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+                    정말로 이 습관을 삭제하시겠습니까? 이 작업은 되돌릴 수
+                    없습니다.
                   </p>
                   <div className="flex gap-3">
                     <button
@@ -243,7 +248,7 @@ function HabitDetailContent() {
                       className="flex-1 px-4 py-2 border border-red-300 dark:border-red-700 rounded-lg bg-red-600 dark:bg-red-700 text-white hover:bg-red-700 dark:hover:bg-red-600 transition-colors"
                       disabled={deleting}
                     >
-                      {deleting ? '삭제 중...' : '삭제'}
+                      {deleting ? "삭제 중..." : "삭제"}
                     </button>
                   </div>
                 </div>
@@ -263,4 +268,3 @@ export default function HabitDetailPage() {
     </ProtectedRoute>
   );
 }
-

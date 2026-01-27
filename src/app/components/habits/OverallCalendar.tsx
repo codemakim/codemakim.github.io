@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '@/app/components/auth/AuthProvider';
+import { useHabitsContext } from '@/app/components/habits/HabitsProvider';
 import { supabase } from '@/app/lib/supabase';
 import { formatDateToYYYYMMDD, compareDateStrings } from '@/app/lib/dateUtils';
 import type { Habit } from './types';
@@ -20,38 +21,32 @@ interface OverallCalendarProps {
 
 export default function OverallCalendar({}: OverallCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [allHabits, setAllHabits] = useState<Habit[]>([]);
   const [records, setRecords] = useState<Map<string, Set<string>>>(new Map()); // date -> Set<habit_id> (completed만)
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const { habits: habitsCache, loading: habitsLoading } = useHabitsContext();
 
-  // 모든 습관 데이터 가져오기
-  const fetchAllData = async (year: number, month: number) => {
-    if (!user) return;
+  // HabitsProvider 캐시에서 습관 배열로 변환
+  const allHabits = useMemo(() => {
+    return Array.from(habitsCache.values());
+  }, [habitsCache]);
+
+  // 현재 월의 기록만 가져오기
+  const fetchRecords = useCallback(async (year: number, month: number) => {
+    if (!user || habitsCache.size === 0) return;
 
     setLoading(true);
     try {
-      // 1. 모든 습관 가져오기
-      const { data: habitsData, error: habitsError } = await supabase
-        .from('habits')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (habitsError) {
-        throw habitsError;
-      }
-
-      setAllHabits(habitsData || []);
-
-      // 2. 현재 월의 모든 기록 가져오기
       const firstDay = formatDateToYYYYMMDD(new Date(year, month, 1));
       const lastDay = formatDateToYYYYMMDD(new Date(year, month + 1, 0));
+
+      // habitsCache에서 habit ID 배열 생성
+      const habitIds = Array.from(habitsCache.keys());
 
       const { data: recordsData, error: recordsError } = await supabase
         .from('habit_records')
         .select('habit_id, date, completed')
-        .in('habit_id', (habitsData || []).map((h) => h.id))
+        .in('habit_id', habitIds)
         .gte('date', firstDay)
         .lte('date', lastDay)
         .eq('completed', true); // 완료된 것만
@@ -75,20 +70,19 @@ export default function OverallCalendar({}: OverallCalendarProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, habitsCache]);
 
-  // 초기 로드 및 사용자 변경 시
+  // 습관 데이터가 로드되고 월이 변경될 때 기록 가져오기
   useEffect(() => {
-    if (!user) return;
+    if (!user || habitsLoading || habitsCache.size === 0) return;
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
-    fetchAllData(year, month);
-  }, [user]);
+    fetchRecords(year, month);
+  }, [user, habitsLoading, habitsCache.size, currentMonth, fetchRecords]);
 
   // 월 변경 시 데이터 다시 가져오기
   const handleMonthChange = (year: number, month: number) => {
     setCurrentMonth(new Date(year, month, 1));
-    fetchAllData(year, month);
   };
 
 
