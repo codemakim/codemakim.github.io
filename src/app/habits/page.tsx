@@ -188,6 +188,9 @@ function HabitsContent() {
     );
   }
 
+  // mounted 후에만 today 계산 (Hydration 에러 방지)
+  const today = mounted ? new Date().toISOString().split('T')[0] : '';
+
   return (
     <div className="min-h-screen">
       <header className="header md:sticky md:top-0 z-50">
@@ -241,8 +244,6 @@ function HabitsContent() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {habits.map((habit) => {
-              const today = new Date().toISOString().split('T')[0];
-              
               return (
                 <div
                   key={habit.id}
@@ -314,8 +315,10 @@ function HabitsContent() {
                       </p>
                     )}
                     <div className="text-xs text-zinc-500 dark:text-zinc-500 mt-auto">
-                      {new Date(habit.start_date).toLocaleDateString('ko-KR')} ~{' '}
-                      {new Date(habit.end_date).toLocaleDateString('ko-KR')}
+                      {mounted
+                        ? `${new Date(habit.start_date).toLocaleDateString('ko-KR')} ~ ${new Date(habit.end_date).toLocaleDateString('ko-KR')}`
+                        : `${habit.start_date} ~ ${habit.end_date}`
+                      }
                     </div>
                   </div>
                 </div>
