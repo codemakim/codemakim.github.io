@@ -38,6 +38,18 @@
     display: block !important;
     padding: 1.25em 1.5rem !important;
   }
+
+  /* 날짜 입력 필드가 카드 오른쪽 끝까지 늘어나지 않도록 제한 */
+  /* grid 내부 날짜 입력 필드가 부모 컨테이너를 넘지 않도록 */
+  .grid > div {
+    min-width: 0; /* grid item이 부모를 넘지 않도록 */
+    overflow: hidden; /* 내용이 넘치지 않도록 */
+  }
+
+  input[type="date"].input {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
 }
 
 /* PWA 모드에서만 하단 Safe Area 제거 */

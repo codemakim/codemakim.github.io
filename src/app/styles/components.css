@@ -50,6 +50,7 @@
   outline: none;
   transition: all 0.2s;
   font-family: inherit;
+  box-sizing: border-box; /* padding과 border를 width에 포함 */
 }
 
 .input:focus {
