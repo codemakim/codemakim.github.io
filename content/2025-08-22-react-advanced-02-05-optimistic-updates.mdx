@@ -16,219 +16,200 @@ seriesOrder: 5
 
 ## 낙관적 업데이트
 
-낙관적 업데이트
-캐싱 전략
+낙관적 업데이트는 “서버 응답을 기다리지 않고 UI를 먼저 바꾸는 패턴”이다. 실무에서 낙관적 업데이트는 UX를 크게 개선하지만, 동시에 정합성 위험을 만든다.
 
-### React Query 캐싱의 동작 원리
+이 글은 다음을 목표로 한다.
 
-React Query가 해결하는 문제:
+- 언제 낙관적 업데이트가 가능한지 판단한다.
+- `onMutate → onError → onSettled`의 흐름을 이해한다.
+- 경쟁 상태(연속 클릭, 동시에 여러 요청)에서 롤백을 설계한다.
 
-1. 중복 요청 제거
+---
 
-   ```jsx
-   // 여러 컴포넌트가 동시에 같은 데이터 요청
-   function Header() {
-     useQuery({ queryKey: ["user"], queryFn: fetchUser });
-   }
-   function Sidebar() {
-     useQuery({ queryKey: ["user"], queryFn: fetchUser });
-   }
-   function Profile() {
-     useQuery({ queryKey: ["user"], queryFn: fetchUser });
-   }
+## 1. 낙관적 업데이트가 성립하는 조건
 
-   //  일반 방법: 3번 요청!
-   //  React Query: 1번만 요청! (나머지는 캐시 사용)
-   ```
+낙관적 업데이트는 다음 조건이 강할수록 안전하다.
 
-2. 자동 백그라운드 리페칭
+- 변경이 단순하다(토글, 카운트 ±1, 리스트에 임시 항목 추가).
+- 실패 확률이 낮다(권한/검증 실패가 드문 작업).
+- 실패해도 롤백 UX가 자연스럽다(원복이 명확하다).
 
-   ```
-   사용자가 탭 전환 후 돌아옴
-     ↓
-   React Query가 감지
-     ↓
-   데이터가 stale이면 자동 리페칭
-     ↓
-   최신 데이터 유지!
-   ```
+반대로 다음이면 낙관적 업데이트는 위험하다.
 
-3. 메모리 관리
+- 서버가 값을 크게 보정한다(가격/재고/권한 기반 결과).
+- 실패 시 사용자에게 치명적이다(결제, 정산, 승인 워크플로우).
 
-   ```
-   컴포넌트 언마운트
-     ↓
-   해당 쿼리 사용자 0명
-     ↓
-   Cache Time 동안 메모리 유지 (다시 마운트될 수 있음)
-     ↓
-   Cache Time 경과 → 가비지 컬렉션
-   ```
+이 경우에는 “낙관적 업데이트” 대신 “진행 중 상태를 명확히 보여주는 UI”가 더 낫다.
 
-### 1. Stale Time vs Cache Time (핵심 개념!)
+---
 
-```javascript
-useQuery({
-  queryKey: ["users"],
-  queryFn: fetchUsers,
-  staleTime: 1000 * 60 * 5, // 5분 동안 fresh
-  cacheTime: 1000 * 60 * 10, // 10분 동안 캐시 유지
-});
-```
+## 2. 기본 패턴: 스냅샷 + 롤백 + invalidate
 
-Stale Time (신선도):
+낙관적 업데이트의 표준 패턴은 다음이다.
 
-- 데이터가 "fresh"로 간주되는 시간
-- fresh 데이터는 리페치하지 않음
-- 예시: staleTime이 5분이면, 5분 안에는 캐시에서 즉시 반환
-  Cache Time (캐시 유지):
-- 사용되지 않는 데이터를 메모리에 유지하는 시간
-- 이 시간이 지나면 가비지 컬렉션
-- 예시: cacheTime이 10분이면, 컴포넌트 언마운트 후 10분간 캐시 유지
+1. 진행 중인 관련 쿼리를 취소한다(`cancelQueries`)
+2. 이전 캐시 스냅샷을 저장한다
+3. 캐시를 즉시 업데이트한다(`setQueryData`)
+4. 실패하면 스냅샷으로 롤백한다
+5. 성공/실패와 무관하게 서버 진실로 다시 맞춘다(`invalidateQueries`)
 
-### 실무 시나리오로 이해하기
+```tsx
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-시나리오: 사용자 프로필 페이지
+type Todo = { id: string; title: string; completed: boolean };
 
-```
-1. 00:00 - 페이지 접속
-   → fetchUser() 호출 (네트워크 요청)
-   → 캐시 저장 (fresh 상태)
-2. 00:30 - 다른 페이지 이동 후 돌아옴
-   → staleTime 5분 안 → 캐시에서 즉시 반환 (fresh)
-   → 네트워크 요청 없음! (빠름!)
-3. 06:00 - 다시 페이지 접속
-   → staleTime 초과 → 캐시 반환 + 백그라운드 리페치 (stale)
-   → 사용자는 즉시 데이터 봄 + 백그라운드에서 최신화
-4. 15:00 - 페이지 접속
-   → cacheTime 초과 → 캐시 삭제됨
-   → fetchUser() 다시 호출 (네트워크 요청)
-```
-
-### 실무 TIP: "React Query는 어떻게 캐싱하나요?"
-
-답변 예시:
-"React Query는 Qury Key를 기반으로 캐시를 관리한다.
-핵심 메커니즘:
-
-1. Query Key 해싱: `['users', { status: 'active' }]` → 고유 키 생성
-2. 캐시 스토리지: 메모리에 Map 구조로 저장
-3. State 관리:
-   - fresh: 신선한 데이터 (리페치 안함)
-   - stale: 오래된 데이터 (백그라운드 리페치)
-   - inactive: 사용 안하는 데이터 (cacheTime 후 삭제)
-     최적화 효과:
-
-- 동일한 Query Key → 단일 요청으로 통합
-- 캐시 히트 시 즉시 반환 (0ms)
-- 백그라운드 리페치로 최신성 유지
-  실무 설정:
-
-```javascript
-// 자주 변하지 않는 데이터 (사용자 정보)
-staleTime: 5분, cacheTime: 10분
-// 자주 변하는 데이터 (실시간 댓글)
-staleTime: 0, cacheTime: 0
-// 정적 데이터 (국가 목록)
-staleTime: Infinity, cacheTime: Infinity
-```
-
-이를 통해 네트워크 요청을 최소화하면서도 데이터 최신성을 유지할 수 있다."
-
-### 2. 리페치 설정
-
-```javascript
-useQuery({
-  queryKey: ["users"],
-  queryFn: fetchUsers,
-  refetchOnWindowFocus: true, // 윈도우 포커스 시
-  refetchOnReconnect: true, // 네트워크 재연결 시
-  refetchOnMount: true, // 마운트 시
-  refetchInterval: 1000 * 30, // 30초마다 폴링
-  refetchIntervalInBackground: false, // 백그라운드에서도 폴링
-});
-```
-
-### 3. 수동 리페치
-
-```jsx
-function Users() {
-  const { data, refetch, isRefetching } = useQuery({
-    queryKey: ["users"],
-    queryFn: fetchUsers,
+async function updateTodo(todo: Todo) {
+  const res = await fetch(`/api/todos/${todo.id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(todo),
   });
-  return (
-    <div>
-      <button onClick={() => refetch()} disabled={isRefetching}>
-        {isRefetching ? "Refreshing..." : "Refresh"}
-      </button>
-      <UserList users={data} />
-    </div>
-  );
+  if (!res.ok) throw new Error("failed");
+  return (await res.json()) as Todo;
 }
-```
 
-### 4. Prefetch (사전 로딩)
-
-```jsx
-import { useQueryClient } from "@tanstack/react-query";
-function UserList() {
+export function TodoItem({ todo }: { todo: Todo }) {
   const queryClient = useQueryClient();
-  function handleMouseEnter(userId) {
-    // 마우스 호버 시 사용자 상세 정보 미리 로드
-    queryClient.prefetchQuery({
-      queryKey: ["user", userId],
-      queryFn: () => fetchUser(userId),
-    });
-  }
-  return (
-    <ul>
-      {users.map((user) => (
-        <li key={user.id} onMouseEnter={() => handleMouseEnter(user.id)}>
-          <Link to={`/users/${user.id}`}>{user.name}</Link>
-        </li>
-      ))}
-    </ul>
-  );
-}
-```
 
-### 5. Initial Data
+  const mutation = useMutation({
+    mutationFn: updateTodo,
+    onMutate: async (nextTodo) => {
+      await queryClient.cancelQueries({ queryKey: ["todos"] });
+      const previousTodos = queryClient.getQueryData<Todo[]>(["todos"]);
 
-```jsx
-function UserProfile({ userId }) {
-  const queryClient = useQueryClient();
-  const { data } = useQuery({
-    queryKey: ["user", userId],
-    queryFn: () => fetchUser(userId),
-    initialData: () => {
-      // 캐시에서 사용자 목록 가져오기
-      const users = queryClient.getQueryData(["users"]);
-      // 해당 사용자 찾기
-      return users?.find((user) => user.id === userId);
+      queryClient.setQueryData<Todo[]>(["todos"], (old) => {
+        const prev = old ?? [];
+        return prev.map((t) => (t.id === nextTodo.id ? nextTodo : t));
+      });
+
+      return { previousTodos };
+    },
+    onError: (_err, _nextTodo, context) => {
+      if (context?.previousTodos) {
+        queryClient.setQueryData(["todos"], context.previousTodos);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["todos"] });
     },
   });
-  return <div>{data?.name}</div>;
+
+  return (
+    <label>
+      <input
+        type="checkbox"
+        checked={todo.completed}
+        onChange={() => mutation.mutate({ ...todo, completed: !todo.completed })}
+        disabled={mutation.isPending}
+      />
+      {todo.title}
+    </label>
+  );
 }
 ```
 
-### 6. Placeholder Data
+`onSettled`를 두는 이유는 “서버 진실로 재동기화”하기 위해서다. 낙관적 업데이트는 임시 UI이므로 마지막에는 서버 결과로 맞춰야 한다.
 
-```jsx
-function Users() {
-  const { data } = useQuery({
-    queryKey: ["users"],
-    queryFn: fetchUsers,
-    placeholderData: [], // 로딩 중 표시할 데이터
+---
+
+## 3. 실무 예제: 좋아요 토글
+
+좋아요는 토글이므로 낙관적 업데이트에 적합한 편이다. 핵심은 “두 번 클릭” 같은 경쟁 상태를 막는 것이다.
+
+```tsx
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
+type Post = { id: string; likes: number; isLiked: boolean };
+
+async function fetchPost(postId: string): Promise<Post> {
+  const res = await fetch(`/api/posts/${postId}`);
+  if (!res.ok) throw new Error("failed");
+  return await res.json();
+}
+
+async function toggleLike(postId: string): Promise<void> {
+  const res = await fetch(`/api/posts/${postId}/toggle-like`, { method: "POST" });
+  if (!res.ok) throw new Error("failed");
+}
+
+export function LikeButton({ postId }: { postId: string }) {
+  const queryClient = useQueryClient();
+  const postQuery = useQuery({
+    queryKey: ["post", postId],
+    queryFn: () => fetchPost(postId),
   });
-  // 또는 이전 데이터 유지
-  const { data } = useQuery({
-    queryKey: ["users", page],
-    queryFn: () => fetchUsers(page),
-    placeholderData: (previousData) => previousData,
+
+  const mutation = useMutation({
+    mutationFn: () => toggleLike(postId),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ["post", postId] });
+      const previous = queryClient.getQueryData<Post>(["post", postId]);
+
+      queryClient.setQueryData<Post>(["post", postId], (old) => {
+        if (!old) return old;
+        const nextLiked = !old.isLiked;
+        return { ...old, isLiked: nextLiked, likes: old.likes + (nextLiked ? 1 : -1) };
+      });
+
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["post", postId], context.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["post", postId] });
+    },
   });
-  return <UserList users={data} />;
+
+  if (postQuery.isPending) return <button disabled>loading...</button>;
+  if (postQuery.isError) return <button disabled>error</button>;
+
+  const post = postQuery.data;
+
+  return (
+    <button onClick={() => mutation.mutate()} disabled={mutation.isPending}>
+      {post.isLiked ? "liked" : "like"} ({post.likes})
+    </button>
+  );
 }
 ```
+
+---
+
+## 4. 자주 터지는 함정
+
+### 1) cancelQueries를 안 한다
+
+낙관적 업데이트 직후에 백그라운드 리페치가 들어와 캐시를 덮어쓰면 UI가 튄다.
+
+### 2) rollback 스냅샷을 안 만든다
+
+실패했을 때 사용자는 이미 바뀐 UI를 봤다. 롤백이 없으면 “거짓 UI”가 남는다.
+
+### 3) invalidate를 안 한다
+
+낙관적 업데이트는 임시값이다. 마지막에는 서버 진실로 맞춰야 한다.
+
+---
+
+## Vue와 비교
+
+Vue Query에서도 동일한 lifecycle(`onMutate`, `onError`, `onSettled`)가 있다. Pinia로 낙관적 업데이트를 구현할 수도 있지만, 경쟁 상태/롤백/재동기화를 팀이 직접 설계해야 한다.
+
+| 관심사 | Vue Query | React Query |
+| --- | --- | --- |
+| 낙관적 업데이트 | `onMutate` + rollback | `onMutate` + rollback |
+| 경쟁 상태 | cancel/invalidate | cancel/invalidate |
+| 서버 진실 동기화 | invalidate | invalidate |
+
+---
+
+## 체크리스트
+
+- 낙관적 업데이트가 가능한 조건과 위험한 조건을 구분할 수 있다.
+- cancel → snapshot → update → rollback → invalidate 흐름을 설명할 수 있다.
+- 연속 클릭 같은 경쟁 상태를 UI/로직으로 막을 수 있다.
 
 ---
