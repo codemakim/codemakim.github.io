@@ -10,6 +10,7 @@ import { formatDateKorean } from '@/app/lib/dateUtils';
 import { useHabitsContext } from '@/app/components/habits/HabitsProvider';
 import type { Habit } from '@/app/components/habits/types';
 import PageHeader from '@/app/components/habits/PageHeader';
+import { COLOR_PALETTE, WEEKDAY_LABELS } from '@/app/lib/constants/habits';
 
 function EditHabitContent() {
   const [mounted, setMounted] = useState(false);
@@ -25,25 +26,6 @@ function EditHabitContent() {
   const searchParams = useSearchParams();
   const habitId = searchParams.get('id');
   const { getHabit, fetchHabit, updateHabit } = useHabitsContext();
-
-  // 달력 순서: 일월화수목금토 (JavaScript Date.getDay()와 동일: 일요일=0, 월요일=1, ..., 토요일=6)
-  const weekdayLabels = ['일', '월', '화', '수', '목', '금', '토'];
-
-  // 색상 팔레트 (무채색 계열로 통일)
-  const colorPalette = [
-    '#3B82F6', // 파란색
-    '#10B981', // 초록색
-    '#F59E0B', // 주황색
-    '#EF4444', // 빨간색
-    '#8B5CF6', // 보라색
-    '#EC4899', // 분홍색
-    '#06B6D4', // 청록색
-    '#6366F1', // 인디고
-    '#F97316', // 오렌지
-    '#84CC16', // 라임
-    '#14B8A6', // 티일
-    '#A855F7', // 바이올렛
-  ];
 
   useEffect(() => {
     setMounted(true);
@@ -260,7 +242,7 @@ function EditHabitContent() {
                   색상
                 </label>
                 <div className="grid grid-cols-6 gap-2">
-                  {colorPalette.map((paletteColor) => {
+                  {COLOR_PALETTE.map((paletteColor) => {
                     const isSelected = color === paletteColor;
                     return (
                       <button
@@ -313,7 +295,7 @@ function EditHabitContent() {
                   <div className="flex items-center gap-2">
                     <span className="text-zinc-500 dark:text-zinc-400">수행 요일:</span>
                     <div className="flex gap-1">
-                      {weekdayLabels.map((label, index) => (
+                      {WEEKDAY_LABELS.map((label, index) => (
                         <span
                           key={index}
                           className={`px-2 py-1 rounded text-xs ${

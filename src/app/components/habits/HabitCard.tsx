@@ -2,21 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { formatDateKorean } from '@/app/lib/dateUtils';
-
-type Habit = {
-  id: string;
-  title: string;
-  description: string | null;
-  color: string;
-  start_date: string;
-  end_date: string;
-  weekdays: number[];
-  created_at: string;
-};
-
-type HabitWithCompletion = Habit & {
-  completed: boolean;
-};
+import type { HabitWithCompletion } from './types';
 
 interface HabitCardProps {
   habit: HabitWithCompletion;

@@ -59,9 +59,8 @@
 ### 레이아웃
 
 - 현재 습관 목록과 동일한 반응형 그리드 레이아웃 사용
-- 모바일 세로: 1열
-- 모바일 가로/태블릿: 2-3열
-- 데스크톱: 3-4열
+- 모바일: 1열
+- 데스크톱: 2열
 
 ### 정렬
 
@@ -164,18 +163,18 @@
 
 ## 체크리스트
 
-- [ ] `/habits/archive/page.tsx` 페이지 생성
-- [ ] HabitsProvider 캐시에서 습관 데이터 가져오기 (`useHabitsContext`)
-- [ ] 캐시에 없으면 `fetchAllHabits()` 호출
-- [ ] 과거 습관 필터링 로직 구현 (`end_date < 오늘`, `compareDateStrings` 사용)
-- [ ] 종료일 기준 내림차순 정렬
-- [ ] 각 습관별 `habit_records` 패칭 로직 구현
-- [ ] 통계 계산 함수 구현 (HabitStats 로직 재사용)
-- [ ] `PastHabitCard` 컴포넌트 생성
-- [ ] 반응형 그리드 레이아웃 적용
-- [ ] 빈 상태 처리
-- [ ] 네비게이션 링크 추가 (양방향: `/habits` ↔ `/habits/archive`)
-- [ ] HabitsProvider 캐시 활용 확인 (습관 데이터는 캐시에서만)
-- [ ] 로딩 상태 처리 (각 카드별 또는 페이지 레벨)
-- [ ] 다크모드 지원 확인
-- [ ] 모바일 반응형 확인
+- [x] `/habits/archive/page.tsx` 페이지 생성
+- [x] HabitsProvider 캐시에서 습관 데이터 가져오기 (`useHabitsContext`)
+- [x] 캐시에 없으면 `fetchAllHabits()` 호출
+- [x] 과거 습관 필터링 로직 구현 (`end_date < 오늘`, `compareDateStrings` 사용)
+- [x] 종료일 기준 내림차순 정렬
+- [x] 각 습관별 `habit_records` 패칭 로직 구현
+- [x] 통계 계산 함수 구현 (HabitStats 로직 재사용)
+- [x] `PastHabitCard` 컴포넌트 생성
+- [x] 반응형 그리드 레이아웃 적용 (모바일 1열, 태블릿 2열, 데스크톱 3열)
+- [x] 빈 상태 처리
+- [x] 네비게이션 링크 추가 (양방향: `/habits` ↔ `/habits/archive`)
+- [x] HabitsProvider 캐시 활용 확인 (습관 데이터는 캐시에서만)
+- [x] 로딩 상태 처리 (각 카드별)
+- [x] 다크모드 지원 확인
+- [x] 모바일 반응형 확인

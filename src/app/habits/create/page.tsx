@@ -8,6 +8,7 @@ import { useAuth } from '@/app/components/auth/AuthProvider';
 import { supabase } from '@/app/lib/supabase';
 import { useHabitsContext } from '@/app/components/habits/HabitsProvider';
 import PageHeader from '@/app/components/habits/PageHeader';
+import { COLOR_PALETTE, WEEKDAY_LABELS, WEEKDAY_VALUES } from '@/app/lib/constants/habits';
 
 function CreateHabitContent() {
   const [mounted, setMounted] = useState(false);
@@ -22,26 +23,6 @@ function CreateHabitContent() {
   const { user } = useAuth();
   const router = useRouter();
   const { addHabit } = useHabitsContext();
-
-  // 달력 순서: 일월화수목금토 (JavaScript Date.getDay()와 동일: 일요일=0, 월요일=1, ..., 토요일=6)
-  const weekdayLabels = ['일', '월', '화', '수', '목', '금', '토'];
-  const weekdayValues = [0, 1, 2, 3, 4, 5, 6]; // 일요일=0, 월요일=1, ..., 토요일=6
-
-  // 색상 팔레트 (무채색 계열로 통일)
-  const colorPalette = [
-    '#3B82F6', // 파란색
-    '#10B981', // 초록색
-    '#F59E0B', // 주황색
-    '#EF4444', // 빨간색
-    '#8B5CF6', // 보라색
-    '#EC4899', // 분홍색
-    '#06B6D4', // 청록색
-    '#6366F1', // 인디고
-    '#F97316', // 오렌지
-    '#84CC16', // 라임
-    '#14B8A6', // 티일
-    '#A855F7', // 바이올렛
-  ];
 
   const toggleWeekday = (day: number) => {
     setWeekdays((prev) =>
@@ -228,7 +209,7 @@ function CreateHabitContent() {
                 수행 요일 <span className="text-red-500">*</span>
               </label>
               <div className="grid grid-cols-7 gap-2">
-                {weekdayValues.map((day, index) => {
+                {WEEKDAY_VALUES.map((day, index) => {
                   const isSelected = weekdays.includes(day);
                   return (
                     <button
@@ -242,9 +223,9 @@ function CreateHabitContent() {
                           : 'bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-600'
                         }
                       `}
-                      aria-label={`${weekdayLabels[index]}요일 ${isSelected ? '선택됨' : '선택 안됨'}`}
+                      aria-label={`${WEEKDAY_LABELS[index]}요일 ${isSelected ? '선택됨' : '선택 안됨'}`}
                     >
-                      <span className="text-sm font-medium">{weekdayLabels[index]}</span>
+                      <span className="text-sm font-medium">{WEEKDAY_LABELS[index]}</span>
                     </button>
                   );
                 })}
@@ -259,7 +240,7 @@ function CreateHabitContent() {
                 색상
               </label>
               <div className="grid grid-cols-6 gap-2">
-                {colorPalette.map((paletteColor) => {
+                {COLOR_PALETTE.map((paletteColor) => {
                   const isSelected = color === paletteColor;
                   return (
                     <button
