@@ -1,0 +1,209 @@
+---
+title: "[React Router 10/12] React Router - Data Router 기초"
+date: "2025-08-24"
+description: "createBrowserRouter, RouterProvider, loader/action, redirect, errorElement 개념과 최소 예제"
+tags: ["React", "고급", "프론트엔드"]
+series: "React 라이브러리"
+seriesOrder: 14
+---
+
+# React Router 가이드 - Data Router 기초
+
+> React Router v6.4+의 Data Router를 기준으로 정리한다.  
+> 출처: [React Router Documentation](https://reactrouter.com/)
+
+---
+
+## Data Router는 무엇을 해결하는가
+
+컴포넌트 라우터(`BrowserRouter` + `Routes`)는 “URL → 컴포넌트 매칭”을 잘 해결한다. 하지만 실무에서는 다음이 항상 붙는다.
+
+- 화면 진입 전에 데이터를 가져와야 한다.
+- 폼 제출(POST/PUT/DELETE)을 라우팅 흐름과 함께 다뤄야 한다.
+- 실패했을 때 어떤 화면을 보여줄지 라우트 단위로 결정해야 한다.
+
+Data Router는 라우트 정의에 `loader`(데이터 읽기)와 `action`(데이터 쓰기)을 붙이고, 그 결과를 라우터가 일관된 방식으로 전달하는 모델이다.
+
+---
+
+## 1. `createBrowserRouter`와 `RouterProvider`
+
+Data Router는 `BrowserRouter` 대신 `RouterProvider`를 쓴다.
+
+```tsx
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import RootLayout from "./layouts/RootLayout";
+import HomePage from "./pages/HomePage";
+
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <RootLayout />,
+    children: [{ index: true, element: <HomePage /> }],
+  },
+]);
+
+export default function App() {
+  return <RouterProvider router={router} />;
+}
+```
+
+이 구조의 핵심은 “라우트가 객체로 정의된다”는 점이다. 이 객체에 `loader`, `action`, `errorElement`, `handle` 같은 정책을 함께 넣는다.
+
+---
+
+## 2. `loader`: 화면 진입 시 데이터 준비
+
+`loader`는 해당 라우트가 활성화될 때 실행된다. `useLoaderData()`는 그 결과를 컴포넌트에서 읽는다.
+
+예를 들어 `/posts`에서 목록을 가져온다.
+
+```tsx
+import { createBrowserRouter } from "react-router-dom";
+import PostsPage, { postsLoader } from "./pages/PostsPage";
+
+export const router = createBrowserRouter([
+  {
+    path: "/posts",
+    element: <PostsPage />,
+    loader: postsLoader,
+  },
+]);
+```
+
+```tsx
+import { useLoaderData } from "react-router-dom";
+
+type Post = { id: string; title: string };
+
+export async function postsLoader(): Promise<Post[]> {
+  const res = await fetch("/api/posts");
+  if (!res.ok) throw new Response("failed to load posts", { status: res.status });
+  return await res.json();
+}
+
+export default function PostsPage() {
+  const posts = useLoaderData() as Post[];
+  return (
+    <ul>
+      {posts.map((p) => (
+        <li key={p.id}>{p.title}</li>
+      ))}
+    </ul>
+  );
+}
+```
+
+### 실무 포인트: `loader`는 URL을 입력으로 삼는다
+
+필터/정렬/페이지네이션은 쿼리 스트링을 입력으로 삼고 `loader({ request })`에서 읽는다.
+
+```tsx
+import type { LoaderFunctionArgs } from "react-router-dom";
+
+export async function postsLoader({ request }: LoaderFunctionArgs) {
+  const url = new URL(request.url);
+  const page = url.searchParams.get("page") ?? "1";
+  const res = await fetch(`/api/posts?page=${encodeURIComponent(page)}`);
+  if (!res.ok) throw new Response("failed", { status: res.status });
+  return await res.json();
+}
+```
+
+이 방식은 “URL이 곧 상태”라는 규칙과 잘 맞는다.
+
+---
+
+## 3. `redirect`: 화면이 아니라 흐름을 바꾼다
+
+로그인 전에는 대시보드로 못 들어가게 해야 한다. Data Router에서는 `loader`에서 `redirect`로 흐름을 바꾼다.
+
+```tsx
+import { redirect } from "react-router-dom";
+import type { LoaderFunctionArgs } from "react-router-dom";
+
+export async function dashboardLoader({ request }: LoaderFunctionArgs) {
+  const isAuthenticated = false; // 인증 확인 가정
+  if (!isAuthenticated) {
+    const url = new URL(request.url);
+    const from = url.pathname + url.search + url.hash;
+    throw redirect(`/login?from=${encodeURIComponent(from)}`);
+  }
+  return null;
+}
+```
+
+컴포넌트에서 조건 분기해 `navigate`를 호출하는 방식보다 “라우트 진입 정책”이 선명해진다.
+
+---
+
+## 4. `errorElement`: 라우트 단위 에러 경계
+
+Data Router는 `loader`/`action`에서 던진 에러를 라우트 단위로 처리할 수 있다.
+
+```tsx
+import { isRouteErrorResponse, useRouteError, Link } from "react-router-dom";
+
+export default function RouteErrorPage() {
+  const error = useRouteError();
+
+  if (isRouteErrorResponse(error)) {
+    if (error.status === 404) {
+      return (
+        <div>
+          <h1>not found</h1>
+          <Link to="/posts">back</Link>
+        </div>
+      );
+    }
+    return <div>error: {error.status}</div>;
+  }
+
+  if (error instanceof Error) {
+    return <div>error: {error.message}</div>;
+  }
+
+  return <div>unknown error</div>;
+}
+```
+
+라우트 설정에서는 다음처럼 붙인다.
+
+```tsx
+{
+  path: "/posts",
+  element: <PostsPage />,
+  loader: postsLoader,
+  errorElement: <RouteErrorPage />,
+}
+```
+
+### 실무 포인트: “라우트 404”와 “리소스 404”는 다르다
+
+라우트 404는 `path="*"`로 해결된다. 리소스 404는 `loader`가 404를 받고 던진 것을 `errorElement`에서 처리해야 한다.
+
+---
+
+## 5. 컴포넌트 라우터에서 Data Router로 이동할 때 기준
+
+모든 앱이 Data Router로 갈 필요는 없다. 하지만 다음이 강하면 Data Router가 이득이다.
+
+- 폼 제출 흐름이 많다.
+- redirect 정책이 많다(로그인/권한/온보딩).
+- 로딩/에러 경계를 라우트 단위로 강하게 잡고 싶다.
+
+반대로 단순한 페이지 전환과 클라이언트 상태 중심 앱이라면 기존 방식도 충분하다.
+
+---
+
+## Vue Router와 비교
+
+Vue Router는 라우팅과 데이터 로딩을 분리해 두는 경우가 많고, 네비게이션 가드나 컴포넌트 생명주기에서 데이터를 불러오는 패턴이 흔하다. Data Router는 “라우트 정의에 데이터/에러/리다이렉트를 붙인다”는 점이 특징이다.
+
+| 관심사 | Vue Router | React Router(Data Router) |
+| --- | --- | --- |
+| 라우터 생성 | `createRouter` | `createBrowserRouter` |
+| 데이터 로딩 | 컴포넌트/스토어에서 처리 | `loader` + `useLoaderData` |
+| 리다이렉트 | guard에서 `next(...)` | `redirect(...)` |
+| 라우트 에러 | 전역/컴포넌트 경계 | `errorElement` + `useRouteError` |
+
