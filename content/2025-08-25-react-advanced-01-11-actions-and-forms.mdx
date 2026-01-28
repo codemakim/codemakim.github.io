@@ -1,0 +1,207 @@
+---
+title: "[React Router 11/12] React Router - Actions & Forms"
+date: "2025-08-25"
+description: "action, Form, useActionData, useNavigation, useFetcher로 폼 제출과 뮤테이션을 라우팅 흐름으로 통합한다"
+tags: ["React", "고급", "프론트엔드"]
+series: "React 라이브러리"
+seriesOrder: 15
+---
+
+# React Router 가이드 - Actions & Forms
+
+> React Router v6.4+ Data Router를 기준으로 정리한다.  
+> 출처: [React Router Documentation](https://reactrouter.com/)
+
+---
+
+## 왜 action이 필요한가
+
+SPA에서 폼 제출은 단순히 POST 요청을 보내는 문제가 아니다.
+
+- 제출 중 중복 클릭을 막아야 한다.
+- 실패하면 같은 화면에서 에러 메시지를 보여줘야 한다.
+- 성공하면 어디로 이동할지(redirect)를 결정해야 한다.
+- 성공 이후 화면을 새로고침 없이 최신 상태로 만들어야 한다.
+
+Data Router의 `action`은 이 플로우를 라우팅 체계 안으로 끌어온다.
+
+---
+
+## 1. `<Form>`과 `action`의 관계
+
+`<Form>`은 기본 HTML form처럼 동작하지만, 제출을 라우터가 가로채서 해당 라우트의 `action`을 실행한다.
+
+라우트 정의:
+
+```tsx
+import { createBrowserRouter } from "react-router-dom";
+import NewPostPage, { newPostAction } from "./pages/NewPostPage";
+import RouteErrorPage from "./pages/RouteErrorPage";
+
+export const router = createBrowserRouter([
+  {
+    path: "/posts/new",
+    element: <NewPostPage />,
+    action: newPostAction,
+    errorElement: <RouteErrorPage />,
+  },
+]);
+```
+
+페이지:
+
+```tsx
+import { Form } from "react-router-dom";
+
+export default function NewPostPage() {
+  return (
+    <div>
+      <h1>new post</h1>
+      <Form method="post">
+        <input name="title" placeholder="title" />
+        <button type="submit">create</button>
+      </Form>
+    </div>
+  );
+}
+```
+
+`method="post"`는 “이 라우트의 action을 실행한다”는 의미로 이해하면 된다.
+
+---
+
+## 2. `action`: 서버로 쓰기 요청을 보내고, 성공이면 redirect한다
+
+```tsx
+import type { ActionFunctionArgs } from "react-router-dom";
+import { redirect } from "react-router-dom";
+
+export async function newPostAction({ request }: ActionFunctionArgs) {
+  const formData = await request.formData();
+  const title = String(formData.get("title") ?? "").trim();
+
+  if (!title) {
+    // action의 검증 실패는 "페이지에서 보여줄 데이터"로 돌려준다.
+    return { fieldErrors: { title: "title is required" } };
+  }
+
+  const res = await fetch("/api/posts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title }),
+  });
+
+  if (!res.ok) {
+    // 네트워크/서버 실패는 errorElement로 보내는 편이 낫다.
+    throw new Response("failed to create", { status: res.status });
+  }
+
+  const created = (await res.json()) as { id: string };
+  return redirect(`/posts/${created.id}`);
+}
+```
+
+### 실무 포인트: “검증 실패”와 “서버 실패”를 분리한다
+
+- 검증 실패: 같은 화면에서 필드 에러를 보여준다. `return`으로 데이터를 돌려준다.
+- 서버 실패: 라우트 에러 경계로 보낸다. `throw`로 에러를 던진다.
+
+이 분리를 잡아두면 에러 UI의 책임이 명확해진다.
+
+---
+
+## 3. `useActionData()`: action이 return한 데이터를 화면에서 사용한다
+
+```tsx
+import { Form, useActionData, useNavigation } from "react-router-dom";
+
+type ActionData = { fieldErrors?: { title?: string } };
+
+export default function NewPostPage() {
+  const actionData = useActionData() as ActionData | undefined;
+  const navigation = useNavigation();
+  const submitting = navigation.state === "submitting";
+
+  return (
+    <div>
+      <h1>new post</h1>
+
+      <Form method="post">
+        <input name="title" placeholder="title" aria-invalid={Boolean(actionData?.fieldErrors?.title)} />
+        {actionData?.fieldErrors?.title && <div>{actionData.fieldErrors.title}</div>}
+
+        <button type="submit" disabled={submitting}>
+          {submitting ? "creating..." : "create"}
+        </button>
+      </Form>
+    </div>
+  );
+}
+```
+
+여기서 핵심은 “중복 제출 방지”가 컴포넌트 로컬 state가 아니라 라우터 상태(`useNavigation`)로 일관되게 관리된다는 점이다.
+
+---
+
+## 4. `useFetcher()`: 네비게이션 없이 제출한다
+
+폼 제출이 항상 페이지 이동으로 이어지지 않는다.
+
+- 좋아요/북마크 토글
+- 목록에서 삭제 버튼
+- 모달 안에서 저장
+
+이때 `useFetcher()`는 네비게이션 없이 action을 호출한다.
+
+```tsx
+import { useFetcher } from "react-router-dom";
+
+export default function LikeButton({ postId, liked }: { postId: string; liked: boolean }) {
+  const fetcher = useFetcher();
+  const busy = fetcher.state !== "idle";
+
+  return (
+    <fetcher.Form method="post" action={`/posts/${postId}/like`}>
+      <button type="submit" disabled={busy}>
+        {busy ? "..." : liked ? "unlike" : "like"}
+      </button>
+    </fetcher.Form>
+  );
+}
+```
+
+### 실무 포인트: fetcher는 “부분 작업”의 상태 머신이다
+
+`useNavigation()`이 “라우트 전환 전체”의 상태라면, `fetcher`는 “특정 상호작용 하나”의 상태다. 목록에서 여러 row가 동시에 제출되는 상황에서 특히 유용하다.
+
+---
+
+## 5. 자주 터지는 함정
+
+### 1) action에서 JSON을 읽으려 한다
+
+`<Form>`은 기본이 `application/x-www-form-urlencoded` 또는 `multipart/form-data`다. 그래서 `request.json()`이 아니라 `request.formData()`를 쓴다.
+
+### 2) 검증 실패를 throw한다
+
+검증 실패를 `throw`로 처리하면 errorElement로 빠져 “필드 에러를 같은 화면에 보여주는” UX가 깨진다. 검증 실패는 `return`이 기본이다.
+
+### 3) redirect를 컴포넌트에서 한다
+
+컴포넌트에서 성공 여부를 보고 `navigate()`로 이동시키면 로직이 흩어진다. “서버에 쓰기 요청 → 성공 시 어디로 갈지”는 action에 두는 편이 일관된다.
+
+---
+
+## Vue Router와 비교
+
+Vue는 라우팅과 폼 제출을 별도로 구성하는 경우가 많다. 폼 제출은 컴포넌트/스토어에서 처리하고, 성공 시 `router.push/replace`로 이동한다.
+
+Data Router는 “제출과 리다이렉트”가 `action`에 모이므로, 흐름이 라우트 정의 중심으로 정리된다.
+
+| 관심사 | Vue Router | React Router(Data Router) |
+| --- | --- | --- |
+| 폼 제출 | 컴포넌트에서 API 호출 | `<Form>` → `action` |
+| 제출 상태 | 로컬 state/스토어 | `useNavigation`/`fetcher.state` |
+| 검증 에러 | 컴포넌트 state로 관리 | `useActionData`로 수신 |
+| 성공 후 이동 | `router.push/replace` | `redirect(...)` |
+
