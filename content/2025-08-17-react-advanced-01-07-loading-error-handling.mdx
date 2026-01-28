@@ -16,185 +16,177 @@ seriesOrder: 11
 
 ## 로딩 및 에러 처리
 
-로딩 및 에러 처리
-Protected Routes
+로딩과 에러 처리는 라우팅에서 UX 품질을 결정하는 축이다. 화면 전환이 빠르더라도, 데이터와 코드가 준비되지 않으면 사용자는 “멈춘 앱”으로 인지한다.
 
-### 1. 기본 인증 가드
+이 글은 다음을 목표로 한다.
 
-```jsx
-import { Navigate } from "react-router-dom";
-function ProtectedRoute({ children }) {
-  const isAuthenticated = useAuth();
+- 라우트 전환 시 로딩 UI를 어디에 둘지 결정한다.
+- 비동기 에러가 어디서 터지는지 분류한다.
+- 에러를 “복구 가능한 형태”로 만든다.
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
+---
 
-  return children;
+## 1. 로딩의 종류를 먼저 나눈다
+
+실무에서 로딩은 크게 두 가지다.
+
+- 코드 로딩: 번들 분할로 인해 해당 화면 컴포넌트 자체가 아직 없다.
+- 데이터 로딩: 컴포넌트는 떠 있지만 API 응답을 기다린다.
+
+두 로딩은 해결책이 다르다.
+
+| 로딩 종류 | 대표 원인 | 대표 해결책 |
+| --- | --- | --- |
+| 코드 로딩 | `React.lazy()` / dynamic import | `Suspense fallback` |
+| 데이터 로딩 | fetch/React Query 등 | skeleton/placeholder, 캐시, prefetch |
+
+---
+
+## 2. 코드 로딩: 라우트 단위 코드 스플리팅
+
+```tsx
+import React, { Suspense } from "react";
+import { Routes, Route } from "react-router-dom";
+
+const HomePage = React.lazy(() => import("./pages/HomePage"));
+const DashboardPage = React.lazy(() => import("./pages/DashboardPage"));
+
+function PageFallback() {
+  return <div>loading...</div>;
 }
-// 사용
-<Route
-  path="/dashboard"
-  element={
-    <ProtectedRoute>
-      <Dashboard />
-    </ProtectedRoute>
-  }
-/>;
-```
 
-### 2. 로그인 페이지로 리다이렉트 (이전 경로 기억)
-
-```jsx
-import { Navigate, useLocation } from "react-router-dom";
-function ProtectedRoute({ children }) {
-  const isAuthenticated = useAuth();
-  const location = useLocation();
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
-  return children;
-}
-```
-
-### 3. 역할 기반 접근 제어 (RBAC)
-
-```jsx
-function ProtectedRoute({ children, requiredRole }) {
-  const { isAuthenticated, user } = useAuth();
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (requiredRole && user.role !== requiredRole) {
-    return <Navigate to="/unauthorized" replace />;
-  }
-
-  return children;
-}
-// 사용
-<Route
-  path="/admin"
-  element={
-    <ProtectedRoute requiredRole="admin">
-      <AdminPanel />
-    </ProtectedRoute>
-  }
-/>;
-```
-
-### 4. 복수 역할 지원
-
-```jsx
-function ProtectedRoute({ children, allowedRoles = [] }) {
-  const { isAuthenticated, user } = useAuth();
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/unauthorized" replace />;
-  }
-
-  return children;
-}
-// 사용
-<Route
-  path="/dashboard"
-  element={
-    <ProtectedRoute allowedRoles={["admin", "editor"]}>
-      <Dashboard />
-    </ProtectedRoute>
-  }
-/>;
-```
-
-### 5. 권한 체크 Hook
-
-```jsx
-function useAuth() {
-  const [auth, setAuth] = useState({
-    isAuthenticated: false,
-    user: null,
-    loading: true,
-  });
-
-  useEffect(() => {
-    checkAuth()
-      .then((user) => {
-        setAuth({ isAuthenticated: true, user, loading: false });
-      })
-      .catch(() => {
-        setAuth({ isAuthenticated: false, user: null, loading: false });
-      });
-  }, []);
-
-  return auth;
-}
-function ProtectedRoute({ children }) {
-  const { isAuthenticated, loading } = useAuth();
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return children;
+export default function App() {
+  return (
+    <Suspense fallback={<PageFallback />}>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
+      </Routes>
+    </Suspense>
+  );
 }
 ```
 
-### Vue Router와 비교
+### 실무 포인트: fallback은 “전체 화면”이 아닐 수도 있다
 
-```javascript
-// Vue Router: Navigation Guards
-router.beforeEach((to, from, next) => {
-  const isAuthenticated = store.state.isAuthenticated;
+레이아웃(헤더/사이드바)은 유지하고 본문만 로딩 상태로 전환하는 편이 읽기 경험이 안정된다.
 
-  if (to.meta.requiresAuth && !isAuthenticated) {
-    next("/login");
-  } else {
-    next();
-  }
-});
-const routes = [
-  {
-    path: "/dashboard",
-    component: Dashboard,
-    meta: { requiresAuth: true, role: "admin" },
-  },
-];
-```
+- 상위 레이아웃은 즉시 렌더링한다.
+- 본문 `Outlet` 영역만 `Suspense`로 감싼다.
 
-```jsx
-// React Router: Protected Route Component
-function ProtectedRoute({ children, requiredRole }) {
-  const { isAuthenticated, user } = useAuth();
+---
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
+## 3. 데이터 로딩: 화면 상태와 URL 상태를 분리한다
 
-  if (requiredRole && user.role !== requiredRole) {
-    return <Navigate to="/unauthorized" replace />;
-  }
+데이터 로딩은 라우터가 아니라 데이터 레이어의 책임인 경우가 많다. 실무에서는 React Query 같은 캐시 레이어를 두고 다음을 만든다.
 
-  return children;
+- 이전 데이터 유지(keep previous data)
+- 낙관적 업데이트
+- 실패 시 재시도/복구
+
+라우터 관점에서는 “로딩 중 UI가 어디까지 유지돼야 하는가”가 핵심이다.
+
+```tsx
+import { useParams } from "react-router-dom";
+
+export default function UserProfile() {
+  const { userId } = useParams();
+
+  // userId 기반 fetch가 여기에 붙는다(React Query 등).
+  // 아래는 로딩/에러 UI를 어디에 두는지의 형태만 보여준다.
+  const loading = false;
+  const error: Error | null = null;
+  const user = { name: "kim", email: "kim@example.com" };
+
+  if (loading) return <div>loading...</div>;
+  if (error) return <div>error: {error.message}</div>;
+  return (
+    <div>
+      <h1>{user.name}</h1>
+      <p>{user.email}</p>
+    </div>
+  );
 }
-<Route
-  path="/dashboard"
-  element={
-    <ProtectedRoute requiredRole="admin">
-      <Dashboard />
-    </ProtectedRoute>
-  }
-/>;
 ```
+
+---
+
+## 4. 에러의 종류를 나누면 처리 전략이 선명해진다
+
+에러는 크게 세 가지로 나뉜다.
+
+- 렌더링 에러: 컴포넌트 코드 버그로 render 과정에서 터진다.
+- 이벤트 에러: 클릭/submit 같은 이벤트 핸들러에서 터진다.
+- 비동기 에러: `fetch`/promise 체인에서 터진다.
+
+Error Boundary는 “렌더링 에러”만 잡는다. `fetch`의 실패는 Error Boundary가 자동으로 잡지 않는다.
+
+---
+
+## 5. Error Boundary를 라우트 경계에 둔다
+
+실무에서는 “앱 전체를 하나의 ErrorBoundary로 감싼다”보다 “라우트 영역마다 경계를 둔다”가 유리하다.
+
+- 특정 페이지에서만 터진 에러가 전체 앱을 죽이지 않는다.
+- 복구(재시도, 홈으로 이동)가 페이지 단위로 가능해진다.
+
+```tsx
+import React from "react";
+
+export class ErrorBoundary extends React.Component<
+  { children: React.ReactNode; fallback?: React.ReactNode },
+  { hasError: boolean; error?: Error }
+> {
+  state = { hasError: false, error: undefined as Error | undefined };
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback ?? <div>something went wrong</div>;
+    }
+    return this.props.children;
+  }
+}
+```
+
+---
+
+## 6. 404와 “존재하지 않는 리소스”는 분리한다
+
+- 404(Not Found): 라우트 자체가 없다. `path="*"`로 처리한다.
+- 리소스 없음: 라우트는 맞지만 `/users/999`가 없다. API 404를 화면에서 처리해야 한다.
+
+```tsx
+import { Routes, Route, Link } from "react-router-dom";
+
+function NotFoundPage() {
+  return (
+    <div>
+      <h1>404</h1>
+      <Link to="/">home</Link>
+    </div>
+  );
+}
+
+<Routes>
+  <Route path="/" element={<div>home</div>} />
+  <Route path="*" element={<NotFoundPage />} />
+</Routes>;
+```
+
+---
+
+## Vue Router와 비교
+
+Vue는 `defineAsyncComponent`와 `<Suspense>` 조합이 자주 쓰이고, 에러는 전역 핸들러/컴포넌트 경계로 처리한다. React는 `React.lazy`/`Suspense`와 Error Boundary 조합이 기본이다.
+
+| 관심사 | Vue Router 생태계 | React Router 생태계 |
+| --- | --- | --- |
+| 코드 로딩 | async component + `<Suspense>` | `React.lazy` + `<Suspense>` |
+| 렌더 에러 | `errorCaptured`/전역 핸들러 | Error Boundary |
+| 데이터 로딩 | Pinia + 요청/캐시 라이브러리 | React Query 등 + 요청/캐시 라이브러리 |
 
 ---
