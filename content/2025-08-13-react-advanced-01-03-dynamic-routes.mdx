@@ -132,8 +132,14 @@ export default function PostsPage() {
 
   function goNext() {
     setSearchParams((prev) => {
+      // prev는 undefined가 아니라 "현재 쿼리 문자열"을 나타내는 URLSearchParams이다.
+      // 쿼리가 비어 있어도 prev는 빈 URLSearchParams로 들어온다.
+      //
+      // 또한 page를 바깥 스코프에서 캡처하면(closure) 업데이트 시점에 stale 값이 될 수 있다.
+      // 그래서 반드시 prev에서 다시 읽고, 그 값을 기반으로 next를 만든다.
       const next = new URLSearchParams(prev);
-      next.set("page", String(page + 1));
+      const currentPage = Number(next.get("page") ?? "1");
+      next.set("page", String((Number.isFinite(currentPage) ? currentPage : 1) + 1));
       return next;
     });
   }
