@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/components/auth/AuthProvider';
 import { supabase } from '@/app/lib/supabase';
 import { useHabitsContext } from '@/app/components/habits/HabitsProvider';
+import PageHeader from '@/app/components/habits/PageHeader';
 
 function CreateHabitContent() {
   const [mounted, setMounted] = useState(false);
@@ -132,26 +133,14 @@ function CreateHabitContent() {
 
   return (
     <div className="min-h-screen">
-      <header className="header md:sticky md:top-0 z-50">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <Link href="/habits" className="block hover:opacity-80 transition-opacity mb-2">
-                <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">
-                  그냥 블로그
-                </h1>
-              </Link>
-              <p className="text-zinc-600 dark:text-zinc-400">습관 만들기</p>
-            </div>
-            <button
-              onClick={() => router.back()}
-              className="text-sm link"
-            >
-              취소
-            </button>
-          </div>
-        </div>
-      </header>
+      <PageHeader
+        subtitle="습관 만들기"
+        rightAction={
+          <button onClick={() => router.back()} className="text-sm link">
+            취소
+          </button>
+        }
+      />
 
       <main className="max-w-4xl mx-auto px-4 py-8">
         <div className="card p-8">
