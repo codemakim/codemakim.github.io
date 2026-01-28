@@ -16,170 +16,219 @@ seriesOrder: 10
 
 ## Protected Routes
 
-Protected Routes
-Router Hooks
+Protected routes는 “라우트에 접근할 수 있는 조건”을 코드로 표현하는 패턴이다. 인증 여부, 역할(RBAC), 구독 상태, 조직 멤버십 같은 정책이 여기에 들어간다.
 
-### 1. useLocation
+실무에서 이 주제는 단순히 “안 들어가게 막는다” 수준이 아니라, 다음까지 포함한다.
 
-```jsx
-import { useLocation } from "react-router-dom";
-export default function Header() {
-  const location = useLocation();
+- 로그인 전: 막는다
+- 로그인 후: 원래 가려던 페이지로 되돌린다
+- 권한 부족: 403(unauthorized) 화면으로 보낸다
+- 인증 상태 확인 중: 깜빡임 없이 로딩 상태를 보여준다
+- 보안: 클라이언트 가드는 UX일 뿐, 서버에서도 권한을 강제한다
 
-  return (
-    <div>
-      <p>Current path: {location.pathname}</p>
-      <p>Search: {location.search}</p>
-      <p>Hash: {location.hash}</p>
-      <p>State: {JSON.stringify(location.state)}</p>
-    </div>
-  );
+---
+
+## 1. 가장 단순한 인증 가드
+
+```tsx
+import { Navigate } from "react-router-dom";
+
+export function RequireAuth({
+  isAuthenticated,
+  children,
+}: {
+  isAuthenticated: boolean;
+  children: React.ReactNode;
+}) {
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return children;
 }
 ```
 
-활용 예시: 이전 페이지 기억
+이 방식은 “렌더 결과를 바꾼다”는 점에서 안전하다. 렌더링 중에 `navigate()`를 호출하지 않는다.
 
-```jsx
-function LoginPage() {
+---
+
+## 2. 원래 가려던 페이지로 되돌리기
+
+로그인 성공 후 원래 경로로 복귀시키려면, “차단된 순간의 목적지”를 저장해야 한다.
+
+여기서 흔한 실수는 `location` 객체 전체를 통째로 넣는 것이다. 팀 규칙과 직렬화 이슈를 피하려면 문자열로 최소화하는 편이 낫다.
+
+```tsx
+import { Navigate, useLocation } from "react-router-dom";
+
+export function RequireAuth({
+  isAuthenticated,
+  children,
+}: {
+  isAuthenticated: boolean;
+  children: React.ReactNode;
+}) {
+  const location = useLocation();
+
+  if (!isAuthenticated) {
+    const from = location.pathname + location.search + location.hash;
+    return <Navigate to="/login" replace state={{ from }} />;
+  }
+
+  return children;
+}
+```
+
+로그인 페이지는 `state.from`으로 복귀한다.
+
+```tsx
+import { useLocation, useNavigate } from "react-router-dom";
+
+type LoginState = { from?: string };
+
+export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const from = location.state?.from || "/";
-  function handleLogin() {
-    // 로그인 성공 후 원래 페이지로
-    navigate(from, { replace: true });
+  const state = (location.state ?? {}) as LoginState;
+
+  async function handleLogin() {
+    // 로그인 성공 가정
+    const to = state.from ?? "/dashboard";
+    navigate(to, { replace: true });
   }
-  return <button onClick={handleLogin}>Login</button>;
+
+  return <button onClick={handleLogin}>login</button>;
 }
 ```
 
-### 2. useSearchParams
+### 실무 포인트: open redirect를 막는다
 
-```jsx
-import { useSearchParams } from "react-router-dom";
-export default function ProductList() {
-  const [searchParams, setSearchParams] = useSearchParams();
+`from`이 외부 URL로 변조되면 피싱으로 이어질 수 있다. `from`은 “앱 내부 경로”만 허용하도록 검증하는 편이 안전하다.
 
-  const category = searchParams.get("category");
-  const sort = searchParams.get("sort");
+---
 
-  function handleFilter(newCategory) {
-    setSearchParams({ category: newCategory, sort });
+## 3. 인증 로딩 상태(깜빡임) 처리
+
+실무에서 가장 많이 터지는 UX는 “처음에는 비로그인으로 보였다가 곧 로그인으로 바뀌며 화면이 튄다”는 현상이다.
+
+인증 확인이 비동기라면 로딩 상태를 분리해야 한다.
+
+```tsx
+import { Navigate, useLocation } from "react-router-dom";
+
+type AuthState =
+  | { status: "loading" }
+  | { status: "authenticated"; user: { role: string } }
+  | { status: "anonymous" };
+
+export function RequireAuth({
+  auth,
+  children,
+}: {
+  auth: AuthState;
+  children: React.ReactNode;
+}) {
+  const location = useLocation();
+
+  if (auth.status === "loading") return <div>loading...</div>;
+
+  if (auth.status === "anonymous") {
+    const from = location.pathname + location.search + location.hash;
+    return <Navigate to="/login" replace state={{ from }} />;
   }
 
-  return (
-    <div>
-      <p>Category: {category}</p>
-      <p>Sort: {sort}</p>
-      <button onClick={() => handleFilter("electronics")}>Electronics</button>
-    </div>
-  );
+  return children;
 }
 ```
 
-URLSearchParams API:
+---
 
-```jsx
-const [searchParams, setSearchParams] = useSearchParams();
-// 읽기
-searchParams.get("category"); // 'books'
-searchParams.getAll("tags"); // ['fiction', 'bestseller']
-searchParams.has("category"); // true
-// 쓰기
-setSearchParams({ category: "movies" });
-setSearchParams((prev) => {
-  prev.set("page", "2");
-  return prev;
+## 4. 역할 기반 접근 제어(RBAC)
+
+권한은 인증과 다르다. 로그인했어도 권한이 없으면 접근을 막아야 한다.
+
+```tsx
+import { Navigate } from "react-router-dom";
+
+export function RequireRole({
+  userRole,
+  allowedRoles,
+  children,
+}: {
+  userRole: string;
+  allowedRoles: string[];
+  children: React.ReactNode;
+}) {
+  if (!allowedRoles.includes(userRole)) {
+    return <Navigate to="/unauthorized" replace />;
+  }
+  return children;
+}
+```
+
+실무에서는 “권한 정책은 서버에서 강제한다”가 기본이고, 클라이언트는 사용자 경험을 위해 빠르게 차단하는 역할을 한다.
+
+---
+
+## 5. 라우트에 적용하는 방식
+
+Protected route는 컴포넌트로 감싸서 적용한다.
+
+```tsx
+import { Routes, Route } from "react-router-dom";
+
+<Routes>
+  <Route path="/login" element={<LoginPage />} />
+  <Route
+    path="/admin"
+    element={
+      <RequireAuth auth={auth}>
+        <RequireRole userRole={auth.status === "authenticated" ? auth.user.role : ""} allowedRoles={["admin"]}>
+          <AdminPage />
+        </RequireRole>
+      </RequireAuth>
+    }
+  />
+</Routes>;
+
+## Vue Router와 비교
+
+Vue Router는 라우트 메타와 전역 가드가 먼저 떠오른다. React Router는 “라우트를 컴포넌트로 감싼다”는 구성이 더 자연스럽다.
+
+### Vue Router: meta + navigation guard
+
+```javascript
+// router.beforeEach 기반 (개념 예시)
+router.beforeEach((to, from, next) => {
+  const isAuthenticated = authStore.isAuthenticated;
+  const role = authStore.user?.role;
+
+  if (to.meta.requiresAuth && !isAuthenticated) {
+    next({ path: "/login", query: { from: to.fullPath } });
+    return;
+  }
+
+  if (to.meta.role && to.meta.role !== role) {
+    next({ path: "/unauthorized" });
+    return;
+  }
+
+  next();
 });
 ```
 
-### 3. useParams (재확인)
+### React Router: wrapper component + `<Navigate />`
 
-```jsx
-import { useParams } from "react-router-dom";
-function BlogPost() {
-  const { postId } = useParams();
-  const [post, setPost] = useState(null);
+```tsx
+import { Navigate, useLocation } from "react-router-dom";
 
-  useEffect(() => {
-    fetch(`/api/posts/${postId}`)
-      .then((res) => res.json())
-      .then(setPost);
-  }, [postId]);
-
-  return <article>{post?.title}</article>;
-}
-```
-
-### 4. useMatch
-
-```jsx
-import { useMatch } from "react-router-dom";
-function Navigation() {
-  const match = useMatch("/users/:userId");
-
-  if (match) {
-    console.log("User ID:", match.params.userId);
-  }
-
-  return <nav>...</nav>;
-}
-```
-
-### 5. useRoutes (프로그래밍 방식 라우트)
-
-```jsx
-import { useRoutes } from "react-router-dom";
-function App() {
-  const routes = useRoutes([
-    { path: "/", element: <Home /> },
-    { path: "/about", element: <About /> },
-    {
-      path: "/users",
-      element: <UsersLayout />,
-      children: [
-        { index: true, element: <UserList /> },
-        { path: ":userId", element: <UserDetail /> },
-      ],
-    },
-  ]);
-
-  return routes;
-}
-```
-
-### Vue Router와 비교
-
-```html
-<!-- Vue Router -->
-<script setup>
-  import { useRoute, useRouter } from "vue-router";
-  const route = useRoute();
-  const router = useRouter();
-  // 현재 경로
-  const path = route.path;
-  const params = route.params;
-  const query = route.query;
-  // 쿼리 변경
-  router.push({ query: { page: 2 } });
-</script>
-```
-
-```jsx
-// React Router
-import { useLocation, useParams, useSearchParams } from "react-router-dom";
-function Component() {
+function RequireAuth({ isAuthenticated, children }: { isAuthenticated: boolean; children: React.ReactNode }) {
   const location = useLocation();
-  const params = useParams();
-  const [searchParams, setSearchParams] = useSearchParams();
-
-  // 현재 경로
-  const path = location.pathname;
-  const userId = params.userId;
-  const page = searchParams.get("page");
-
-  // 쿼리 변경
-  setSearchParams({ page: 2 });
+  if (!isAuthenticated) {
+    const from = location.pathname + location.search + location.hash;
+    return <Navigate to="/login" replace state={{ from }} />;
+  }
+  return children;
 }
 ```
+
+두 방식 모두 목표는 동일하다. 차이는 “정책을 어디에 둬서 팀이 유지보수하기 쉬운가”에 있다. React Router에서는 라우트 정의에서 감싸는 방식이 컴포넌트 합성에 잘 맞는다.
 
 ---
