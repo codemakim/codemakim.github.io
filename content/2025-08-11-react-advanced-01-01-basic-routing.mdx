@@ -16,12 +16,16 @@ seriesOrder: 5
 
 ## 기본 라우팅
 
-기본 라우팅
-개요
-
 ### React Router란?
 
 React Router는 React 애플리케이션에서 클라이언트 사이드 라우팅을 구현하는 표준 라이브러리이다.
+
+라우팅은 URL과 화면(UI)을 동기화하는 문제이다. React Router는 다음을 담당한다.
+
+- URL 변경을 감지한다.
+- URL 패턴과 컴포넌트를 매칭한다.
+- 매칭된 컴포넌트를 렌더링한다.
+- 브라우저 히스토리 스택과 뒤로가기/앞으로가기를 일관되게 처리한다.
 
 ### 클라이언트 사이드 라우팅의 동작 원리
 
@@ -56,7 +60,8 @@ React Router가 URL 감지
 1. History API 활용: `pushState()`, `replaceState()`, `popstate` 이벤트
 2. 컴포넌트 매칭: URL 패턴과 컴포넌트 매핑
 3. 상태 보존: 페이지 전환 없이 UI만 업데이트
-   실제 코드로 보는 원리:
+
+실제 코드로 보는 원리:
 
 ```javascript
 // React Router가 내부적으로 하는 일 (단순화)
@@ -78,30 +83,205 @@ function navigate(path) {
 - 부드러운 UX (깜빡임 없음)
 - 상태 유지 (전역 state 보존)
 - 애니메이션 가능
-  단점:
+  
+단점:
 - 초기 번들 크기 증가 (해결책: 코드 분할)
 - SEO 어려움 (해결책: SSR - Next.js)
 
-### 실무 TIP: "SPA 라우팅을 설명해보세요"
+---
 
-답변 예시:
-"SPA에서 라우팅은 History API를 활용한다.
-사용자가 링크를 클릭하면 React Router가 기본 동작을 막고 (`preventDefault`), `history.pushState`로 URL만 변경한다. 이때 페이지는 새로고침되지 않다.
-React Router는 URL 변경을 감지하여 해당 경로에 매핑된 컴포넌트만 교체한다. 이를 통해 빠르고 부드러운 페이지 전환이 가능하며, 전역 상태도 유지된다.
-다만 초기 번들 크기가 커질 수 있어 코드 분할이 중요하고, SEO를 위해서는 Next.js 같은 SSR 프레임워크를 고려해야 한다."
-주요 기능:
+## 최소 예제로 보는 기본 라우팅
 
-- 선언적 라우팅
-- 중첩 라우트
-- 동적 라우트 매칭
-- 프로그래밍 방식 네비게이션
-- 지연 로딩
+실무에서 라우팅 예제를 설명할 때는 설치, 라우터 래핑, 라우트 정의, 네비게이션까지 한 번에 보여주는 편이 좋다.
 
 ### 설치
 
 ```bash
 npm install react-router-dom
 ```
+
+### 앱 엔트리에서 `BrowserRouter`로 감싸기
+
+React Router는 내부적으로 History API를 사용한다. 그래서 애플리케이션 최상단에서 라우터 컨텍스트를 제공해야 한다.
+
+```tsx
+// main.tsx (React 18 기준)
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
+import App from "./App";
+
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  </React.StrictMode>
+);
+```
+
+### `Routes`와 `Route`로 화면 매핑하기
+
+v6에서는 `Switch`가 `Routes`로 바뀌었고, `exact`가 기본 동작이 된다. 즉 `/`는 `/about`과 같이 매칭되지 않는다.
+
+```tsx
+// App.tsx
+import { Routes, Route } from "react-router-dom";
+import HomePage from "./pages/HomePage";
+import AboutPage from "./pages/AboutPage";
+import ContactPage from "./pages/ContactPage";
+import NotFoundPage from "./pages/NotFoundPage";
+
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/about" element={<AboutPage />} />
+      <Route path="/contact" element={<ContactPage />} />
+      <Route path="*" element={<NotFoundPage />} />
+    </Routes>
+  );
+}
+```
+
+`path="*"`는 404 처리의 기본 패턴이다. 정적 배포에서도 라우팅을 서버가 아닌 클라이언트가 책임지도록 구성해야 한다.
+
+### `Link`와 `NavLink`를 써야 하는 이유
+
+`<a href="/about">`는 기본 동작이 서버 요청이다. SPA에서는 이 요청이 전체 새로고침으로 이어진다.
+
+`<Link to="/about">`는 클릭을 가로채고 `pushState`로 URL만 바꾼 뒤, 라우터가 컴포넌트를 교체한다.
+
+```tsx
+// components/Navigation.tsx
+import { Link, NavLink } from "react-router-dom";
+
+export default function Navigation() {
+  return (
+    <nav>
+      <Link to="/">Home</Link>{" | "}
+      <NavLink to="/about">About</NavLink>{" | "}
+      <NavLink to="/contact">Contact</NavLink>
+    </nav>
+  );
+}
+```
+
+`NavLink`는 현재 URL과의 매칭 결과를 기반으로 활성 상태를 제공한다. 메뉴에서 현재 위치를 강조할 때 쓴다.
+
+```tsx
+<NavLink
+  to="/about"
+  className={({ isActive }) => (isActive ? "active" : undefined)}
+>
+  About
+</NavLink>
+```
+
+---
+
+## 실무 TIP: SPA 라우팅을 설명해보세요
+
+답변 예시는 다음 구조로 말하면 된다.
+
+- SPA에서 라우팅은 History API 기반으로 동작한다.
+- 링크 클릭 시 기본 동작(서버 요청)을 막고 `history.pushState`로 URL만 변경한다.
+- React Router가 URL 변경을 감지해 매칭되는 컴포넌트를 렌더링한다.
+- 페이지는 새로고침되지 않으므로 전역 상태가 유지되고 전환이 빠르다.
+- 초기 번들 크기와 SEO 이슈가 있어 코드 분할과 SSR/SSG 전략이 중요해진다.
+
+---
+
+## 주요 기능을 실무 관점에서 이해하기
+
+아래 항목은 이름만 외우면 실무에서 바로 연결되지 않는다. 기능이 등장하는 이유와 적용 포인트까지 함께 정리한다.
+
+### 1. 선언적 라우팅
+
+라우팅을 조건문으로 직접 분기하면 URL과 UI의 동기화가 깨지기 쉽다. React Router는 라우트 트리를 선언적으로 구성하고, URL 변화에 따라 어떤 컴포넌트를 렌더링할지 결정한다.
+
+핵심은 라우트 정의가 UI의 일부로 남는다는 점이다.
+
+```tsx
+<Routes>
+  <Route path="/" element={<HomePage />} />
+  <Route path="/about" element={<AboutPage />} />
+</Routes>
+```
+
+이 구조는 코드를 읽는 사람이 URL 설계를 빠르게 파악하게 해준다. 권한, 레이아웃, 에러 처리 같은 관심사를 라우트 단위로 묶는 기반이 된다.
+
+### 2. 중첩 라우트
+
+중첩 라우트는 레이아웃을 재사용하기 위한 기능이다. 예를 들어 헤더와 사이드바는 고정이고 본문만 바뀌는 화면이 많다. 이때 상위 라우트는 공통 UI를 렌더링하고, 하위 라우트는 `Outlet` 위치에 들어간다.
+
+중첩 라우트 자체 예제와 원리는 다음 글에서 다룬다.
+
+### 3. 동적 라우트 매칭
+
+리스트 상세 화면은 보통 `id`를 URL로 표현한다.
+
+```tsx
+<Route path="/products/:productId" element={<ProductDetailPage />} />
+```
+
+이때 `:productId`는 문자열 세그먼트 매칭이다. 컴포넌트에서는 `useParams()`로 값을 읽는다.
+
+```tsx
+import { useParams } from "react-router-dom";
+
+export default function ProductDetailPage() {
+  const { productId } = useParams();
+  // productId로 데이터 조회가 이어진다.
+  return <div>productId: {productId}</div>;
+}
+```
+
+실무에서는 `productId`가 없거나 형식이 잘못된 경우를 방치하면 오류 화면이 늦게 터진다. 라우트 설계 단계에서 유효성 검증과 404 처리 전략을 함께 잡는 편이 좋다.
+
+### 4. 프로그래밍 방식 네비게이션
+
+폼 제출, 로그인 후 리다이렉트, 권한 체크 같은 흐름은 클릭 기반 네비게이션만으로 해결되지 않는다. 이때 `useNavigate()`를 쓴다.
+
+```tsx
+import { useNavigate } from "react-router-dom";
+
+export default function LoginPage() {
+  const navigate = useNavigate();
+
+  async function onSubmit() {
+    // 로그인 성공 가정
+    navigate("/dashboard", { replace: true });
+  }
+
+  return <button onClick={onSubmit}>Login</button>;
+}
+```
+
+`replace: true`는 히스토리 스택을 덮어쓴다. 로그인 화면으로 뒤로가기 되는 UX를 막는 데 쓴다.
+
+### 5. 지연 로딩
+
+라우팅은 코드 분할의 경계로 쓰기 좋다. 화면 단위로 번들을 쪼개면 초기 로딩이 줄어든다.
+
+```tsx
+import React, { Suspense } from "react";
+import { Routes, Route } from "react-router-dom";
+
+const AboutPage = React.lazy(() => import("./pages/AboutPage"));
+
+export default function App() {
+  return (
+    <Suspense fallback={<div>loading...</div>}>
+      <Routes>
+        <Route path="/about" element={<AboutPage />} />
+      </Routes>
+    </Suspense>
+  );
+}
+```
+
+실무에서는 fallback UI가 전체 레이아웃을 흔들지 않게 설계하는 것이 중요하다. 특히 네비게이션 바와 같은 공통 UI는 유지하고, 본문 영역만 로딩 상태로 전환되게 만드는 편이 읽기 경험이 안정된다.
 
 ### Vue Router와 비교
 
