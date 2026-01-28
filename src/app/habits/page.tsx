@@ -20,6 +20,7 @@ function HabitsContent() {
     processingHabits,
     fetchHabits,
     handleToggleComplete,
+    totalHabitsCount,
   } = useHabits();
 
   if (!mounted) {
@@ -57,15 +58,42 @@ function HabitsContent() {
           </div>
         ) : habits.length === 0 ? (
           <div className="card p-8 text-center">
-            <p className="text-zinc-600 dark:text-zinc-400 mb-4">
-              등록된 습관이 없습니다.
-            </p>
-            <Link
-              href="/habits/create"
-              className="btn-primary inline-block"
-            >
-              첫 습관 만들기
-            </Link>
+            {totalHabitsCount === 0 ? (
+              <>
+                <p className="text-zinc-600 dark:text-zinc-400 mb-4">
+                  등록된 습관이 없습니다.
+                </p>
+                <Link
+                  href="/habits/create"
+                  className="btn-primary inline-block"
+                >
+                  첫 습관 만들기
+                </Link>
+              </>
+            ) : (
+              <>
+                <p className="text-zinc-600 dark:text-zinc-400 mb-2">
+                  오늘 수행할 습관이 없습니다.
+                </p>
+                <p className="text-sm text-zinc-500 dark:text-zinc-500 mb-4">
+                  등록된 습관은 있지만 오늘은 수행할 요일이 아닙니다.
+                </p>
+                <div className="flex gap-3 justify-center">
+                  <button
+                    onClick={() => setViewMode('calendar')}
+                    className="btn-primary"
+                  >
+                    달력으로 보기
+                  </button>
+                  <Link
+                    href="/habits/archive"
+                    className="px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                  >
+                    과거 습관 보기
+                  </Link>
+                </div>
+              </>
+            )}
           </div>
         ) : viewMode === 'calendar' ? (
           <OverallCalendar />

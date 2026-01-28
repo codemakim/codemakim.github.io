@@ -170,6 +170,9 @@ export function useHabits() {
   const isLoading = habitsLoading || loading;
   const finalError = habitsError || error;
 
+  // 전체 습관 개수 (오늘 수행할 습관이 없어도 등록된 습관이 있는지 확인용)
+  const totalHabitsCount = habitsCache.size;
+
   return {
     mounted,
     habits: habitsWithCompletion,
@@ -178,6 +181,7 @@ export function useHabits() {
     processingHabits,
     fetchHabits: fetchTodayHabits,
     handleToggleComplete,
+    totalHabitsCount, // 전체 습관 개수 추가
   };
 }
 
