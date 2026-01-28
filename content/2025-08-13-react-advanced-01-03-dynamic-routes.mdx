@@ -16,129 +16,194 @@ seriesOrder: 7
 
 ## 동적 라우트
 
-동적 라우트
-중첩 라우트
+동적 라우트는 URL의 일부를 변수로 취급해 한 컴포넌트가 여러 URL을 처리하게 만드는 기능이다.
 
-### 1. Layout 패턴
+실무에서 동적 라우트는 “리스트 → 상세”, “리소스 ID 기반 화면”, “조직/프로젝트/사용자 같은 멀티 테넌트 경로”에서 필수로 등장한다.
 
-```jsx
-// App.jsx
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Layout from "./components/Layout";
-import Home from "./pages/Home";
-import About from "./pages/About";
-import Blog from "./pages/Blog";
-import Post from "./pages/Post";
-export default function App() {
+예시:
+
+- `/posts/42`에서 `42`는 `postId`라는 파라미터가 된다.
+- `/orgs/acme/projects/7`에서 `acme`, `7`은 각각 `orgSlug`, `projectId`가 된다.
+
+---
+
+## URL 파라미터와 쿼리 스트링의 역할 분리
+
+둘을 섞어 쓰면 라우팅 설계가 금방 망가진다. 실무에서는 기준을 명확히 잡는다.
+
+- URL 파라미터(`/posts/:postId`): 리소스의 “정체성”을 나타낸다. 이 값이 바뀌면 보통 완전히 다른 리소스를 본다.
+- 쿼리 스트링(`/posts?tag=react&page=2`): 같은 화면/리소스 범주에서 “보기 옵션”을 나타낸다. 필터, 정렬, 페이지네이션이 여기에 해당한다.
+
+이 분리를 지키면 다음이 좋아진다.
+
+- 링크 공유가 안정된다.
+- 캐시 키(React Query 등)를 설계하기 쉬워진다.
+- 뒤로가기/앞으로가기 UX가 예측 가능해진다.
+
+---
+
+## 1. 동적 라우트 정의
+
+가장 기본은 `:paramName` 문법이다.
+
+```tsx
+import { Routes, Route } from "react-router-dom";
+import PostsPage from "./pages/PostsPage";
+import PostDetailPage from "./pages/PostDetailPage";
+import NotFoundPage from "./pages/NotFoundPage";
+
+export default function AppRoutes() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Home />} />
-          <Route path="about" element={<About />} />
-          <Route path="blog" element={<Blog />} />
-          <Route path="blog/:postId" element={<Post />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <Routes>
+      <Route path="/posts" element={<PostsPage />} />
+      <Route path="/posts/:postId" element={<PostDetailPage />} />
+      <Route path="*" element={<NotFoundPage />} />
+    </Routes>
   );
 }
 ```
 
-### 2. Layout 컴포넌트
+여기서 `:postId`는 “문자열 세그먼트 1개”를 의미한다. `42`, `abc`, `2025-08-13` 같은 값이 모두 들어올 수 있다.
 
-```jsx
-// components/Layout.jsx
-import { Outlet, Link } from "react-router-dom";
-export default function Layout() {
+---
+
+## 2. `useParams()`로 파라미터 읽기
+
+`useParams()`는 항상 문자열을 돌려준다. 숫자처럼 보여도 문자열이다.
+
+```tsx
+import { useParams } from "react-router-dom";
+
+export default function PostDetailPage() {
+  const { postId } = useParams();
+
+  if (!postId) {
+    // 라우트 정의상 거의 일어나지 않지만, 타입/런타임 가드로 남겨둔다.
+    return <div>잘못된 접근이다.</div>;
+  }
+
+  return <div>postId: {postId}</div>;
+}
+```
+
+### 실무 TIP: 파라미터는 “검증 가능한 형태”로 제한한다
+
+`postId`가 숫자여야 한다면 화면이 뜬 뒤에 API에서 400/404가 터지기 전에, 라우팅 레벨에서 빠르게 검증하는 편이 좋다.
+
+```tsx
+import { useMemo } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+
+export default function PostDetailPage() {
+  const navigate = useNavigate();
+  const { postId } = useParams();
+
+  const numericId = useMemo(() => {
+    if (!postId) return null;
+    const n = Number(postId);
+    return Number.isFinite(n) ? n : null;
+  }, [postId]);
+
+  if (numericId === null) {
+    navigate("/posts", { replace: true });
+    return null;
+  }
+
+  return <div>numericId: {numericId}</div>;
+}
+```
+
+이 패턴은 “잘못된 URL이 들어왔을 때 어떤 UX를 줄지”를 결정하는 문제이다. 팀 규칙에 따라 404 페이지로 보내거나, 목록으로 보내거나, 에러 메시지를 보여준다.
+
+---
+
+## 3. 쿼리 스트링은 `useSearchParams()`로 다룬다
+
+React Router v6는 쿼리 스트링을 URLSearchParams로 제공한다.
+
+```tsx
+import { useSearchParams } from "react-router-dom";
+
+export default function PostsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const tag = searchParams.get("tag") ?? "all";
+  const page = Number(searchParams.get("page") ?? "1");
+
+  function goNext() {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("page", String(page + 1));
+      return next;
+    });
+  }
+
   return (
     <div>
-      <header>
-        <nav>
-          <Link to="/">Home</Link>
-          <Link to="/about">About</Link>
-          <Link to="/blog">Blog</Link>
-        </nav>
-      </header>
-
-      <main>
-        <Outlet /> {/* 자식 라우트가 여기에 렌더링됨 */}
-      </main>
-
-      <footer>
-        <p>© 2025 My App</p>
-      </footer>
+      <div>tag: {tag}</div>
+      <div>page: {Number.isFinite(page) ? page : 1}</div>
+      <button onClick={goNext}>next page</button>
     </div>
   );
 }
 ```
 
-### 3. 다단계 중첩
+### 실무 TIP: 쿼리 스트링은 상태다
 
-```jsx
-<Routes>
-  <Route path="/" element={<Layout />}>
-    <Route index element={<Home />} />
+필터/정렬/페이지는 컴포넌트 로컬 state로만 두면 공유, 새로고침, 뒤로가기에서 깨진다. 쿼리 스트링을 “화면 상태의 저장소”로 쓰면 다음이 된다.
 
-    <Route path="dashboard" element={<DashboardLayout />}>
-      <Route index element={<DashboardHome />} />
-      <Route path="settings" element={<Settings />} />
-      <Route path="profile" element={<Profile />} />
-    </Route>
+- 새로고침해도 상태가 유지된다.
+- 링크 공유가 된다.
+- 브라우저 히스토리와 자연스럽게 동작한다.
 
-    <Route path="admin" element={<AdminLayout />}>
-      <Route index element={<AdminHome />} />
-      <Route path="users" element={<Users />} />
-      <Route path="posts" element={<Posts />} />
-    </Route>
-  </Route>
-</Routes>
+---
+
+## 4. 링크 생성은 문자열 합치기 대신 규칙을 둔다
+
+실무에서 동적 라우트는 링크 생성 버그가 자주 터진다.
+
+- 숫자/문자열 혼용
+- 인코딩 누락(공백, 한글, `/` 포함 값)
+- 상대/절대 경로 혼동
+
+가장 기본은 `Link`에 명확한 경로를 주는 것이다.
+
+```tsx
+import { Link } from "react-router-dom";
+
+export default function PostRow({ postId }: { postId: string }) {
+  return <Link to={`/posts/${encodeURIComponent(postId)}`}>open</Link>;
+}
 ```
 
-### Index Route
+`encodeURIComponent`는 파라미터가 “세그먼트”로 안전하게 들어가게 만든다. 슬래시나 공백이 섞일 수 있는 값을 그대로 붙이면 라우트 매칭 자체가 깨진다.
 
-```jsx
-// index: 부모 경로와 동일한 경로에 렌더링
-<Route path="/" element={<Layout />}>
-  <Route index element={<Home />} /> {/* / */}
-  <Route path="about" element={<About />} /> {/* /about */}
+---
+
+## 5. 중첩 라우트에서 파라미터는 합쳐진다
+
+중첩 라우트 구조에서 파라미터는 부모/자식에서 함께 매칭되고, `useParams()`에서는 합쳐진 형태로 읽힌다.
+
+```tsx
+<Route path="orgs/:orgSlug" element={<OrgLayout />}>
+  <Route path="projects/:projectId" element={<ProjectDetailPage />} />
 </Route>
 ```
 
-### Vue Router와 비교
+`/orgs/acme/projects/7`로 들어오면 `orgSlug`, `projectId`를 모두 얻는다.
 
-```javascript
-// Vue Router: children
-const routes = [
-  {
-    path: "/",
-    component: Layout,
-    children: [
-      { path: "", component: Home },
-      { path: "about", component: About },
-      {
-        path: "dashboard",
-        component: DashboardLayout,
-        children: [
-          { path: "", component: DashboardHome },
-          { path: "settings", component: Settings },
-        ],
-      },
-    ],
-  },
-];
-```
+이 성질은 실무에서 “상위 컨텍스트(조직/테넌트)를 기준으로 API 베이스 URL을 잡는 설계”로 이어진다.
 
-```jsx
-// React Router: Outlet
-<Route path="/" element={<Layout />}>
-  <Route index element={<Home />} />
-  <Route path="about" element={<About />} />
-  <Route path="dashboard" element={<DashboardLayout />}>
-    <Route index element={<DashboardHome />} />
-    <Route path="settings" element={<Settings />} />
-  </Route>
-</Route>
-```
+---
+
+## Vue Router와 비교
+
+동적 세그먼트라는 개념은 동일하다. 차이는 값을 꺼내는 API와 쿼리를 다루는 방식에 있다.
+
+| 기능 | Vue Router | React Router |
+| --- | --- | --- |
+| 동적 라우트 | `/posts/:postId` | `/posts/:postId` |
+| 파라미터 접근 | `route.params.postId` | `useParams().postId` |
+| 쿼리 접근 | `route.query.page` | `useSearchParams().get("page")` |
 
 ---
