@@ -16,99 +16,192 @@ seriesOrder: 8
 
 ## 프로그래밍 방식 네비게이션
 
-프로그래밍 방식 네비게이션
-동적 라우트
+프로그래밍 방식 네비게이션은 클릭(Link)으로만 이동을 처리하기 어려운 순간에 필요해진다.
 
-### 1. URL 파라미터
+대표적인 상황은 다음과 같다.
 
-```jsx
-// 라우트 정의
-<Route path="/users/:userId" element={<User />} />
-<Route path="/posts/:postId" element={<Post />} />
-<Route path="/products/:category/:productId" element={<Product />} />
-```
+- 로그인/권한 체크 후 리다이렉트가 필요하다.
+- 폼 제출이 성공하면 상세 페이지로 이동해야 한다.
+- 에러가 발생하면 안전한 화면으로 복구해야 한다.
+- 모달/서브플로우가 끝나면 “이전 화면”으로 돌아가야 한다.
 
-### 2. useParams Hook
+React Router v6에서 이 기능의 중심은 `useNavigate()`이다.
 
-```jsx
-// pages/User.jsx
-import { useParams } from "react-router-dom";
-export default function User() {
-  const { userId } = useParams();
+---
+
+## 1. `useNavigate()`가 하는 일
+
+`useNavigate()`는 내부적으로 History API를 사용해 히스토리 스택을 조작하고, 그 결과로 URL과 매칭되는 화면을 교체한다.
+
+```tsx
+import { useNavigate } from "react-router-dom";
+
+export default function Example() {
+  const navigate = useNavigate();
 
   return (
-    <div>
-      <h1>User Profile</h1>
-      <p>User ID: {userId}</p>
-    </div>
+    <button onClick={() => navigate("/dashboard")}>Go dashboard</button>
   );
 }
 ```
 
-### 3. 복수 파라미터
+여기서 중요한 점은 “URL을 바꾸는 행위”가 곧 “화면을 바꾸는 행위”라는 사실이다. 그래서 네비게이션은 렌더링 중에 실행하면 안 된다.
 
-```jsx
-// pages/Product.jsx
-import { useParams } from "react-router-dom";
-export default function Product() {
-  const { category, productId } = useParams();
+---
 
-  return (
-    <div>
-      <h1>Product Details</h1>
-      <p>Category: {category}</p>
-      <p>Product ID: {productId}</p>
-    </div>
-  );
-}
-```
+## 2. 렌더링 중 네비게이션을 하면 안 되는 이유
 
-### 4. Optional 파라미터
+아래 코드는 흔히 나오는 실수다.
 
-```jsx
-<Route path="/users/:userId?" element={<Users />} />;
-function Users() {
-  const { userId } = useParams();
+```tsx
+import { useNavigate } from "react-router-dom";
 
-  if (userId) {
-    return <UserDetail userId={userId} />;
+export default function BadExample({ isLoggedIn }: { isLoggedIn: boolean }) {
+  const navigate = useNavigate();
+
+  if (!isLoggedIn) {
+    navigate("/login");
   }
 
-  return <UserList />;
+  return <div>dashboard</div>;
 }
 ```
 
-### 5. Wildcard (\*)
+렌더링 중에 `navigate`를 호출하면 렌더-이동-렌더가 반복되며 루프가 생길 수 있다. 네비게이션은 이벤트 핸들러에서 실행하거나, 조건부 리다이렉트가 필요하면 `useEffect` 또는 `<Navigate />`를 쓴다.
 
-```jsx
-<Route path="/docs/*" element={<Docs />} />;
-function Docs() {
-  const params = useParams();
-  const path = params["*"]; // /docs/ 이후의 모든 경로
+```tsx
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
-  return <div>Docs path: {path}</div>;
+export default function Guarded({ isLoggedIn }: { isLoggedIn: boolean }) {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isLoggedIn) navigate("/login", { replace: true });
+  }, [isLoggedIn, navigate]);
+
+  if (!isLoggedIn) return null;
+  return <div>dashboard</div>;
 }
 ```
 
-### Vue Router와 비교
+`replace: true`를 쓰는 이유는 뒤로가기를 눌렀을 때 다시 보호된 페이지로 돌아오는 UX를 막기 위해서다.
 
-```html
-<!-- Vue Router -->
-<script setup>
-  import { useRoute } from "vue-router";
-  const route = useRoute();
-  const userId = route.params.userId;
-  const category = route.params.category;
-</script>
+---
+
+## 3. `navigate(path, options)` 옵션: `replace`와 `state`
+
+### `replace: true`
+
+`replace: true`는 히스토리 스택에 새 항목을 추가하지 않고 현재 항목을 덮어쓴다.
+
+- 로그인 성공 후 `/login` → `/dashboard`로 갈 때 자주 쓴다.
+- 뒤로가기를 눌렀을 때 로그인 화면으로 돌아가는 것을 막는다.
+
+```tsx
+navigate("/dashboard", { replace: true });
 ```
 
-```jsx
-// React Router
-import { useParams } from "react-router-dom";
-function Component() {
-  const { userId, category } = useParams();
-  // ...
+### `state`: URL에 드러나지 않는 전달값
+
+`state`는 URL 쿼리에 노출하지 않고 화면 간에 값을 전달할 때 쓴다. 결제 플로우나 폼 작성 플로우에서 “이전 화면 정보”를 넘길 때 유용하다.
+
+```tsx
+navigate("/login", {
+  state: { from: "/dashboard", reason: "auth_required" },
+});
+```
+
+받는 쪽에서는 `useLocation()`으로 꺼낸다.
+
+```tsx
+import { useLocation, useNavigate } from "react-router-dom";
+
+type LoginState = { from?: string; reason?: string };
+
+export default function LoginPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const state = (location.state ?? {}) as LoginState;
+
+  async function onLoginSuccess() {
+    navigate(state.from ?? "/dashboard", { replace: true });
+  }
+
+  return <button onClick={onLoginSuccess}>Login</button>;
 }
 ```
+
+`state`는 새로고침하면 사라질 수 있다. 지속성이 필요한 값은 쿼리 스트링이나 서버 저장소가 더 적합하다.
+
+---
+
+## 4. 상대 경로 네비게이션과 “유지보수 가능한 링크”
+
+중첩 라우트 구조에서는 절대 경로 문자열을 여기저기 박아두면 라우트 변경 시 폭발한다. React Router는 상대 경로 네비게이션을 지원한다.
+
+```tsx
+// /dashboard/projects 화면에서
+navigate("new"); // /dashboard/projects/new
+```
+
+상대 경로를 쓰면 상위 경로가 바뀌어도 의도한 이동이 유지된다. 구조 변화에 강한 네비게이션이 된다.
+
+---
+
+## 5. 히스토리 기반 이동: `navigate(-1)`, `navigate(1)`
+
+“목록으로” 같은 고정 경로 이동은 쉬운데, “이전 화면으로”는 함정이 많다. 히스토리 스택 기반 이동은 다음처럼 한다.
+
+```tsx
+<button onClick={() => navigate(-1)}>back</button>
+```
+
+실무에서는 직접 진입(링크 공유)으로 들어온 경우 히스토리가 없을 수 있다. 이때를 대비해 fallback 경로를 둔다.
+
+```tsx
+function goBackOrFallback() {
+  if (window.history.length > 1) navigate(-1);
+  else navigate("/posts", { replace: true });
+}
+```
+
+---
+
+## 6. 실무 예제: 폼 제출 성공 후 상세로 이동하기
+
+CRUD 화면에서 가장 흔한 흐름이다.
+
+```tsx
+import { useNavigate } from "react-router-dom";
+
+export default function CreatePostPage() {
+  const navigate = useNavigate();
+
+  async function onSubmit() {
+    // 서버가 생성된 id를 돌려준다고 가정한다.
+    const created = { id: "42" };
+    navigate(`/posts/${created.id}`, { replace: true });
+  }
+
+  return <button onClick={onSubmit}>create</button>;
+}
+```
+
+`replace: true`는 “작성 페이지”를 히스토리에서 제거해, 뒤로가기가 목록으로 자연스럽게 이어지게 만드는 데 쓴다.
+
+---
+
+## Vue Router와 비교
+
+개념은 동일하고 API 이름이 다르다. 핵심 차이는 “어디서 네비게이션을 실행하는가”와 “replace/state 전달 방식”이다.
+
+| 기능 | Vue Router | React Router |
+| --- | --- | --- |
+| 네비게이션 훅 | `useRouter()` | `useNavigate()` |
+| push 이동 | `router.push("/dashboard")` | `navigate("/dashboard")` |
+| replace 이동 | `router.replace("/dashboard")` | `navigate("/dashboard", { replace: true })` |
+| state 전달 | `router.push({ state: ... })`는 제한적, 보통 `query`/store 사용 | `navigate(path, { state: ... })` |
+| 뒤로/앞으로 | `router.back()`, `router.forward()` | `navigate(-1)`, `navigate(1)` |
 
 ---
