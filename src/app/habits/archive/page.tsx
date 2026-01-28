@@ -1,19 +1,23 @@
-'use client';
+"use client";
 
-import ProtectedRoute from '@/app/components/auth/ProtectedRoute';
-import { useState, useEffect, useMemo } from 'react';
-import Link from 'next/link';
-import { useAuth } from '@/app/components/auth/AuthProvider';
-import { formatDateToYYYYMMDD, compareDateStrings } from '@/app/lib/dateUtils';
-import { useHabitsContext } from '@/app/components/habits/HabitsProvider';
-import PageHeader from '@/app/components/habits/PageHeader';
-import PastHabitCard from '@/app/components/habits/PastHabitCard';
-import type { Habit } from '@/app/components/habits/types';
+import ProtectedRoute from "@/app/components/auth/ProtectedRoute";
+import { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
+import { useAuth } from "@/app/components/auth/AuthProvider";
+import { compareDateStrings } from "@/app/lib/dateUtils";
+import { useHabitsContext } from "@/app/components/habits/HabitsProvider";
+import PageHeader from "@/app/components/habits/PageHeader";
+import PastHabitCard from "@/app/components/habits/PastHabitCard";
+import type { Habit } from "@/app/components/habits/types";
 
 function ArchiveContent() {
   const [mounted, setMounted] = useState(false);
   const { user } = useAuth();
-  const { habits: habitsCache, loading: habitsLoading, fetchAllHabits } = useHabitsContext();
+  const {
+    habits: habitsCache,
+    loading: habitsLoading,
+    fetchAllHabits,
+  } = useHabitsContext();
 
   useEffect(() => {
     setMounted(true);
@@ -26,22 +30,13 @@ function ArchiveContent() {
     }
   }, [mounted, user, fetchAllHabits]);
 
-  // 과거 습관 필터링 및 정렬
-  const pastHabits = useMemo(() => {
+  // 전체 습관 정렬 (종료일 기준 내림차순)
+  const habits = useMemo(() => {
     if (habitsCache.size === 0) return [];
 
-    const todayStr = formatDateToYYYYMMDD(new Date());
-    const allHabits = Array.from(habitsCache.values());
+    const allHabits: Habit[] = Array.from(habitsCache.values());
 
-    // end_date < 오늘 조건으로 필터링
-    const filtered = allHabits.filter((habit) => 
-      compareDateStrings(habit.end_date, todayStr) < 0
-    );
-
-    // 종료일 기준 내림차순 정렬 (최신순)
-    return filtered.sort((a, b) => 
-      compareDateStrings(b.end_date, a.end_date)
-    );
+    return allHabits.sort((a, b) => compareDateStrings(b.end_date, a.end_date));
   }, [habitsCache]);
 
   if (!mounted) {
@@ -53,7 +48,7 @@ function ArchiveContent() {
   }
 
   const isLoading = habitsLoading;
-  const hasPastHabits = pastHabits.length > 0;
+  const hasHabits = habits.length > 0;
 
   return (
     <div className="min-h-screen">
@@ -71,15 +66,15 @@ function ArchiveContent() {
           <div className="card p-8 text-center">
             <div className="text-zinc-600 dark:text-zinc-400">로딩 중...</div>
           </div>
-        ) : !hasPastHabits ? (
+        ) : !hasHabits ? (
           <div className="card p-8 text-center">
             <p className="text-zinc-600 dark:text-zinc-400">
-              과거 습관이 없습니다.
+              등록된 습관이 없습니다.
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {pastHabits.map((habit) => (
+            {habits.map((habit) => (
               <PastHabitCard key={habit.id} habit={habit} />
             ))}
           </div>

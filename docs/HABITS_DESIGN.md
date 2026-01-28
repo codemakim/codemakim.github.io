@@ -3,6 +3,7 @@
 ## 1. 프로젝트 개요
 
 ### 1.1 목표
+
 기존 Flutter 앱 `doit_everyday`를 웹 버전으로 업그레이드하여 Next.js 블로그와 통합된 습관 관리 플랫폼 구축
 
 ### 1.2 기존 앱 분석
@@ -261,17 +262,17 @@
 - **계산 로직**:
 
   ```
-  해당 날짜에 수행해야 할 습관 수 = habits.filter(h => 
-    h.weekdays.includes(해당날짜의요일) && 
-    h.start_date <= 날짜 && 
+  해당 날짜에 수행해야 할 습관 수 = habits.filter(h =>
+    h.weekdays.includes(해당날짜의요일) &&
+    h.start_date <= 날짜 &&
     h.end_date >= 날짜
   ).length
-  
-  완료된 습관 수 = habit_records.filter(r => 
-    r.date === 날짜 && 
+
+  완료된 습관 수 = habit_records.filter(r =>
+    r.date === 날짜 &&
     r.completed === true
   ).length
-  
+
   성공률 = (완료된 습관 수 / 수행해야 할 습관 수) × 100
   ```
 
@@ -286,15 +287,19 @@
 
 ### 3.2.1 과거 습관 목록 (`/habits/archive`)
 
-**목적**: 기간이 지나서 더 이상 수행할 필요가 없는 습관들을 확인하고 통계를 리뷰
+**목적**: 기간이 지나서 더 이상 수행할 필요가 없는 습관들을 포함하여, 모든 습관의 통계를 한 화면에서 리뷰
 
 **페이지 접근 방법**:
+
 - 습관 목록 페이지 (`/habits`) 헤더에 "과거 습관" 링크 추가
 - 또는 네비게이션 메뉴에 "과거 습관" 항목 추가
 
 **표시 조건**:
-- `end_date < 오늘` 인 습관들만 표시
-- 즉, 종료일이 지난 습관들
+
+- 사용자의 **모든 습관**을 표시
+  - 진행 중인 습관
+  - 아직 시작 전인 습관
+  - 종료일이 지난 습관(과거 습관)
 
 **UI 디자인: 간결한 카드 (옵션 1)**
 
@@ -313,37 +318,45 @@
 1. **색상 인디케이터**: 왼쪽 테두리 또는 배경 (습관별 색상)
 2. **제목**: 습관 제목 (큰 글씨)
 3. **설명**: 습관 설명 (작은 글씨, 선택)
-4. **통계 정보**:
+4. **상태 라벨**:
+   - 종료일이 지난 습관(`end_date < 오늘`)에는 카드 상단에 **"완료"** 라벨 표시
+   - 그 외(진행 중, 시작 전)는 라벨 없이 기본 카드로 표시
+5. **통계 정보**:
    - **총 달성률**: 완료율 퍼센트 (예: "75%")
    - **최대 연속 달성 일수**: 최대 연속 달성 일수 (예: "최대 연속: 30일" 또는 "🔥 30일")
    - **총 완료 일수 / 총 일수**: 구체적인 수치 (예: "45일 / 60일 완료")
    - **기간**: 시작일 ~ 종료일 (예: "2025-01-01 ~ 2025-03-01")
 
 **통계 계산**:
+
 - 총 달성률: `(완료한 일수 / 총 일수) × 100`
 - 총 일수: 습관 기간 내 수행해야 하는 날짜 수 (요일 필터링 적용)
 - 완료한 일수: `habit_records`에서 `completed = true`인 레코드 수
 - 최대 연속 달성 일수: 전체 기간 중 최대 연속으로 `completed = true`인 일수
 
 **인터랙션**:
+
 - 카드 클릭 → 상세 페이지 이동 (`/habits/detail?id=xxx`)
 - 상세 페이지에서 통계와 달력 뷰 확인 가능
 - 삭제 기능은 상세 페이지에서만 가능 (확인 모달 포함)
 
 **레이아웃**:
+
 - 현재 습관 목록과 동일한 반응형 그리드 레이아웃 사용
-- 모바일 세로: 1열
-- 모바일 가로/태블릿: 2-3열
-- 데스크톱: 3-4열
+- 모바일: 1열
+- 데스크톱: 2열
 
 **정렬**:
+
 - 기본 정렬: 최신순 (종료일이 최근인 것부터)
 - 정렬 옵션은 제공하지 않음 (간결성 유지)
 
 **빈 상태**:
-- 과거 습관이 없을 때: "과거 습관이 없습니다" 메시지 표시
+
+- 등록된 습관이 없을 때: "등록된 습관이 없습니다" 메시지 표시
 
 **네비게이션**:
+
 - 헤더에 "← 습관 목록" 링크로 `/habits`로 돌아가기
 
 ### 3.3 습관 상세 (`/habits/[id]`)
@@ -583,19 +596,19 @@ components/habits/
 
 #### `habits` 테이블
 
-| 컬럼명 | 타입 | 제약조건 | 설명 |
-| ------ | -----|--------- | ---- |
-| id | UUID | PRIMARY KEY | 습관 고유 ID |
-| user_id | UUID | NOT NULL, FK → auth.users | 사용자 ID |
-| title | TEXT | NOT NULL | 습관 제목 |
-| description | TEXT | | 습관 설명 (선택) |
-| color | TEXT | NOT NULL | 색상 코드 (hex) |
-| start_date | DATE | NOT NULL | 시작일 |
-| end_date | DATE | NOT NULL | 종료일 |
-| weekdays | INTEGER[] | NOT NULL | 수행 요일 배열 [1,2,3,4,5] |
-| priority | INTEGER | DEFAULT 0 | 우선순위 (낮을수록 높음, 향후 사용) |
-| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | 생성일시 |
-| updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | 수정일시 |
+| 컬럼명      | 타입        | 제약조건                  | 설명                                |
+| ----------- | ----------- | ------------------------- | ----------------------------------- |
+| id          | UUID        | PRIMARY KEY               | 습관 고유 ID                        |
+| user_id     | UUID        | NOT NULL, FK → auth.users | 사용자 ID                           |
+| title       | TEXT        | NOT NULL                  | 습관 제목                           |
+| description | TEXT        |                           | 습관 설명 (선택)                    |
+| color       | TEXT        | NOT NULL                  | 색상 코드 (hex)                     |
+| start_date  | DATE        | NOT NULL                  | 시작일                              |
+| end_date    | DATE        | NOT NULL                  | 종료일                              |
+| weekdays    | INTEGER[]   | NOT NULL                  | 수행 요일 배열 [1,2,3,4,5]          |
+| priority    | INTEGER     | DEFAULT 0                 | 우선순위 (낮을수록 높음, 향후 사용) |
+| created_at  | TIMESTAMPTZ | NOT NULL, DEFAULT now()   | 생성일시                            |
+| updated_at  | TIMESTAMPTZ | NOT NULL, DEFAULT now()   | 수정일시                            |
 
 **제약조건:**
 
@@ -608,14 +621,14 @@ components/habits/
 
 #### `habit_records` 테이블
 
-| 컬럼명 | 타입 | 제약조건 | 설명 |
-|--------|------|----------|------|
-| id | UUID | PRIMARY KEY | 기록 고유 ID |
-| habit_id | UUID | NOT NULL, FK → habits | 습관 ID |
-| date | DATE | NOT NULL | 기록 날짜 |
-| completed | BOOLEAN | NOT NULL, DEFAULT false | 완료 여부 |
-| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | 생성일시 |
-| updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | 수정일시 |
+| 컬럼명     | 타입        | 제약조건                | 설명         |
+| ---------- | ----------- | ----------------------- | ------------ |
+| id         | UUID        | PRIMARY KEY             | 기록 고유 ID |
+| habit_id   | UUID        | NOT NULL, FK → habits   | 습관 ID      |
+| date       | DATE        | NOT NULL                | 기록 날짜    |
+| completed  | BOOLEAN     | NOT NULL, DEFAULT false | 완료 여부    |
+| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | 생성일시     |
+| updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | 수정일시     |
 
 **제약조건:**
 
@@ -1064,33 +1077,33 @@ Response: {
 
 #### `user_stats` 테이블
 
-| 컬럼명 | 타입 | 제약조건 | 설명 |
-|--------|------|----------|------|
-| id | UUID | PRIMARY KEY | 통계 고유 ID |
-| user_id | UUID | NOT NULL, FK → auth.users | 사용자 ID |
-| total_xp | INTEGER | NOT NULL, DEFAULT 0 | 총 경험치 |
-| current_level | INTEGER | NOT NULL, DEFAULT 1 | 현재 레벨 |
-| total_habits | INTEGER | NOT NULL, DEFAULT 0 | 총 습관 개수 |
-| total_completions | INTEGER | NOT NULL, DEFAULT 0 | 총 완료 횟수 |
-| longest_streak | INTEGER | NOT NULL, DEFAULT 0 | 최장 연속 달성 일수 |
-| updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | 수정일시 |
+| 컬럼명            | 타입        | 제약조건                  | 설명                |
+| ----------------- | ----------- | ------------------------- | ------------------- |
+| id                | UUID        | PRIMARY KEY               | 통계 고유 ID        |
+| user_id           | UUID        | NOT NULL, FK → auth.users | 사용자 ID           |
+| total_xp          | INTEGER     | NOT NULL, DEFAULT 0       | 총 경험치           |
+| current_level     | INTEGER     | NOT NULL, DEFAULT 1       | 현재 레벨           |
+| total_habits      | INTEGER     | NOT NULL, DEFAULT 0       | 총 습관 개수        |
+| total_completions | INTEGER     | NOT NULL, DEFAULT 0       | 총 완료 횟수        |
+| longest_streak    | INTEGER     | NOT NULL, DEFAULT 0       | 최장 연속 달성 일수 |
+| updated_at        | TIMESTAMPTZ | NOT NULL, DEFAULT now()   | 수정일시            |
 
 #### `achievement_definitions` 테이블 (배지 정의)
 
-| 컬럼명 | 타입 | 제약조건 | 설명 |
-|--------|------|----------|------|
-| id | UUID | PRIMARY KEY | 배지 정의 고유 ID |
-| code | TEXT | NOT NULL, UNIQUE | 배지 코드 (badge_7days, badge_30days 등) |
-| name | TEXT | NOT NULL | 배지 이름 |
-| description | TEXT | NOT NULL | 배지 설명 |
-| icon_type | TEXT | NOT NULL, DEFAULT 'emoji' | 아이콘 타입 (emoji, svg, image_url) |
-| icon_value | TEXT | NOT NULL | 아이콘 값 (이모지, SVG 코드, 이미지 URL) |
-| condition_type | TEXT | NOT NULL | 조건 타입 (streak_days, completion_rate, total_completions 등) |
-| condition_value | INTEGER | NOT NULL | 조건 값 |
-| is_active | BOOLEAN | NOT NULL, DEFAULT true | 활성화 여부 |
-| display_order | INTEGER | NOT NULL, DEFAULT 0 | 표시 순서 |
-| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | 생성일시 |
-| updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | 수정일시 |
+| 컬럼명          | 타입        | 제약조건                  | 설명                                                           |
+| --------------- | ----------- | ------------------------- | -------------------------------------------------------------- |
+| id              | UUID        | PRIMARY KEY               | 배지 정의 고유 ID                                              |
+| code            | TEXT        | NOT NULL, UNIQUE          | 배지 코드 (badge_7days, badge_30days 등)                       |
+| name            | TEXT        | NOT NULL                  | 배지 이름                                                      |
+| description     | TEXT        | NOT NULL                  | 배지 설명                                                      |
+| icon_type       | TEXT        | NOT NULL, DEFAULT 'emoji' | 아이콘 타입 (emoji, svg, image_url)                            |
+| icon_value      | TEXT        | NOT NULL                  | 아이콘 값 (이모지, SVG 코드, 이미지 URL)                       |
+| condition_type  | TEXT        | NOT NULL                  | 조건 타입 (streak_days, completion_rate, total_completions 등) |
+| condition_value | INTEGER     | NOT NULL                  | 조건 값                                                        |
+| is_active       | BOOLEAN     | NOT NULL, DEFAULT true    | 활성화 여부                                                    |
+| display_order   | INTEGER     | NOT NULL, DEFAULT 0       | 표시 순서                                                      |
+| created_at      | TIMESTAMPTZ | NOT NULL, DEFAULT now()   | 생성일시                                                       |
+| updated_at      | TIMESTAMPTZ | NOT NULL, DEFAULT now()   | 수정일시                                                       |
 
 **배지 아이콘 관리 전략:**
 
@@ -1103,13 +1116,13 @@ Response: {
 
 #### `user_achievements` 테이블 (사용자 배지 획득 기록)
 
-| 컬럼명 | 타입 | 제약조건 | 설명 |
-|--------|------|----------|------|
-| id | UUID | PRIMARY KEY | 업적 고유 ID |
-| user_id | UUID | NOT NULL, FK → auth.users | 사용자 ID |
-| achievement_id | UUID | NOT NULL, FK → achievement_definitions | 배지 정의 ID |
-| earned_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | 획득일시 |
-| metadata | JSONB | | 업적 관련 추가 정보 (습관 ID, 달성 수치 등) |
+| 컬럼명         | 타입        | 제약조건                               | 설명                                        |
+| -------------- | ----------- | -------------------------------------- | ------------------------------------------- |
+| id             | UUID        | PRIMARY KEY                            | 업적 고유 ID                                |
+| user_id        | UUID        | NOT NULL, FK → auth.users              | 사용자 ID                                   |
+| achievement_id | UUID        | NOT NULL, FK → achievement_definitions | 배지 정의 ID                                |
+| earned_at      | TIMESTAMPTZ | NOT NULL, DEFAULT now()                | 획득일시                                    |
+| metadata       | JSONB       |                                        | 업적 관련 추가 정보 (습관 ID, 달성 수치 등) |
 
 **habits 테이블 확장:**
 
@@ -1151,4 +1164,3 @@ INSERT INTO achievement_definitions (code, name, description, icon_type, icon_va
 - 배지 수정: 조건 변경 시 `condition_value` 업데이트
 - 배지 비활성화: `is_active = false` 설정 (기존 획득 기록은 유지)
 - 배지 삭제: 비활성화 후 일정 기간 후 삭제 (또는 soft delete)
-
