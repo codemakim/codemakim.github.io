@@ -14,187 +14,310 @@ seriesOrder: 11
 
 ---
 
-## 로딩 및 에러 처리
+## 로딩 및 에러 처리란?
 
-로딩 및 에러 처리
-Protected Routes
+라우트 전환 시 발생할 수 있는 두 가지 상황을 처리한다:
 
-### 1. 기본 인증 가드
+1. **로딩**: 컴포넌트나 데이터를 불러오는 동안 표시할 내용
+2. **에러**: 컴포넌트 로드 실패나 런타임 에러 처리
+
+이를 통해 사용자에게 부드러운 경험을 제공하고 문제 발생 시에도 앱이 멈추지 않도록 한다.
+
+## Suspense와 Lazy Loading
+
+### 1. React.lazy()로 컴포넌트 분할
+
+대용량 컴포넌트를 분할하여 초기 로딩 속도를 개선한다:
 
 ```jsx
-import { Navigate } from "react-router-dom";
-function ProtectedRoute({ children }) {
-  const isAuthenticated = useAuth();
+import { Suspense, lazy } from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
+// 동적 import로 컴포넌트 로드
+const Home = lazy(() => import("./pages/Home"));
+const About = lazy(() => import("./pages/About"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
 
-  return children;
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Suspense fallback={<LoadingSpinner />}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+        </Routes>
+      </Suspense>
+    </BrowserRouter>
+  );
 }
-// 사용
-<Route
-  path="/dashboard"
-  element={
-    <ProtectedRoute>
-      <Dashboard />
-    </ProtectedRoute>
-  }
-/>;
+
+function LoadingSpinner() {
+  return (
+    <div className="loading-spinner">
+      <div>Loading...</div>
+    </div>
+  );
+}
 ```
 
-### 2. 로그인 페이지로 리다이렉트 (이전 경로 기억)
+**동작 과정**:
+1. 사용자가 `/dashboard` 접근
+2. Dashboard 컴포넌트 로드 시작
+3. 로드 중에는 `LoadingSpinner` 표시
+4. 로드 완료 후 Dashboard 렌더링
+
+**장점**:
+- 초기 번들 크기 감소 (필요한 페이지만 로드)
+- 빠른 첫 페이지 로딩
+- 사용자가 방문하지 않는 페이지는 로드하지 않음
+
+### 2. 로딩 UI 커스터마이징
 
 ```jsx
-import { Navigate, useLocation } from "react-router-dom";
-function ProtectedRoute({ children }) {
-  const isAuthenticated = useAuth();
-  const location = useLocation();
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
-  return children;
+function LoadingSpinner() {
+  return (
+    <div style={{ 
+      display: "flex", 
+      justifyContent: "center", 
+      alignItems: "center", 
+      height: "100vh" 
+    }}>
+      <div className="spinner">
+        <p>페이지를 불러오는 중...</p>
+      </div>
+    </div>
+  );
 }
 ```
 
-### 3. 역할 기반 접근 제어 (RBAC)
+### 3. 라우트별 다른 로딩 UI
 
 ```jsx
-function ProtectedRoute({ children, requiredRole }) {
-  const { isAuthenticated, user } = useAuth();
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (requiredRole && user.role !== requiredRole) {
-    return <Navigate to="/unauthorized" replace />;
-  }
-
-  return children;
-}
-// 사용
-<Route
-  path="/admin"
-  element={
-    <ProtectedRoute requiredRole="admin">
-      <AdminPanel />
-    </ProtectedRoute>
-  }
-/>;
+<Suspense fallback={<SimpleLoader />}>
+  <Routes>
+    <Route path="/" element={<Home />} />
+    <Route path="/about" element={<About />} />
+    
+    <Route 
+      path="/dashboard" 
+      element={
+        <Suspense fallback={<DashboardSkeleton />}>
+          <Dashboard />
+        </Suspense>
+      } 
+    />
+  </Routes>
+</Suspense>
 ```
 
-### 4. 복수 역할 지원
+**중첩 Suspense**: 내부 Suspense가 특정 라우트에만 적용된다.
+
+## 에러 바운더리 (Error Boundary)
+
+### 1. ErrorBoundary 클래스 컴포넌트
+
+컴포넌트 렌더링 중 발생하는 에러를 캐치한다:
 
 ```jsx
-function ProtectedRoute({ children, allowedRoles = [] }) {
-  const { isAuthenticated, user } = useAuth();
+import { Component } from "react";
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
   }
 
-  if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/unauthorized" replace />;
+  static getDerivedStateFromError(error) {
+    // 에러 발생 시 state 업데이트
+    return { hasError: true, error };
   }
 
-  return children;
+  componentDidCatch(error, errorInfo) {
+    // 에러 로깅
+    console.error("Error caught by boundary:", error, errorInfo);
+    // 실제 프로덕션에서는 에러 리포팅 서비스로 전송
+    // logErrorToService(error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div>
+          <h1>Something went wrong</h1>
+          <p>{this.state.error?.message}</p>
+          <button onClick={() => window.location.reload()}>
+            Reload
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
 }
-// 사용
-<Route
-  path="/dashboard"
-  element={
-    <ProtectedRoute allowedRoles={["admin", "editor"]}>
-      <Dashboard />
-    </ProtectedRoute>
-  }
-/>;
 ```
 
-### 5. 권한 체크 Hook
+### 2. 라우터에 ErrorBoundary 적용
 
 ```jsx
-function useAuth() {
-  const [auth, setAuth] = useState({
-    isAuthenticated: false,
-    user: null,
-    loading: true,
-  });
+<BrowserRouter>
+  <ErrorBoundary>
+    <Suspense fallback={<LoadingSpinner />}>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/about" element={<About />} />
+      </Routes>
+    </Suspense>
+  </ErrorBoundary>
+</BrowserRouter>
+```
+
+**보호 범위**: 하위 컴포넌트에서 발생하는 모든 렌더링 에러를 캐치한다.
+
+### 3. 라우트별 ErrorBoundary
+
+각 라우트마다 다른 에러 처리를 할 수 있다:
+
+```jsx
+<Routes>
+  <Route 
+    path="/dashboard" 
+    element={
+      <ErrorBoundary fallback={<DashboardError />}>
+        <Dashboard />
+      </ErrorBoundary>
+    } 
+  />
+  <Route 
+    path="/profile" 
+    element={
+      <ErrorBoundary fallback={<ProfileError />}>
+        <Profile />
+      </ErrorBoundary>
+    } 
+  />
+</Routes>
+```
+
+## 404 Not Found 처리
+
+매칭되는 라우트가 없을 때 표시할 페이지:
+
+```jsx
+<Routes>
+  <Route path="/" element={<Home />} />
+  <Route path="/about" element={<About />} />
+  <Route path="*" element={<NotFound />} />
+</Routes>
+
+function NotFound() {
+  const navigate = useNavigate();
+
+  return (
+    <div>
+      <h1>404 - 페이지를 찾을 수 없다</h1>
+      <p>요청하신 페이지가 존재하지 않는다.</p>
+      <button onClick={() => navigate(-1)}>뒤로 가기</button>
+      <Link to="/">홈으로 이동</Link>
+    </div>
+  );
+}
+```
+
+## 데이터 로딩 패턴
+
+### 컴포넌트 내에서 데이터 로드
+
+```jsx
+function UserProfile() {
+  const { userId } = useParams();
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    checkAuth()
-      .then((user) => {
-        setAuth({ isAuthenticated: true, user, loading: false });
+    setLoading(true);
+    setError(null);
+
+    fetch(`/api/users/${userId}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("User not found");
+        return res.json();
       })
-      .catch(() => {
-        setAuth({ isAuthenticated: false, user: null, loading: false });
+      .then((data) => {
+        setUser(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err);
+        setLoading(false);
       });
-  }, []);
+  }, [userId]);
 
-  return auth;
+  if (loading) return <LoadingSpinner />;
+  if (error) return <ErrorMessage error={error} />;
+  if (!user) return <NotFound />;
+
+  return (
+    <div>
+      <h1>{user.name}</h1>
+      <p>{user.email}</p>
+    </div>
+  );
 }
-function ProtectedRoute({ children }) {
-  const { isAuthenticated, loading } = useAuth();
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return children;
+function ErrorMessage({ error }) {
+  return (
+    <div style={{ color: "red" }}>
+      <h2>에러 발생</h2>
+      <p>{error.message}</p>
+    </div>
+  );
 }
 ```
 
-### Vue Router와 비교
+**3가지 상태 처리**:
+1. **loading**: 데이터 로드 중
+2. **error**: 에러 발생
+3. **success**: 데이터 로드 완료
 
-```javascript
-// Vue Router: Navigation Guards
-router.beforeEach((to, from, next) => {
-  const isAuthenticated = store.state.isAuthenticated;
+## 실전 조합 패턴
 
-  if (to.meta.requiresAuth && !isAuthenticated) {
-    next("/login");
-  } else {
-    next();
-  }
-});
-const routes = [
-  {
-    path: "/dashboard",
-    component: Dashboard,
-    meta: { requiresAuth: true, role: "admin" },
-  },
-];
-```
+모든 기법을 조합한 완전한 예시:
 
 ```jsx
-// React Router: Protected Route Component
-function ProtectedRoute({ children, requiredRole }) {
-  const { isAuthenticated, user } = useAuth();
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (requiredRole && user.role !== requiredRole) {
-    return <Navigate to="/unauthorized" replace />;
-  }
-
-  return children;
-}
-<Route
-  path="/dashboard"
-  element={
-    <ProtectedRoute requiredRole="admin">
-      <Dashboard />
-    </ProtectedRoute>
-  }
-/>;
+<BrowserRouter>
+  <ErrorBoundary>
+    <Suspense fallback={<GlobalLoader />}>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        
+        <Route
+          path="/dashboard"
+          element={
+            <ErrorBoundary fallback={<DashboardError />}>
+              <Suspense fallback={<DashboardLoader />}>
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              </Suspense>
+            </ErrorBoundary>
+          }
+        />
+        
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Suspense>
+  </ErrorBoundary>
+</BrowserRouter>
 ```
+
+**계층 구조**:
+1. ErrorBoundary: 전체 앱 에러 캐치
+2. Suspense: 라우트 컴포넌트 로딩
+3. ProtectedRoute: 인증 체크
+4. 실제 페이지 컴포넌트
 
 ---

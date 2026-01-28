@@ -1,192 +1,49 @@
 ---
-title: "[React Router 9/9] React Router - 실전 예제 & 다음 단계"
+title: "[React Router 9/9] React Router - 실전 예제"
 date: "2025-08-23"
-description: "블로그 애플리케이션 구현 및 학습 체크리스트"
+description: "블로그 애플리케이션 완전 구현 예제"
 tags: ["React", "고급", "프론트엔드"]
 series: "React 라이브러리"
 seriesOrder: 13
 ---
 
-# React Router 가이드 - 실전 예제 & 다음 단계
+# React Router 가이드 - 실전 예제
 
 > React Router v6를 기반으로 한 라우팅 학습 자료  
 > 출처: [React Router Documentation](https://reactrouter.com/)
 
 ---
 
-## 실전 예제 & 다음 단계
-
-실전 예제 & 다음 단계
-고급 패턴
-
-### 1. Route 구성 분리
-
-```jsx
-// routes/index.jsx
-import { lazy } from "react";
-const Home = lazy(() => import("../pages/Home"));
-const About = lazy(() => import("../pages/About"));
-const Dashboard = lazy(() => import("../pages/Dashboard"));
-export const routes = [
-  {
-    path: "/",
-    element: <Layout />,
-    children: [
-      { index: true, element: <Home /> },
-      { path: "about", element: <About /> },
-      {
-        path: "dashboard",
-        element: (
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        ),
-      },
-    ],
-  },
-];
-// App.jsx
-import { useRoutes } from "react-router-dom";
-import { routes } from "./routes";
-export default function App() {
-  const element = useRoutes(routes);
-  return element;
-}
-```
-
-### 2. Breadcrumbs
-
-```jsx
-import { useMatches, Link } from "react-router-dom";
-function Breadcrumbs() {
-  const matches = useMatches();
-
-  const crumbs = matches
-    .filter((match) => match.handle?.crumb)
-    .map((match) => match.handle.crumb(match.data));
-
-  return (
-    <nav>
-      {crumbs.map((crumb, index) => (
-        <span key={index}>
-          {index > 0 && " > "}
-          {crumb}
-        </span>
-      ))}
-    </nav>
-  );
-}
-// 라우트 설정
-<Route
-  path="/users/:userId"
-  element={<User />}
-  handle={{
-    crumb: (data) => <Link to={`/users/${data.userId}`}>{data.name}</Link>,
-  }}
-/>;
-```
-
-### 3. Scroll Restoration
-
-```jsx
-import { useEffect } from "react";
-import { useLocation } from "react-router-dom";
-function ScrollToTop() {
-  const { pathname } = useLocation();
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [pathname]);
-
-  return null;
-}
-// App.jsx
-<BrowserRouter>
-  <ScrollToTop />
-  <Routes>{/* ... */}</Routes>
-</BrowserRouter>;
-```
-
-### 4. Route-based Code Splitting
-
-```jsx
-import { lazy, Suspense } from "react";
-const routes = [
-  {
-    path: "/",
-    element: <Layout />,
-    children: [
-      {
-        index: true,
-        element: <Home />,
-      },
-      {
-        path: "admin",
-        element: (
-          <Suspense fallback={<Loading />}>
-            {lazy(() => import("./pages/admin/AdminLayout"))}
-          </Suspense>
-        ),
-        children: [
-          {
-            index: true,
-            element: lazy(() => import("./pages/admin/Dashboard")),
-          },
-          {
-            path: "users",
-            element: lazy(() => import("./pages/admin/Users")),
-          },
-        ],
-      },
-    ],
-  },
-];
-```
-
-### 5. Modal Routes
-
-```jsx
-function App() {
-  const location = useLocation();
-  const state = location.state;
-  return (
-    <>
-      <Routes location={state?.backgroundLocation || location}>
-        <Route path="/" element={<Home />} />
-        <Route path="/gallery" element={<Gallery />} />
-      </Routes>
-      {state?.backgroundLocation && (
-        <Routes>
-          <Route path="/img/:id" element={<ImageModal />} />
-        </Routes>
-      )}
-    </>
-  );
-}
-function Gallery() {
-  const location = useLocation();
-  return (
-    <div>
-      {images.map((img) => (
-        <Link
-          key={img.id}
-          to={`/img/${img.id}`}
-          state={{ backgroundLocation: location }}
-        >
-          <img src={img.thumbnail} alt={img.title} />
-        </Link>
-      ))}
-    </div>
-  );
-}
-```
-
----
-
 ## 실전 예제: 블로그 애플리케이션
 
+지금까지 학습한 모든 개념을 활용하여 완전한 블로그 애플리케이션을 구현한다.
+
+### 1. 프로젝트 구조
+
+```
+src/
+├── components/
+│   ├── Layout.jsx          # 공통 레이아웃
+│   ├── Navigation.jsx      # 네비게이션 바
+│   ├── ProtectedRoute.jsx  # 인증 가드
+│   └── LoadingSpinner.jsx  # 로딩 UI
+├── pages/
+│   ├── Home.jsx            # 홈 페이지
+│   ├── PostList.jsx        # 포스트 목록
+│   ├── PostDetail.jsx      # 포스트 상세
+│   ├── CreatePost.jsx      # 포스트 작성
+│   ├── EditPost.jsx        # 포스트 수정
+│   ├── Login.jsx           # 로그인
+│   ├── Profile.jsx         # 프로필
+│   └── NotFound.jsx        # 404 페이지
+├── hooks/
+│   └── useAuth.js          # 인증 Hook
+└── App.jsx                 # 메인 앱
+```
+
+### 2. App.jsx - 라우트 설정
+
 ```jsx
-// App.jsx
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Suspense, lazy } from "react";
 
@@ -205,10 +62,15 @@ export default function App() {
     <BrowserRouter>
       <Suspense fallback={<LoadingScreen />}>
         <Routes>
+          {/* 공통 레이아웃 */}
           <Route path="/" element={<Layout />}>
+            {/* 홈 페이지 */}
             <Route index element={<Home />} />
+            
+            {/* 인증 */}
             <Route path="login" element={<Login />} />
 
+            {/* 포스트 관련 */}
             <Route path="posts">
               <Route index element={<PostList />} />
               <Route path=":postId" element={<PostDetail />} />
@@ -230,6 +92,7 @@ export default function App() {
               />
             </Route>
 
+            {/* 프로필 (인증 필요) */}
             <Route
               path="profile"
               element={
@@ -239,6 +102,7 @@ export default function App() {
               }
             />
 
+            {/* 404 */}
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
@@ -246,6 +110,305 @@ export default function App() {
     </BrowserRouter>
   );
 }
+
+function LoadingScreen() {
+  return <div className="loading">페이지를 불러오는 중...</div>;
+}
 ```
+
+**라우트 구조 설명**:
+- `/` - 홈 페이지
+- `/login` - 로그인 (공개)
+- `/posts` - 포스트 목록 (공개)
+- `/posts/:postId` - 포스트 상세 (공개)
+- `/posts/new` - 포스트 작성 (인증 필요)
+- `/posts/:postId/edit` - 포스트 수정 (인증 필요)
+- `/profile` - 프로필 (인증 필요)
+
+### 3. Layout.jsx - 공통 레이아웃
+
+```jsx
+import { Outlet } from "react-router-dom";
+import Navigation from "./Navigation";
+
+export default function Layout() {
+  return (
+    <div className="app">
+      <Navigation />
+      <main>
+        <Outlet />
+      </main>
+      <footer>
+        <p>© 2025 My Blog</p>
+      </footer>
+    </div>
+  );
+}
+```
+
+### 4. Navigation.jsx - 네비게이션
+
+```jsx
+import { Link, NavLink } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
+
+export default function Navigation() {
+  const { isAuthenticated, user, logout } = useAuth();
+
+  return (
+    <nav>
+      <h1>My Blog</h1>
+      <ul>
+        <li>
+          <NavLink to="/" end>Home</NavLink>
+        </li>
+        <li>
+          <NavLink to="/posts">Posts</NavLink>
+        </li>
+        
+        {isAuthenticated ? (
+          <>
+            <li>
+              <NavLink to="/posts/new">New Post</NavLink>
+            </li>
+            <li>
+              <NavLink to="/profile">{user.name}</NavLink>
+            </li>
+            <li>
+              <button onClick={logout}>Logout</button>
+            </li>
+          </>
+        ) : (
+          <li>
+            <NavLink to="/login">Login</NavLink>
+          </li>
+        )}
+      </ul>
+    </nav>
+  );
+}
+```
+
+### 5. PostList.jsx - 포스트 목록
+
+```jsx
+import { Link, useSearchParams } from "react-router-dom";
+import { useState, useEffect } from "react";
+
+export default function PostList() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [posts, setPosts] = useState([]);
+  
+  const category = searchParams.get("category") || "all";
+  const sort = searchParams.get("sort") || "date";
+
+  useEffect(() => {
+    fetch(`/api/posts?category=${category}&sort=${sort}`)
+      .then(res => res.json())
+      .then(setPosts);
+  }, [category, sort]);
+
+  return (
+    <div>
+      <h1>Posts</h1>
+      
+      {/* 필터링 */}
+      <div>
+        <select 
+          value={category} 
+          onChange={e => setSearchParams({ category: e.target.value, sort })}
+        >
+          <option value="all">All</option>
+          <option value="tech">Tech</option>
+          <option value="life">Life</option>
+        </select>
+        
+        <select 
+          value={sort} 
+          onChange={e => setSearchParams({ category, sort: e.target.value })}
+        >
+          <option value="date">Latest</option>
+          <option value="title">Title</option>
+        </select>
+      </div>
+
+      {/* 포스트 목록 */}
+      <ul>
+        {posts.map(post => (
+          <li key={post.id}>
+            <Link to={`/posts/${post.id}`}>
+              <h2>{post.title}</h2>
+              <p>{post.excerpt}</p>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+```
+
+### 6. PostDetail.jsx - 포스트 상세
+
+```jsx
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useAuth } from "../hooks/useAuth";
+
+export default function PostDetail() {
+  const { postId } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [post, setPost] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`/api/posts/${postId}`)
+      .then(res => res.json())
+      .then(data => {
+        setPost(data);
+        setLoading(false);
+      })
+      .catch(() => {
+        setLoading(false);
+      });
+  }, [postId]);
+
+  async function handleDelete() {
+    if (!confirm("정말 삭제하겠는가")) return;
+    
+    await fetch(`/api/posts/${postId}`, { method: "DELETE" });
+    navigate("/posts", { 
+      replace: true,
+      state: { message: "포스트가 삭제되었다" }
+    });
+  }
+
+  if (loading) return <div>Loading...</div>;
+  if (!post) return <div>포스트를 찾을 수 없다</div>;
+
+  const isAuthor = user?.id === post.authorId;
+
+  return (
+    <article>
+      <h1>{post.title}</h1>
+      <p>작성자: {post.author}</p>
+      <p>작성일: {post.date}</p>
+      
+      <div>{post.content}</div>
+
+      {isAuthor && (
+        <div>
+          <Link to={`/posts/${postId}/edit`}>수정</Link>
+          <button onClick={handleDelete}>삭제</button>
+        </div>
+      )}
+      
+      <Link to="/posts">목록으로</Link>
+    </article>
+  );
+}
+```
+
+### 7. ProtectedRoute.jsx - 인증 가드
+
+```jsx
+import { Navigate, useLocation } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
+
+export default function ProtectedRoute({ children }) {
+  const { isAuthenticated, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return <div>인증 확인 중...</div>;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return children;
+}
+```
+
+### 8. Login.jsx - 로그인 페이지
+
+```jsx
+import { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
+
+export default function Login() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
+  
+  const from = location.state?.from?.pathname || "/";
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    
+    const success = await login(email, password);
+    
+    if (success) {
+      navigate(from, { replace: true });
+    } else {
+      alert("로그인 실패");
+    }
+  }
+
+  return (
+    <div>
+      <h1>Login</h1>
+      <form onSubmit={handleSubmit}>
+        <input
+          type="email"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          placeholder="Email"
+        />
+        <input
+          type="password"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          placeholder="Password"
+        />
+        <button type="submit">Login</button>
+      </form>
+    </div>
+  );
+}
+```
+
+## 핵심 기능 정리
+
+이 예제에서 사용한 React Router 기능:
+
+1. **중첩 라우트**: Layout 안에 페이지들을 중첩
+2. **동적 라우트**: `:postId`로 동적 파라미터 처리
+3. **Protected Routes**: 인증이 필요한 페이지 보호
+4. **쿼리 스트링**: 필터링과 정렬 상태 관리
+5. **프로그래밍 방식 네비게이션**: 삭제 후 목록으로 이동
+6. **Lazy Loading**: 모든 페이지를 lazy로 로드
+7. **이전 경로 기억**: 로그인 후 원래 페이지로 복귀
+
+## 다음 단계
+
+### 더 학습할 내용
+
+1. **TanStack Router**: 타입 안전 라우터
+2. **React Router Data APIs**: loader와 action 활용
+3. **Server-Side Rendering**: Next.js로 SSR 구현
+4. **상태 관리와 라우팅**: Redux, Zustand와 통합
+
+### 추천 실습
+
+1. 댓글 기능 추가 (중첩 라우트 활용)
+2. 페이지네이션 구현 (쿼리 스트링)
+3. 카테고리별 페이지 (동적 라우트)
+4. 관리자 페이지 (역할 기반 접근 제어)
 
 ---

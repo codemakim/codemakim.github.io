@@ -14,131 +14,207 @@ seriesOrder: 7
 
 ---
 
-## 동적 라우트
+## 동적 라우트란?
 
-동적 라우트
-중첩 라우트
+동적 라우트는 URL의 일부분을 변수로 사용하는 패턴이다. 예를 들어 `/users/1`, `/users/2`, `/users/3` 같은 수많은 경로를 하나의 라우트 정의로 처리할 수 있다.
 
-### 1. Layout 패턴
+**사용 예시**:
+- 사용자 프로필: `/users/:userId`
+- 블로그 포스트: `/posts/:postId`
+- 상품 상세: `/products/:category/:productId`
+
+## URL 파라미터
+
+### 1. 파라미터 정의
+
+콜론(`:`)을 사용하여 동적 파라미터를 정의한다:
 
 ```jsx
-// App.jsx
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Layout from "./components/Layout";
-import Home from "./pages/Home";
-import About from "./pages/About";
-import Blog from "./pages/Blog";
-import Post from "./pages/Post";
-export default function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Home />} />
-          <Route path="about" element={<About />} />
-          <Route path="blog" element={<Blog />} />
-          <Route path="blog/:postId" element={<Post />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
-  );
-}
+// 라우트 정의
+<Route path="/users/:userId" element={<User />} />
+<Route path="/posts/:postId" element={<Post />} />
+<Route path="/products/:category/:productId" element={<Product />} />
 ```
 
-### 2. Layout 컴포넌트
+**매칭 예시**:
+- `/users/123` → `userId`가 `"123"`
+- `/posts/hello-world` → `postId`가 `"hello-world"`
+- `/products/electronics/laptop-pro` → `category`가 `"electronics"`, `productId`가 `"laptop-pro"`
+
+### 2. useParams로 파라미터 읽기
+
+`useParams` Hook을 사용하여 URL 파라미터를 가져온다:
 
 ```jsx
-// components/Layout.jsx
-import { Outlet, Link } from "react-router-dom";
-export default function Layout() {
+// pages/User.jsx
+import { useParams } from "react-router-dom";
+
+export default function User() {
+  const { userId } = useParams();
+
   return (
     <div>
-      <header>
-        <nav>
-          <Link to="/">Home</Link>
-          <Link to="/about">About</Link>
-          <Link to="/blog">Blog</Link>
-        </nav>
-      </header>
-
-      <main>
-        <Outlet /> {/* 자식 라우트가 여기에 렌더링됨 */}
-      </main>
-
-      <footer>
-        <p>© 2025 My App</p>
-      </footer>
+      <h1>User Profile</h1>
+      <p>User ID: {userId}</p>
     </div>
   );
 }
 ```
 
-### 3. 다단계 중첩
+**동작 과정**:
+1. 사용자가 `/users/123`에 접근한다
+2. React Router가 `:userId`를 `"123"`으로 추출한다
+3. `useParams()`가 `{ userId: "123" }` 객체를 반환한다
+
+### 3. 복수 파라미터 사용
+
+여러 파라미터를 동시에 사용할 수 있다:
 
 ```jsx
-<Routes>
-  <Route path="/" element={<Layout />}>
-    <Route index element={<Home />} />
+// pages/Product.jsx
+import { useParams } from "react-router-dom";
 
-    <Route path="dashboard" element={<DashboardLayout />}>
-      <Route index element={<DashboardHome />} />
-      <Route path="settings" element={<Settings />} />
-      <Route path="profile" element={<Profile />} />
-    </Route>
+export default function Product() {
+  const { category, productId } = useParams();
 
-    <Route path="admin" element={<AdminLayout />}>
-      <Route index element={<AdminHome />} />
-      <Route path="users" element={<Users />} />
-      <Route path="posts" element={<Posts />} />
-    </Route>
-  </Route>
-</Routes>
+  return (
+    <div>
+      <h1>Product Details</h1>
+      <p>Category: {category}</p>
+      <p>Product ID: {productId}</p>
+    </div>
+  );
+}
 ```
 
-### Index Route
+### 4. 데이터 페칭 예시
+
+실제로는 파라미터를 사용하여 API에서 데이터를 가져온다:
 
 ```jsx
-// index: 부모 경로와 동일한 경로에 렌더링
-<Route path="/" element={<Layout />}>
-  <Route index element={<Home />} /> {/* / */}
-  <Route path="about" element={<About />} /> {/* /about */}
-</Route>
+import { useParams } from "react-router-dom";
+import { useState, useEffect } from "react";
+
+export default function BlogPost() {
+  const { postId } = useParams();
+  const [post, setPost] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`/api/posts/${postId}`)
+      .then(res => res.json())
+      .then(data => {
+        setPost(data);
+        setLoading(false);
+      });
+  }, [postId]); // postId가 변경될 때마다 다시 fetch
+
+  if (loading) return <div>Loading...</div>;
+  if (!post) return <div>Post not found</div>;
+
+  return (
+    <article>
+      <h1>{post.title}</h1>
+      <p>{post.content}</p>
+    </article>
+  );
+}
 ```
 
-### Vue Router와 비교
+**주의사항**: `postId`가 변경될 때마다 useEffect가 다시 실행되어 새로운 데이터를 가져온다.
 
-```javascript
-// Vue Router: children
-const routes = [
-  {
-    path: "/",
-    component: Layout,
-    children: [
-      { path: "", component: Home },
-      { path: "about", component: About },
-      {
-        path: "dashboard",
-        component: DashboardLayout,
-        children: [
-          { path: "", component: DashboardHome },
-          { path: "settings", component: Settings },
-        ],
-      },
-    ],
-  },
-];
-```
+## Optional 파라미터
+
+파라미터를 선택적으로 만들 수 있다:
 
 ```jsx
-// React Router: Outlet
-<Route path="/" element={<Layout />}>
-  <Route index element={<Home />} />
-  <Route path="about" element={<About />} />
-  <Route path="dashboard" element={<DashboardLayout />}>
-    <Route index element={<DashboardHome />} />
-    <Route path="settings" element={<Settings />} />
-  </Route>
-</Route>
+<Route path="/users/:userId?" element={<Users />} />
+
+function Users() {
+  const { userId } = useParams();
+
+  if (userId) {
+    // userId가 있으면 특정 사용자 표시
+    return <UserDetail userId={userId} />;
+  }
+
+  // userId가 없으면 사용자 목록 표시
+  return <UserList />;
+}
+```
+
+**매칭 예시**:
+- `/users` → `userId`가 `undefined`, UserList 렌더링
+- `/users/123` → `userId`가 `"123"`, UserDetail 렌더링
+
+## Wildcard (\*)
+
+나머지 모든 경로를 캡처한다:
+
+```jsx
+<Route path="/docs/*" element={<Docs />} />
+
+function Docs() {
+  const params = useParams();
+  const path = params["*"]; // /docs/ 이후의 모든 경로
+
+  return <div>Docs path: {path}</div>;
+}
+```
+
+**매칭 예시**:
+- `/docs/getting-started` → `path`가 `"getting-started"`
+- `/docs/api/components` → `path`가 `"api/components"`
+
+## 실전 활용 팁
+
+### 1. 파라미터 유효성 검사
+
+```jsx
+function User() {
+  const { userId } = useParams();
+  
+  // 숫자가 아니면 에러 처리
+  if (isNaN(userId)) {
+    return <div>Invalid user ID</div>;
+  }
+
+  // ...
+}
+```
+
+### 2. 여러 파라미터 조합
+
+```jsx
+// 경로: /blog/:year/:month/:day/:slug
+<Route path="/blog/:year/:month/:day/:slug" element={<BlogPost />} />
+
+function BlogPost() {
+  const { year, month, day, slug } = useParams();
+  // /blog/2025/08/15/react-router-guide
+  // year: "2025", month: "08", day: "15", slug: "react-router-guide"
+}
+```
+
+### 3. 파라미터를 Link에 활용
+
+```jsx
+function UserList() {
+  const users = [
+    { id: 1, name: "Alice" },
+    { id: 2, name: "Bob" },
+  ];
+
+  return (
+    <ul>
+      {users.map(user => (
+        <li key={user.id}>
+          <Link to={`/users/${user.id}`}>{user.name}</Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
 ```
 
 ---
