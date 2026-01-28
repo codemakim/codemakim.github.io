@@ -16,61 +16,208 @@ seriesOrder: 2
 
 ## 쿼리 기초
 
-쿼리 기초
-설치 및 설정
+쿼리는 “서버에서 데이터를 읽는 작업”을 표현한다. React Query에서 쿼리의 실무 목표는 다음이다.
 
-### 설치
+- 같은 데이터를 여러 곳에서 쓰더라도 요청을 중복하지 않는다.
+- 캐시를 재사용하되, 신선도 규칙으로 최신성을 유지한다.
+- 에러/재시도/취소를 표준화한다.
+- 페이지네이션/필터 같은 “입력값”을 queryKey로 모델링한다.
 
-```bash
-npm install @tanstack/react-query
-npm install @tanstack/react-query-devtools
-```
+설치/QueryClient 설정은 1편에서 다룬다. 이 글은 `useQuery` 중심으로 “쿼리가 어떻게 동작하는지”를 잡는다.
 
-### 기본 설정
+---
 
-```jsx
-// App.jsx
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5, // 5분
-      cacheTime: 1000 * 60 * 10, // 10분
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
-export default function App() {
+## 1. `useQuery`의 최소 형태
+
+`useQuery`는 두 가지를 요구한다.
+
+- `queryKey`: 캐시의 주소
+- `queryFn`: 데이터를 가져오는 함수(실패 시 throw)
+
+```tsx
+import { useQuery } from "@tanstack/react-query";
+
+type User = { id: string; name: string };
+
+async function fetchUsers(): Promise<User[]> {
+  const res = await fetch("/api/users");
+  if (!res.ok) throw new Error("failed");
+  return await res.json();
+}
+
+export function Users() {
+  const query = useQuery({
+    queryKey: ["users"],
+    queryFn: fetchUsers,
+  });
+
+  if (query.isPending) return <div>loading...</div>;
+  if (query.isError) return <div>error</div>;
   return (
-    <QueryClientProvider client={queryClient}>
-      <YourApp />
-      <ReactQueryDevtools initialIsOpen={false} />
-    </QueryClientProvider>
+    <ul>
+      {query.data.map((u) => (
+        <li key={u.id}>{u.name}</li>
+      ))}
+    </ul>
   );
 }
 ```
 
-### QueryClient 옵션
+여기서 `query.isPending`은 “초기 로딩(데이터 없음 + 로딩 중)”을 의미한다. `query.isFetching`은 “백그라운드 리페칭까지 포함한 네트워크 진행 상태”다.
 
-```javascript
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5, // 데이터가 stale되기까지 시간
-      cacheTime: 1000 * 60 * 10, // 캐시 유지 시간
-      retry: 3, // 실패 시 재시도 횟수
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-      refetchOnWindowFocus: true, // 윈도우 포커스 시 리페치
-      refetchOnReconnect: true, // 네트워크 재연결 시 리페치
-      refetchOnMount: true, // 마운트 시 리페치
-    },
-    mutations: {
-      retry: 0, // 뮤테이션은 재시도 안함
-    },
-  },
-});
+---
+
+## 2. queryKey 설계 규칙
+
+queryKey는 배열이며, 다음 원칙이 실무에서 중요하다.
+
+- 첫 원소는 리소스 종류(명사)로 둔다. 예: `"users"`, `"posts"`
+- 이후 원소는 “입력값”을 둔다. 예: `userId`, `{ page, sort }`
+- 입력값이 다르면 다른 쿼리다. 즉 다른 캐시를 써야 한다.
+
+```tsx
+useQuery({ queryKey: ["user", userId], queryFn: () => fetchUser(userId) });
+useQuery({ queryKey: ["posts", { page, tag }], queryFn: () => fetchPosts({ page, tag }) });
 ```
+
+### 실무 포인트: queryKey에 함수/클래스/비결정적 값은 넣지 않는다
+
+queryKey는 직렬화 가능한 값으로 유지하는 편이 안전하다. 매 렌더마다 바뀌는 값이 들어가면 캐시가 무력화된다.
+
+---
+
+## 3. queryFn과 `signal`(취소 가능성)
+
+TanStack Query는 queryFn에 `AbortSignal`을 전달할 수 있다. 입력값이 바뀌는 검색 쿼리에서 특히 중요하다.
+
+```tsx
+import type { QueryFunctionContext } from "@tanstack/react-query";
+
+async function searchQueryFn({ queryKey, signal }: QueryFunctionContext) {
+  const [, q] = queryKey as ["search", string];
+  const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`, { signal });
+  if (!res.ok) throw new Error("failed");
+  return await res.json();
+}
+
+function Search() {
+  const [q, setQ] = useState("");
+
+  const query = useQuery({
+    queryKey: ["search", q],
+    queryFn: searchQueryFn,
+    enabled: q.length > 0,
+  });
+
+  return (
+    <div>
+      <input value={q} onChange={(e) => setQ(e.target.value)} />
+      {query.isFetching && <div>searching...</div>}
+    </div>
+  );
+}
+```
+
+`enabled`는 “조건부 실행”이다. 입력값이 준비되기 전에는 쿼리를 실행하지 않는다.
+
+---
+
+## 4. 상태 플래그를 실무적으로 해석한다
+
+React Query의 상태는 “UI에서 어떤 로딩을 보여줄지”를 결정하는 규칙이 된다.
+
+- `isPending`: 첫 로딩(아무 데이터도 없음)
+- `isFetching`: 네트워크 통신 중(백그라운드 포함)
+- `isRefetching`: 데이터가 있는 상태에서의 리페치
+
+실무 패턴은 보통 다음이다.
+
+- `isPending`이면 skeleton/전체 로딩
+- `isRefetching`이면 작은 인디케이터(기존 데이터는 유지)
+
+---
+
+## 5. 페이지네이션 기본 패턴(이전 데이터 유지)
+
+페이지가 바뀌면 queryKey가 바뀌므로 새로운 쿼리가 된다. 이때 화면이 깜빡이지 않게 “이전 데이터”를 유지한다.
+
+TanStack Query v5에서는 `placeholderData`를 함수로 두고 `keepPreviousData` 헬퍼를 쓰는 패턴이 흔하다.
+
+```tsx
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+
+function Posts({ page }: { page: number }) {
+  const query = useQuery({
+    queryKey: ["posts", { page }],
+    queryFn: () => fetch(`/api/posts?page=${page}`).then((r) => r.json()),
+    placeholderData: keepPreviousData,
+  });
+
+  if (query.isPending) return <div>loading...</div>;
+  return (
+    <div>
+      {query.isFetching && <div>refreshing...</div>}
+      <PostList posts={query.data.posts} />
+    </div>
+  );
+}
+```
+
+이 패턴은 “페이지가 바뀌는 순간 빈 화면이 뜨는 UX”를 막는다.
+
+---
+
+## 6. 병렬 쿼리: `useQueries`
+
+ID 목록이 주어졌을 때 상세를 동시에 가져오는 케이스가 있다. 이때 `useQueries`가 필요해진다.
+
+```tsx
+import { useQueries } from "@tanstack/react-query";
+
+function UserCards({ userIds }: { userIds: string[] }) {
+  const queries = useQueries({
+    queries: userIds.map((id) => ({
+      queryKey: ["user", id],
+      queryFn: () => fetch(`/api/users/${id}`).then((r) => r.json()),
+    })),
+  });
+
+  const pending = queries.some((q) => q.isPending);
+  if (pending) return <div>loading...</div>;
+
+  return (
+    <div>
+      {queries.map((q, i) => (
+        <UserCard key={userIds[i]} user={q.data} />
+      ))}
+    </div>
+  );
+}
+```
+
+### 실무 포인트: 리스트 API가 있으면 병렬 상세 호출을 피한다
+
+`useQueries`는 편하지만, N+1 요청이 되기 쉽다. 서버가 목록 API에서 필요한 필드를 충분히 내려주도록 설계하는 편이 더 낫다.
+
+---
+
+## Vue와 비교
+
+Vue Query도 동일한 모델을 가진다. 차이는 Vue에서 컴포저블로 queryKey 팩토리와 fetch 규칙을 어떻게 조직화하느냐로 나타난다.
+
+| 관심사 | Vue Query | React Query |
+| --- | --- | --- |
+| 기본 쿼리 | `useQuery({ queryKey, queryFn })` | `useQuery({ queryKey, queryFn })` |
+| 조건부 실행 | `enabled` | `enabled` |
+| 이전 데이터 유지 | placeholderData/옵션 | `placeholderData: keepPreviousData` |
+
+---
+
+## 체크리스트
+
+- queryKey가 캐시의 주소라는 의미를 설명할 수 있다.
+- 입력값(페이지/필터)이 queryKey에 들어가야 하는 이유를 설명할 수 있다.
+- `isPending`과 `isFetching`의 차이를 UI 관점으로 설명할 수 있다.
+- 검색/페이지네이션에서 `signal`과 `enabled`가 필요한 이유를 이해한다.
 
 ---
