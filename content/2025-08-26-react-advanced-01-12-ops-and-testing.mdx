@@ -1,0 +1,180 @@
+---
+title: "[React Router 12/12] React Router - 운영/배포/테스트"
+date: "2025-08-26"
+description: "정적 호스팅 새로고침 404, basename, 그리고 MemoryRouter/createMemoryRouter 기반 테스트 전략"
+tags: ["React", "고급", "프론트엔드"]
+series: "React 라이브러리"
+seriesOrder: 16
+---
+
+# React Router 가이드 - 운영/배포/테스트
+
+> React Router v6 기준으로 정리한다. Data Router 테스트는 v6.4+를 전제로 한다.  
+> 출처: [React Router Documentation](https://reactrouter.com/)
+
+---
+
+## 이 글이 필요한 이유
+
+라우팅은 로컬에서 잘 돌아가도 운영에서 바로 깨질 수 있다.
+
+- 정적 호스팅에서 새로고침하면 404가 뜬다.
+- GitHub Pages 같은 하위 경로 배포에서 경로가 꼬인다.
+- 라우팅 로직은 UI 테스트로 검증하지 않으면 리팩터링 때 회귀가 잦다.
+
+이 글은 “운영에서 안 깨지게 만들고, 테스트로 회귀를 막는다”를 목표로 한다.
+
+---
+
+## 1. 정적 호스팅 새로고침 404 문제
+
+SPA 라우팅은 브라우저 주소창에 `/posts/42`가 찍혀 있어도, 실제로는 서버가 `/posts/42`라는 파일을 갖고 있지 않다.
+
+- 클라이언트 네비게이션: JS가 URL만 바꾸고 앱이 렌더링한다.
+- 새로고침/직접 진입: 서버가 `/posts/42` 경로를 처리해야 한다.
+
+정적 호스팅은 보통 “파일이 없으면 404”로 끝난다. 그래서 새로고침이 깨진다.
+
+### 해결책 A: 서버/호스팅에 SPA fallback을 설정한다
+
+가장 정석이다.
+
+- 존재하지 않는 경로는 모두 `index.html`로 리라이트한다.
+- 앱이 로드된 뒤 React Router가 URL을 보고 화면을 결정한다.
+
+호스팅마다 설정 방법이 다르다. 이 프로젝트가 GitHub Pages를 쓴다면, Pages에서 “404를 index로 보내기” 류의 우회(예: `404.html` 전략)를 고려하게 된다.
+
+### 해결책 B: Hash Router를 쓴다
+
+정적 호스팅에서 서버 설정을 건드릴 수 없다면 `HashRouter`가 우회책이다.
+
+- `/posts/42`가 아니라 `/#/posts/42` 형태가 된다.
+- `#` 뒤는 서버로 전송되지 않으므로 새로고침 404가 줄어든다.
+
+대신 URL 품질이 떨어지고, 일부 시스템에서 해시 기반 라우팅이 제약이 될 수 있다.
+
+---
+
+## 2. 하위 경로 배포와 `basename`
+
+앱이 루트(`/`)가 아니라 `/my-app/` 같은 하위 경로에 배포되면, 라우터는 기본적으로 루트 기준으로 링크를 만든다.
+
+이때 `basename`을 맞추지 않으면 다음이 된다.
+
+- 링크가 `/my-app/posts`가 아니라 `/posts`로 생성된다.
+- 새로고침 시 서버 경로와 앱 경로가 어긋난다.
+
+Data Router에서는 라우터 생성 시 `basename`을 지정한다.
+
+```tsx
+import { createBrowserRouter } from "react-router-dom";
+
+export const router = createBrowserRouter(
+  [
+    {
+      path: "/",
+      element: <div>home</div>,
+    },
+  ],
+  { basename: "/my-app" }
+);
+```
+
+실무에서는 환경 변수로 배포 베이스 경로를 주고, 빌드/배포 파이프라인에서 주입하는 방식이 많이 쓰인다.
+
+---
+
+## 3. 라우터 테스트가 필요한 이유
+
+라우팅은 다음 변경에 매우 취약하다.
+
+- 경로 리팩터링(`/posts/:id` → `/blog/:id`)
+- 가드/리다이렉트 정책 변경
+- loader/action의 실패 처리 변경
+
+테스트는 “경로가 변했을 때 어디로 이동해야 하는가”를 고정한다.
+
+---
+
+## 4. 컴포넌트 라우터 테스트: `MemoryRouter`
+
+컴포넌트 라우터(`Routes`) 기반은 `MemoryRouter`로 테스트하는 패턴이 단순하다.
+
+```tsx
+import { MemoryRouter, Routes, Route } from "react-router-dom";
+import { render, screen } from "@testing-library/react";
+
+test("renders post detail", () => {
+  render(
+    <MemoryRouter initialEntries={["/posts/42"]}>
+      <Routes>
+        <Route path="/posts/:postId" element={<div>detail</div>} />
+      </Routes>
+    </MemoryRouter>
+  );
+
+  expect(screen.getByText("detail")).toBeInTheDocument();
+});
+```
+
+`initialEntries`는 “현재 주소창이 무엇인지”를 테스트에 주입하는 역할을 한다.
+
+---
+
+## 5. Data Router 테스트: `createMemoryRouter` + `RouterProvider`
+
+Data Router는 라우터 객체 자체가 실행 단위다. 그래서 `createMemoryRouter`로 라우터를 만들고 `RouterProvider`로 렌더링한다.
+
+```tsx
+import { createMemoryRouter, RouterProvider } from "react-router-dom";
+import { render, screen } from "@testing-library/react";
+
+test("loader data is rendered", async () => {
+  const router = createMemoryRouter(
+    [
+      {
+        path: "/posts/:postId",
+        loader: async () => ({ title: "hello" }),
+        element: <Post />,
+      },
+    ],
+    { initialEntries: ["/posts/42"] }
+  );
+
+  render(<RouterProvider router={router} />);
+
+  expect(await screen.findByText("hello")).toBeInTheDocument();
+});
+
+function Post() {
+  // 실제 코드는 useLoaderData()를 쓴다.
+  return <div>hello</div>;
+}
+```
+
+여기서 핵심은 “라우트 단위로 loader/action을 테스트에서 주입할 수 있다”는 점이다. 네트워크 의존성을 줄이고 실패 케이스를 빠르게 재현할 수 있다.
+
+---
+
+## 6. 테스트에서 자주 터지는 함정
+
+### 1) 비동기 렌더링을 동기 expect로 검사한다
+
+loader/action은 비동기다. `findBy...` 또는 `await` 패턴을 쓴다.
+
+### 2) 라우트 경계를 테스트에 넣지 않는다
+
+실무에서는 `errorElement`가 정책이다. 실패 케이스 테스트에서는 `errorElement`까지 포함해 “어떤 UI가 뜨는가”를 고정하는 편이 좋다.
+
+---
+
+## Vue Router와 비교
+
+Vue Router도 메모리 히스토리로 테스트한다. React Router는 `MemoryRouter` 또는 `createMemoryRouter`를 써서 “현재 경로를 주입하고 결과 UI를 검증”하는 방식이 기본이다.
+
+| 관심사 | Vue Router | React Router |
+| --- | --- | --- |
+| 테스트용 라우터 | `createMemoryHistory` | `MemoryRouter` / `createMemoryRouter` |
+| 초기 경로 주입 | history 초기값 | `initialEntries` |
+| Data 로딩 테스트 | 컴포넌트/스토어 mocking | loader/action을 라우트 정의에 주입 |
+
