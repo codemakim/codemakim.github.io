@@ -1,203 +1,190 @@
 ---
-title: "⚡ [React 성능 3/3] 고급 패턴 - 가상화 & Concurrent"
+title: "[React 성능 3/3] 고급 패턴 - 가상화, INP, Concurrent"
 date: "2025-10-06"
-description: "가상화, Web Vitals, Concurrent Features를 활용한 전문가 레벨 최적화"
+description: "가상화와 Concurrent 기능을 INP/LCP/CLS 지표와 연결해 측정-처방 관점으로 정리한다"
 tags: ["React", "성능", "고급", "프론트엔드"]
 series: "React 성능"
 seriesOrder: 3
 ---
 
-# React 고급 성능 최적화 패턴
+# 고급 패턴은 INP를 내려야 쓸 가치가 생긴다
 
-> 프로덕션 수준의 성능 최적화 학습 자료
+고급 성능 최적화는 기법이 아니라 “특정 지표를 개선하는 처방”이다.
+가상화와 Concurrent 기능은 특히 INP(입력 반응성) 문제를 해결하는 데 자주 쓰인다.
 
----
+이 글은 다음 흐름을 따른다.
 
-## 📚 목차
+- Web Vitals를 “점수”가 아니라 “원인 후보”로 해석한다
+- INP가 나쁠 때의 처방으로 가상화를 사용한다
+- 입력 지연을 줄이기 위해 업데이트 우선순위를 분리한다(useTransition, useDeferredValue)
 
-1. [가상화 (Virtualization)](#가상화-virtualization)
-2. [이미지 최적화](#이미지-최적화)
-3. [Web Vitals](#web-vitals)
-4. [서버 컴포넌트 최적화](#서버-컴포넌트-최적화)
-5. [Concurrent Features](#concurrent-features)
+## Web Vitals를 원인 후보로 해석한다
 
----
+지표는 목표가 아니라 경고등이다. 경고등이 켜진 이유를 찾아야 한다.
 
-## 가상화 (Virtualization)
+| 지표 | 무엇을 의미하는가 | 흔한 원인 후보 |
+| --- | --- | --- |
+| LCP | 주요 콘텐츠가 보이는 시간 | 큰 이미지/폰트, 느린 데이터, 큰 렌더 비용 |
+| CLS | 레이아웃 흔들림 | 이미지 크기 미지정, 동적 삽입, 폰트 로딩 |
+| INP | 입력 반응 지연 | long task, 큰 렌더, 동기 계산, 과도한 이벤트 작업 |
 
-### react-window
+React 성능 최적화는 주로 INP와 렌더 비용을 다룬다. LCP/CLS는 자산과 레이아웃 설계의 비중이 더 크다.
+
+## 측정: INP가 나쁜지 확인하는 방법
+
+INP가 의심될 때는 다음 신호를 본다.
+
+- Performance 패널에서 **long task**가 반복되는가
+- 입력(클릭/타이핑) 직후 **scripting**이 길게 이어지는가
+- React Profiler에서 특정 상호작용이 많은 컴포넌트를 업데이트시키는가
+
+long task가 있으면 “무엇이 메인 스레드를 점유하는가”로 질문을 바꾼다.
+
+## 가상화: 렌더 비용을 “보이는 만큼만” 지불한다
+
+가상화는 리스트를 전부 렌더링하지 않고, 화면에 보이는 구간만 렌더링한다.
+리스트가 길어서 스크롤이나 필터 입력이 느려질 때, INP를 개선하는 처방이 될 수 있다.
+
+### 언제 가상화가 유효한가
+
+- 항목 수가 많고(수천 단위)
+- 각 항목 렌더가 비싸고
+- 스크롤/필터/정렬 같은 상호작용에서 지연이 관측될 때
+
+### react-window 예시
 
 ```bash
 npm install react-window
 ```
 
-```jsx
-import { FixedSizeList } from "react-window";
+```tsx
+import React from "react";
+import { FixedSizeList, ListChildComponentProps } from "react-window";
 
-function VirtualList({ items }) {
-  const Row = ({ index, style }) => (
-    <div style={style}>{items[index].name}</div>
-  );
+type Item = { id: string; name: string };
+
+export function VirtualList({ items }: { items: Item[] }) {
+  const Row = ({ index, style }: ListChildComponentProps) => {
+    return <div style={style}>{items[index].name}</div>;
+  };
 
   return (
-    <FixedSizeList
-      height={600}
-      itemCount={items.length}
-      itemSize={50}
-      width="100%"
-    >
+    <FixedSizeList height={600} itemCount={items.length} itemSize={44} width="100%">
       {Row}
     </FixedSizeList>
   );
 }
 ```
 
-10,000개 항목도 빠르게 렌더링!
+### 가상화의 트레이드오프
 
----
+- **동적 높이**가 필요하면 구현이 복잡해진다
+- **스크롤 점프**가 생기면 UX 비용이 발생한다
+- 항목이 단순하면 가상화 오버헤드가 이득을 상쇄할 수 있다
 
-## 이미지 최적화
+따라서 가상화는 “측정된 병목”이 있을 때만 쓴다.
 
-### Next.js Image 컴포넌트
+## Concurrent 기능: 빠르게 만드는 것이 아니라 우선순위를 분리한다
 
-```jsx
-import Image from "next/image";
-export default function Gallery() {
-  return (
-    <div>
-      <Image
-        src="/hero.jpg"
-        alt="Hero"
-        width={1200}
-        height={600}
-        priority // LCP 최적화
-      />
-      <Image
-        src="/photo.jpg"
-        alt="Photo"
-        width={500}
-        height={300}
-        loading="lazy" // 지연 로딩
-        placeholder="blur" // 블러 효과
-      />
-    </div>
+`useTransition`과 `useDeferredValue`는 메인 스레드에서 같은 일을 더 빨리 처리하는 도구가 아니다.
+입력에 대한 업데이트를 우선 처리하고, 나머지 업데이트를 낮은 우선순위로 미루는 도구다.
+
+### useTransition: 입력은 즉시, 결과 리스트 갱신은 뒤로 보낸다
+
+```tsx
+import React from "react";
+
+function filterResults(query: string) {
+  return Array.from({ length: 20000 }, (_, i) => `item-${i}`).filter((x) =>
+    x.includes(query),
   );
 }
-```
 
----
+export function SearchResults() {
+  const [query, setQuery] = React.useState("");
+  const [results, setResults] = React.useState<string[]>([]);
+  const [isPending, startTransition] = React.useTransition();
 
-## Web Vitals
-
-### 핵심 지표
-
-- LCP (Largest Contentful Paint): 2.5초 이하
-- FID (First Input Delay): 100ms 이하
-- CLS (Cumulative Layout Shift): 0.1 이하
-
-### 측정
-
-```jsx
-import { useReportWebVitals } from "next/web-vitals";
-
-export function WebVitals() {
-  useReportWebVitals((metric) => {
-    console.log(metric);
-  });
-}
-```
-
----
-
-## 서버 컴포넌트 최적화
-
-### 데이터 페칭 최적화
-
-```jsx
-//  병렬 페칭
-export default async function Page() {
-  const [users, posts] = await Promise.all([fetchUsers(), fetchPosts()]);
-  return (
-    <div>
-      <Users data={users} />
-      <Posts data={posts} />
-    </div>
-  );
-}
-```
-
----
-
-## Concurrent Features
-
-### useTransition
-
-```jsx
-import { useTransition, useState } from "react";
-
-function SearchResults() {
-  const [isPending, startTransition] = useTransition();
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState([]);
-
-  function handleChange(e) {
-    const value = e.target.value;
-    setQuery(value);
+  function onChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const nextQuery = e.target.value;
+    setQuery(nextQuery);
 
     startTransition(() => {
-      // 우선순위 낮은 업데이트
-      setResults(filterResults(value));
+      setResults(filterResults(nextQuery));
     });
   }
 
   return (
     <div>
-      <input value={query} onChange={handleChange} />
-      {isPending && <Spinner />}
-      <ResultList results={results} />
+      <input value={query} onChange={onChange} />
+      {isPending ? <div>updating</div> : null}
+      <ul>
+        {results.slice(0, 50).map((r) => (
+          <li key={r}>{r}</li>
+        ))}
+      </ul>
     </div>
   );
 }
 ```
 
-### useDeferredValue
+이 패턴의 목적은 “타이핑이 끊기지 않는다”는 입력 반응성이다. 리스트가 완전히 최신이 아니어도 입력이 먼저다.
 
-```jsx
-import { useDeferredValue, useState } from "react";
+### useDeferredValue: 입력 값은 즉시, 계산에 쓰는 값은 늦춘다
 
-function SearchResults() {
-  const [query, setQuery] = useState("");
-  const deferredQuery = useDeferredValue(query);
+```tsx
+import React from "react";
 
-  const results = useMemo(() => {
+function filterResults(query: string) {
+  return Array.from({ length: 20000 }, (_, i) => `item-${i}`).filter((x) =>
+    x.includes(query),
+  );
+}
+
+export function DeferredSearch() {
+  const [query, setQuery] = React.useState("");
+  const deferredQuery = React.useDeferredValue(query);
+
+  const results = React.useMemo(() => {
     return filterResults(deferredQuery);
   }, [deferredQuery]);
 
   return (
     <div>
       <input value={query} onChange={(e) => setQuery(e.target.value)} />
-      <ResultList results={results} />
+      <div>query: {query}</div>
+      <div>deferred: {deferredQuery}</div>
+      <div>results: {results.length}</div>
     </div>
   );
 }
 ```
 
----
+이 패턴은 “계산이 늦게 따라오더라도 입력은 즉시 반영한다”는 설계를 코드로 만든다.
 
-## 최종 체크리스트
+## 이미지와 LCP: React 최적화만으로 해결되지 않는다
 
-### 필수 최적화
+LCP는 React 렌더 비용도 영향을 주지만, 자산이 더 큰 병목인 경우가 많다.
 
-- [ ] 이미지 최적화
-- [ ] 코드 분할
-- [ ] 불필요한 리렌더링 방지
-- [ ] 큰 리스트 가상화
-- [ ] Web Vitals 측정
+- 이미지 크기 지정, 적절한 포맷
+- 폰트 로딩 전략
+- 초기 화면 데이터 워터폴 제거
 
-### 고급 최적화
+React 성능 최적화는 보통 INP에 더 직접적으로 연결된다.
 
-- [ ] Service Worker
-- [ ] Preloading
-- [ ] Prefetching
-- [ ] Concurrent Features
-      축하한다! 모든 최적화 가이드를 완료했다! 🎉
+## Vue와 비교
+
+Vue에서도 “리스트가 길 때 가상화”와 “입력과 무거운 업데이트를 분리”는 동일한 문제다.
+차이는 API가 아니라 원인 분해 방식이다.
+
+- long task와 렌더 비용을 측정한다
+- 원인이 리스트 렌더라면 가상화를 적용한다
+- 입력 지연이 원인이라면 업데이트 우선순위를 분리한다
+
+## 체크리스트
+
+- [ ] LCP/CLS/INP를 원인 후보까지 연결해 설명할 수 있다
+- [ ] Performance 패널에서 long task와 scripting 비중을 해석할 수 있다
+- [ ] 리스트 렌더 병목이 있을 때 가상화를 선택할 수 있다
+- [ ] `useTransition`이 우선순위 분리라는 점을 설명할 수 있다
+- [ ] `useDeferredValue`가 입력 반응성을 지키는 설계라는 점을 설명할 수 있다

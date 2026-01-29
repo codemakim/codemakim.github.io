@@ -3,8 +3,8 @@ title: "[React Query 6/8] React Query - 무한 스크롤"
 date: "2025-08-29"
 description: "useInfiniteQuery로 무한 스크롤 구현"
 tags: ["React", "고급", "프론트엔드"]
-series: "React 라이브러리"
-seriesOrder: 19
+series: "React Query"
+seriesOrder: 6
 ---
 
 # React Query 가이드 - 무한 스크롤
@@ -16,113 +16,176 @@ seriesOrder: 19
 
 ## 무한 스크롤
 
-무한 스크롤
-낙관적 업데이트
+무한 스크롤은 “페이지 단위로 데이터를 가져오되, 사용자는 하나의 리스트처럼 스크롤한다”는 UX다.
 
-### 기본 패턴
+실무에서 무한 스크롤은 다음을 동시에 해결해야 한다.
 
-```jsx
-function TodoList() {
-  const queryClient = useQueryClient();
-  const mutation = useMutation({
-    mutationFn: updateTodo,
-    onMutate: async (newTodo) => {
-      // 진행 중인 리페치 취소
-      await queryClient.cancelQueries({ queryKey: ["todos"] });
-      // 이전 데이터 스냅샷
-      const previousTodos = queryClient.getQueryData(["todos"]);
-      // 낙관적 업데이트
-      queryClient.setQueryData(["todos"], (old) =>
-        old.map((todo) => (todo.id === newTodo.id ? newTodo : todo)),
-      );
-      // 롤백을 위한 컨텍스트 반환
-      return { previousTodos };
-    },
-    onError: (err, newTodo, context) => {
-      // 에러 발생 시 롤백
-      queryClient.setQueryData(["todos"], context.previousTodos);
-      toast.error("Failed to update todo");
-    },
-    onSettled: () => {
-      // 성공/실패 상관없이 리페치
-      queryClient.invalidateQueries({ queryKey: ["todos"] });
-    },
+- 다음 페이지를 언제 가져올지(트리거)
+- 중복 요청을 어떻게 막을지(경쟁 상태)
+- 캐시 키를 어떻게 설계할지(필터/정렬 변화)
+- 로딩 UI를 어디에 둘지(첫 로딩 vs 추가 로딩)
+
+React Query는 `useInfiniteQuery`로 이 문제를 표준화한다.
+
+---
+
+## 1. 페이지네이션 모델을 먼저 정한다
+
+무한 스크롤은 보통 두 모델 중 하나다.
+
+- page 기반: `?page=3&limit=20`
+- cursor 기반: `?cursor=abc123&limit=20`
+
+cursor 기반이 실무에서 더 안정적인 경우가 많다. 정렬이 바뀌거나 중간에 데이터가 추가/삭제돼도 “다음 페이지 기준점”이 유지되기 때문이다.
+
+---
+
+## 2. `useInfiniteQuery` 최소 예제(cursor 기반)
+
+```tsx
+import { useInfiniteQuery } from "@tanstack/react-query";
+
+type Post = { id: string; title: string };
+type Page = { items: Post[]; nextCursor: string | null };
+
+async function fetchPosts(cursor: string | null): Promise<Page> {
+  const url = new URL("/api/posts", window.location.origin);
+  if (cursor) url.searchParams.set("cursor", cursor);
+  const res = await fetch(url.toString());
+  if (!res.ok) throw new Error("failed");
+  return await res.json();
+}
+
+export function Posts() {
+  const query = useInfiniteQuery({
+    queryKey: ["posts"],
+    queryFn: ({ pageParam }) => fetchPosts(pageParam ?? null),
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
   });
-  function handleToggle(todo) {
-    mutation.mutate({
-      ...todo,
-      completed: !todo.completed,
-    });
-  }
+
+  if (query.isPending) return <div>loading...</div>;
+  if (query.isError) return <div>error</div>;
+
+  const items = query.data.pages.flatMap((p) => p.items);
+
   return (
     <div>
-      {todos.map((todo) => (
-        <TodoItem key={todo.id} todo={todo} onToggle={handleToggle} />
-      ))}
+      <ul>
+        {items.map((p) => (
+          <li key={p.id}>{p.title}</li>
+        ))}
+      </ul>
+
+      <button
+        onClick={() => query.fetchNextPage()}
+        disabled={!query.hasNextPage || query.isFetchingNextPage}
+      >
+        {query.isFetchingNextPage ? "loading more..." : "load more"}
+      </button>
     </div>
   );
 }
 ```
 
-### 복잡한 예제: 좋아요 버튼
+여기서 중요한 점은 다음이다.
 
-```jsx
-function LikeButton({ postId }) {
-  const queryClient = useQueryClient();
-  const likeMutation = useMutation({
-    mutationFn: (postId) =>
-      fetch(`/api/posts/${postId}/like`, { method: "POST" }),
-    onMutate: async (postId) => {
-      await queryClient.cancelQueries({ queryKey: ["post", postId] });
-      const previousPost = queryClient.getQueryData(["post", postId]);
-      queryClient.setQueryData(["post", postId], (old) => ({
-        ...old,
-        likes: old.likes + 1,
-        isLiked: true,
-      }));
-      return { previousPost };
-    },
-    onError: (err, postId, context) => {
-      queryClient.setQueryData(["post", postId], context.previousPost);
-    },
-    onSettled: (data, error, postId) => {
-      queryClient.invalidateQueries({ queryKey: ["post", postId] });
-    },
+- `initialPageParam`과 `getNextPageParam`이 있어야 한다.
+- “추가 로딩”은 `isFetchingNextPage`로 분리해 UI를 만든다.
+
+---
+
+## 3. 자동 로딩: IntersectionObserver로 트리거를 만든다
+
+무한 스크롤은 보통 마지막에 센티널(sentinel) 요소를 두고, 화면에 들어오면 다음 페이지를 가져온다.
+
+```tsx
+import { useEffect } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInView } from "react-intersection-observer";
+
+export function PostsAuto() {
+  const { ref, inView } = useInView();
+
+  const query = useInfiniteQuery({
+    queryKey: ["posts"],
+    queryFn: ({ pageParam }) => fetchPosts(pageParam ?? null),
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
   });
-  const unlikeMutation = useMutation({
-    mutationFn: (postId) =>
-      fetch(`/api/posts/${postId}/unlike`, { method: "POST" }),
-    onMutate: async (postId) => {
-      await queryClient.cancelQueries({ queryKey: ["post", postId] });
-      const previousPost = queryClient.getQueryData(["post", postId]);
-      queryClient.setQueryData(["post", postId], (old) => ({
-        ...old,
-        likes: old.likes - 1,
-        isLiked: false,
-      }));
-      return { previousPost };
-    },
-    onError: (err, postId, context) => {
-      queryClient.setQueryData(["post", postId], context.previousPost);
-    },
-  });
-  const { data: post } = useQuery({
-    queryKey: ["post", postId],
-    queryFn: () => fetchPost(postId),
-  });
-  function handleClick() {
-    if (post.isLiked) {
-      unlikeMutation.mutate(postId);
-    } else {
-      likeMutation.mutate(postId);
-    }
-  }
+
+  useEffect(() => {
+    if (!inView) return;
+    if (!query.hasNextPage) return;
+    if (query.isFetchingNextPage) return;
+    query.fetchNextPage();
+  }, [inView, query.hasNextPage, query.isFetchingNextPage, query.fetchNextPage]);
+
+  if (query.isPending) return <div>loading...</div>;
+  if (query.isError) return <div>error</div>;
+
+  const items = query.data.pages.flatMap((p) => p.items);
+
   return (
-    <button onClick={handleClick}>
-      {post.isLiked ? "❤️" : "🤍"} {post.likes}
-    </button>
+    <div>
+      {items.map((p) => (
+        <div key={p.id}>{p.title}</div>
+      ))}
+      <div ref={ref}>{query.isFetchingNextPage ? "loading more..." : null}</div>
+    </div>
   );
 }
 ```
+
+---
+
+## 4. queryKey는 필터/정렬을 포함해야 한다
+
+필터가 바뀌었는데 같은 queryKey를 쓰면 다른 조건의 페이지를 같은 캐시에 섞는다.
+
+```tsx
+useInfiniteQuery({
+  queryKey: ["posts", { tag, sort }],
+  queryFn: ({ pageParam }) => fetchPostsWithFilter({ tag, sort, cursor: pageParam ?? null }),
+  initialPageParam: null,
+  getNextPageParam: (lastPage) => lastPage.nextCursor,
+});
+```
+
+---
+
+## 5. 자주 터지는 함정
+
+### 1) `fetchNextPage`가 여러 번 연속 호출된다
+
+inView가 빠르게 토글되면 연속 호출이 발생한다. `isFetchingNextPage`로 가드를 두고, 버튼/센티널 둘 다 쓰는 경우 중복 트리거가 없는지 확인한다.
+
+### 2) `getNextPageParam`이 잘못되어 무한 루프가 난다
+
+`nextCursor`가 null인데도 값을 계속 반환하면 무한 요청이 된다. `hasNextPage`가 false가 되도록 설계해야 한다.
+
+### 3) 리스트 합치기(flatten)에서 키가 깨진다
+
+페이지마다 같은 id가 섞이면 React key 충돌이 난다. 정렬/필터 변경 시 캐시가 분리되지 않은 신호일 수 있다.
+
+---
+
+## Vue와 비교
+
+Vue Query도 `useInfiniteQuery`를 제공한다. 기본 개념은 동일하고, 트리거를 `IntersectionObserver` 기반 컴포저블로 만드는 흐름도 같다.
+
+| 관심사 | Vue Query | React Query |
+| --- | --- | --- |
+| 무한 쿼리 | `useInfiniteQuery` | `useInfiniteQuery` |
+| 트리거 | `useIntersectionObserver` 류 | `react-intersection-observer` 류 |
+| 캐시 키 | queryKey에 필터 포함 | queryKey에 필터 포함 |
+
+---
+
+## 체크리스트
+
+- page 기반과 cursor 기반의 차이를 설명할 수 있다.
+- `useInfiniteQuery`에서 `getNextPageParam`과 `initialPageParam`의 역할을 설명할 수 있다.
+- 필터/정렬 변화가 queryKey에 포함돼야 하는 이유를 이해한다.
 
 ---

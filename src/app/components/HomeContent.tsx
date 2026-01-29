@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import SeriesFilter from "./SeriesFilter";
 import TagFilter from "./TagFilter";
 import PostList from "./PostList";
 import SortOptions from "./SortOptions";
@@ -15,6 +16,7 @@ export default function HomeContent() {
   const pathname = usePathname();
 
   // URL 파라미터 읽기
+  const selectedSeries = searchParams.get("series");
   const selectedTag = searchParams.get("tag");
   const sortOrder = (searchParams.get("sort") as 'desc' | 'asc') || 'desc';
   const urlSearchQuery = searchParams.get("search") || "";
@@ -32,6 +34,41 @@ export default function HomeContent() {
 
   // 공개 포스트만 가져오기
   const publicPosts = getPublicPosts();
+
+  const series = useMemo(() => {
+    const seriesPriority = [
+      "React 기초",
+      "React Router",
+      "React Query",
+      "상태 관리",
+      "Next.js 고급",
+      "React 테스팅",
+      "React 성능",
+    ];
+
+    const seriesPriorityIndex = new Map<string, number>(
+      seriesPriority.map((name, index) => [name, index])
+    );
+
+    const seriesMap = new Map<string, number>();
+    publicPosts.forEach((post) => {
+      if (!post.series) return;
+      seriesMap.set(post.series, (seriesMap.get(post.series) || 0) + 1);
+    });
+
+    return Array.from(seriesMap.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => {
+        const aIndex = seriesPriorityIndex.get(a.name);
+        const bIndex = seriesPriorityIndex.get(b.name);
+
+        if (aIndex !== undefined && bIndex !== undefined) return aIndex - bIndex;
+        if (aIndex !== undefined) return -1;
+        if (bIndex !== undefined) return 1;
+
+        return a.name.localeCompare(b.name, "ko");
+      });
+  }, [publicPosts]);
   
   // 포스트 필터링 및 정렬
   const filteredPosts = useMemo(() => {
@@ -54,11 +91,20 @@ export default function HomeContent() {
     return posts;
   }, [publicPosts, sortOrder, searchQuery]); // publicPosts 추가
 
-  // 최종 필터링된 포스트 (태그 적용)
+  // 최종 필터링된 포스트 (시리즈/태그 적용)
   const displayPosts = useMemo(() => {
-    if (!selectedTag) return filteredPosts;
-    return filteredPosts.filter(post => post.tags?.includes(selectedTag));
-  }, [filteredPosts, selectedTag]);
+    let posts = filteredPosts;
+
+    if (selectedSeries) {
+      posts = posts.filter((post) => post.series === selectedSeries);
+    }
+
+    if (selectedTag) {
+      posts = posts.filter((post) => post.tags?.includes(selectedTag));
+    }
+
+    return posts;
+  }, [filteredPosts, selectedSeries, selectedTag]);
 
   // 공개 포스트의 태그만 추출
   const tags = getPublicTags();
@@ -119,6 +165,20 @@ export default function HomeContent() {
     router.push(queryString ? `${pathname}?${queryString}` : pathname);
   }
 
+  // 시리즈 선택 핸들러
+  function handleSeriesSelect(seriesName: string | null) {
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (seriesName) {
+      params.set("series", seriesName);
+    } else {
+      params.delete("series");
+    }
+
+    const queryString = params.toString();
+    router.push(queryString ? `${pathname}?${queryString}` : pathname);
+  }
+
   // 정렬 변경 핸들러
   function handleSortChange(order: 'desc' | 'asc') {
     const params = new URLSearchParams(searchParams.toString());
@@ -136,6 +196,13 @@ export default function HomeContent() {
         resultsCount={displayPosts.length}
         totalCount={publicPosts.length}
         isSearching={isSearching}
+      />
+
+      <SeriesFilter
+        series={series}
+        selectedSeries={selectedSeries}
+        onSeriesSelect={handleSeriesSelect}
+        totalCount={publicPosts.length}
       />
 
       {/* 태그 필터 */}

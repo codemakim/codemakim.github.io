@@ -1,153 +1,205 @@
 ---
-title: "⚡ [React 성능 2/3] 코드 분할 - lazy & Suspense"
+title: "[React 성능 2/3] 코드 분할 - LCP/INP와 연결한다"
 date: "2025-10-05"
-description: "React.lazy, Suspense, 번들 최적화 전략을 학습한다"
+description: "코드 분할을 번들 크기 수치가 아니라 사용자 지표(LCP/INP)와 연결해 해석한다"
 tags: ["React", "성능", "중급", "프론트엔드"]
 series: "React 성능"
 seriesOrder: 2
 ---
 
-# 코드 분할 (Code Splitting) 가이드
+# 코드 분할은 지표를 바꾸기 위한 설계다
 
-> React와 Next.js에서의 코드 분할 학습 자료
+코드 분할은 번들을 쪼개는 기술이 아니라 “초기 경로에서 필요한 코드만 다운로드한다”는 제품 설계다.
+따라서 목표는 번들 크기 숫자 자체가 아니라, 사용자 지표가 어떻게 바뀌는지로 잡아야 한다.
 
----
+이 글은 다음 질문에 답한다.
 
-## 📚 목차
+- 코드 분할이 LCP/INP에 어떤 경로로 영향을 주는가
+- 어디를 쪼개야 하고, 어디는 쪼개면 안 되는가
+- Suspense 경계를 어떻게 잡아야 실패와 UX 비용이 줄어드는가
 
-1. [개요](#개요)
-2. [React.lazy](#reactlazy)
-3. [Suspense](#suspense)
-4. [라우트 기반 분할](#라우트-기반-분할)
-5. [컴포넌트 기반 분할](#컴포넌트-기반-분할)
-6. [Next.js 자동 분할](#nextjs-자동-분할)
+## 코드 분할이 영향을 주는 경로
 
----
+코드 분할이 주로 바꾸는 것은 “JS 로딩과 실행 시간”이다.
 
-## 개요
+- 초기 번들이 크면 다운로드 시간이 늘어난다(네트워크)
+- 초기 번들이 크면 파싱/컴파일/실행 시간이 늘어난다(CPU)
+- CPU가 바쁘면 입력 처리가 늦어져 INP가 나빠질 수 있다
+- 초기 화면에 필요한 코드가 늦게 실행되면 LCP가 뒤로 밀릴 수 있다
 
-### 코드 분할이란?
+중요한 점은 “JS를 줄였는데 LCP가 안 좋아질 수 있다”는 사실이다.
+fallback UI 설계, 워터폴, 이미지/폰트가 더 큰 병목이면 코드 분할만으로 LCP가 바뀌지 않을 수 있다.
 
-코드 분할은 번들을 여러 개로 나누어 필요할 때만 로드하는 기법이다.
+## 측정: 먼저 무엇을 보나
 
-장점:
+코드 분할은 다음 도구로 확인하는 편이 좋다.
 
-- 초기 로딩 시간 단축
-- 사용자가 필요한 코드만 다운로드
-- 성능 향상
+- **DevTools Performance**: long task, scripting 비중, 메인 스레드 점유 시간을 본다
+- **DevTools Coverage**: 초기 경로에서 실제로 실행된 JS 비율을 본다
+- **Lighthouse(또는 Web Vitals)**: LCP/INP/CLS의 방향성을 본다
+- **번들 분석기**: 어떤 모듈이 초기 번들을 키우는지 본다
 
----
+측정이 없으면 “쪼갰다”만 남고, 사용자 지표가 좋아졌는지 나빠졌는지 결론이 없다.
 
-## React.lazy
+## 분할 단위의 선택 기준
 
-### 기본 사용
+분할 단위는 보통 두 가지다.
 
-```jsx
-import { lazy, Suspense } from "react";
-// 동적 import
-const HeavyComponent = lazy(() => import("./HeavyComponent"));
-function App() {
+1. **라우트 단위 분할**: 초기 화면에 필요 없는 페이지는 다운로드하지 않는다
+2. **컴포넌트 단위 분할**: 같은 페이지 안에서도 “가끔만 쓰는” 기능을 분리한다
+
+라우트 단위가 기본이고, 컴포넌트 단위는 “비용이 큰 기능이 드물게 사용되는가”일 때만 선택한다.
+
+## React.lazy: 동적 import로 chunk를 만든다
+
+`React.lazy`는 기본적으로 “클라이언트에서 동적 import로 코드를 가져온다”는 의미다.
+따라서 서버 렌더링/스트리밍이 있는 환경에서는 다른 선택지가 필요할 수 있다.
+
+```tsx
+import React from "react";
+
+const HeavyComponent = React.lazy(() => import("./HeavyComponent"));
+
+export function Page() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <React.Suspense fallback={<div>loading</div>}>
       <HeavyComponent />
-    </Suspense>
+    </React.Suspense>
   );
 }
 ```
 
-### 조건부 로딩
+여기서 fallback은 “기능이 없을 때의 대체 화면”이 아니라 “코드가 아직 없을 때의 화면”이다.
+fallback이 실제 레이아웃과 너무 다르면 CLS와 UX 비용이 생긴다.
 
-```jsx
-function App() {
-  const [showAdmin, setShowAdmin] = useState(false);
+## 조건부 로딩: 사용자가 눌렀을 때만 가져온다
+
+드물게 쓰는 어드민 패널, 큰 차트 같은 컴포넌트는 조건부 로딩이 효과가 있다.
+
+```tsx
+import React from "react";
+
+const AdminPanel = React.lazy(() => import("./AdminPanel"));
+
+export function App() {
+  const [showAdmin, setShowAdmin] = React.useState(false);
+
   return (
     <div>
-      <button onClick={() => setShowAdmin(true)}>Show Admin Panel</button>
+      <button onClick={() => setShowAdmin(true)}>open admin</button>
       {showAdmin && (
-        <Suspense fallback={<div>Loading Admin...</div>}>
+        <React.Suspense fallback={<div>loading admin</div>}>
           <AdminPanel />
-        </Suspense>
+        </React.Suspense>
       )}
     </div>
   );
 }
-const AdminPanel = lazy(() => import("./AdminPanel"));
 ```
 
----
+조건부 로딩의 성공 기준은 “초기 경로가 가벼워졌는가”와 “열 때의 지연이 허용 가능한가”다.
+열 때 지연이 크면 prefetch 같은 전략을 고려해야 한다.
 
-## 라우트 기반 분할
+## 라우트 기반 분할: 사용자의 이동을 기준으로 나눈다
 
-```jsx
-import { lazy, Suspense } from "react";
+SPA 라우팅에서는 페이지별로 lazy를 두고, 라우팅 전체를 Suspense로 감싸는 패턴이 흔하다.
+
+```tsx
+import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-const Home = lazy(() => import("./pages/Home"));
-const About = lazy(() => import("./pages/About"));
-const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Home = React.lazy(() => import("./pages/Home"));
+const About = React.lazy(() => import("./pages/About"));
+const Dashboard = React.lazy(() => import("./pages/Dashboard"));
 
-function App() {
+export function App() {
   return (
     <BrowserRouter>
-      <Suspense fallback={<LoadingScreen />}>
+      <React.Suspense fallback={<div>loading route</div>}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
           <Route path="/dashboard" element={<Dashboard />} />
         </Routes>
-      </Suspense>
+      </React.Suspense>
     </BrowserRouter>
   );
 }
 ```
 
----
+여기서 병목은 라우트 전환 시 “모든 화면이 loading으로 바뀌는가”다.
+필요하면 레이아웃은 유지하고, 바뀌는 영역만 Suspense 경계로 감싼다.
 
-## Next.js 자동 분할
+## Next.js 관점: 자동 분할을 먼저 이해한다
 
-### 자동 코드 분할
+Next.js는 라우트 단위로 기본 분할이 일어난다. 따라서 “React.lazy로 전부 해결한다”는 접근이 아니다.
+추가 분할은 주로 다음 상황에서 쓴다.
 
-```jsx
-// Next.js는 각 페이지를 자동으로 분할
-// app/about/page.jsx
-export default function About() {
-  return <div>About</div>;
-}
-// 자동으로 별도 번들로 분리됨!
-```
+- 특정 컴포넌트가 브라우저 전용 API를 쓰고 SSR이 필요 없다
+- 초기 경로에서 절대 필요 없는 기능이다
 
-### Dynamic Import
-
-```jsx
+```tsx
 import dynamic from "next/dynamic";
-const DynamicComponent = dynamic(() => import("../components/Heavy"), {
-  loading: () => <p>Loading...</p>,
-  ssr: false, // 서버 사이드 렌더링 비활성화
+
+const Chart = dynamic(() => import("../components/Chart"), {
+  ssr: false,
+  loading: () => <div>loading chart</div>,
 });
+
 export default function Page() {
-  return <DynamicComponent />;
+  return <Chart />;
 }
 ```
 
----
+`ssr: false`는 강한 선택이다. SEO, 초기 렌더, 접근성에 영향을 줄 수 있으니 “불가피한 브라우저 의존”일 때만 쓴다.
 
-## 번들 분석
+## 번들 분석: 무엇이 초기 번들을 키우는가
+
+번들 분석은 원인 목록을 만든다. 그 다음 “초기 경로에서 필요했는가”를 기준으로 분리한다.
 
 ```bash
 npm install --save-dev @next/bundle-analyzer
 ```
 
-```javascript
-// next.config.js
+```js
+// next.config.js (예시)
 const withBundleAnalyzer = require("@next/bundle-analyzer")({
   enabled: process.env.ANALYZE === "true",
 });
 
-module.exports = withBundleAnalyzer({
-  // Next.js config
-});
+module.exports = withBundleAnalyzer({});
 ```
 
 ```bash
 ANALYZE=true npm run build
 ```
+
+## 흔한 함정
+
+### 1) 너무 많이 쪼갠다
+
+chunk가 너무 많으면 요청 수가 늘고, 전환마다 네트워크 왕복이 늘어난다. 결과적으로 INP와 전환 UX가 나빠질 수 있다.
+
+### 2) Suspense 경계가 너무 크다
+
+큰 경계는 전환 시 화면 전체가 loading으로 바뀐다. 레이아웃을 유지하고 필요한 영역만 경계로 잡는 편이 낫다.
+
+### 3) fallback이 레이아웃을 흔든다
+
+fallback 높이가 다르면 CLS로 이어질 수 있다. skeleton을 쓰더라도 최종 레이아웃과 비슷한 크기를 유지해야 한다.
+
+## Vue와 비교
+
+Vue도 동적 import와 Suspense를 지원한다. 차이는 “프레임워크”보다 “분할 단위와 측정”에 있다.
+
+- 라우트 단위 분할이 기본이다
+- 드물게 쓰는 기능만 컴포넌트 단위로 분할한다
+- 결과는 LCP/INP 같은 사용자 지표로 판단한다
+
+## 체크리스트
+
+- [ ] 코드 분할이 LCP/INP에 영향을 주는 경로를 설명할 수 있다
+- [ ] Performance 패널에서 long task와 scripting 비중을 해석할 수 있다
+- [ ] Coverage로 초기 경로에서 “안 쓰는 코드”를 찾을 수 있다
+- [ ] 라우트 단위와 컴포넌트 단위 분할의 기준을 구분할 수 있다
+- [ ] Suspense fallback이 CLS/UX에 주는 비용을 고려할 수 있다

@@ -1,5 +1,5 @@
 ---
-title: "🧪 [React 테스팅 3/3] E2E - Playwright & Cypress"
+title: "[React 테스팅 3/3] E2E - Playwright & Cypress"
 date: "2025-09-22"
 description: "End-to-End 테스팅 전략과 도구 선택 기준을 학습한다"
 tags: ["Testing", "중급", "프론트엔드"]
@@ -7,160 +7,183 @@ series: "React 테스팅"
 seriesOrder: 3
 ---
 
-# E2E 테스팅 가이드 (Playwright & Cypress)
+# E2E: 프로젝트 품질을 측정하고 해석한다
 
-> End-to-End 테스팅 학습 자료
+E2E(End-to-End) 테스트는 사용자의 핵심 여정을 브라우저에서 자동화해 검증한다.
+이 글의 목표는 Playwright나 Cypress 사용법을 나열하는 것이 아니라, E2E를 프로젝트 운영의 측정 체계로 만드는 기준을 정리하는 것이다.
 
----
+## E2E가 커버하는 것과 커버하지 않는 것
 
-## 📚 목차
+E2E는 “전체 시스템이 함께 동작한다”는 사실을 검증한다. 대신 원인 분해가 느리고 비용이 크다.
 
-1. [개요](#개요)
-2. [Playwright](#playwright)
-3. [Cypress](#cypress)
-4. [비교 및 선택](#비교-및-선택)
+| 질문 | E2E가 답하는가 | 더 적합한 레이어 |
+| --- | --- | --- |
+| 결제/로그인/권한 같은 핵심 여정이 실제로 동작하는가 | 답한다 | E2E |
+| 특정 컴포넌트의 상태 전이가 올바른가 | 답하기 어렵다 | RTL |
+| 순수 로직이 모든 경계값에서 올바른가 | 답하기 어렵다 | Jest |
 
----
+핵심은 “E2E로 모든 걸 테스트한다”가 아니라, E2E가 가장 싸게 커버할 수 있는 리스크만 남기는 것이다.
 
-## 개요
+## E2E를 측정 시스템으로 만드는 지표
 
-### E2E 테스팅이란?
+E2E가 가치 있으려면 “통과” 말고 다음 지표가 같이 관리되어야 한다.
 
-실제 사용자처럼 애플리케이션을 테스트하는 방법이다.
+| 지표 | 의미 | 해석 |
+| --- | --- | --- |
+| runtime(총 실행 시간) | 파이프라인 비용 | 느리면 PR 속도가 감소한다 |
+| flaky rate(간헐 실패율) | 신뢰도 | 0이 아니면 사람은 테스트 결과를 믿지 않는다 |
+| failure clustering(실패 집중도) | 병목 | 특정 테스트/페이지에 실패가 몰리면 설계가 잘못되었을 가능성이 높다 |
+| MTTR(평균 복구 시간) | 운영 비용 | trace/video/screenshot이 없으면 MTTR이 급증한다 |
 
-특징:
+이 지표를 보고 다음 행동을 정한다.
 
-- 전체 시스템 테스트
-- 브라우저 자동화
-- 사용자 플로우 검증
+- flaky rate가 높다: selector/대기 조건/테스트 데이터/환경을 먼저 손본다
+- runtime이 높다: 핵심 여정만 남기고 나머지는 RTL/Jest로 내린다
+- failure가 특정 영역에 집중된다: 해당 영역을 테스트하기 쉬운 구조로 리팩토링한다
 
----
+## 실패를 해석하는 순서(자료의 의미)
 
-## Playwright
+E2E 실패는 원인이 넓다. 자료를 읽는 순서를 고정하면 MTTR이 줄어든다.
 
-### 설치
+| 자료 | 무엇을 알려주는가 | 먼저 보는 경우 |
+| --- | --- | --- |
+| screenshot | 최종 화면 상태 | 요소가 안 보이는 실패 |
+| video | 시간 축의 변화 | 애니메이션/전환/로딩 타이밍 문제 |
+| trace(Playwright) | 단계별 action, 네트워크, DOM snapshot | 레이스/대기 조건 문제 |
+| network log | 어떤 요청이 실패했는가 | 401/500/타임아웃 등 |
 
-```bash
-npm install --save-dev @playwright/test
-npx playwright install
+E2E에서 가장 흔한 오해는 “버그가 생겼다”로 단정하는 것이다. 실패의 많은 부분은 테스트의 결정성이 깨진 것이다.
+
+## 결정성을 만드는 네 가지 축
+
+### 1) selector: role 기반으로 고정한다
+
+CSS selector는 UI 구조 변화에 취약하다. 역할(role)과 접근 가능한 이름(name)은 의미가 유지되면 살아남는다.
+
+```ts
+// Playwright
+await page.getByRole("button", { name: "로그인" }).click();
 ```
 
-### 기본 테스트
+```js
+// Cypress
+cy.findByRole("button", { name: "로그인" }).click();
+```
 
-```javascript
-// tests/example.spec.js
+role 기반 탐색이 안 된다면, 테스트를 고치는 것이 아니라 UI의 의미를 먼저 만든다.
+
+### 2) wait: 시간 대기를 금지한다
+
+시간 기반 대기는 flaky를 만든다. 네트워크/렌더링/애니메이션은 환경에 따라 흔들린다.
+
+- 금지: `sleep(1000)`, `wait(1000)`
+- 권장: “요소가 보인다”, “요청이 끝났다”, “URL이 바뀌었다”
+
+### 3) test data: 재현 가능한 상태를 만든다
+
+E2E는 데이터에 의해 흔들린다. 테스트의 입력은 항상 동일해야 한다.
+
+- 테스트 전 seed로 DB를 초기화한다
+- 또는 API 레이어를 고정된 fixture로 스텁한다
+- 최소한 테스트용 계정을 고정하고, 상태를 매번 초기화한다
+
+### 4) environment: 외부 의존을 줄인다
+
+외부 API, 느린 서드파티는 flaky를 만든다. E2E는 “우리 시스템의 핵심 여정”만 커버해야 한다.
+
+- 결제/인증 같은 외부 의존은 샌드박스 또는 스텁으로 분리한다
+- 네트워크가 불안정한 환경에서도 결정성이 유지되게 만든다
+
+## Playwright: 측정과 진단에 강한 선택
+
+Playwright는 cross-browser, trace, request API 등 “진단 도구”가 강하다. 프로젝트 운영 관점에서 E2E 실패를 빨리 해석하기 좋다.
+
+### 최소 예제: 로그인 흐름을 계약으로 고정한다
+
+```ts
 import { test, expect } from "@playwright/test";
-test("홈페이지 방문", async ({ page }) => {
-  await page.goto("http://localhost:3000");
-  await expect(page).toHaveTitle(/My App/);
-});
-test("로그인", async ({ page }) => {
-  await page.goto("http://localhost:3000/login");
 
-  await page.fill('input[name="email"]', "test@example.com");
-  await page.fill('input[name="password"]', "password123");
-  await page.click('button[type="submit"]');
+test("로그인 후 대시보드로 이동한다", async ({ page }) => {
+  await page.goto("/auth/login");
 
-  await expect(page).toHaveURL(/dashboard/);
+  await page.getByLabel("이메일").fill("test@example.com");
+  await page.getByLabel("비밀번호").fill("password123");
+  await page.getByRole("button", { name: "로그인" }).click();
+
+  await expect(page).toHaveURL(/\/profile/);
+  await expect(page.getByRole("heading")).toContainText("프로필");
 });
 ```
 
-### Selectors
+### trace를 켜서 실패를 해석한다
 
-```javascript
-// 텍스트로 찾기
-await page.click("text=Submit");
-// Role로 찾기
-await page.click('role=button[name="Submit"]');
-// CSS Selector
-await page.click(".submit-button");
-// XPath
-await page.click('//button[@type="submit"]');
-// 복합
-await page.locator("button").filter({ hasText: "Submit" }).click();
-```
+```ts
+// playwright.config.ts (예시)
+import { defineConfig } from "@playwright/test";
 
-### API 테스트
-
-```javascript
-test("API 호출 테스트", async ({ request }) => {
-  const response = await request.post("/api/users", {
-    data: {
-      name: "John",
-      email: "john@example.com",
-    },
-  });
-
-  expect(response.ok()).toBeTruthy();
-  const data = await response.json();
-  expect(data.name).toBe("John");
+export default defineConfig({
+  use: {
+    trace: "on-first-retry",
+    screenshot: "only-on-failure",
+    video: "retain-on-failure",
+  },
 });
 ```
 
-### 스크린샷
+`on-first-retry`는 비용과 진단력을 맞춘다. 처음 실패했을 때만 trace를 남기면 CI 비용이 과도하게 증가하지 않는다.
 
-```javascript
-test("스크린샷", async ({ page }) => {
-  await page.goto("http://localhost:3000");
-  await page.screenshot({ path: "screenshot.png" });
-});
-```
+## Cypress: 개발 경험이 강한 선택
 
----
+Cypress는 브라우저 내부 실행 모델과 개발자 도구 경험이 강하다. 팀이 UI 중심 개발 경험을 중시할 때 효율이 좋다.
 
-## Cypress
+### 최소 예제: 핵심 여정만 남긴다
 
-### 설치
-
-```bash
-npm install --save-dev cypress
-npx cypress open
-```
-
-### 기본 테스트
-
-```javascript
-// cypress/e2e/example.cy.js
-describe("홈페이지", () => {
-  it("방문", () => {
-    cy.visit("http://localhost:3000");
-    cy.contains("Welcome").should("be.visible");
-  });
-
-  it("로그인", () => {
-    cy.visit("http://localhost:3000/login");
-
-    cy.get('input[name="email"]').type("test@example.com");
-    cy.get('input[name="password"]').type("password123");
-    cy.get('button[type="submit"]').click();
-
-    cy.url().should("include", "/dashboard");
+```js
+describe("로그인", () => {
+  it("로그인 후 프로필로 이동한다", () => {
+    cy.visit("/auth/login");
+    cy.findByLabelText("이메일").type("test@example.com");
+    cy.findByLabelText("비밀번호").type("password123");
+    cy.findByRole("button", { name: "로그인" }).click();
+    cy.location("pathname").should("include", "/profile");
   });
 });
 ```
 
-### Commands
+중요한 점은 체인 문법이 아니라, selector와 대기 조건을 의미 기반으로 유지하는 것이다.
 
-```javascript
-// 커스텀 커맨드
-Cypress.Commands.add("login", (email, password) => {
-  cy.visit("/login");
-  cy.get('input[name="email"]').type(email);
-  cy.get('input[name="password"]').type(password);
-  cy.get('button[type="submit"]').click();
-});
+## 선택 기준: 기능 비교가 아니라 운영 비용 비교다
 
-// 사용
-cy.login("test@example.com", "password123");
-```
+| 항목 | Playwright | Cypress |
+| --- | --- | --- |
+| 진단 자료(trace) | 강하다 | 상대적으로 약하다 |
+| 브라우저 범위 | 넓다 | 상대적으로 좁다 |
+| 팀의 개발 루프 | 중간 | 빠르다 |
+| CI 병렬화/격리 | 구성 유연 | 구성 단순 |
 
----
+도구 선택의 본질은 “우리 팀의 실패 해석 비용”이다. flaky를 줄이고 MTTR을 낮추는 쪽이 결과적으로 더 싸다.
 
-## 비교 및 선택
+## CI 실행 전략(품질 게이트 설계)
 
-| 기능      | Playwright              | Cypress               |
-| --------- | ----------------------- | --------------------- |
-| 속도      | ⭐⭐⭐⭐⭐              | ⭐⭐⭐⭐              |
-| 브라우저  | Chrome, Firefox, Safari | Chrome, Firefox, Edge |
-| 병렬 실행 |                         | (유료)                |
-| 학습 곡선 | 중간                    | 쉬움                  |
+E2E를 PR마다 전부 돌리면 파이프라인이 느려진다. 대신 계층을 둔다.
+
+- **PR 게이트**: smoke(핵심 3~10개 여정)만 실행한다
+- **nightly**: 전체 E2E를 실행한다
+- **release**: cross-browser와 느린 케이스까지 포함한다
+
+이렇게 나누면 runtime을 통제하면서도 리스크를 커버할 수 있다.
+
+## Vue와 비교
+
+E2E는 React/Vue의 차이보다 “측정과 결정성”이 핵심이다.
+
+- Nuxt/Vue도 role 기반 selector, 완료 조건 기반 wait, 데이터 시드가 동일하게 중요하다
+- 프레임워크가 달라져도 flaky의 원인은 비슷하다(시간 대기, 불안정한 selector, 데이터 변동)
+
+## 학습 체크리스트
+
+- [ ] E2E를 “핵심 여정 리스크 커버”로 정의할 수 있다
+- [ ] runtime/flaky rate/MTTR 관점에서 E2E를 평가할 수 있다
+- [ ] screenshot/video/trace/network log가 각각 무엇을 의미하는지 설명할 수 있다
+- [ ] selector, wait, test data, environment 축으로 flaky 원인을 분류할 수 있다
+- [ ] PR 스모크/나이틀리/릴리스로 품질 게이트를 설계할 수 있다
