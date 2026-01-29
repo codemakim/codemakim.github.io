@@ -7,15 +7,26 @@ series: "Next.js 고급"
 seriesOrder: 2
 ---
 
-# Next.js 고급 기능 가이드 - 스트리밍 SSR
+# Next.js 고급 - 스트리밍 SSR
 
-> Next.js 15의 고급 기능을 다루는 학습 자료
+> 스트리밍 SSR은 “초기 HTML을 한 번에 완성해서 보내는 방식”의 한계를 깨기 위한 기능이다.  
+> 핵심은 “화면을 부분적으로 먼저 보여주고, 나머지는 준비되는 대로 이어서 보낸다”는 점이다.
 
 ---
 
 ## 스트리밍 SSR
 
-### Suspense를 사용한 스트리밍
+스트리밍 SSR은 `Suspense` 경계를 단위로 동작한다. 경계 바깥은 즉시 렌더링되고, 경계 안은 준비되면 교체된다.
+
+실무에서 스트리밍 SSR의 목표는 다음이다.
+
+- TTFB를 줄이는 것이 아니라, “사용자가 의미 있는 UI를 빨리 보게 한다”
+- 느린 데이터 때문에 페이지 전체가 막히는 waterfall을 끊는다
+- 레이아웃(헤더/내비)을 유지하고 본문만 점진적으로 채운다
+
+---
+
+## 1. Suspense를 사용한 스트리밍(서버 컴포넌트)
 
 ```jsx
 import { Suspense } from "react";
@@ -58,7 +69,13 @@ async function Comments() {
 }
 ```
 
-### Loading.js
+여기서 `Posts`/`Comments`는 서버 컴포넌트이며, `await`가 걸린 순간 해당 경계는 fallback이 먼저 나온다. 데이터가 준비되면 서버가 스트림으로 결과를 이어서 보내고, 클라이언트는 해당 영역만 교체한다.
+
+---
+
+## 2. `loading.tsx`: 라우트 세그먼트 단위 로딩
+
+`loading.tsx`는 “세그먼트가 로딩 중일 때 보여줄 UI”다. 이 패턴은 전체 페이지에서 가장 큰 경계를 잡는 데 유용하다.
 
 ```jsx
 // app/dashboard/loading.jsx
@@ -75,7 +92,13 @@ export default async function Dashboard() {
 }
 ```
 
-### 중첩된 Suspense
+실무에서는 `loading.tsx`를 “전체 화면 fallback”으로 쓰기보다, 상위 레이아웃은 유지하고 본문 영역만 skeleton으로 처리하는 편이 안정적이다.
+
+---
+
+## 3. 중첩된 Suspense: 경계를 나눌수록 UX가 좋아질 때
+
+중첩 경계는 “느린 부분만 느리게” 만드는 도구다. 하지만 경계를 과하게 쪼개면 fallback이 난립해 화면이 산만해진다.
 
 ```jsx
 export default function Page() {
@@ -102,5 +125,33 @@ export default function Page() {
   );
 }
 ```
+
+---
+
+## 4. 자주 터지는 함정
+
+### 1) 경계가 없어서 페이지 전체가 막힌다
+
+서버 컴포넌트에서 느린 fetch가 상단에 있으면, HTML이 통째로 늦게 나온다. 경계를 둬서 “먼저 보여줄 것”과 “나중에 보여줄 것”을 분리한다.
+
+### 2) fallback이 레이아웃을 흔든다
+
+fallback이 실제 컨텐츠와 높이/폭이 크게 다르면 CLS가 커진다. skeleton은 실제 레이아웃을 최대한 유지해야 한다.
+
+### 3) 스트리밍이 만능이라 착각한다
+
+스트리밍은 “기다림을 숨기는 UX”를 만든다. 데이터 자체를 빠르게 만드는 것은 캐시 전략, DB 최적화, 병렬화에서 해결해야 한다.
+
+---
+
+## Nuxt와 비교
+
+Nuxt도 SSR과 Suspense/async data 조합으로 비슷한 문제를 푼다. 차이는 “경계를 어디에 두는가”와 “데이터 패칭 모델”에서 나타난다.
+
+| 관심사 | Nuxt | Next.js(App Router) |
+| --- | --- | --- |
+| SSR 스트리밍 | 환경/구성에 따라 가능 | Suspense 경계 기반 스트리밍이 기본 축 |
+| 로딩 UI | 페이지/컴포넌트에서 제어 | `loading.tsx` + Suspense |
+| 데이터 패칭 | `useAsyncData`/`useFetch` | 서버 컴포넌트 fetch + 캐시 옵션 |
 
 ---
