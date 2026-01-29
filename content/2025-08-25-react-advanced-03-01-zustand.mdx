@@ -190,7 +190,9 @@ export const useTodoStore = create(
     todos: [] as Todo[],
     add: (text: string) =>
       set((s: any) => {
-        s.todos.push({ id: crypto.randomUUID(), text, done: false });
+        // id 생성 방식은 팀 규칙에 따라 다르다.
+        // 여기서는 예제를 단순화하기 위해 시간 기반 id를 사용한다.
+        s.todos.push({ id: String(Date.now()), text, done: false });
       }),
   }))
 );
