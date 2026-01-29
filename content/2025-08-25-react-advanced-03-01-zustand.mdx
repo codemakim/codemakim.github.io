@@ -7,37 +7,215 @@ series: "상태 관리"
 seriesOrder: 1
 ---
 
-# React 상태 관리 라이브러리 가이드 - Zustand
+# 상태 관리 - Zustand
 
-> Zustand, Redux Toolkit을 중심으로 한 상태 관리 학습 자료
+Zustand는 전역 상태를 최소한의 코드로 다루기 위한 라이브러리이다. 핵심은 구독(subscription) 모델과 selector 기반 리렌더링 제어다.
+
+이 시리즈에서 가장 중요한 전제는 “서버 상태”와 “클라이언트 상태”를 분리하는 것이다.
+
+- 서버 상태: 서버가 진실의 근원이다. React Query가 담당한다.
+- 클라이언트 상태: UI 흐름과 사용자 입력이 진실의 근원이다. 상태 관리 라이브러리가 담당한다.
+
+서버 상태까지 전역 store에 넣으면 캐시/리페치/경쟁 상태 비용을 직접 떠안게 된다.
+
+---
+
+## 1. Zustand가 필요한 순간
+
+Zustand는 다음 요구가 강할 때 적합하다.
+
+- 여러 컴포넌트/페이지가 같은 UI 상태를 공유한다(모달, 토스트, 사이드바, 선택된 탭).
+- 상태 변경이 자주 일어난다(드래그, 필터 UI, 폼 편집 중 임시 저장).
+- Provider 트리를 늘리고 싶지 않다.
+- 전역 상태의 구조가 Redux까지는 필요 없을 정도로 단순하다.
+
+반대로 “데이터를 서버에서 가져온다”가 중심이면 Zustand가 아니라 React Query가 중심이 된다.
 
 ---
 
-## Zustand
+## 2. 동작 원리: selector 기반 선택적 구독
 
-Zustand
-개요
+Zustand store는 React 컴포넌트 외부에 존재한다. 컴포넌트는 `useStore(selector)`로 필요한 조각만 구독한다.
 
-### 왜 상태 관리 라이브러리가 필요한가?
+- `selector`가 뽑아낸 값이 바뀌면 리렌더링된다.
+- `selector`가 뽑아낸 값이 안 바뀌면 리렌더링되지 않는다.
 
-Context API의 한계:
-
-- 성능 문제 (불필요한 리렌더링)
-- 복잡한 상태 로직
-- DevTools 부족
-  상태 관리 라이브러리의 장점:
-- 최적화된 리렌더링
-- 강력한 DevTools
-- 미들웨어 지원
-- 타임 트래블 디버깅
-
-### 라이브러리 선택 기준
-
-| 라이브러리    | 번들 크기 | 학습 곡선 | 보일러플레이트 | 사용 사례     |
-| ------------- | --------- | --------- | -------------- | ------------- |
-| Zustand       | ~1KB      | 낮음      | 최소           | 중소형 앱     |
-| Redux Toolkit | ~13KB     | 중간      | 적음           | 대규모 앱     |
-| Jotai         | ~3KB      | 낮음      | 최소           | 원자적 상태   |
-| Recoil        | ~20KB     | 중간      | 적음           | 복잡한 의존성 |
+이 구조가 Context API의 “Provider value가 바뀌면 Consumer 전체가 리렌더링되는 문제”를 피하는 핵심이다.
 
 ---
+
+## 3. 최소 예제: 카운터 스토어
+
+```tsx
+import { create } from "zustand";
+
+type CounterState = {
+  count: number;
+  increment: () => void;
+  decrement: () => void;
+  reset: () => void;
+};
+
+export const useCounterStore = create<CounterState>((set) => ({
+  count: 0,
+  increment: () => set((s) => ({ count: s.count + 1 })),
+  decrement: () => set((s) => ({ count: s.count - 1 })),
+  reset: () => set({ count: 0 }),
+}));
+```
+
+컴포넌트에서는 selector로 필요한 것만 가져온다.
+
+```tsx
+import { useCounterStore } from "./useCounterStore";
+
+export function Counter() {
+  const count = useCounterStore((s) => s.count);
+  const inc = useCounterStore((s) => s.increment);
+  const dec = useCounterStore((s) => s.decrement);
+  const reset = useCounterStore((s) => s.reset);
+
+  return (
+    <div>
+      <div>{count}</div>
+      <button onClick={inc}>+</button>
+      <button onClick={dec}>-</button>
+      <button onClick={reset}>reset</button>
+    </div>
+  );
+}
+```
+
+---
+
+## 4. 실무 예제: 인증 상태는 어디까지 저장하는가
+
+인증은 보통 “서버 상태”처럼 보이지만, UI 관점에서 필요한 것은 다음 두 가지로 쪼개진다.
+
+- 클라이언트 상태: access token, 로그인 여부, 로그아웃 처리, 리다이렉트 목적지
+- 서버 상태: 현재 사용자 프로필(이름/권한 등). React Query로 가져온다.
+
+즉 “토큰은 Zustand, 프로필은 React Query”가 기본이다.
+
+```tsx
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+
+type AuthState = {
+  accessToken: string | null;
+  setToken: (token: string) => void;
+  clearToken: () => void;
+};
+
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      accessToken: null,
+      setToken: (accessToken) => set({ accessToken }),
+      clearToken: () => set({ accessToken: null }),
+    }),
+    { name: "auth" }
+  )
+);
+```
+
+이 store는 “사용자 정보”를 들고 있지 않는다. 사용자 정보는 서버에서 가져오는 데이터이므로 React Query 캐시로 관리하는 편이 낫다.
+
+---
+
+## 5. 가장 많이 터지는 함정: 전체 store 구독
+
+```tsx
+// 나쁜 패턴: store 전체를 구독한다.
+const store = useCounterStore();
+```
+
+이 형태는 어떤 state가 바뀌어도 리렌더링된다. Zustand의 이점이 사라진다.
+
+```tsx
+// 좋은 패턴: 필요한 조각만 구독한다.
+const count = useCounterStore((s) => s.count);
+```
+
+---
+
+## 6. 객체 selector는 shallow 비교가 필요할 때가 있다
+
+selector가 객체를 반환하면, 매번 새 객체가 만들어져 리렌더링이 발생할 수 있다.
+
+```tsx
+import { shallow } from "zustand/shallow";
+
+function Example() {
+  const { count, increment } = useCounterStore(
+    (s) => ({ count: s.count, increment: s.increment }),
+    shallow
+  );
+  return <button onClick={increment}>{count}</button>;
+}
+```
+
+이 패턴은 “객체로 묶어서 가져오고 싶은데 리렌더링은 최소화하고 싶다”에 대응한다.
+
+---
+
+## 7. 미들웨어: devtools / persist / immer
+
+Zustand는 미들웨어로 팀 규칙을 붙이기 좋다.
+
+### devtools
+
+```tsx
+import { create } from "zustand";
+import { devtools } from "zustand/middleware";
+
+export const useStore = create(
+  devtools((set) => ({
+    count: 0,
+    inc: () => set((s: any) => ({ count: s.count + 1 }), false, "counter/inc"),
+  }))
+);
+```
+
+### immer
+
+```tsx
+import { create } from "zustand";
+import { immer } from "zustand/middleware/immer";
+
+type Todo = { id: string; text: string; done: boolean };
+
+export const useTodoStore = create(
+  immer((set) => ({
+    todos: [] as Todo[],
+    add: (text: string) =>
+      set((s: any) => {
+        s.todos.push({ id: crypto.randomUUID(), text, done: false });
+      }),
+  }))
+);
+```
+
+immer는 “불변성 코드를 줄인다”는 장점이 있지만, 상태 구조가 복잡해질수록 디버깅 기준을 팀이 가져야 한다.
+
+---
+
+## Pinia와 비교
+
+Zustand는 Pinia와 결이 비슷하다. 핵심 차이는 “반응성 기반인지, selector 기반 구독인지”다.
+
+| 관점 | Pinia | Zustand |
+| --- | --- | --- |
+| 상태 모델 | 반응성 상태 | store + selector 구독 |
+| 구독 단위 | 참조된 값 기반 | selector 결과 기반 |
+| 사용 형태 | store 객체 메서드 | hook 호출 |
+| 영속화 | 플러그인/직접 | `persist` 미들웨어 |
+
+---
+
+## 체크리스트
+
+- 서버 상태(React Query)와 클라이언트 상태(Zustand)를 분리할 수 있다.
+- selector 기반 구독이 리렌더링을 줄이는 원리를 설명할 수 있다.
+- store 전체 구독이 왜 위험한지 설명할 수 있다.
+- 인증에서 “토큰 vs 프로필”을 분리하는 이유를 설명할 수 있다.
