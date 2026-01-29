@@ -16,277 +16,204 @@ seriesOrder: 8
 
 ## 실전 예제 & 다음 단계
 
-실전 예제 & 다음 단계
-고급 패턴
+이 글은 1~7편의 내용을 합쳐 “실무에서 실제로 굴러가는 형태”를 만든다. 목표는 다음이다.
 
-### 1. Query Cancellation
+- API 호출 규칙을 고정한다(에러 처리 포함).
+- queryKey 설계를 모듈로 고정한다.
+- 목록/상세/작성 흐름에서 캐시 동기화 규칙을 만든다.
+- URL 상태(페이지/필터)와 queryKey를 일치시킨다.
 
-```jsx
-function Search() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const { data, isLoading } = useQuery({
-    queryKey: ["search", searchTerm],
-    queryFn: async ({ signal }) => {
-      const response = await fetch(`/api/search?q=${searchTerm}`, {
-        signal, // AbortSignal 전달
-      });
-      return response.json();
-    },
-    enabled: searchTerm.length > 0,
+---
+
+## 1. 실무 기준: 공통 fetch 규칙을 먼저 만든다
+
+React Query는 queryFn이 throw했을 때 실패로 인식한다. `fetch`는 4xx/5xx에서 throw하지 않으므로, 프로젝트 공통 규칙이 필요하다.
+
+```tsx
+export type ApiError = Error & { status?: number };
+
+export async function fetchJson<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
+  const res = await fetch(input, init);
+  if (!res.ok) {
+    const err: ApiError = new Error("request failed");
+    err.status = res.status;
+    throw err;
+  }
+  return (await res.json()) as T;
+}
+```
+
+이 규칙이 없으면 404/500이 와도 성공으로 처리되는 문제가 생긴다.
+
+---
+
+## 2. queryKey를 팩토리로 고정한다
+
+queryKey는 캐시 설계의 핵심이다. 프로젝트가 커지면 키가 흩어지므로 모듈로 고정한다.
+
+```tsx
+export const postKeys = {
+  all: ["posts"] as const,
+  lists: () => [...postKeys.all, "list"] as const,
+  list: (filters: { page: number; tag?: string }) => [...postKeys.lists(), filters] as const,
+  details: () => [...postKeys.all, "detail"] as const,
+  detail: (id: string) => [...postKeys.details(), id] as const,
+};
+```
+
+이 형태는 무효화 범위를 안정적으로 만든다.
+
+---
+
+## 3. 목록 페이지: URL 상태와 queryKey를 일치시킨다
+
+실무에서 페이지네이션/필터는 URL로 노출하는 편이 좋다. 공유/새로고침/뒤로가기가 자연스럽게 동작한다.
+
+```tsx
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
+
+type Post = { id: string; title: string };
+type PostListResponse = { posts: Post[]; totalPages: number };
+
+async function fetchPosts({ page, tag }: { page: number; tag?: string }): Promise<PostListResponse> {
+  const url = new URL("/api/posts", window.location.origin);
+  url.searchParams.set("page", String(page));
+  if (tag) url.searchParams.set("tag", tag);
+  return fetchJson(url.toString());
+}
+
+export function PostList() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page = Number(searchParams.get("page") ?? "1");
+  const tag = searchParams.get("tag") ?? undefined;
+
+  const query = useQuery({
+    queryKey: postKeys.list({ page, tag }),
+    queryFn: () => fetchPosts({ page, tag }),
+    placeholderData: keepPreviousData,
   });
+
+  if (query.isPending) return <div>loading...</div>;
+  if (query.isError) return <div>error</div>;
+
   return (
     <div>
-      <input
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        placeholder="Search..."
-      />
-      {isLoading && <div>Searching...</div>}
-      <SearchResults results={data} />
+      {query.isFetching && <div>refreshing...</div>}
+      {query.data.posts.map((post) => (
+        <div key={post.id}>{post.title}</div>
+      ))}
+
+      <button onClick={() => setSearchParams({ page: String(page + 1), ...(tag ? { tag } : {}) })}>
+        next
+      </button>
     </div>
   );
 }
 ```
 
-### 2. Dependent Queries
+여기서 핵심은 “page/tag가 queryKey에 포함된다”는 점이다. 포함되지 않으면 다른 조건의 목록이 같은 캐시에 섞인다.
 
-```jsx
-function UserProjects({ userId }) {
-  const { data: user } = useQuery({
-    queryKey: ["user", userId],
-    queryFn: () => fetchUser(userId),
-  });
-  const { data: projects } = useQuery({
-    queryKey: ["projects", user?.id],
-    queryFn: () => fetchProjects(user.id),
-    enabled: !!user?.id, // user가 로드된 후에만 실행
-  });
-  return <ProjectList projects={projects} />;
+---
+
+## 4. 상세 페이지: detail 캐시와 목록 캐시를 분리한다
+
+```tsx
+import { useQuery } from "@tanstack/react-query";
+import { useParams } from "react-router-dom";
+
+type PostDetail = { id: string; title: string; content: string };
+
+async function fetchPost(id: string): Promise<PostDetail> {
+  return fetchJson(`/api/posts/${id}`);
 }
-```
 
-### 3. Query Keys Factory
+export function PostDetailPage() {
+  const { postId } = useParams();
+  if (!postId) return <div>bad request</div>;
 
-```javascript
-// queryKeys.js
-export const userKeys = {
-  all: ["users"],
-  lists: () => [...userKeys.all, "list"],
-  list: (filters) => [...userKeys.lists(), { filters }],
-  details: () => [...userKeys.all, "detail"],
-  detail: (id) => [...userKeys.details(), id],
-};
-// 사용
-useQuery({
-  queryKey: userKeys.detail(userId),
-  queryFn: () => fetchUser(userId),
-});
-// 모든 user 쿼리 무효화
-queryClient.invalidateQueries({ queryKey: userKeys.all });
-// 특정 user 무효화
-queryClient.invalidateQueries({ queryKey: userKeys.detail(userId) });
-```
+  const query = useQuery({
+    queryKey: postKeys.detail(postId),
+    queryFn: () => fetchPost(postId),
+  });
 
-### 4. Suspense Mode
-
-```jsx
-import { Suspense } from "react";
-function App() {
+  if (query.isPending) return <div>loading...</div>;
+  if (query.isError) return <div>error</div>;
   return (
-    <Suspense fallback={<LoadingSpinner />}>
-      <Users />
-    </Suspense>
+    <article>
+      <h1>{query.data.title}</h1>
+      <div>{query.data.content}</div>
+    </article>
   );
 }
-function Users() {
-  const { data } = useQuery({
-    queryKey: ["users"],
-    queryFn: fetchUsers,
-    suspense: true, // Suspense 모드 활성화
-  });
-  return <UserList users={data} />;
-}
-```
-
-### 5. Retry Logic
-
-```javascript
-useQuery({
-  queryKey: ["users"],
-  queryFn: fetchUsers,
-  retry: 3, // 3번 재시도
-  retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-  // 1초, 2초, 4초... 최대 30초
-});
-// 조건부 재시도
-useQuery({
-  queryKey: ["users"],
-  queryFn: fetchUsers,
-  retry: (failureCount, error) => {
-    // 404는 재시도 안함
-    if (error.status === 404) return false;
-    // 최대 3번
-    return failureCount < 3;
-  },
-});
-```
-
-### 6. Query Filters
-
-```javascript
-const queryClient = useQueryClient();
-// 모든 쿼리 무효화
-queryClient.invalidateQueries();
-// 특정 접두사 쿼리 무효화
-queryClient.invalidateQueries({ queryKey: ["posts"] });
-// 조건부 무효화
-queryClient.invalidateQueries({
-  predicate: (query) =>
-    query.queryKey[0] === "posts" && query.state.data?.isArchived,
-});
-// 쿼리 제거
-queryClient.removeQueries({ queryKey: ["posts"] });
-// 쿼리 데이터 설정
-queryClient.setQueriesData({ queryKey: ["posts"] }, (oldData) =>
-  oldData.filter((post) => !post.isDeleted),
-);
 ```
 
 ---
 
-## 실전 예제: 블로그 애플리케이션
+## 5. 작성/수정/삭제: invalidate 기준을 팀 규칙으로 만든다
 
-```jsx
-// api/posts.js
-export const postKeys = {
-  all: ["posts"],
-  lists: () => [...postKeys.all, "list"],
-  list: (filters) => [...postKeys.lists(), filters],
-  details: () => [...postKeys.all, "detail"],
-  detail: (id) => [...postKeys.details(), id],
-};
+쓰기 이후에 어떤 캐시를 최신화할지 결정해야 한다. 보통은 다음이 기본이다.
 
-export async function fetchPosts({ page = 1, limit = 10 } = {}) {
-  const response = await fetch(`/api/posts?page=${page}&limit=${limit}`);
-  if (!response.ok) throw new Error("Failed to fetch posts");
-  return response.json();
-}
+- 생성: 목록 쿼리 무효화
+- 수정: 상세 쿼리 무효화 + 목록 무효화(제목/요약이 목록에 보이면)
+- 삭제: 목록 무효화 + 상세 캐시 제거
 
-export async function fetchPost(id) {
-  const response = await fetch(`/api/posts/${id}`);
-  if (!response.ok) throw new Error("Failed to fetch post");
-  return response.json();
-}
+```tsx
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-export async function createPost(data) {
-  const response = await fetch("/api/posts", {
+async function createPost(input: { title: string; content: string }) {
+  return fetchJson("/api/posts", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
+    body: JSON.stringify(input),
   });
-  if (!response.ok) throw new Error("Failed to create post");
-  return response.json();
 }
 
-export async function updatePost({ id, data }) {
-  const response = await fetch(`/api/posts/${id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) throw new Error("Failed to update post");
-  return response.json();
-}
-
-export async function deletePost(id) {
-  const response = await fetch(`/api/posts/${id}`, {
-    method: "DELETE",
-  });
-  if (!response.ok) throw new Error("Failed to delete post");
-}
-```
-
-```jsx
-// components/PostList.jsx
-import { useQuery } from "@tanstack/react-query";
-import { fetchPosts, postKeys } from "../api/posts";
-
-export default function PostList() {
-  const [page, setPage] = useState(1);
-
-  const { data, isLoading, error } = useQuery({
-    queryKey: postKeys.list({ page }),
-    queryFn: () => fetchPosts({ page }),
-    placeholderData: (previousData) => previousData,
-  });
-
-  if (isLoading && !data) return <LoadingSpinner />;
-  if (error) return <ErrorMessage error={error} />;
-
-  return (
-    <div>
-      {data.posts.map((post) => (
-        <PostCard key={post.id} post={post} />
-      ))}
-
-      <Pagination
-        page={page}
-        totalPages={data.totalPages}
-        onPageChange={setPage}
-      />
-    </div>
-  );
-}
-```
-
-```jsx
-// components/CreatePost.jsx
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createPost, postKeys } from "../api/posts";
-
-export default function CreatePost() {
+export function CreatePost() {
   const queryClient = useQueryClient();
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
 
   const mutation = useMutation({
     mutationFn: createPost,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: postKeys.lists() });
-      setTitle("");
-      setContent("");
-      toast.success("Post created!");
-    },
-    onError: (error) => {
-      toast.error(error.message);
     },
   });
 
-  function handleSubmit(e) {
-    e.preventDefault();
-    mutation.mutate({ title, content });
-  }
-
   return (
-    <form onSubmit={handleSubmit}>
-      <input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="Title"
-        required
-      />
-      <textarea
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        placeholder="Content"
-        required
-      />
-      <button type="submit" disabled={mutation.isPending}>
-        {mutation.isPending ? "Creating..." : "Create Post"}
-      </button>
-    </form>
+    <button onClick={() => mutation.mutate({ title: "t", content: "c" })} disabled={mutation.isPending}>
+      {mutation.isPending ? "saving..." : "create"}
+    </button>
   );
 }
 ```
 
 ---
+
+## 다음 단계
+
+React Query를 실무 레벨로 가져가려면 다음을 추가로 다룰 필요가 있다.
+
+- 서버 상태와 클라이언트 상태의 경계(상태 관리 시리즈와 연결)
+- Next.js에서의 프리패치/SSR/스트리밍과의 결합
+- 팀 단위 queryKey 규칙, 에러 표준화, observability(로그/트레이싱)
+
+---
+
+## Vue와 비교
+
+Vue Query를 쓰면 React Query와 모델이 같다. Pinia 중심으로 서버 상태를 관리하면 “fetch 규칙, 캐시 키, 무효화”를 팀이 직접 규정해야 한다.
+
+| 관심사 | Vue Query | React Query |
+| --- | --- | --- |
+| 공통 fetch 규칙 | composable/플러그인 | 모듈 함수 |
+| queryKey 설계 | 상수/컴포저블 | 상수/모듈 |
+| URL 상태 결합 | vue-router query | react-router search params |
+| invalidate | invalidateQueries | invalidateQueries |
+
+---
+
+## 체크리스트
+
+- URL 상태(페이지/필터)와 queryKey가 왜 일치해야 하는지 설명할 수 있다.
+- 생성/수정/삭제 이후 어떤 캐시를 무효화/제거할지 기준을 만들 수 있다.
+- 공통 fetch 규칙이 없을 때 React Query가 실패를 감지하지 못하는 케이스를 설명할 수 있다.
