@@ -7,13 +7,22 @@ series: "Next.js 고급"
 seriesOrder: 7
 ---
 
-# Next.js 고급 기능 가이드 - 실전 예제 & 다음 단계
+# Next.js 고급 - 실전 예제 & 다음 단계
 
-> Next.js 15의 고급 기능을 다루는 학습 자료
+> 이 글은 1~6편의 개념을 하나의 흐름으로 엮는다.  
+> 목표는 “기능이 동작한다”가 아니라 “운영 가능한 형태로 설계한다”다.
 
 ---
 
 ## 실전 예제: 블로그 플랫폼
+
+이 예제는 다음 요구사항을 동시에 만족해야 한다.
+
+- 게시글 목록은 빠르게 제공된다(ISR/캐시).
+- 게시글 작성은 서버 액션으로 처리된다(보안/타입/보일러플레이트).
+- 작성 후 목록은 즉시 최신화된다(tag 기반 무효화).
+- 관리자 경로는 Middleware로 선제 차단된다.
+- 느린 데이터는 스트리밍으로 UX를 유지한다.
 
 ```jsx
 // app/posts/page.jsx
@@ -32,6 +41,10 @@ export default async function Posts() {
   );
 }
 ```
+
+### 왜 `Suspense`가 여기서 의미가 있는가
+
+이 코드는 목록 데이터는 먼저 준비되지만, 목록 렌더링과 별개로 다른 위젯(인기글, 태그 목록)이 느릴 수 있다. Suspense 경계는 “느린 부분만 느리게” 만든다.
 
 ```jsx
 // app/actions.js
@@ -55,6 +68,10 @@ export async function deletePost(id) {
 }
 ```
 
+### 실무 포인트: create/delete가 같은 tag를 무효화한다
+
+목록이 `next: { tags: ["posts"] }`로 캐시된 fetch를 사용한다면, 쓰기 이후 `revalidateTag("posts")`로 관련 캐시를 안정적으로 최신화할 수 있다.
+
 ```jsx
 // middleware.js
 import { NextResponse } from "next/server";
@@ -75,4 +92,30 @@ export const config = {
 };
 ```
 
+### 실무 포인트: middleware에서 과도한 로깅을 피한다
+
+Edge에서의 로깅은 비용이 된다. 운영에서는 표준 로깅/트레이싱 계층을 두고, middleware는 최소한의 분기만 담당하는 편이 낫다.
+
+---
+
+## 다음 단계 체크리스트
+
+- 서버 액션과 Route Handler의 역할 경계를 설명할 수 있다.
+- `revalidatePath`와 `revalidateTag`의 선택 기준을 설명할 수 있다.
+- 스트리밍 SSR에서 경계를 어디에 둘지 UX 기준으로 설명할 수 있다.
+- Middleware matcher를 “비용 제어”로 이해한다.
+- 이미지 최적화에서 `priority`와 `sizes`가 LCP/CLS에 미치는 영향을 설명할 수 있다.
+
+---
+
+## Nuxt와 비교
+
+Nuxt도 SSR/ISR/서버 API/Nitro/middleware 조합으로 같은 문제를 푼다. 차이는 “프레임워크가 제공하는 기본 경로”에 있다.
+
+| 요구사항 | Nuxt | Next.js |
+| --- | --- | --- |
+| 서버 로직 | Nitro 서버 API | Server Actions / Route Handler |
+| 캐시/ISR | Nitro 캐시/프리렌더 전략 | `revalidate` + tag/path 무효화 |
+| 미들웨어 | route middleware + server middleware | Edge middleware + matcher |
+| 이미지 | Nuxt Image | `next/image` |
 ---
