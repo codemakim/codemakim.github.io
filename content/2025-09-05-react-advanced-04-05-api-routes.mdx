@@ -7,13 +7,26 @@ series: "Next.js 고급"
 seriesOrder: 5
 ---
 
-# Next.js 고급 기능 가이드 - API Routes 고급
+# Next.js 고급 - API Routes 고급
 
-> Next.js 15의 고급 기능을 다루는 학습 자료
+> Next.js(App Router)의 API Routes는 Route Handler로 구현한다.  
+> 서버 액션이 “앱 내부 폼/뮤테이션”을 단순화한다면, Route Handler는 “HTTP API” 자체를 구현한다.
 
 ---
 
 ## API Routes 고급
+
+실무에서 Route Handler는 다음 이유로 남는다.
+
+- 외부 클라이언트가 호출해야 한다(모바일/타 서비스/웹훅).
+- HTTP 제어가 필요하다(CORS, 캐시 헤더, 스트리밍, 인증 헤더).
+- 배치/크론/웹훅 같은 “컴포넌트 트리 밖”의 서버 엔드포인트가 필요하다.
+
+---
+
+## 1. Route Handlers 기본: 요청/응답 경계
+
+Route Handler는 서버에서만 실행되고, `Request`를 받아 `Response`를 돌려준다. Next.js는 `NextResponse`를 제공해 JSON/redirect 등을 편하게 만든다.
 
 ### Route Handlers (App Router)
 
@@ -39,6 +52,12 @@ export async function POST(request) {
   return NextResponse.json(post, { status: 201 });
 }
 ```
+
+---
+
+## 2. 동적 Route Handlers: params는 라우트의 입력값이다
+
+`/api/posts/[id]`에서 `[id]`는 서버로 들어오는 입력값이다. 이 값은 검증하지 않으면 바로 취약점이 된다.
 
 ### 동적 Route Handlers
 
@@ -73,6 +92,16 @@ export async function DELETE(request, { params }) {
 }
 ```
 
+### 실무 포인트: 404와 500을 분리한다
+
+리소스 없음은 404로, 서버 오류는 500으로 분리해야 한다. 에러 처리가 뭉개지면 클라이언트 캐시/재시도 전략도 같이 망가진다.
+
+---
+
+## 3. 스트리밍 응답: SSE는 “연결 유지” 비용을 만든다
+
+스트리밍은 강력하지만, 연결을 오래 유지하는 순간 서버/프록시 비용이 올라간다. 실무에서는 “진짜 필요한가”를 먼저 판단한다.
+
 ### 스트리밍 응답
 
 ```jsx
@@ -97,6 +126,14 @@ export async function GET() {
   });
 }
 ```
+
+---
+
+## 4. CORS: 공개 API일 때만 쓴다
+
+브라우저의 CORS는 “다른 오리진에서 요청이 들어올 때”의 방어선이다. 같은 오리진 내부 통신이면 보통 필요 없다.
+
+CORS를 `*`로 열면 보안 정책이 무너질 수 있다. 공개 API가 아니라면 허용 오리진을 제한하는 편이 기본이다.
 
 ### CORS 설정
 
@@ -124,5 +161,34 @@ export async function OPTIONS(request) {
   });
 }
 ```
+
+---
+
+## 5. 자주 터지는 함정
+
+### 1) 서버 액션으로 대체 가능한데도 API를 만든다
+
+폼 제출 같은 내부 UX라면 서버 액션이 더 단순할 때가 많다. “외부 호출이 필요한가”가 판단 기준이다.
+
+### 2) 동적 파라미터 검증을 안 한다
+
+`id`가 숫자여야 한다면 숫자 검증이 필요하다. 검증 없이 DB 쿼리에 넣으면 오류와 비용이 올라간다.
+
+### 3) OPTIONS를 빼먹는다
+
+브라우저는 preflight를 보낸다. OPTIONS가 없으면 CORS가 깨진다.
+
+---
+
+## Nuxt와 비교
+
+Nuxt는 Nitro 서버 엔진을 기반으로 server route를 만든다. 개념적으로는 동일하다.
+
+| 관심사 | Nuxt(Nitro) | Next.js(Route Handler) |
+| --- | --- | --- |
+| API 구현 | `server/api/*` | `app/api/*/route.ts` |
+| Request/Response | Nitro 이벤트/응답 | Web 표준 Request/Response |
+| 스트리밍 | Nitro 스트림/SSE | ReadableStream/SSE |
+| CORS | Nitro 설정/미들웨어 | 헤더/OPTIONS 처리 |
 
 ---
