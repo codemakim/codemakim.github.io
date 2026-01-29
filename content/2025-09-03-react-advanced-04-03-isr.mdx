@@ -7,15 +7,28 @@ series: "Next.js 고급"
 seriesOrder: 3
 ---
 
-# Next.js 고급 기능 가이드 - ISR
+# Next.js 고급 - ISR
 
-> Next.js 15의 고급 기능을 다루는 학습 자료
+> ISR은 정적 페이지(SSG)의 속도와 SSR의 최신성 사이에서 균형을 잡는 전략이다.  
+> 핵심은 “빌드 시 한 번 만들고 끝”이 아니라, 운영 중에도 정적 페이지를 점진적으로 재생성한다는 점이다.
 
 ---
 
 ## ISR (Incremental Static Regeneration)
 
-### 기본 ISR
+ISR을 이해하려면 먼저 Next.js의 렌더링/캐시 모드를 분리해야 한다.
+
+- SSG: 빌드 타임에 생성된 HTML을 제공한다.
+- SSR: 요청마다 서버에서 렌더링한다.
+- ISR: 정적 HTML을 제공하되, 일정 조건에서 백그라운드로 갱신한다.
+
+실무에서 ISR은 “트래픽이 많은 페이지를 빠르게 제공하면서, 데이터 최신성도 확보해야 하는 경우”에 쓴다.
+
+---
+
+## 1. 기본 ISR: `revalidate`로 TTL을 둔다
+
+`revalidate = 60`은 “최대 60초까지는 캐시된 정적 결과를 쓸 수 있다”는 의미로 이해하는 편이 실무적이다.
 
 ```jsx
 // app/posts/[id]/page.jsx
@@ -39,7 +52,15 @@ export async function generateStaticParams() {
 }
 ```
 
-### On-Demand Revalidation
+### 실무 포인트: generateStaticParams의 범위를 제한한다
+
+모든 글을 빌드 타임에 다 만들면 빌드 시간이 폭발한다. 트래픽이 많은 상위 N개만 생성하고, 나머지는 런타임에 생성/캐시하는 전략을 쓴다.
+
+---
+
+## 2. On-Demand Revalidation: 이벤트 기반으로 갱신한다
+
+TTL 기반 갱신만으로는 “관리자가 글을 수정했는데 바로 반영되어야 한다” 같은 요구를 만족하기 어렵다. 이때 on-demand revalidation을 쓴다.
 
 ```jsx
 // app/api/revalidate/route.js
@@ -72,7 +93,15 @@ fetch("/api/revalidate", {
 });
 ```
 
-### 태그 기반 캐시
+### 실무 포인트: 재검증 엔드포인트는 반드시 보호한다
+
+이 엔드포인트가 외부에 열려 있으면 아무나 캐시를 무효화할 수 있다. 서명(secret) 검증, 관리자 인증, 내부 네트워크 제한 같은 보호가 필요하다.
+
+---
+
+## 3. 태그 기반 캐시: 페이지가 많아질수록 tag가 이긴다
+
+경로 기반 무효화는 단순하지만 “영향받는 경로가 많아질수록 관리가 어려워진다”. 태그 기반은 fetch 단위로 정책을 붙여서 무효화 범위를 안정적으로 만든다.
 
 ```jsx
 // app/posts/page.jsx
@@ -99,5 +128,33 @@ export async function createPost(data) {
   revalidateTag("posts"); // 'posts' 태그를 가진 모든 캐시 무효화
 }
 ```
+
+---
+
+## 4. 자주 터지는 함정
+
+### 1) “60초마다 정확히 갱신된다”로 이해한다
+
+revalidate는 “TTL 상한”에 가깝다. 요청이 들어오지 않으면 갱신도 일어나지 않을 수 있다. 최신성이 강하게 필요하면 on-demand를 함께 둔다.
+
+### 2) 페이지 단위와 fetch 단위 캐시가 섞여서 혼란이 난다
+
+App Router에서는 fetch가 기본적으로 캐시될 수 있고, `next: { tags }` 같은 옵션이 fetch 단위 캐시를 만든다. “무엇을 무효화하는지”를 page 단위가 아니라 fetch 단위로 추적해야 하는 경우가 많다.
+
+### 3) on-demand를 외부에 노출한다
+
+무효화는 자원 소모다. 보호가 없으면 운영에서 바로 문제가 된다.
+
+---
+
+## Nuxt와 비교
+
+Nuxt도 ISR/프리렌더/캐시 전략으로 비슷한 문제를 푼다. Next.js의 특징은 fetch 캐시와 태그 기반 무효화가 렌더링 모델과 강하게 결합되어 있다는 점이다.
+
+| 관심사 | Nuxt | Next.js |
+| --- | --- | --- |
+| 정적 갱신 | ISR/캐시 전략(설정 기반) | `revalidate` + on-demand |
+| 무효화 단위 | 경로/캐시 키 중심 | `revalidatePath`/`revalidateTag` |
+| 데이터 캐시 | composable/서버 캐시 전략 | fetch 캐시 + 태그 |
 
 ---
