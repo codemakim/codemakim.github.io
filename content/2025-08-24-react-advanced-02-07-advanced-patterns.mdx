@@ -16,100 +16,196 @@ seriesOrder: 7
 
 ## 고급 패턴
 
-고급 패턴
-무한 스크롤
+고급 패턴은 “기능이 되는 코드”를 넘어 “운영 가능한 데이터 계층”을 만드는 패턴이다.
 
-### useInfiniteQuery
+이 글은 실무에서 자주 쓰는 고급 패턴을 6개로 정리한다.
 
-```jsx
-import { useInfiniteQuery } from "@tanstack/react-query";
-function Posts() {
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
-    useInfiniteQuery({
-      queryKey: ["posts"],
-      queryFn: ({ pageParam = 0 }) => fetchPosts(pageParam),
-      getNextPageParam: (lastPage, allPages) => {
-        // 다음 페이지 번호 반환
-        return lastPage.nextCursor;
-      },
-      initialPageParam: 0,
-    });
-  if (isLoading) return <div>Loading...</div>;
+- prefetch
+- initialData/placeholderData
+- dependent queries
+- query cancellation
+- query filters(조건부 무효화)
+- select(데이터 변환)
+
+---
+
+## 1. prefetch: 다음 화면을 미리 데운다
+
+목록에서 상세로 넘어갈 때 “대기 시간”을 줄이려면, 사용자의 의도를 예측해 캐시를 데운다.
+
+```tsx
+import { useQueryClient } from "@tanstack/react-query";
+
+function UserRow({ userId, name }: { userId: string; name: string }) {
+  const queryClient = useQueryClient();
+
   return (
-    <div>
-      {data.pages.map((page, i) => (
-        <div key={i}>
-          {page.posts.map((post) => (
-            <PostCard key={post.id} post={post} />
-          ))}
-        </div>
-      ))}
-      <button
-        onClick={() => fetchNextPage()}
-        disabled={!hasNextPage || isFetchingNextPage}
-      >
-        {isFetchingNextPage
-          ? "Loading more..."
-          : hasNextPage
-            ? "Load More"
-            : "Nothing more to load"}
-      </button>
-    </div>
-  );
-}
-async function fetchPosts(pageParam) {
-  const response = await fetch(`/api/posts?cursor=${pageParam}`);
-  return response.json();
-}
-```
-
-### 자동 무한 스크롤
-
-```jsx
-import { useInfiniteQuery } from "@tanstack/react-query";
-import { useInView } from "react-intersection-observer";
-function Posts() {
-  const { ref, inView } = useInView();
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useInfiniteQuery({
-      queryKey: ["posts"],
-      queryFn: ({ pageParam = 0 }) => fetchPosts(pageParam),
-      getNextPageParam: (lastPage) => lastPage.nextCursor,
-      initialPageParam: 0,
-    });
-  // 화면에 보이면 자동으로 다음 페이지 로드
-  useEffect(() => {
-    if (inView && hasNextPage) {
-      fetchNextPage();
-    }
-  }, [inView, hasNextPage, fetchNextPage]);
-  return (
-    <div>
-      {data?.pages.map((page, i) => (
-        <div key={i}>
-          {page.posts.map((post) => (
-            <PostCard key={post.id} post={post} />
-          ))}
-        </div>
-      ))}
-      {/* 감지 영역 */}
-      <div ref={ref}>{isFetchingNextPage && <LoadingSpinner />}</div>
+    <div
+      onMouseEnter={() => {
+        queryClient.prefetchQuery({
+          queryKey: ["user", userId],
+          queryFn: () => fetch(`/api/users/${userId}`).then((r) => r.json()),
+        });
+      }}
+    >
+      {name}
     </div>
   );
 }
 ```
 
-### 양방향 무한 스크롤
+prefetch는 “항상 켠다”가 아니라, 네트워크/디바이스/화면 빈도에 따라 전략을 둔다.
 
-```jsx
-const { data, fetchNextPage, fetchPreviousPage, hasNextPage, hasPreviousPage } =
-  useInfiniteQuery({
-    queryKey: ["posts"],
-    queryFn: ({ pageParam = 0 }) => fetchPosts(pageParam),
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
-    getPreviousPageParam: (firstPage) => firstPage.previousCursor,
-    initialPageParam: 0,
+---
+
+## 2. initialData/placeholderData: UX를 흔들지 않는다
+
+### initialData
+
+리스트에서 이미 가져온 사용자 데이터를 상세의 초기값으로 쓸 수 있다.
+
+```tsx
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+
+function UserDetail({ userId }: { userId: string }) {
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryKey: ["user", userId],
+    queryFn: () => fetch(`/api/users/${userId}`).then((r) => r.json()),
+    initialData: () => {
+      const users = queryClient.getQueryData<any[]>(["users"]);
+      return users?.find((u) => u.id === userId);
+    },
   });
+
+  if (query.isPending) return <div>loading...</div>;
+  return <div>{query.data.name}</div>;
+}
 ```
+
+initialData는 “정확한 최신값”을 보장하지 않는다. 대신 “초기 UI 깜빡임”을 줄인다.
+
+### placeholderData
+
+페이지네이션에서 이전 데이터를 유지해 빈 화면을 막는다(2편에서 다룬다).
+
+---
+
+## 3. dependent queries: 입력값이 준비된 뒤 실행한다
+
+```tsx
+import { useQuery } from "@tanstack/react-query";
+
+function UserProjects({ userId }: { userId: string }) {
+  const user = useQuery({
+    queryKey: ["user", userId],
+    queryFn: () => fetch(`/api/users/${userId}`).then((r) => r.json()),
+  });
+
+  const projects = useQuery({
+    queryKey: ["projects", user.data?.id],
+    queryFn: () => fetch(`/api/users/${user.data.id}/projects`).then((r) => r.json()),
+    enabled: Boolean(user.data?.id),
+  });
+
+  if (user.isPending || projects.isPending) return <div>loading...</div>;
+  return <ProjectList items={projects.data} />;
+}
+```
+
+enabled를 빼먹으면 `undefined`로 요청이 나가거나, 불필요한 요청이 발생한다.
+
+---
+
+## 4. query cancellation: 오래된 요청을 취소한다
+
+검색 쿼리처럼 입력이 빠르게 바뀌는 경우는 이전 요청 결과가 늦게 도착해 UI를 덮어쓰는 문제가 생긴다. queryFn의 `signal`을 사용한다.
+
+```tsx
+import type { QueryFunctionContext } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
+
+async function search({ queryKey, signal }: QueryFunctionContext) {
+  const [, q] = queryKey as ["search", string];
+  const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`, { signal });
+  if (!res.ok) throw new Error("failed");
+  return await res.json();
+}
+
+function Search({ q }: { q: string }) {
+  return useQuery({ queryKey: ["search", q], queryFn: search, enabled: q.length > 0 });
+}
+```
+
+---
+
+## 5. query filters: 조건부로 무효화/제거한다
+
+여러 캐시 중 “특정 조건”만 정리해야 하는 경우가 있다.
+
+```tsx
+import { useQueryClient } from "@tanstack/react-query";
+
+function useCleanup() {
+  const queryClient = useQueryClient();
+
+  function invalidateArchivedPosts() {
+    queryClient.invalidateQueries({
+      predicate: (q) => q.queryKey[0] === "posts" && Boolean((q.state.data as any)?.isArchived),
+    });
+  }
+
+  return { invalidateArchivedPosts };
+}
+```
+
+predicate는 강력하지만 남용하면 디버깅이 어려워진다. 가능한 한 queryKey 설계로 해결하는 편이 낫다.
+
+---
+
+## 6. select: UI에 필요한 형태로 변환한다
+
+select는 “캐시에 저장된 원본 데이터”가 아니라 “컴포넌트에 제공되는 데이터”를 변환한다.
+
+```tsx
+import { useQuery } from "@tanstack/react-query";
+
+function Users() {
+  const query = useQuery({
+    queryKey: ["users"],
+    queryFn: () => fetch("/api/users").then((r) => r.json()),
+    select: (users: any[]) => users.map((u) => ({ id: u.id, label: u.name })),
+  });
+
+  if (query.isPending) return <div>loading...</div>;
+  return <UserSelect options={query.data} />;
+}
+```
+
+select는 UI 코드에서 반복되는 변환 로직을 줄인다. 단, 과도한 변환이 성능 병목이 되면 memoization 기준을 다시 잡아야 한다.
+
+---
+
+## Vue와 비교
+
+Vue Query에서도 같은 패턴이 존재한다. 차이는 “prefetch를 어디에서 하느냐(컴포저블/컴포넌트)” 정도로 나타난다.
+
+| 패턴 | Vue Query | React Query |
+| --- | --- | --- |
+| prefetch | queryClient.prefetchQuery | queryClient.prefetchQuery |
+| initialData | initialData 옵션 | initialData 옵션 |
+| dependent | enabled | enabled |
+| cancellation | signal 사용 | signal 사용 |
+| select | select 옵션 | select 옵션 |
+
+---
+
+## 체크리스트
+
+- prefetch가 성능 최적화이면서 네트워크 비용이라는 점을 이해한다.
+- dependent query에서 enabled를 쓰는 이유를 설명할 수 있다.
+- query cancellation이 필요한 상황을 설명할 수 있다.
+- predicate 무효화를 최소화하고 queryKey 설계로 우선 해결할 수 있다.
 
 ---
