@@ -1,387 +1,248 @@
 ---
 title: "[상태 관리 5/5] 상태 관리 - 실전 예제 & 다음 단계"
 date: "2025-09-05"
-description: "E-Commerce 앱 구현 및 학습 체크리스트"
+description: "E-Commerce 시나리오로 상태의 경계를 설계한다"
 tags: ["React", "고급", "프론트엔드"]
 series: "상태 관리"
 seriesOrder: 5
 ---
 
-# React 상태 관리 라이브러리 가이드 - 실전 예제 & 다음 단계
+# 상태 관리 - 실전 예제 & 다음 단계
 
-> Zustand, Redux Toolkit을 중심으로 한 상태 관리 학습 자료
+이 글은 앞선 1~4편을 “실무 화면”에 매핑한다. 목표는 하나다.
+
+상태의 경계를 잘라서, 서버 상태와 클라이언트 상태가 서로의 문제를 떠안지 않게 만든다.
 
 ---
 
-## 상태 관리 라이브러리 비교
+## 1. 실무 기준: 상태를 3종류로 분해한다
 
-상태 관리 라이브러리 비교
-Jotai
+E-Commerce를 예로 들면 상태는 다음으로 갈린다.
 
-### 개요
+1. 서버 상태: 상품 목록, 가격, 재고, 주문 내역  
+2. 클라이언트 전역 상태: 장바구니, 인증 토큰, 전역 UI(모달/토스트)  
+3. 클라이언트 로컬 상태: 입력 폼, 탭 선택, 임시 필터 UI
 
-Jotai는 원자적(atomic) 접근 방식의 상태 관리 라이브러리이다.
-특징:
+이 분해가 되면 라이브러리 선택은 자연스럽다.
 
-- 원자(atom) 기반
-- 최소한의 보일러플레이트
-- TypeScript 친화적
-- Suspense 지원
+- 서버 상태: React Query
+- 전역 UI/장바구니: Zustand 또는 Redux Toolkit
+- 파생/조합 상태: Jotai가 편할 때가 있다
 
-### 설치
+---
 
-```bash
-npm install jotai
-```
+## 2. 예제 설계: 상품은 React Query, 장바구니는 store
 
-### 기본 사용법
+### 2-1. 상품 목록은 서버 상태다
 
-```jsx
-// atoms.js
-import { atom } from "jotai";
-export const countAtom = atom(0);
-export const nameAtom = atom("John");
-```
+```tsx
+import { useQuery } from "@tanstack/react-query";
 
-```jsx
-// components/Counter.jsx
-import { useAtom } from "jotai";
-import { countAtom } from "../atoms";
-export default function Counter() {
-  const [count, setCount] = useAtom(countAtom);
+type Product = { id: string; name: string; price: number };
+
+async function fetchProducts(): Promise<Product[]> {
+  const res = await fetch("/api/products");
+  if (!res.ok) throw new Error("failed");
+  return await res.json();
+}
+
+export function ProductList() {
+  const query = useQuery({ queryKey: ["products"], queryFn: fetchProducts });
+  if (query.isPending) return <div>loading...</div>;
+  if (query.isError) return <div>error</div>;
+
   return (
-    <div>
-      <h1>{count}</h1>
-      <button onClick={() => setCount((c) => c + 1)}>Increment</button>
-    </div>
+    <ul>
+      {query.data.map((p) => (
+        <li key={p.id}>
+          {p.name} {p.price}
+        </li>
+      ))}
+    </ul>
   );
 }
 ```
 
-### 읽기 전용 / 쓰기 전용
+상품을 store에 넣기 시작하면 가격 변경/재고 변경/새로고침/동기화 비용을 store가 떠안는다.
 
-```jsx
-import { useAtomValue, useSetAtom } from "jotai";
-function Display() {
-  const count = useAtomValue(countAtom); // 읽기 전용
-  return <h1>{count}</h1>;
-}
-function Controls() {
-  const setCount = useSetAtom(countAtom); // 쓰기 전용
-  return <button onClick={() => setCount((c) => c + 1)}>+</button>;
-}
-```
+### 2-2. 장바구니는 클라이언트 전역 상태다
 
-### 파생 Atom
+장바구니는 다음 특성이 있다.
 
-```jsx
-import { atom } from "jotai";
-const countAtom = atom(0);
-const doubleCountAtom = atom((get) => get(countAtom) * 2);
-function Display() {
-  const [count] = useAtom(countAtom);
-  const [doubleCount] = useAtom(doubleCountAtom);
+- 사용자가 “지금 선택한 상태”가 진실이다.
+- 여러 화면에서 같은 값이 필요하다.
+- 새로고침 후에도 유지돼야 할 수 있다.
 
-  return (
-    <div>
-      <p>Count: {count}</p>
-      <p>Double: {doubleCount}</p>
-    </div>
-  );
-}
-```
-
-### 비동기 Atom
-
-```jsx
-import { atom } from "jotai";
-const userIdAtom = atom(1);
-const userAtom = atom(async (get) => {
-  const userId = get(userIdAtom);
-  const response = await fetch(`/api/users/${userId}`);
-  return response.json();
-});
-function UserProfile() {
-  const [user] = useAtom(userAtom);
-
-  return <div>{user.name}</div>;
-}
-```
-
-### Atom with Storage
-
-```jsx
-import { atomWithStorage } from "jotai/utils";
-const themeAtom = atomWithStorage("theme", "light");
-function ThemeToggle() {
-  const [theme, setTheme] = useAtom(themeAtom);
-
-  return (
-    <button onClick={() => setTheme(theme === "light" ? "dark" : "light")}>
-      {theme}
-    </button>
-  );
-}
-```
+이런 상태는 store가 적합하다.
 
 ---
 
-## 상태 관리 라이브러리 비교
+## 3. Zustand 버전: 장바구니 store
 
-### 번들 크기
-
-```
-Zustand:        ~1KB
-Jotai:          ~3KB
-Redux Toolkit:  ~13KB
-Recoil:         ~20KB
-```
-
-### 성능 비교
-
-| 라이브러리    | 리렌더링 최적화 | DevTools   | TypeScript |
-| ------------- | --------------- | ---------- | ---------- |
-| Zustand       | ⭐⭐⭐⭐⭐      | ⭐⭐⭐     | ⭐⭐⭐⭐⭐ |
-| Redux Toolkit | ⭐⭐⭐⭐        | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐   |
-| Jotai         | ⭐⭐⭐⭐⭐      | ⭐⭐⭐     | ⭐⭐⭐⭐⭐ |
-
-### API 복잡도
-
-```jsx
-// Zustand (가장 간단)
-const useStore = create((set) => ({
-  count: 0,
-  increment: () => set((state) => ({ count: state.count + 1 })),
-}));
-
-// Jotai (원자적)
-const countAtom = atom(0);
-const [count, setCount] = useAtom(countAtom);
-
-// Redux Toolkit (구조화됨)
-const counterSlice = createSlice({
-  name: "counter",
-  initialState: { value: 0 },
-  reducers: {
-    increment: (state) => {
-      state.value++;
-    },
-  },
-});
-```
-
----
-
-## 언제 무엇을 사용할까
-
-### Zustand를 사용하라
-
-장점:
-
-- 매우 간단한 API
-- 보일러플레이트 거의 없음
-- 번들 크기 최소
-  사용 사례:
-- 중소형 앱
-- 빠른 프로토타이핑
-- 간단한 전역 상태
-
-```jsx
-// 간단한 인증 상태
-const useAuthStore = create((set) => ({
-  user: null,
-  login: (user) => set({ user }),
-  logout: () => set({ user: null }),
-}));
-```
-
-### Redux Toolkit을 사용하라
-
-장점:
-
-- 강력한 DevTools
-- 시간 여행 디버깅
-- 대규모 팀에 검증됨
-  사용 사례:
-- 대규모 앱
-- 복잡한 상태 로직
-- 많은 비동기 작업
-
-```jsx
-// 복잡한 비즈니스 로직
-const orderSlice = createSlice({
-  name: "orders",
-  initialState: { list: [], filters: {}, sorting: {} },
-  reducers: {
-    // 많은 reducer...
-  },
-});
-```
-
-### Jotai를 사용하라
-
-장점:
-
-- 원자적 업데이트
-- Suspense 지원
-- 최소 리렌더링
-  사용 사례:
-- 세밀한 상태 제어
-- Suspense 활용
-- 원자적 상태 관리
-
-```jsx
-// 독립적인 상태 조각들
-const userAtom = atom(null);
-const settingsAtom = atom({});
-const themeAtom = atom("light");
-```
-
-### Context API를 사용하라
-
-언제:
-
-- 상태가 적을 때
-- 성능이 중요하지 않을 때
-- 외부 의존성을 피하고 싶을 때
-
-```jsx
-const ThemeContext = createContext();
-```
-
----
-
-## 실전 예제: E-Commerce 앱
-
-### Zustand 버전
-
-```jsx
-// stores/useCartStore.js
+```tsx
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-const useCartStore = create(
+type CartItem = { id: string; name: string; price: number; quantity: number };
+
+type CartState = {
+  items: CartItem[];
+  add: (item: Omit<CartItem, "quantity">) => void;
+  remove: (id: string) => void;
+  setQuantity: (id: string, quantity: number) => void;
+  clear: () => void;
+  total: () => number;
+};
+
+export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
-
-      addItem: (product) =>
-        set((state) => {
-          const existing = state.items.find((item) => item.id === product.id);
-          if (existing) {
+      add: (item) =>
+        set((s) => {
+          const found = s.items.find((x) => x.id === item.id);
+          if (found) {
             return {
-              items: state.items.map((item) =>
-                item.id === product.id
-                  ? { ...item, quantity: item.quantity + 1 }
-                  : item,
+              items: s.items.map((x) =>
+                x.id === item.id ? { ...x, quantity: x.quantity + 1 } : x
               ),
             };
           }
-          return { items: [...state.items, { ...product, quantity: 1 }] };
+          return { items: [...s.items, { ...item, quantity: 1 }] };
         }),
-
-      removeItem: (productId) =>
-        set((state) => ({
-          items: state.items.filter((item) => item.id !== productId),
+      remove: (id) => set((s) => ({ items: s.items.filter((x) => x.id !== id) })),
+      setQuantity: (id, quantity) =>
+        set((s) => ({
+          items: s.items.map((x) => (x.id === id ? { ...x, quantity } : x)),
         })),
-
-      updateQuantity: (productId, quantity) =>
-        set((state) => ({
-          items: state.items.map((item) =>
-            item.id === productId ? { ...item, quantity } : item,
-          ),
-        })),
-
-      clearCart: () => set({ items: [] }),
-
-      getTotal: () => {
-        const { items } = get();
-        return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-      },
+      clear: () => set({ items: [] }),
+      total: () => get().items.reduce((sum, x) => sum + x.price * x.quantity, 0),
     }),
-    { name: "cart-storage" },
-  ),
+    { name: "cart" }
+  )
 );
-
-export default useCartStore;
 ```
 
-```jsx
-// components/Cart.jsx
-import useCartStore from "../stores/useCartStore";
+컴포넌트는 selector 기반으로 필요한 값만 구독한다.
 
-export default function Cart() {
-  const items = useCartStore((state) => state.items);
-  const removeItem = useCartStore((state) => state.removeItem);
-  const updateQuantity = useCartStore((state) => state.updateQuantity);
-  const getTotal = useCartStore((state) => state.getTotal);
+```tsx
+import { useCartStore } from "./useCartStore";
 
-  return (
-    <div>
-      <h2>Shopping Cart</h2>
-      {items.map((item) => (
-        <div key={item.id}>
-          <span>{item.name}</span>
-          <input
-            type="number"
-            value={item.quantity}
-            onChange={(e) => updateQuantity(item.id, Number(e.target.value))}
-          />
-          <span>${item.price * item.quantity}</span>
-          <button onClick={() => removeItem(item.id)}>Remove</button>
-        </div>
-      ))}
-      <div>Total: ${getTotal()}</div>
-    </div>
-  );
+export function CartSummary() {
+  const total = useCartStore((s) => s.total());
+  return <div>{total}</div>;
 }
 ```
 
-### Redux Toolkit 버전
+실무에서는 `total()` 같은 계산을 selector로 읽는 순간 리렌더링 비용을 의식해야 한다. 규모가 커지면 “파생 계산을 memoized selector로 고정”하거나 Jotai 파생 atom으로 옮기는 판단이 필요해진다.
 
-```jsx
-// slices/cartSlice.js
-import { createSlice } from "@reduxjs/toolkit";
+---
+
+## 4. Redux Toolkit 버전: 장바구니 slice
+
+Redux Toolkit은 “규칙과 디버깅”이 강점이다. 장바구니가 단순하면 Zustand로 충분하지만, 할인/쿠폰/배송 정책이 복잡해지면 Redux 쪽이 유리해진다.
+
+```tsx
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+
+type CartItem = { id: string; name: string; price: number; quantity: number };
+type CartState = { items: CartItem[] };
 
 const cartSlice = createSlice({
   name: "cart",
-  initialState: {
-    items: [],
-  },
+  initialState: { items: [] } as CartState,
   reducers: {
-    addItem: (state, action) => {
-      const existing = state.items.find(
-        (item) => item.id === action.payload.id,
-      );
-      if (existing) {
-        existing.quantity++;
-      } else {
-        state.items.push({ ...action.payload, quantity: 1 });
-      }
+    add: (state, action: PayloadAction<Omit<CartItem, "quantity">>) => {
+      const found = state.items.find((x) => x.id === action.payload.id);
+      if (found) found.quantity += 1;
+      else state.items.push({ ...action.payload, quantity: 1 });
     },
-    removeItem: (state, action) => {
-      state.items = state.items.filter((item) => item.id !== action.payload);
+    remove: (state, action: PayloadAction<string>) => {
+      state.items = state.items.filter((x) => x.id !== action.payload);
     },
-    updateQuantity: (state, action) => {
-      const item = state.items.find((item) => item.id === action.payload.id);
-      if (item) {
-        item.quantity = action.payload.quantity;
-      }
+    setQuantity: (state, action: PayloadAction<{ id: string; quantity: number }>) => {
+      const found = state.items.find((x) => x.id === action.payload.id);
+      if (found) found.quantity = action.payload.quantity;
     },
-    clearCart: (state) => {
+    clear: (state) => {
       state.items = [];
     },
   },
 });
 
-export const { addItem, removeItem, updateQuantity, clearCart } =
-  cartSlice.actions;
-
-export const selectCartItems = (state) => state.cart.items;
-export const selectCartTotal = (state) =>
-  state.cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-
+export const { add, remove, setQuantity, clear } = cartSlice.actions;
 export default cartSlice.reducer;
 ```
 
+합계 같은 계산은 selector로 고정한다.
+
+```tsx
+import { createSelector } from "@reduxjs/toolkit";
+
+const selectItems = (s: any) => s.cart.items as CartItem[];
+export const selectTotal = createSelector([selectItems], (items) =>
+  items.reduce((sum, x) => sum + x.price * x.quantity, 0)
+);
+```
+
 ---
+
+## 5. Jotai 버전: 파생 상태가 중심인 화면
+
+Jotai는 “상태 그래프”가 핵심인 화면에서 편하다. 예를 들어 체크아웃 화면에서 다음이 있다고 가정한다.
+
+- items
+- 배송비 규칙
+- 쿠폰 규칙
+- 최종 결제 금액
+
+이때 최종 금액은 파생 상태로 두는 편이 자연스럽다.
+
+```tsx
+import { atom } from "jotai";
+
+type CartItem = { price: number; quantity: number };
+
+export const itemsAtom = atom<CartItem[]>([]);
+export const couponAtom = atom<number>(0); // 할인 금액
+
+export const subtotalAtom = atom((get) =>
+  get(itemsAtom).reduce((sum, x) => sum + x.price * x.quantity, 0)
+);
+
+export const totalAtom = atom((get) => {
+  const subtotal = get(subtotalAtom);
+  const coupon = get(couponAtom);
+  return Math.max(0, subtotal - coupon);
+});
+```
+
+---
+
+## 다음 단계
+
+상태 관리가 실무 레벨이 되려면 다음이 필요하다.
+
+- React Query(서버 상태)와 전역 store(클라이언트 상태)의 경계를 팀 규칙으로 고정한다.
+- 라우팅과 상태를 결합할 때 URL을 상태로 활용한다(필터/페이지네이션).
+- 테스트에서 “상태 변경 규칙”을 고정한다(reducer 테스트, store 단위 테스트).
+
+---
+
+## Vue와 비교
+
+Vue에서는 Pinia가 기본 선택이 되는 경우가 많고, 서버 상태는 Vue Query 또는 직접 구현으로 갈린다. React는 서버 상태(React Query)와 클라이언트 상태(전역 store)를 더 강하게 분리하는 편이 비용이 낮아진다.
+
+| 영역 | Vue | React |
+| --- | --- | --- |
+| 서버 상태 | Vue Query 또는 직접 | React Query |
+| 전역 UI 상태 | Pinia | Zustand/Redux/Jotai |
+| 파생 상태 | computed | derived atom/selector |
+
+---
+
+## 체크리스트
+
+- 서버 상태와 클라이언트 상태를 예제로 분리할 수 있다.
+- 장바구니를 store에 두는 이유를 설명할 수 있다.
+- 규칙이 복잡해지면 Zustand에서 Redux Toolkit으로 넘어갈 수 있는 기준을 갖는다.
