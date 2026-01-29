@@ -91,6 +91,8 @@ queryKey는 직렬화 가능한 값으로 유지하는 편이 안전하다. 매 
 TanStack Query는 queryFn에 `AbortSignal`을 전달할 수 있다. 입력값이 바뀌는 검색 쿼리에서 특히 중요하다.
 
 ```tsx
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import type { QueryFunctionContext } from "@tanstack/react-query";
 
 async function searchQueryFn({ queryKey, signal }: QueryFunctionContext) {

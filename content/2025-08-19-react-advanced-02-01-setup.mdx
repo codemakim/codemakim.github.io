@@ -52,6 +52,8 @@ React Query는 서버 상태를 요청/캐시/동기화 관점에서 표준화�
 
 ```tsx
 // 전통적인 방식의 전형적인 형태
+import { useEffect, useState } from "react";
+
 function Users() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
