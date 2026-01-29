@@ -7,9 +7,10 @@ series: "Next.js 고급"
 seriesOrder: 1
 ---
 
-# Next.js 고급 기능 가이드 - 서버 액션
+# Next.js 고급 - 서버 액션
 
-> Next.js 15의 고급 기능을 다루는 학습 자료
+> 이 글은 Next.js(App Router)에서 Server Actions를 왜 쓰는지, 어디까지 써야 하는지를 실무 관점에서 정리한다.  
+> 이 프로젝트는 Next.js 16을 사용하므로, 설명은 “14+에서 도입된 개념이 16에서도 그대로 유효하다”는 전제로 이어진다.
 
 ---
 
@@ -17,7 +18,19 @@ seriesOrder: 1
 
 ### 개요
 
-Server Actions는 서버에서 실행되는 비동기 함수이다. (Next.js 14+)
+서버 액션은 서버에서만 실행되는 비동기 함수다. 폼 제출과 뮤테이션을 API route 중심에서 “함수 호출 중심”으로 재구성한다.
+
+실무에서 서버 액션은 다음을 줄인다.
+
+- API route 파일과 클라이언트 fetch 코드의 보일러플레이트
+- 요청/응답 타입의 분산(타입 안전성)
+- 폼 제출 흐름의 중복 구현(로딩/에러/리다이렉트)
+
+반대로 다음을 더 신경써야 한다.
+
+- 캐시 무효화 전략(`revalidatePath`, `revalidateTag`)
+- 보안 경계(서버에서만 가능한 작업, 인증/인가)
+- 클라이언트 UX(중복 제출 방지, 에러 메시지 설계)
 
 ### 서버 컴포넌트와 서버 액션의 동작 원리
 
@@ -139,6 +152,124 @@ Next.js가 자동으로:
 3. 서버에서 함수 실행
 4. 응답 처리
 5. 캐시 무효화
+
+---
+
+## 1. 서버 액션을 언제 쓰는가(실무 기준)
+
+### 서버 액션이 적합한 경우
+
+- 폼 제출이 많다(관리자 CRUD, 설정 저장, 댓글 작성).
+- DB/서버 비밀(키, 토큰)에 접근해야 한다.
+- 저장 후 리다이렉트 같은 전형적인 흐름이 반복된다.
+
+### Route Handler(API route)가 더 적합한 경우
+
+- 외부 클라이언트(모바일 앱, 다른 서비스)가 같은 엔드포인트를 호출해야 한다.
+- 스트리밍/SSE/Webhook 등 HTTP 레벨 제어가 필요하다.
+- 엣지 런타임에서 동작해야 한다.
+
+서버 액션은 API를 없애는 기술이 아니다. 웹 앱 내부의 폼/뮤테이션을 단순화하는 기술이다.
+
+---
+
+## 2. 가장 기본 패턴: form `action`에 서버 액션 연결
+
+서버 액션은 form의 `action`으로 연결되는 순간 가장 자연스럽다.
+
+```tsx
+// app/actions.ts
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+
+export async function createPost(formData: FormData) {
+  const title = String(formData.get("title") ?? "");
+  const content = String(formData.get("content") ?? "");
+
+  // 서버에서만 가능한 작업이 여기에 들어간다.
+  await db.posts.create({ data: { title, content } });
+
+  revalidatePath("/posts");
+  redirect("/posts");
+}
+```
+
+```tsx
+// app/posts/new/page.tsx
+import { createPost } from "@/app/actions";
+
+export default function NewPostPage() {
+  return (
+    <form action={createPost}>
+      <input name="title" required />
+      <textarea name="content" required />
+      <button type="submit">Create</button>
+    </form>
+  );
+}
+```
+
+여기서 중요한 점은 클라이언트 fetch가 없다는 사실이다. 브라우저는 폼 제출만 하고, Next.js가 서버 액션 호출로 변환한다.
+
+---
+
+## 3. 에러 처리: throw와 return을 구분한다
+
+서버 액션은 두 종류의 실패를 구분해서 다루는 편이 좋다.
+
+- 검증 실패: 같은 화면에서 필드 에러를 보여줘야 한다. return 값으로 돌려준다.
+- 시스템 실패: DB/네트워크 같은 실패다. 에러 UI 또는 로깅/추적 대상으로 처리한다. throw로 던진다.
+
+이 구분이 없으면 사용자가 고칠 수 있는 에러까지 전부 서버 에러처럼 보인다.
+
+---
+
+## 4. 클라이언트 UX: 중복 제출 방지(`useFormStatus`)
+
+폼 UX는 중복 제출 방지에서 시작한다.
+
+```tsx
+"use client";
+
+import { useFormStatus } from "react-dom";
+
+export function SubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button type="submit" disabled={pending}>
+      {pending ? "Submitting..." : "Submit"}
+    </button>
+  );
+}
+```
+
+이 버튼은 해당 form의 제출 상태를 자동으로 반영한다. 로컬 state로 pending을 직접 관리하는 방식보다 실수가 줄어든다.
+
+---
+
+## 5. 캐시 무효화의 원리: `revalidatePath` vs `revalidateTag`
+
+서버 액션은 쓰기 작업 이후 어떤 캐시가 낡았는지 알아야 한다.
+
+- `revalidatePath("/posts")`: 특정 경로 단위로 무효화한다. 단순하지만 범위가 커질 수 있다.
+- `revalidateTag("posts")`: fetch에 태그를 달아두고 태그 단위로 무효화한다. 규모가 커질수록 선호되는 방식이다.
+
+ISR 글에서 이 부분을 더 깊게 다룬다.
+
+---
+
+## Nuxt와 비교
+
+Nuxt에서도 서버에서만 실행되는 로직(서버 API, Nitro)을 두고 폼 제출을 처리한다. Next.js Server Actions의 특징은 서버 함수가 컴포넌트 트리와 직접 연결된다는 점이다.
+
+| 관심사 | Nuxt | Next.js |
+| --- | --- | --- |
+| 서버 로직 위치 | Nitro route/서버 API | Server Actions 또는 Route Handler |
+| 폼 제출 | `useFetch`/서버 API 호출 | form `action` → server action |
+| 캐시 무효화 | Nitro 캐시/ISR 전략 | `revalidatePath`/`revalidateTag` |
+| 보안 경계 | 서버 코드에 둔다 | server action에 둔다 |
 
 ### 실무 TIP: "서버 컴포넌트의 장점은?"
 
