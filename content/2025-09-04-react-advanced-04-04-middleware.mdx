@@ -7,13 +7,25 @@ series: "Next.js 고급"
 seriesOrder: 4
 ---
 
-# Next.js 고급 기능 가이드 - Middleware
+# Next.js 고급 - Middleware
 
-> Next.js 15의 고급 기능을 다루는 학습 자료
+> Middleware는 요청이 라우트에 도달하기 전에 실행되는 가장 앞단의 훅이다.  
+> 목적은 렌더링 이전에 요청을 분기/차단/변형하는 것이다.
 
 ---
 
 ## Middleware
+
+Middleware는 Edge Runtime에서 실행되는 경우가 많다. 그래서 Node.js API(파일 시스템, 일부 crypto 등)를 마음대로 쓰지 못한다.
+
+실무에서 Middleware는 다음에 주로 쓴다.
+
+- 인증/인가: 로그인 전용 경로 차단, 역할 기반 접근
+- 리다이렉트/리라이트: 레거시 URL 유지, A/B 실험
+- 국제화: locale prefix 자동 부여
+- 보안/관측: 헤더 추가, 간단한 로깅(단, 과도한 로깅은 비용)
+
+반대로 DB 접근 같은 무거운 작업은 Middleware에 두지 않는 편이 기본이다.
 
 ### 기본 Middleware
 
@@ -33,6 +45,8 @@ export const config = {
 };
 ```
 
+`matcher`는 비용 제어 장치다. 모든 요청에 middleware를 태우면 정적 자산까지 영향받는다.
+
 ### 인증 Middleware
 
 ```jsx
@@ -49,6 +63,10 @@ export const config = {
   matcher: "/dashboard/:path*",
 };
 ```
+
+### 실무 포인트: open redirect를 막는다
+
+로그인으로 보낼 때 `?from=` 같은 파라미터를 붙이고 싶어진다. 이 값은 반드시 “내부 경로만 허용”하도록 검증해야 한다.
 
 ### 국제화 Middleware
 
@@ -75,6 +93,8 @@ export const config = {
 };
 ```
 
+locale middleware는 정적 자산과 API를 matcher에서 제외하는 것이 핵심이다. 제외하지 않으면 이미지 최적화/정적 파일 요청도 locale rewrite 대상이 되어 깨진다.
+
 ### A/B 테스트 Middleware
 
 ```jsx
@@ -97,5 +117,23 @@ export function middleware(request) {
   return NextResponse.next();
 }
 ```
+
+### redirect vs rewrite
+
+- redirect: 브라우저 주소창 URL이 바뀐다. 외부로 보인다.
+- rewrite: 주소창은 그대로고, 내부에서 다른 라우트로 매칭된다. 실험에는 rewrite가 자주 쓰인다.
+
+---
+
+## Nuxt와 비교
+
+Nuxt도 middleware(라우트 미들웨어, 서버 미들웨어)로 비슷한 문제를 푼다. Next.js의 Middleware는 요청 앞단(Edge)에서 HTTP 단으로 분기한다는 성격이 강하다.
+
+| 관심사 | Nuxt | Next.js |
+| --- | --- | --- |
+| 인증 가드 | route middleware | Edge middleware + matcher |
+| 리다이렉트 | navigateTo | NextResponse.redirect |
+| 리라이트 | server/route 설정 | NextResponse.rewrite |
+| 실행 환경 | Node/Nitro 중심 | Edge 제약이 강함 |
 
 ---
