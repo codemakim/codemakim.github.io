@@ -7,13 +7,27 @@ series: "Next.js 고급"
 seriesOrder: 6
 ---
 
-# Next.js 고급 기능 가이드 - 이미지 최적화
+# Next.js 고급 - 이미지 최적화
 
-> Next.js 15의 고급 기능을 다루는 학습 자료
+> 이미지 최적화는 “파일 크기를 줄인다”가 전부가 아니다. 실무에서는 LCP/CLS 같은 Core Web Vitals를 직접 건드린다.  
+> Next.js의 `next/image`는 이 문제를 프레임워크 레벨에서 해결하기 위한 기본 도구다.
 
 ---
 
 ## 이미지 최적화
+
+이미지 최적화에서 실무 목표는 다음이다.
+
+- LCP를 줄인다(가장 큰 이미지가 빨리 보이게 한다).
+- CLS를 줄인다(레이아웃이 흔들리지 않게 한다).
+- 네트워크 비용을 줄인다(디바이스/화면 크기에 맞춰 적당한 크기만 받는다).
+- 캐시를 잘 탄다(같은 이미지를 반복 다운로드하지 않는다).
+
+---
+
+## 1. next/image 기본: width/height 또는 fill은 “레이아웃 고정”이다
+
+`Image`는 가로/세로 정보를 알아야 CLS를 줄일 수 있다. 그래서 `width/height` 또는 `fill`을 요구한다.
 
 ### next/image 고급 사용
 
@@ -54,6 +68,33 @@ export default function Gallery() {
 }
 ```
 
+### 실무 포인트: `sizes`는 성능의 핵심이다
+
+`fill`을 쓰는 순간 브라우저는 어떤 크기의 이미지를 내려받아야 하는지 판단해야 한다. `sizes`를 잘못 주면 모바일에서도 큰 이미지를 내려받아 LCP가 악화된다.
+
+---
+
+## 2. `priority`는 LCP 후보에만 쓴다
+
+`priority`는 preload를 유도한다. 남발하면 네트워크가 경쟁 상태가 되어 오히려 느려진다. “첫 화면에서 가장 큰 히어로 이미지” 같은 LCP 후보에만 쓴다.
+
+---
+
+## 3. 외부 이미지: 도메인 허용과 캐시 경계를 이해한다
+
+외부 이미지를 쓸 때는 다음을 먼저 결정한다.
+
+- Next.js 이미지 최적화를 계속 쓸 것인가(기본)
+- 아니면 CDN이 이미 최적화를 해주므로 `unoptimized`로 우회할 것인가
+
+기본 최적화를 쓰려면 도메인 허용 설정이 필요하다(프로젝트 설정에 따라 `next.config.ts`에 설정한다).
+
+---
+
+## 4. 커스텀 로더: “최적화 책임”을 CDN으로 옮긴다
+
+Cloudinary 같은 CDN을 쓰면 변환/리사이즈 책임을 CDN으로 옮길 수 있다. 이때 Next.js는 URL 생성만 담당하게 된다.
+
 ### 이미지 로더
 
 ```jsx
@@ -73,6 +114,12 @@ export default function cloudinaryLoader({ src, width, quality }) {
   return `https://res.cloudinary.com/demo/image/upload/${params.join(",")}${src}`;
 }
 ```
+
+---
+
+## 5. blur placeholder: 사용자 인지 시간을 줄인다
+
+blur는 “실제로 빠르다”라기보다 “빠르게 보인다”에 가깝다. 하지만 이미지가 많은 페이지에서 체감이 크다.
 
 ### 동적 블러 플레이스홀더
 
@@ -94,5 +141,37 @@ export default async function Post({ params }) {
   );
 }
 ```
+
+### 실무 포인트: 빌드/요청 비용을 계산한다
+
+동적 blur 생성은 CPU 비용을 만든다. 빌드 타임에 만들어 둘지, 요청마다 만들지, 저장해 둘지 전략이 필요하다.
+
+---
+
+## 6. 자주 터지는 함정
+
+### 1) `fill`인데 부모가 position/height를 안 준다
+
+fill은 부모 레이아웃에 의존한다. 부모가 높이를 잃으면 이미지가 보이지 않거나 CLS가 커진다.
+
+### 2) `sizes`를 안 준다
+
+브라우저가 큰 이미지를 선택해 내려받을 수 있다. 모바일 LCP가 악화된다.
+
+### 3) `priority`를 남발한다
+
+preload 경쟁으로 첫 화면이 느려진다.
+
+---
+
+## Nuxt와 비교
+
+Nuxt도 이미지 모듈로 비슷한 문제를 푼다. Next.js는 `next/image`가 프레임워크 기본 축이라는 점이 특징이다.
+
+| 관심사 | Nuxt | Next.js |
+| --- | --- | --- |
+| 이미지 최적화 | Nuxt Image 모듈 | `next/image` |
+| 외부 이미지 | provider 설정 | 도메인 허용 + 최적화 |
+| LCP/CLS | 모듈 설정/HTML 전략 | `priority`, 레이아웃 고정 |
 
 ---
