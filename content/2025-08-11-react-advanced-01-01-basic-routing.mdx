@@ -1,7 +1,7 @@
 ---
 title: "[React Router 1/9] React Router - 기본 라우팅"
 date: "2025-08-15"
-description: "BrowserRouter, Routes, Route, Link, NavLink 사용법"
+description: "React Router 소개와 클라이언트 사이드 라우팅의 기본 원리"
 tags: ["React", "고급", "프론트엔드"]
 series: "React 라이브러리"
 seriesOrder: 5
@@ -14,18 +14,13 @@ seriesOrder: 5
 
 ---
 
-## 기본 라우팅
+## React Router란?
 
-기본 라우팅
-개요
+React Router는 React 애플리케이션에서 클라이언트 사이드 라우팅을 구현하는 표준 라이브러리이다. 사용자가 URL을 통해 다른 화면으로 이동할 때, 페이지 전체를 새로고침하지 않고 필요한 컴포넌트만 교체하여 빠르고 부드러운 화면 전환을 제공한다.
 
-### React Router란?
+## 클라이언트 사이드 라우팅의 동작 원리
 
-React Router는 React 애플리케이션에서 클라이언트 사이드 라우팅을 구현하는 표준 라이브러리이다.
-
-### 클라이언트 사이드 라우팅의 동작 원리
-
-전통적인 서버 사이드 라우팅:
+### 전통적인 서버 사이드 라우팅
 
 ```
 사용자가 /about 클릭
@@ -34,10 +29,10 @@ React Router는 React 애플리케이션에서 클라이언트 사이드 라우�
   ↓
 서버가 about.html 전송
   ↓
-페이지 전체 새로고침 (깜빡임!)
+페이지 전체 새로고침 (깜빡임 발생)
 ```
 
-클라이언트 사이드 라우팅 (SPA):
+### 클라이언트 사이드 라우팅 (SPA)
 
 ```
 사용자가 /about 클릭
@@ -48,69 +43,181 @@ History API로 URL만 변경 (window.history.pushState)
   ↓
 React Router가 URL 감지
   ↓
-해당 컴포넌트만 교체 (깜빡임 없음!)
+해당 컴포넌트만 교체 (깜빡임 없음)
 ```
 
-핵심 원리:
+### History API의 핵심 개념
 
-1. History API 활용: `pushState()`, `replaceState()`, `popstate` 이벤트
-2. 컴포넌트 매칭: URL 패턴과 컴포넌트 매핑
-3. 상태 보존: 페이지 전환 없이 UI만 업데이트
-   실제 코드로 보는 원리:
+브라우저의 History API는 SPA 라우팅의 핵심이다:
+
+1. **pushState()**: 새로운 히스토리 항목 추가 (뒤로가기 가능)
+2. **replaceState()**: 현재 히스토리 항목 교체 (뒤로가기 불가)
+3. **popstate 이벤트**: 브라우저 뒤로가기/앞으로가기 버튼 클릭 시 발생
 
 ```javascript
-// React Router가 내부적으로 하는 일 (단순화)
+// URL 변경 (페이지 새로고침 없음)
+window.history.pushState(null, "", "/about");
+
+// 브라우저 버튼 클릭 감지
 window.addEventListener("popstate", () => {
-  const path = window.location.pathname;
-  const component = matchRoute(path); // URL → 컴포넌트 매칭
-  renderComponent(component); // 컴포넌트 렌더링
+  // URL 변경 감지하여 해당 컴포넌트 렌더링
 });
-function navigate(path) {
-  window.history.pushState({}, "", path); // URL 변경
-  const component = matchRoute(path);
-  renderComponent(component);
-}
 ```
 
-장점:
+**중요한 특징**: `pushState()`를 호출해도 `popstate` 이벤트는 발생하지 않는다. 따라서 React Router는 Link 클릭과 브라우저 버튼 클릭을 별도로 처리해야 한다.
 
-- 빠른 페이지 전환 (네트워크 요청 없음)
-- 부드러운 UX (깜빡임 없음)
-- 상태 유지 (전역 state 보존)
-- 애니메이션 가능
-  단점:
-- 초기 번들 크기 증가 (해결책: 코드 분할)
-- SEO 어려움 (해결책: SSR - Next.js)
+### React Router의 작동 방식
 
-### 실무 TIP: "SPA 라우팅을 설명해보세요"
+React Router는 Context API를 활용하여 구현된다:
 
-답변 예시:
-"SPA에서 라우팅은 History API를 활용한다.
-사용자가 링크를 클릭하면 React Router가 기본 동작을 막고 (`preventDefault`), `history.pushState`로 URL만 변경한다. 이때 페이지는 새로고침되지 않다.
-React Router는 URL 변경을 감지하여 해당 경로에 매핑된 컴포넌트만 교체한다. 이를 통해 빠르고 부드러운 페이지 전환이 가능하며, 전역 상태도 유지된다.
-다만 초기 번들 크기가 커질 수 있어 코드 분할이 중요하고, SEO를 위해서는 Next.js 같은 SSR 프레임워크를 고려해야 한다."
-주요 기능:
+1. **BrowserRouter**: 현재 URL을 상태로 관리하고 Context로 제공
+2. **Routes**: 현재 URL과 매칭되는 라우트를 찾아 렌더링
+3. **Link**: 클릭 시 기본 동작을 막고 History API로 URL 변경
+4. **Hook들**: Context에서 라우터 정보를 가져와 컴포넌트에서 사용
 
-- 선언적 라우팅
-- 중첩 라우트
-- 동적 라우트 매칭
-- 프로그래밍 방식 네비게이션
-- 지연 로딩
+### BrowserRouter vs HashRouter
 
-### 설치
+두 가지 라우터 타입이 있으며, 각각 다른 방식으로 URL을 관리한다:
+
+**BrowserRouter** (권장):
+- URL: `/about` (깔끔한 URL)
+- History API 사용
+- 서버 설정 필요 (모든 경로에서 index.html 반환)
+- SEO 친화적
+
+**HashRouter**:
+- URL: `/#/about` (# 포함)
+- Hash 기반 라우팅
+- 서버 설정 불필요
+- GitHub Pages 같은 정적 호스팅에 유용
+
+실무에서는 BrowserRouter를 사용하며, 서버에서 모든 경로를 index.html로 리다이렉트하도록 설정한다.
+
+## 설치
 
 ```bash
 npm install react-router-dom
 ```
 
-### Vue Router와 비교
+## 기본 사용법
 
-| 기능                  | Vue Router      | React Router  |
-| --------------------- | --------------- | ------------- |
-| 라우트 정의           | 객체 배열       | JSX 컴포넌트  |
-| 중첩 라우트           | `children`      | `<Outlet />`  |
-| 네비게이션            | `<router-link>` | `<Link>`      |
-| 프로그래밍 네비게이션 | `router.push()` | `navigate()`  |
-| 파라미터 접근         | `route.params`  | `useParams()` |
+### 1. Router 설정
+
+```jsx
+// App.jsx
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Home from "./pages/Home";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/contact" element={<Contact />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+```
+
+**구조 설명**:
+- `BrowserRouter`: 라우터의 최상위 컴포넌트. 현재 URL을 추적하고 하위 컴포넌트에 제공한다
+- `Routes`: 여러 Route 중 현재 URL과 매칭되는 하나를 선택한다
+- `Route`: 특정 경로(`path`)와 렌더링할 컴포넌트(`element`)를 정의한다
+
+### 2. Link 컴포넌트
+
+페이지 전환 시 `<a>` 태그 대신 `<Link>`를 사용한다:
+
+```jsx
+import { Link } from "react-router-dom";
+
+export default function Navigation() {
+  return (
+    <nav>
+      <Link to="/">Home</Link>
+      <Link to="/about">About</Link>
+      <Link to="/contact">Contact</Link>
+    </nav>
+  );
+}
+```
+
+**Link를 사용하는 이유**:
+- `<a>` 태그는 페이지를 새로고침한다 (서버 요청 발생)
+- `<Link>`는 JavaScript로 URL만 변경한다 (빠르고 부드러운 전환)
+
+### 3. NavLink (활성 링크 스타일링)
+
+현재 활성화된 링크에 스타일을 적용하려면 `NavLink`를 사용한다:
+
+```jsx
+import { NavLink } from "react-router-dom";
+
+export default function Navigation() {
+  return (
+    <nav>
+      <NavLink 
+        to="/" 
+        className={({ isActive }) => isActive ? "active" : ""}
+      >
+        Home
+      </NavLink>
+      <NavLink
+        to="/about"
+        style={({ isActive }) => ({
+          color: isActive ? "red" : "black",
+        })}
+      >
+        About
+      </NavLink>
+    </nav>
+  );
+}
+```
+
+**NavLink의 특징**:
+- `isActive` 속성으로 현재 경로와 일치하는지 확인한다
+- CSS 클래스나 인라인 스타일을 동적으로 적용할 수 있다
+
+### 4. 404 페이지 처리
+
+매칭되는 라우트가 없을 때 보여줄 페이지를 정의한다:
+
+```jsx
+<Routes>
+  <Route path="/" element={<Home />} />
+  <Route path="/about" element={<About />} />
+  <Route path="*" element={<NotFound />} />
+</Routes>
+
+function NotFound() {
+  return (
+    <div>
+      <h1>404 - 페이지를 찾을 수 없다</h1>
+      <Link to="/">홈으로 돌아가기</Link>
+    </div>
+  );
+}
+```
+
+**와일드카드 경로** (`*`): 다른 어떤 경로와도 매칭되지 않을 때 선택된다.
+
+## 핵심 원리 요약
+
+1. **History API**: URL을 변경하면서 페이지 새로고침을 방지한다
+2. **Context API**: 라우터 상태를 모든 하위 컴포넌트에 제공한다
+3. **경로 매칭**: 현재 URL과 정의된 경로를 비교하여 컴포넌트를 선택한다
+4. **선언적 라우팅**: JSX로 라우트 구조를 직관적으로 정의한다
+
+## 다음 단계
+
+- **02 - 중첩 라우트**: Layout 패턴과 Outlet 활용
+- **03 - 동적 라우트**: URL 파라미터와 useParams
+- **04 - 프로그래밍 방식 네비게이션**: useNavigate 활용
+- **05 - Router Hooks**: 다양한 라우터 Hook 사용법
 
 ---
