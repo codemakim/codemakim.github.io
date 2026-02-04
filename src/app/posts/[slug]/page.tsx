@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { MDXContent } from "./MDXContent";
 import SeriesNav from "@/app/components/SeriesNav";
 import PostHeader from "@/app/components/PostHeader";
+import ReadToggleButton from "@/app/components/ReadToggleButton";
 import { getSeriesNavigation } from "@/app/lib/series";
 import { getPublicPosts, getPublicPost } from "@/app/lib/posts";
 
@@ -58,6 +59,11 @@ export default async function PostPage({ params }: PageProps) {
         <article className="post-content prose dark:prose-invert px-4 md:px-6 py-8">
           <MDXContent code={post.body.code} />
         </article>
+
+        {/* 읽음 체크 (본문 바로 아래) */}
+        <div className="px-4 md:px-0 pb-10 pt-2 flex justify-center">
+          <ReadToggleButton postPath={post.url} />
+        </div>
 
         {/* 시리즈 네비게이션 (하단) */}
         <div className="px-4 md:px-0">

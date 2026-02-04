@@ -6,6 +6,7 @@ export interface SeriesInfo {
   current: number;
   total: number;
   seriesName: string | null;
+  seriesPostUrls: string[];
 }
 
 /**
@@ -23,6 +24,7 @@ export function getSeriesNavigation(
       current: 0,
       total: 0,
       seriesName: null,
+      seriesPostUrls: [],
     };
   }
 
@@ -42,6 +44,7 @@ export function getSeriesNavigation(
     current: currentIndex + 1,
     total: seriesPosts.length,
     seriesName: currentPost.series,
+    seriesPostUrls: seriesPosts.map((p) => p.url),
   };
 }
 

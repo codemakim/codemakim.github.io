@@ -35,6 +35,28 @@ export default function HomeContent() {
   // 공개 포스트만 가져오기
   const publicPosts = getPublicPosts();
 
+  const seriesPostsMap = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    publicPosts.forEach((post) => {
+      if (!post.series) return;
+      if (!map[post.series]) map[post.series] = [];
+      map[post.series].push(post.url);
+    });
+
+    // seriesOrder 기반 정렬을 최대한 유지 (없으면 0)
+    Object.keys(map).forEach((name) => {
+      map[name] = map[name].slice().sort((aUrl, bUrl) => {
+        const a = publicPosts.find((p) => p.url === aUrl);
+        const b = publicPosts.find((p) => p.url === bUrl);
+        const ao = a?.seriesOrder ?? 0;
+        const bo = b?.seriesOrder ?? 0;
+        return ao - bo;
+      });
+    });
+
+    return map;
+  }, [publicPosts]);
+
   const series = useMemo(() => {
     const seriesPriority = [
       "React 기초",
@@ -203,6 +225,7 @@ export default function HomeContent() {
         selectedSeries={selectedSeries}
         onSeriesSelect={handleSeriesSelect}
         totalCount={publicPosts.length}
+        seriesPostsMap={seriesPostsMap}
       />
 
       {/* 태그 필터 */}

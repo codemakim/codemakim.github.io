@@ -1,5 +1,7 @@
 "use client";
 
+import SeriesStudyStatus from "./SeriesStudyStatus";
+
 interface SeriesWithCount {
   name: string;
   count: number;
@@ -10,6 +12,7 @@ interface SeriesFilterProps {
   selectedSeries: string | null;
   onSeriesSelect: (series: string | null) => void;
   totalCount: number;
+  seriesPostsMap: Record<string, string[]>;
 }
 
 export default function SeriesFilter({
@@ -17,6 +20,7 @@ export default function SeriesFilter({
   selectedSeries,
   onSeriesSelect,
   totalCount,
+  seriesPostsMap,
 }: SeriesFilterProps) {
   return (
     <div className="card p-6 mb-8">
@@ -58,6 +62,14 @@ export default function SeriesFilter({
               ({series.find((s) => s.name === selectedSeries)?.count || 0}개)
             </span>
           </p>
+
+          {/* 학습 현황 + 초기화 (localStorage 기반) */}
+          <SeriesStudyStatus
+            seriesName={selectedSeries}
+            postPaths={seriesPostsMap[selectedSeries] || []}
+            className="mt-3"
+          />
+
           <button
             onClick={() => onSeriesSelect(null)}
             className="link mt-2 text-sm hover:underline"
