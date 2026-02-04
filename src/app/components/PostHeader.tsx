@@ -5,7 +5,6 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import type { Post } from "contentlayer/generated";
-import ReadToggleButton from "./ReadToggleButton";
 
 interface PostHeaderProps {
   post: Pick<Post, "title" | "description" | "date" | "tags" | "url">;
@@ -59,8 +58,6 @@ export default function PostHeader({ post }: PostHeaderProps) {
           >
             ← 블로그로 돌아가기
           </Link>
-
-          <ReadToggleButton postPath={post.url} size={isScrolled ? "sm" : "md"} />
         </div>
 
         <h1
