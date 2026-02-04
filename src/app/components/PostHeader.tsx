@@ -4,14 +4,11 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
+import type { Post } from "contentlayer/generated";
+import ReadToggleButton from "./ReadToggleButton";
 
 interface PostHeaderProps {
-  post: {
-    title: string;
-    description?: string;
-    date: string;
-    tags?: string[];
-  };
+  post: Pick<Post, "title" | "description" | "date" | "tags" | "url">;
 }
 
 export default function PostHeader({ post }: PostHeaderProps) {
@@ -46,16 +43,25 @@ export default function PostHeader({ post }: PostHeaderProps) {
       `}
     >
       <div className="max-w-4xl mx-auto px-4">
-        <Link
-          href="/blog"
+        <div
           className={`
-            link text-sm block hover:underline
+            flex items-start justify-between gap-4
             transition-all duration-500 ease-in-out
             ${isScrolled ? "mb-2" : "mb-4"}
           `}
         >
-          ← 블로그로 돌아가기
-        </Link>
+          <Link
+            href="/blog"
+            className={`
+              link text-sm block hover:underline
+              transition-all duration-500 ease-in-out
+            `}
+          >
+            ← 블로그로 돌아가기
+          </Link>
+
+          <ReadToggleButton postPath={post.url} size={isScrolled ? "sm" : "md"} />
+        </div>
 
         <h1
           className={`
