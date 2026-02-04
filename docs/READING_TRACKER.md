@@ -18,10 +18,9 @@
 
 ### 2.1 식별자 정책 (슬러그 변경 대응)
 
-- **키는 `slug`가 아니라 `postId`를 사용한다.**
-- `postId`는 MDX frontmatter에 추가하는 **짧고 영구적인 ID**이다.
-  - 제목/slug는 변경될 수 있으므로 키로 부적절
-  - `postId`는 변경하지 않는 것을 규칙으로 한다
+- **키는 포스트의 URL path(`post.url`)를 사용한다.**
+  - 예: `/posts/2025-07-05-react-learning-01-01-overview-and-first-component`
+  - 정책: **path가 바뀌면 읽음 기록도 새로 시작**한다. (localStorage-only의 단순성을 우선)
 
 ### 2.2 사용자 경험(UX) 정책
 
@@ -38,44 +37,9 @@
 
 ---
 
-## 3. 콘텐츠(정적) 모델: `postId` 추가
+## 3. 기능 스펙: 포스트 읽음 버튼
 
-### 3.1 MDX frontmatter 확장
-
-각 포스트 파일(`content/**/*.mdx`)의 frontmatter에 아래 필드를 추가한다.
-
-- `postId`: `string` (필수, 영구 ID)
-
-예시:
-
-```mdx
----
-title: "..."
-date: "2025-..."
-postId: "rxt-001"
-series: "React Learning"
-seriesOrder: 3
-tags: ["react"]
----
-```
-
-규칙:
-
-- **짧고 안정적인 문자열**(예: `rxt-001`, `math-003`)
-- 한 번 발급하면 변경하지 않는다.
-- 전체 포스트에서 유일해야 한다(UNIQUE).
-
-### 3.2 Contentlayer 스키마에 `postId` 노출
-
-`contentlayer.config.ts`의 `Post.fields`에 `postId`를 추가하여, 코드에서 `post.postId`로 접근 가능하게 한다.
-
-> “노출”이란: MDX frontmatter의 값을 Contentlayer가 생성하는 `Post` 객체/타입에 포함시키는 것.
-
----
-
-## 4. 기능 스펙: 포스트 읽음 버튼
-
-### 4.1 UI 형태
+### 3.1 UI 형태
 
 - 원형 버튼
 - 기본 상태 아이콘: **눈(👁️)**
@@ -84,7 +48,7 @@ tags: ["react"]
   - 안 읽음(`is_read = false`) → `봤나요?`
   - 읽음(`is_read = true`) → `봤어요!`
 
-### 4.2 동작
+### 3.2 동작
 
 - 클릭 시:
   - localStorage에 `is_read` 값을 토글한다.
@@ -93,7 +57,7 @@ tags: ["react"]
     - 읽음: 체크(✓) + `봤어요!`
   - **1초 동안 버튼 disabled**
 
-### 4.3 애니메이션(피드백)
+### 3.3 애니메이션(피드백)
 
 습관 체크 UX와 일관되게 아래 조합을 사용한다.
 
@@ -104,9 +68,9 @@ tags: ["react"]
 
 ---
 
-## 5. 데이터 모델(localStorage)
+## 4. 데이터 모델(localStorage)
 
-### 5.1 저장 키/스키마
+### 4.1 저장 키/스키마
 
 - **localStorage key**: `blog.postReads.v1`
 - **저장 값**: JSON 문자열
@@ -117,8 +81,8 @@ tags: ["react"]
 {
   "v": 1,
   "read": {
-    "rxt-001": 1,
-    "rxt-002": 1
+    "/posts/2025-07-05-react-learning-01-01-overview-and-first-component": 1,
+    "/posts/basic-math-001": 1
   }
 }
 ```
@@ -134,7 +98,7 @@ tags: ["react"]
 - 전체 초기화: 키 삭제 또는 `{v:1, read:{}}`로 재설정
 - 시리즈 초기화: 해당 시리즈의 postId들을 `read`에서 삭제
 
-### 5.2 브라우저 환경 가드
+### 4.2 브라우저 환경 가드
 
 localStorage는 브라우저에서만 가능하므로 아래 규칙을 지킨다.
 
@@ -145,42 +109,41 @@ localStorage는 브라우저에서만 가능하므로 아래 규칙을 지킨다
 
 ---
 
-## 6. 시리즈별 학습률 계산 (정적 시리즈 + 런타임 사용자 데이터)
+## 5. 시리즈별 학습률 계산 (정적 시리즈 + 런타임 사용자 데이터)
 
-### 6.1 현재 시리즈 로직(정적)
+### 5.1 현재 시리즈 로직(정적)
 
 시리즈는 DB에 저장하지 않고, MDX frontmatter(`series`, `seriesOrder`)를 기반으로 런타임에서 묶는다.  
 이 값들은 Contentlayer가 빌드 시 생성한 “정적 메타”로부터 얻는다.
 
-### 6.2 학습률(개인화) 정의
+### 5.2 학습률(개인화) 정의
 
 시리즈의 포스트 목록을 \(P\)라 할 때:
 
 - **학습률(읽음 기준)**:
-  - \( \text{rate} = \frac{|\{p \in P \mid isReadLocal(p.postId) = true\}|}{|P|} \)
+  - \( \text{rate} = \frac{|\{p \in P \mid isReadLocal(p.url) = true\}|}{|P|} \)
 
-### 6.3 구현 책임 분리(권장)
+### 5.3 구현 책임 분리(권장)
 
 - 서버/정적 영역:
-  - 시리즈의 포스트 목록(각 포스트의 `postId` 포함) 제공
+  - 시리즈의 포스트 목록(각 포스트의 `url` 포함) 제공
   - 기존 `SeriesNav`의 “현재 글 위치 게이지(current/total)” 유지
 - 클라이언트:
-  - localStorage에서 `postId -> is_read` 맵을 만든다
+  - localStorage에서 `url(path) -> is_read` 맵을 만든다
   - 위 정의에 따라 시리즈별 학습률을 계산하여 표시한다
 
 ---
 
-## 8. 범위(이번 미션)
+## 6. 범위(이번 미션)
 
-### 8.1 포함
+### 6.1 포함
 
-- `postId` 정책 도입(문서화 + Contentlayer 필드 확장 + MDX frontmatter 적용)
 - 포스트 상세 페이지에 “봤나요?/봤어요!” 읽음 토글 버튼 추가
 - 버튼 애니메이션(체크마크 드로잉 + pop)
 - (선택) 시리즈 카드에 “내 학습률” 게이지 추가
 - (선택) 시리즈별 학습 현황 UI에 “초기화” 버튼 추가 (해당 시리즈의 모든 읽음 정보를 초기화)
 
-### 8.2 제외(영구)
+### 6.2 제외(영구)
 
 - 스크롤 기반 진도율(progress%) 추적
 - 스크롤 기반 완독 자동 판정
@@ -188,7 +151,7 @@ localStorage는 브라우저에서만 가능하므로 아래 규칙을 지킨다
 
 ---
 
-## 9. 오픈 이슈(결정 필요)
+## 7. 오픈 이슈(결정 필요)
 
 - “안 읽음” 상태의 말풍선 문구:
   - `봤나요?`(채택) vs `읽어볼까요?`
@@ -201,24 +164,24 @@ localStorage는 브라우저에서만 가능하므로 아래 규칙을 지킨다
 
 ---
 
-## 10. 시리즈 단위 초기화(Reset)
+## 8. 시리즈 단위 초기화(Reset)
 
-### 10.1 요구사항
+### 8.1 요구사항
 
 사용자는 시리즈를 한 번 다 읽은 뒤, 다음 번 학습 때 “내가 어디까지 학습했는지”를 다시 측정하고 싶을 수 있다.  
 이를 위해 **시리즈별 학습 현황 UI에 `초기화` 버튼**을 제공한다.
 
-### 10.2 동작 정의
+### 8.2 동작 정의
 
 - 버튼 클릭 시:
   - 해당 시리즈에 포함된 모든 포스트의 읽음 상태를 localStorage에서 해제한다.
   - UI의 학습률 게이지가 즉시 0%로 갱신된다.
 
-### 10.3 구현 방식(권장)
+### 8.3 구현 방식(권장)
 
-시리즈는 정적 메타에서 계산되므로, “이 시리즈의 postId 목록”은 프론트에서 얻을 수 있다.
+시리즈는 정적 메타에서 계산되므로, “이 시리즈의 포스트 URL(path) 목록”은 프론트에서 얻을 수 있다.
 
 - 클라이언트에서:
-  - `seriesPosts: Post[]`를 확보하고 `postIds = seriesPosts.map(p => p.postId)`를 만든다.
-  - localStorage의 `read` 오브젝트에서 해당 `postIds` 키를 삭제 후 저장한다.
+  - `seriesPosts: Post[]`를 확보하고 `paths = seriesPosts.map(p => p.url)`을 만든다.
+  - localStorage의 `read` 오브젝트에서 해당 `paths` 키를 삭제 후 저장한다.
 
