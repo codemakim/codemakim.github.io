@@ -11,6 +11,9 @@ alwaysApply: true
 - GitHub Pages 정적 배포 (`output: 'export'`)
 - TypeScript 엄격 모드, 다크모드 지원
 
+> **상세 아키텍처**: `docs/ARCHITECTURE.md` 참조  
+> **프로젝트 컨텍스트**: `.cursor/rules/project-context.mdc` 참조
+
 ## 핵심 규칙
 
 - 서버 컴포넌트 기본, 클라이언트는 필요시만 `"use client"`
@@ -83,7 +86,9 @@ React가 실제로 컴포넌트를 렌더링하는 순서와 구조를 보여준
 
 ```typescript
 import { allPosts } from "contentlayer/generated";
-const posts = allPosts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+const posts = allPosts.sort(
+  (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+);
 const post = allPosts.find((post) => post.slug === slug);
 ```
 
@@ -91,10 +96,10 @@ const post = allPosts.find((post) => post.slug === slug);
 
 ```yaml
 ---
-title: "포스트 제목"          # 필수
-date: "2025-09-15"         # 필수
-description: "포스트 설명"    # 선택
-tags: ["Next.js", "블로그"]  # 선택
+title: "포스트 제목" # 필수
+date: "2025-09-15" # 필수
+description: "포스트 설명" # 선택
+tags: ["Next.js", "블로그"] # 선택
 ---
 ```
 
@@ -108,8 +113,8 @@ tags: ["Next.js", "블로그"]  # 선택
 ### 모바일 UX 규칙 (중요!)
 
 - **Sticky 헤더**: 데스크톱만 고정, 모바일은 일반 스크롤
-  - ✅ 올바른 예: `className="glass-header md:sticky md:top-0 z-50"`
-  - ❌ 잘못된 예: `className="glass-header sticky top-0 z-50"`
+  - ✅ 올바른 예: `className="header md:sticky md:top-0 z-50"`
+  - ❌ 잘못된 예: `className="header sticky top-0 z-50"`
 - **이유**: 모바일에서 sticky 헤더가 화면의 30% 이상을 차지하면 콘텐츠 읽기 불편
 - **적용 위치**: 모든 페이지 헤더 (홈페이지, 포스트 상세 페이지 등)
 
@@ -165,25 +170,6 @@ npm run build  # 정적 빌드 (GitHub Pages용)
 
 ## 스타일링 규칙 (중요!)
 
-### 글래스모피즘 효과 적용 시
-
-1. **전체 UI 일관성**: 코드블록만 수정하지 말고 전체 UI에 동일한 효과 적용
-   - `glass-card`: 검색바, 태그 필터, 포스트 카드
-   - `glass-card-content`: 본문 영역
-   - `prose code`: 인라인 코드
-
-2. **iOS 18 스타일 왜곡 효과**:
-
-   ```css
-   backdrop-filter: 
-     blur(20px) 
-     saturate(200%) 
-     contrast(120%) 
-     brightness(110%);
-   ```
-
-3. **다크모드 일관성**: 라이트/다크모드 모두 동일한 효과 적용
-
 ### 모바일 최적화
 
 1. **코드블록**: 모바일에서만 좌우 여백 제거
@@ -203,7 +189,6 @@ npm run build  # 정적 빌드 (GitHub Pages용)
 
 ### 스타일 수정 시 체크리스트
 
-- [ ] 전체 UI에 일관된 효과 적용했는가?
 - [ ] 라이트/다크모드 모두 확인했는가?
 - [ ] 모바일/데스크톱 반응형 확인했는가?
 - [ ] 기존 기능에 영향 없이 적용했는가?
@@ -215,7 +200,6 @@ npm run build  # 정적 빌드 (GitHub Pages용)
    ```text
    src/app/styles/
    ├── base.css          # 기본 스타일 + 배경
-   ├── glass-effects.css # 글래스모피즘 + 헤더 + 태그
    ├── mobile.css        # 모바일 최적화
    └── components.css    # 컴포넌트별 스타일
    ```
@@ -227,8 +211,6 @@ npm run build  # 정적 빌드 (GitHub Pages용)
    - 임시/백업 파일 정리
 
 3. **스타일 누락 방지**:
-   - `glass-header`: 헤더 글래스 효과
-   - `glass-tag`: 태그 글래스 효과  
    - 배경 그라데이션: 라이트/다크모드
    - 제목 스타일: Tailwind 클래스 확인
 
@@ -272,7 +254,6 @@ npm run build  # 정적 빌드 (GitHub Pages용)
 - **사용자 승인 없이 다음 단계 진행**
 - **계획 없이 바로 코드 작성**
 - **테스트 코드 생략**
-- **스타일 수정 시 일부만 적용하고 전체 놓치기**
 - **복잡한 PWA 설정으로 인한 부작용**
 - **CSS 모듈화 시 백업 없이 작업**
 - **임시 파일 정리하지 않고 방치**

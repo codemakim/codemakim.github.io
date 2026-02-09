@@ -1,5 +1,7 @@
 ---
-alwaysApply: true
+description: 블로그 포스트 작성 규칙 (MDX 파일)
+globs: content/**/*.mdx
+alwaysApply: false
 ---
 
 # 블로그 작성 규칙 (컨벤션)
@@ -83,4 +85,3 @@ alwaysApply: true
 - 이 파일은 `.cursor/rules/`에 있으므로 Cursor가 프로젝트 규칙으로 로드한다.
 - 새로운 세션에서도 같은 레포를 열면 규칙이 자동 적용된다.
 - 규칙이 적용되지 않는다면, 프로젝트 루트가 동일한지와 `.cursor/rules/` 경로를 확인한다.
-

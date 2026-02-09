@@ -1,0 +1,55 @@
+---
+alwaysApply: true
+---
+
+# 프로젝트 컨텍스트 요약
+
+## 프로젝트 개요
+
+Next.js 16 기반 개발 블로그 + 습관 관리 통합 플랫폼. GitHub Pages 정적 배포, Supabase 백엔드.
+
+## 핵심 아키텍처
+
+### 데이터 흐름
+
+- **HabitsProvider**: 전역 습관 캐시 (`Map<string, Habit>`)
+- **useHabits**: 오늘 습관 필터링 (캐시에서 가져와서 필터링)
+- **컴포넌트**: HabitsProvider 캐시 사용 필수, 직접 DB 호출 금지
+
+### 캐싱 전략
+
+- 습관 데이터: HabitsProvider 메모리 캐시 (CRUD 시 자동 갱신)
+- habit_records: 캐싱하지 않음 (통계 계산 시에만 패칭)
+
+### 날짜 처리
+
+- **YYYY-MM-DD 문자열 직접 사용** (타임존 문제 방지)
+- `dateUtils.ts`의 `formatDateToYYYYMMDD`, `compareDateStrings` 사용
+- `Date` 객체 비교 금지
+
+## 주요 파일
+
+- `HabitsProvider.tsx`: 전역 캐시 관리 (핵심)
+- `useHabits.ts`: 오늘 습관 필터링
+- `dateUtils.ts`: 날짜 유틸리티
+- `habitStats.ts`: 통계 계산 유틸리티
+
+## 최근 변경사항
+
+- 습관 관리 Phase 1 완료 (등록, 목록, 상세, 수정, 삭제, 아카이브)
+- HabitsProvider 캐시 최적화 완료 (중복 패칭 제거)
+- 통계 계산 로직 유틸리티화 완료
+- 헤더 리팩토링 완료 (PageHeader 컴포넌트)
+
+## 주의사항
+
+- 습관 데이터는 HabitsProvider 캐시에서만 가져오기
+- 날짜는 항상 YYYY-MM-DD 문자열로 처리
+- 스타일 수정 시 다크모드(`dark:`) 필수 확인
+- 모바일 반응형 확인 (`md:` 브레이크포인트)
+
+## 참고 문서
+
+- 아키텍처: `docs/ARCHITECTURE.md`
+- 습관 설계: `docs/HABITS_DESIGN.md`
+- 로드맵: `docs/ROADMAP.md`
