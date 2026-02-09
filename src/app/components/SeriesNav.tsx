@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SeriesInfo } from "../lib/series";
+import SeriesStudyStatus from "./SeriesStudyStatus";
 
 interface SeriesNavProps {
   seriesInfo: SeriesInfo;
@@ -11,7 +12,7 @@ export default function SeriesNav({ seriesInfo }: SeriesNavProps) {
     return null;
   }
 
-  const { prev, next, current, total, seriesName } = seriesInfo;
+  const { prev, next, current, total, seriesName, seriesPostUrls } = seriesInfo;
 
   return (
     <div className="card p-6 my-8">
@@ -42,6 +43,13 @@ export default function SeriesNav({ seriesInfo }: SeriesNavProps) {
             </span>
           </div>
         </div>
+
+        {/* 내 학습률 (localStorage 기반) + 초기화 */}
+        <SeriesStudyStatus
+          seriesName={seriesName}
+          postPaths={seriesPostUrls}
+          className="mt-4"
+        />
       </div>
 
       {/* 네비게이션 버튼 */}
