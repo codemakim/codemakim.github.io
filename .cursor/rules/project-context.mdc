@@ -27,12 +27,12 @@ Next.js 16 기반 개발 블로그 + 습관 관리 통합 플랫폼. GitHub Page
 - `dateUtils.ts`의 `formatDateToYYYYMMDD`, `compareDateStrings` 사용
 - `Date` 객체 비교 금지
 
-## 주요 파일
+## 주요 파일 경로
 
-- `HabitsProvider.tsx`: 전역 캐시 관리 (핵심)
-- `useHabits.ts`: 오늘 습관 필터링
-- `dateUtils.ts`: 날짜 유틸리티
-- `habitStats.ts`: 통계 계산 유틸리티
+- `src/app/components/habits/HabitsProvider.tsx`: 전역 캐시 관리 (핵심)
+- `src/app/components/habits/useHabits.ts`: 오늘 습관 필터링
+- `src/app/lib/dateUtils.ts`: 날짜 유틸리티
+- `src/app/lib/utils/habitStats.ts`: 통계 계산 유틸리티
 
 ## 최근 변경사항
 
@@ -50,6 +50,15 @@ Next.js 16 기반 개발 블로그 + 습관 관리 통합 플랫폼. GitHub Page
 
 ## 참고 문서
 
-- 아키텍처: `docs/ARCHITECTURE.md`
-- 습관 설계: `docs/HABITS_DESIGN.md`
-- 로드맵: `docs/ROADMAP.md`
+- **아키텍처**: `docs/ARCHITECTURE.md` - 코드 구조, 데이터 흐름, 주요 패턴 (코드 찾기 필수)
+- **습관 설계**: `docs/features/habits/DESIGN.md` - 기능 스펙, 화면 설계
+- **데이터베이스**: `docs/features/habits/DATABASE.md` - 테이블 구조, SQL 스크립트
+- **로드맵**: `docs/ROADMAP.md` - 프로젝트 진행 상황
+
+## 코드 찾기 가이드
+
+작업 시 다음 순서로 참조:
+
+1. **아키텍처 문서** (`docs/ARCHITECTURE.md`) - 디렉토리 구조, 데이터 흐름, 핵심 파일 확인
+2. **기능 설계 문서** (`docs/features/habits/DESIGN.md`) - 기능 스펙 확인
+3. **실제 코드** - 아키텍처 문서의 파일 경로 참조하여 코드 확인
