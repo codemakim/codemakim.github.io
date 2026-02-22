@@ -1,21 +1,24 @@
-import type { PlayerState } from '@/app/lib/games/spire/types';
+import type { PlayerState, BattleEffect } from '@/app/lib/games/spire/types';
 import PlayerSVG from './svg/PlayerSVG';
 import BuffIcon from './BuffIcon';
+import BattleEffects from './BattleEffects';
 
 interface Props {
   player: PlayerState;
   spriteSize?: number;
+  effects?: BattleEffect[];
 }
 
-export default function PlayerComponent({ player, spriteSize = 90 }: Props) {
+export default function PlayerComponent({ player, spriteSize = 90, effects = [] }: Props) {
   const hpPct = Math.max(0, (player.hp / player.maxHp) * 100);
   const hpColor = hpPct > 50 ? 'bg-green-500' : hpPct > 25 ? 'bg-yellow-500' : 'bg-red-500';
 
   return (
     <div className="flex flex-col items-center gap-2">
       {/* 스프라이트 */}
-      <div className="relative">
+      <div className={`relative ${effects.length > 0 ? 'animate-shake' : ''}`}>
         <PlayerSVG width={spriteSize} height={Math.round(spriteSize * 1.2)} />
+        <BattleEffects effects={effects} />
         {/* 방어 배지 */}
         {player.block > 0 && (
           <div className="absolute bottom-0 left-0 bg-blue-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">

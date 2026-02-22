@@ -190,10 +190,32 @@ export type GameAction =
   | { type: 'REST_REMOVE_CARD'; cardIndex: number }
   | { type: 'RESTART' };
 
+// ===== 전투 이펙트 (교체 가능한 구조) =====
+export interface BattleEffect {
+  id: string;
+  type: 'damage' | 'block' | 'heal' | 'buff' | 'miss';
+  value: number;
+  target: 'player' | number; // 'player' 또는 적 인덱스
+  timestamp: number;
+}
+
 // ===== 저장 =====
 export interface SpireSaveData {
   bestScore: number;
   bestAct: number;
   totalRuns: number;
   totalWins: number;
+}
+
+// ===== 중간 저장 (직렬화 가능 구조) =====
+export interface SpireRunSave {
+  player: PlayerState;
+  deck: Array<{ defId: string; instanceId: string; upgraded: boolean }>;
+  relicIds: string[];
+  gold: number;
+  score: number;
+  currentAct: number;
+  currentNodeId: string;
+  mapState: GameMap;
+  phase: GamePhase;
 }

@@ -115,6 +115,14 @@ function generateRewards(state: GameState, node: MapNode): PendingRewards {
 
 // ===== 전투 초기화 =====
 
+function makeEnemy(def: import('./types').EnemyDef): EnemyInstance {
+  const hp = randInt(def.hp[0], def.hp[1]);
+  return {
+    def, hp, maxHp: hp, block: 0, buffs: [],
+    currentIntent: getInitialPattern(def), patternIndex: 0, turnCount: 0,
+  };
+}
+
 function initBattle(state: GameState, node: MapNode): GameState {
   const act = (state.currentAct + 1) as 1 | 2 | 3;
   const tier = node.type === 'elite' ? 'elite' : node.type === 'boss' ? 'boss' : 'normal';
@@ -124,18 +132,21 @@ function initBattle(state: GameState, node: MapNode): GameState {
   if (pool.length === 0) pool = ALL_ENEMIES.filter(e => e.tier === tier);
   if (pool.length === 0) pool = NORMAL_ENEMIES;
 
-  const def = pickRandom(pool);
-  const hp = randInt(def.hp[0], def.hp[1]);
-  const firstPattern = getInitialPattern(def);
-
-  const enemy: EnemyInstance = {
-    def, hp, maxHp: hp, block: 0, buffs: [],
-    currentIntent: firstPattern, patternIndex: 0, turnCount: 0,
-  };
+  let enemies: EnemyInstance[];
+  if (tier === 'normal') {
+    const count = Math.random() < 0.4 ? 2 : Math.random() < 0.15 ? 3 : 1;
+    const picked: import('./types').EnemyDef[] = [];
+    for (let i = 0; i < count; i++) {
+      picked.push(pickRandom(pool));
+    }
+    enemies = picked.map(makeEnemy);
+  } else {
+    enemies = [makeEnemy(pickRandom(pool))];
+  }
 
   const shuffled = [...state.deck].sort(() => Math.random() - 0.5);
   let battle: BattleState = {
-    enemies: [enemy],
+    enemies,
     hand: [], drawPile: shuffled, discardPile: [], exhaustPile: [],
     activePowers: [], turn: 0,
     selectedCardIndex: null, targetingMode: false, pendingDamageBonus: 0,
@@ -491,13 +502,18 @@ function reducer(state: GameState, action: GameAction): GameState {
       if (!state.battle) return state;
       const card = state.battle.hand[action.cardIndex]?.def;
       if (!card) return state;
-      const needsTarget = (card.type === 'attack' || card.effects.some(e => e.type === 'buff' && (e as { target: string }).target === 'enemy'))
-        && state.battle.enemies.length > 1;
+      // 이미 선택된 카드를 다시 누르면 해제
+      if (state.battle.selectedCardIndex === action.cardIndex) {
+        return { ...state, battle: { ...state.battle, selectedCardIndex: null, targetingMode: false } };
+      }
+      const isTargeted = card.type === 'attack' || card.effects.some(e => e.type === 'buff' && (e as { target: string }).target === 'enemy');
+      const aliveEnemies = state.battle.enemies.filter(e => e.hp > 0);
+      const needsTarget = isTargeted && aliveEnemies.length > 1;
       return {
         ...state,
         battle: {
           ...state.battle,
-          selectedCardIndex: state.battle.selectedCardIndex === action.cardIndex ? null : action.cardIndex,
+          selectedCardIndex: action.cardIndex,
           targetingMode: needsTarget,
         }
       };
@@ -590,6 +606,83 @@ function reducer(state: GameState, action: GameAction): GameState {
     default:
       return state;
   }
+}
+
+// ===== 중간 저장 (직렬화/역직렬화) =====
+
+const RUN_SAVE_KEY = 'game_spire_run';
+
+export function serializeRun(state: GameState): string {
+  return JSON.stringify({
+    player: state.player,
+    deck: state.deck.map(c => ({ defId: c.def.id, instanceId: c.instanceId, upgraded: c.upgraded })),
+    relicIds: state.relics.map(r => r.id),
+    gold: state.gold,
+    score: state.score,
+    currentAct: state.currentAct,
+    currentNodeId: state.currentNodeId,
+    mapState: state.map,
+    phase: state.phase,
+  });
+}
+
+export function deserializeRun(json: string): GameState | null {
+  try {
+    const data = JSON.parse(json);
+    const allCards = [...createStarterDeck(), ...REWARD_CARD_POOL];
+    const cardMap = new Map(allCards.map(c => [c.id, c]));
+    const allRelicList = [BURNING_BLOOD, ...TREASURE_RELICS, ...ELITE_RELICS, ...BOSS_RELICS];
+    const relicMap = new Map(allRelicList.map(r => [r.id, r]));
+
+    const deck: CardInstance[] = data.deck
+      .map((c: { defId: string; instanceId: string; upgraded: boolean }) => {
+        const def = cardMap.get(c.defId);
+        if (!def) return null;
+        return { def, instanceId: c.instanceId, upgraded: c.upgraded };
+      })
+      .filter(Boolean) as CardInstance[];
+
+    const relics = data.relicIds
+      .map((id: string) => relicMap.get(id))
+      .filter(Boolean) as import('./types').RelicDef[];
+
+    return {
+      phase: data.phase || 'map',
+      player: data.player,
+      battle: null,
+      map: data.mapState,
+      currentAct: data.currentAct,
+      currentNodeId: data.currentNodeId,
+      deck,
+      relics,
+      gold: data.gold,
+      score: data.score,
+      pendingRewards: null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function saveRunToLocal(state: GameState): void {
+  if (typeof window === 'undefined') return;
+  if (state.phase === 'gameOver' || state.phase === 'victory') {
+    localStorage.removeItem(RUN_SAVE_KEY);
+    return;
+  }
+  localStorage.setItem(RUN_SAVE_KEY, serializeRun(state));
+}
+
+export function loadRunFromLocal(): GameState | null {
+  if (typeof window === 'undefined') return null;
+  const json = localStorage.getItem(RUN_SAVE_KEY);
+  if (!json) return null;
+  return deserializeRun(json);
+}
+
+export function clearRunSave(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(RUN_SAVE_KEY);
 }
 
 // ===== HOOK =====

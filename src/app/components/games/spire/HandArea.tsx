@@ -12,17 +12,33 @@ interface Props {
 export default function HandArea({ battle, player, dispatch, onEndTurn }: Props) {
   const { hand, selectedCardIndex, drawPile, discardPile, activePowers } = battle;
 
+  const aliveEnemies = battle.enemies.filter(e => e.hp > 0);
+
   function handleCardClick(idx: number) {
     const card = hand[idx].def;
     const cost = card.cost === -1 ? player.energy : card.cost;
-
     if (card.type === 'curse' || player.energy < cost) return;
 
+    const isTargeted = card.type === 'attack' || card.effects.some(e => e.type === 'buff' && (e as { target: string }).target === 'enemy');
+
     if (selectedCardIndex === idx) {
-      // 이미 선택된 카드 → 타겟 없이 플레이 (적이 1명이므로 targetIndex=0)
-      dispatch({ type: 'PLAY_CARD', cardIndex: idx, targetIndex: 0 });
+      if (isTargeted && aliveEnemies.length > 1) {
+        // 타겟 모드 중 → 해제
+        dispatch({ type: 'DESELECT_CARD' });
+      } else {
+        // 적 1명이거나 타겟 불필요 → 바로 플레이
+        const firstAlive = battle.enemies.findIndex(e => e.hp > 0);
+        dispatch({ type: 'PLAY_CARD', cardIndex: idx, targetIndex: Math.max(0, firstAlive) });
+      }
     } else {
-      dispatch({ type: 'SELECT_CARD', cardIndex: idx });
+      if (!isTargeted || aliveEnemies.length <= 1) {
+        // 타겟 불필요 → 바로 플레이
+        const firstAlive = battle.enemies.findIndex(e => e.hp > 0);
+        dispatch({ type: 'PLAY_CARD', cardIndex: idx, targetIndex: Math.max(0, firstAlive) });
+      } else {
+        // 타겟 필요 → 카드 선택 (적 클릭 대기)
+        dispatch({ type: 'SELECT_CARD', cardIndex: idx });
+      }
     }
   }
 

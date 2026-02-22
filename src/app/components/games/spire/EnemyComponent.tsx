@@ -1,5 +1,6 @@
-import type { EnemyInstance } from '@/app/lib/games/spire/types';
+import type { EnemyInstance, BattleEffect } from '@/app/lib/games/spire/types';
 import BuffIcon from './BuffIcon';
+import BattleEffects from './BattleEffects';
 
 const INTENT_META: Record<string, { emoji: string; label: string; color: string }> = {
   attack:  { emoji: '⚔️', label: '공격',  color: 'text-red-400' },
@@ -14,9 +15,10 @@ interface Props {
   selected?: boolean;
   onClick?: () => void;
   spriteSize?: number;
+  effects?: BattleEffect[];
 }
 
-export default function EnemyComponent({ enemy, selected, onClick, spriteSize = 100 }: Props) {
+export default function EnemyComponent({ enemy, selected, onClick, spriteSize = 100, effects = [] }: Props) {
   const Sprite = enemy.def.sprite;
   const intent = INTENT_META[enemy.def.tier === 'boss' && enemy.currentIntent.intent === 'special'
     ? 'special' : enemy.currentIntent.intent] ?? INTENT_META.attack;
@@ -38,8 +40,9 @@ export default function EnemyComponent({ enemy, selected, onClick, spriteSize = 
       </div>
 
       {/* 적 스프라이트 */}
-      <div className={`relative ${selected ? 'drop-shadow-[0_0_12px_rgba(239,68,68,0.8)]' : ''}`}>
+      <div className={`relative ${selected ? 'drop-shadow-[0_0_12px_rgba(239,68,68,0.8)]' : ''} ${effects.length > 0 ? 'animate-shake' : ''}`}>
         <Sprite width={spriteSize} height={Math.round(spriteSize * 1.2)} />
+        <BattleEffects effects={effects} />
         {/* 방어 표시 */}
         {enemy.block > 0 && (
           <div className="absolute bottom-0 right-0 bg-blue-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
