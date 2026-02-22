@@ -18,16 +18,22 @@ src/app/
 │   │   ├── ProtectedRoute.tsx    # 보호된 라우트
 │   │   └── OAuthButton.tsx       # 소셜 로그인 버튼
 │   │
-│   └── habits/             # 습관 관리 컴포넌트
-│       ├── HabitsProvider.tsx    # 전역 습관 캐시 관리 (핵심)
-│       ├── useHabits.ts          # 오늘 습관 필터링 훅
-│       ├── HabitCard.tsx          # 습관 카드 (목록)
-│       ├── PastHabitCard.tsx      # 과거 습관 카드 (아카이브)
-│       ├── HabitStats.tsx          # 통계 표시
-│       ├── HabitCalendar.tsx      # 개별 습관 달력
-│       ├── OverallCalendar.tsx    # 종합 달력 (모든 습관)
-│       ├── PageHeader.tsx          # 재사용 가능한 헤더
-│       └── types.ts                # 타입 정의
+│   ├── habits/             # 습관 관리 컴포넌트
+│   │   ├── HabitsProvider.tsx    # 전역 습관 캐시 관리 (핵심)
+│   │   ├── useHabits.ts          # 오늘 습관 필터링 훅
+│   │   ├── HabitCard.tsx          # 습관 카드 (목록)
+│   │   ├── PastHabitCard.tsx      # 과거 습관 카드 (아카이브)
+│   │   ├── HabitStats.tsx          # 통계 표시
+│   │   ├── HabitCalendar.tsx      # 개별 습관 달력
+│   │   ├── OverallCalendar.tsx    # 종합 달력 (모든 습관)
+│   │   ├── PageHeader.tsx          # 재사용 가능한 헤더
+│   │   └── types.ts                # 타입 정의
+│   │
+│   └── games/              # 게임 코너 컴포넌트
+│       ├── GameCard.tsx           # 게임 선택 카드
+│       ├── GameLayout.tsx         # 게임 공통 레이아웃
+│       ├── useGameAudio.ts        # Web Audio API 효과음 훅
+│       └── thumbnails/            # 게임 썸네일 (SVG 기반)
 │
 ├── habits/                 # 습관 관리 페이지
 │   ├── page.tsx            # 메인 목록 (오늘 습관)
@@ -36,13 +42,24 @@ src/app/
 │   ├── edit/page.tsx       # 습관 수정
 │   └── detail/page.tsx     # 습관 상세
 │
+├── games/                  # 게임 코너 페이지
+│   ├── page.tsx            # 게임 목록
+│   ├── 2048/page.tsx       # 2048 게임
+│   ├── snake/page.tsx      # 스네이크 게임
+│   ├── minesweeper/page.tsx # 지뢰찾기 게임
+│   ├── memory/page.tsx     # 메모리 카드 게임
+│   └── block-drop/page.tsx # 블록 드롭 게임
+│
 ├── lib/
 │   ├── supabase.ts         # Supabase 클라이언트
 │   ├── dateUtils.ts        # 날짜 유틸리티 (YYYY-MM-DD 처리)
 │   ├── constants/
 │   │   └── habits.ts       # 습관 관련 상수 (색상, 요일)
-│   └── utils/
-│       └── habitStats.ts   # 통계 계산 유틸리티
+│   ├── utils/
+│   │   └── habitStats.ts   # 통계 계산 유틸리티
+│   └── games/
+│       ├── types.ts        # 게임 공통 타입
+│       └── constants.ts    # 게임 메타 정보 상수
 │
 └── styles/                 # CSS 모듈
     ├── base.css            # 기본 스타일 + 배경

@@ -9,7 +9,7 @@ interface FeatureTilesProps {
 
 export default function FeatureTiles({
   children,
-  gridCols = "grid-cols-1 md:grid-cols-2 lg:grid-cols-3",
+  gridCols = "grid-cols-1 md:grid-cols-2",
   gap = "gap-4",
   className = "",
 }: FeatureTilesProps) {

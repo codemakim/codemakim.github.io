@@ -2,6 +2,7 @@
   "files.associations": {
     "*.mdx": "markdown"
   },
+  "css.lint.unknownAtRules": "ignore",
   "editor.quickSuggestions": {
     "strings": true
   },

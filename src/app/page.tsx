@@ -28,15 +28,23 @@ export default function LandingPage() {
             title="블로그"
             description="웹 개발과 기술 이야기"
             actionText="모든 포스트 보기"
-            colSpan="md:col-span-2"
             minHeight="min-h-[200px]"
-            padding="p-8"
-            titleSize="text-3xl"
+            padding="p-6"
+            titleSize="text-2xl"
           />
           <FeatureTile
             href="/habits"
             title="매일두잇"
             actionText="습관 만들기 시작하기"
+            minHeight="min-h-[200px]"
+            padding="p-6"
+            titleSize="text-2xl"
+          />
+          <FeatureTile
+            href="/games"
+            title="게임 코너"
+            description="간단한 웹 게임 모음"
+            actionText="게임 하러 가기"
             minHeight="min-h-[200px]"
             padding="p-6"
             titleSize="text-2xl"

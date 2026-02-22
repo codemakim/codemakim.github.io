@@ -6,7 +6,7 @@ alwaysApply: true
 
 ## 프로젝트 개요
 
-Next.js 16 기반 개발 블로그 + 습관 관리 통합 플랫폼. GitHub Pages 정적 배포, Supabase 백엔드.
+Next.js 16 기반 개발 블로그 + 습관 관리 + 게임 코너 통합 플랫폼. GitHub Pages 정적 배포, Supabase 백엔드.
 
 ## 핵심 아키텍처
 
@@ -29,10 +29,16 @@ Next.js 16 기반 개발 블로그 + 습관 관리 통합 플랫폼. GitHub Page
 
 ## 주요 파일 경로
 
+### 습관 관리
 - `src/app/components/habits/HabitsProvider.tsx`: 전역 캐시 관리 (핵심)
 - `src/app/components/habits/useHabits.ts`: 오늘 습관 필터링
 - `src/app/lib/dateUtils.ts`: 날짜 유틸리티
 - `src/app/lib/utils/habitStats.ts`: 통계 계산 유틸리티
+
+### 게임 코너
+- `src/app/games/`: 게임 페이지 (5종: 2048, snake, minesweeper, memory, block-drop)
+- `src/app/components/games/`: 게임 공통 컴포넌트 (GameLayout, GameCard, useGameAudio)
+- `src/app/lib/games/`: 게임 타입 및 상수
 
 ## 최근 변경사항
 
@@ -40,6 +46,7 @@ Next.js 16 기반 개발 블로그 + 습관 관리 통합 플랫폼. GitHub Page
 - HabitsProvider 캐시 최적화 완료 (중복 패칭 제거)
 - 통계 계산 로직 유틸리티화 완료
 - 헤더 리팩토링 완료 (PageHeader 컴포넌트)
+- 게임 코너 설계 완료 (Phase 3.1, 구현 대기)
 
 ## 주의사항
 
@@ -47,11 +54,14 @@ Next.js 16 기반 개발 블로그 + 습관 관리 통합 플랫폼. GitHub Page
 - 날짜는 항상 YYYY-MM-DD 문자열로 처리
 - 스타일 수정 시 다크모드(`dark:`) 필수 확인
 - 모바일 반응형 확인 (`md:` 브레이크포인트)
+- 게임 코너: 로그인 불필요, localStorage로 점수 저장, 외부 에셋 없이 구현
+- 향후 Supabase 연동 시 HabitsProvider 캐싱 패턴 동일 적용
 
 ## 참고 문서
 
 - **아키텍처**: `docs/ARCHITECTURE.md` - 코드 구조, 데이터 흐름, 주요 패턴 (코드 찾기 필수)
 - **습관 설계**: `docs/features/habits/DESIGN.md` - 기능 스펙, 화면 설계
+- **게임 설계**: `docs/features/games/DESIGN.md` - 게임 코너 전체 설계 (5종 게임 상세 스펙)
 - **데이터베이스**: `docs/features/habits/DATABASE.md` - 테이블 구조, SQL 스크립트
 - **로드맵**: `docs/ROADMAP.md` - 프로젝트 진행 상황
 
@@ -60,5 +70,7 @@ Next.js 16 기반 개발 블로그 + 습관 관리 통합 플랫폼. GitHub Page
 작업 시 다음 순서로 참조:
 
 1. **아키텍처 문서** (`docs/ARCHITECTURE.md`) - 디렉토리 구조, 데이터 흐름, 핵심 파일 확인
-2. **기능 설계 문서** (`docs/features/habits/DESIGN.md`) - 기능 스펙 확인
+2. **기능 설계 문서** - 기능 스펙 확인
+   - 습관: `docs/features/habits/DESIGN.md`
+   - 게임: `docs/features/games/DESIGN.md`
 3. **실제 코드** - 아키텍처 문서의 파일 경로 참조하여 코드 확인
