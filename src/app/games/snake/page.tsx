@@ -218,6 +218,7 @@ export default function SnakeGame() {
       bestScore={bestScore}
       onRestart={restart}
       status={status === 'lost' ? 'lost' : undefined}
+      desktopOnly
     >
       <div className="flex flex-col items-center gap-4">
         {status === 'idle' && (

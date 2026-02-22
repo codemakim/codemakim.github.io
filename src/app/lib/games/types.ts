@@ -6,4 +6,5 @@ export interface GameInfo {
   description: string;
   href: string;
   thumbnail: ComponentType;
+  desktopOnly?: boolean;
 }

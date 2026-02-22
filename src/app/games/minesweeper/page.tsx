@@ -249,6 +249,7 @@ export default function MinesweeperGame() {
       onRestart={restart}
       controls={controls}
       status={status === 'won' ? 'won' : status === 'lost' ? 'lost' : undefined}
+      desktopOnly
     >
       <div className="overflow-x-auto pb-2">
         <div

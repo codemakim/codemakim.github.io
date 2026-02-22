@@ -4,6 +4,7 @@ import ThumbnailSnake from '@/app/components/games/thumbnails/ThumbnailSnake';
 import ThumbnailMinesweeper from '@/app/components/games/thumbnails/ThumbnailMinesweeper';
 import ThumbnailMemory from '@/app/components/games/thumbnails/ThumbnailMemory';
 import ThumbnailBlockDrop from '@/app/components/games/thumbnails/ThumbnailBlockDrop';
+import ThumbnailSpire from '@/app/components/games/thumbnails/ThumbnailSpire';
 
 export const GAMES: GameInfo[] = [
   {
@@ -19,6 +20,7 @@ export const GAMES: GameInfo[] = [
     description: '뱀을 조종해 먹이를 먹어라',
     href: '/games/snake',
     thumbnail: ThumbnailSnake,
+    desktopOnly: true,
   },
   {
     id: 'minesweeper',
@@ -26,6 +28,7 @@ export const GAMES: GameInfo[] = [
     description: '지뢰를 피해 모든 칸을 열어라',
     href: '/games/minesweeper',
     thumbnail: ThumbnailMinesweeper,
+    desktopOnly: true,
   },
   {
     id: 'memory',
@@ -40,6 +43,14 @@ export const GAMES: GameInfo[] = [
     description: '블록을 쌓아 줄을 완성해라',
     href: '/games/block-drop',
     thumbnail: ThumbnailBlockDrop,
+    desktopOnly: true,
+  },
+  {
+    id: 'spire',
+    title: '미니 스파이어',
+    description: '덱을 구성하고 스파이어를 정복해라',
+    href: '/games/spire',
+    thumbnail: ThumbnailSpire,
   },
 ];
 

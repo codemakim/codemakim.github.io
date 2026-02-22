@@ -13,13 +13,13 @@ type Color = string | null;
 type Board = Color[][];
 
 const PIECES = [
-  { shape: [[1,1,1,1]],           colorL: '#64748b', colorD: '#94a3b8' },
-  { shape: [[1,1],[1,1]],         colorL: '#78716c', colorD: '#a8a29e' },
-  { shape: [[0,1,0],[1,1,1]],     colorL: '#737373', colorD: '#a3a3a3' },
-  { shape: [[0,1,1],[1,1,0]],     colorL: '#6b7280', colorD: '#9ca3af' },
-  { shape: [[1,1,0],[0,1,1]],     colorL: '#71717a', colorD: '#a1a1aa' },
-  { shape: [[1,0,0],[1,1,1]],     colorL: '#525252', colorD: '#d4d4d4' },
-  { shape: [[0,0,1],[1,1,1]],     colorL: '#a3a3a3', colorD: '#e5e5e5' },
+  { shape: [[1,1,1,1]],           colorL: '#06b6d4', colorD: '#22d3ee' }, // I - 시안
+  { shape: [[1,1],[1,1]],         colorL: '#eab308', colorD: '#facc15' }, // O - 노랑
+  { shape: [[0,1,0],[1,1,1]],     colorL: '#a855f7', colorD: '#c084fc' }, // T - 보라
+  { shape: [[0,1,1],[1,1,0]],     colorL: '#22c55e', colorD: '#4ade80' }, // S - 초록
+  { shape: [[1,1,0],[0,1,1]],     colorL: '#ef4444', colorD: '#f87171' }, // Z - 빨강
+  { shape: [[1,0,0],[1,1,1]],     colorL: '#3b82f6', colorD: '#60a5fa' }, // J - 파랑
+  { shape: [[0,0,1],[1,1,1]],     colorL: '#f97316', colorD: '#fb923c' }, // L - 주황
 ] as const;
 
 const LINE_SCORES = [0, 100, 300, 500, 800];
@@ -353,6 +353,7 @@ export default function BlockDropGame() {
       bestScore={bestScore}
       onRestart={restart}
       status={status === 'lost' ? 'lost' : undefined}
+      desktopOnly
     >
       <div className="flex flex-col items-center gap-4">
         <div className="flex gap-4 text-sm text-zinc-500 dark:text-zinc-400">
