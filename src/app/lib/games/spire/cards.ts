@@ -70,10 +70,7 @@ export const TWIN_STRIKE: CardDef = {
   type: 'attack',
   cost: 1,
   description: '5 데미지 × 2회',
-  effects: [
-    { type: 'damage', value: 5, target: 'single' },
-    { type: 'damage', value: 5, target: 'single' },
-  ],
+  effects: [{ type: 'damage', value: 5, target: 'single', hits: 2 }],
 };
 
 export const WHIRLWIND: CardDef = {
@@ -95,6 +92,24 @@ export const SWORD_DANCE: CardDef = {
     { type: 'damage', value: 9, target: 'single' },
     { type: 'buff', buff: 'vulnerable', value: 1, target: 'self' },
   ],
+};
+
+export const FURY: CardDef = {
+  id: 'fury',
+  name: '연타',
+  type: 'attack',
+  cost: 1,
+  description: '2 데미지 × 4회',
+  effects: [{ type: 'damage', value: 2, target: 'single', hits: 4 }],
+};
+
+export const PUMMEL: CardDef = {
+  id: 'pummel',
+  name: '난타',
+  type: 'attack',
+  cost: 2,
+  description: '3 데미지 × 5회',
+  effects: [{ type: 'damage', value: 3, target: 'single', hits: 5 }],
 };
 
 export const EXECUTE: CardDef = {
@@ -246,7 +261,7 @@ export const PAIN: CardDef = {
 // ===== 카드 풀 =====
 
 export const REWARD_CARD_POOL: CardDef[] = [
-  BLADE_STORM, HEAVY_STRIKE, ANGER, TWIN_STRIKE, WHIRLWIND, SWORD_DANCE, EXECUTE,
+  BLADE_STORM, HEAVY_STRIKE, ANGER, TWIN_STRIKE, FURY, PUMMEL, WHIRLWIND, SWORD_DANCE, EXECUTE,
   IRON_WALL, BLOODLESS_DEFENSE, COUNTER_STANCE, BATTLE_CRY,
   FLEX, VIGILANCE, BLOOD_RITUAL, WAR_CRY, ROAR,
   IRON_WILL, BERSERKER, THORNS_CARD,

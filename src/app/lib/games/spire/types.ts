@@ -5,7 +5,7 @@ export type BuffType = 'strength' | 'dexterity' | 'vulnerable' | 'weak' | 'poiso
 
 // ===== 카드 효과 =====
 export type CardEffect =
-  | { type: 'damage'; value: number; target?: 'single' | 'all' }
+  | { type: 'damage'; value: number; target?: 'single' | 'all'; hits?: number }
   | { type: 'block'; value: number }
   | { type: 'draw'; value: number }
   | { type: 'buff'; buff: BuffType; value: number; target: 'self' | 'enemy' | 'allEnemies'; temporary?: boolean }

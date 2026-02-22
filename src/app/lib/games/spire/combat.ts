@@ -14,10 +14,20 @@ export function addBuff(buffs: BuffState[], type: BuffType, value: number, durat
   return [...buffs, { type, value, duration }];
 }
 
+const TURN_BASED_BUFFS: BuffType[] = ['vulnerable', 'weak'];
+
 export function tickBuffs(buffs: BuffState[]): BuffState[] {
   return buffs
-    .map(b => b.duration !== undefined ? { ...b, duration: b.duration - 1 } : b)
-    .filter(b => b.duration === undefined || b.duration > 0);
+    .map(b => {
+      if (b.duration !== undefined) return { ...b, duration: b.duration - 1 };
+      if (TURN_BASED_BUFFS.includes(b.type)) return { ...b, value: b.value - 1 };
+      return b;
+    })
+    .filter(b => {
+      if (b.duration !== undefined) return b.duration > 0;
+      if (TURN_BASED_BUFFS.includes(b.type)) return b.value > 0;
+      return true;
+    });
 }
 
 // ===== 데미지 계산 =====

@@ -207,9 +207,9 @@ function applyCard(state: GameState, cardIndex: number, targetIndex: number): Ga
         const strength = getBuffValue(player.buffs, 'strength');
         const isWeak = getBuffValue(player.buffs, 'weak') > 0;
         const targets = effect.target === 'all' ? enemies.map((_, i) => i) : [targetIndex];
-        const times = card.id === 'whirlwind' ? xValue : 1;
+        const hits = card.id === 'whirlwind' ? xValue : (effect.hits ?? 1);
 
-        for (let t = 0; t < times; t++) {
+        for (let t = 0; t < hits; t++) {
           for (const ti of targets) {
             const e = enemies[ti];
             if (!e || e.hp <= 0) continue;
@@ -450,11 +450,13 @@ function checkRewardsDone(state: GameState): GameState {
       updateSave(state.score, state.currentAct, true);
       return { ...state, phase: 'victory', pendingRewards: null };
     }
-    // 다음 Act으로
     const nextAct = state.currentAct + 1;
     const nextActMap = state.map.acts[nextAct];
     if (!nextActMap) return { ...state, phase: 'victory', pendingRewards: null };
-    return { ...state, phase: 'map', currentAct: nextAct, currentNodeId: '', pendingRewards: null };
+    return {
+      ...state, phase: 'map', currentAct: nextAct, currentNodeId: '', pendingRewards: null,
+      player: { ...state.player, hp: state.player.maxHp, block: 0, buffs: [] },
+    };
   }
 
   return { ...state, phase: 'map', pendingRewards: null };

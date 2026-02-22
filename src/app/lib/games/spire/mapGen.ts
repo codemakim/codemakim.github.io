@@ -91,9 +91,12 @@ export function makeNextNodesAvailable(actMap: ActMap, visitedNodeId: string): A
     actMap.edges.filter(e => e.from === visitedNodeId).map(e => e.to)
   );
 
-  const nodes = actMap.nodes.map(n =>
-    connectedIds.has(n.id) ? { ...n, available: true } : n
-  );
+  const nodes = actMap.nodes.map(n => {
+    if (n.id === visitedNodeId) return n;
+    if (connectedIds.has(n.id)) return { ...n, available: true };
+    if (!n.visited) return { ...n, available: false };
+    return n;
+  });
 
   return { ...actMap, nodes };
 }

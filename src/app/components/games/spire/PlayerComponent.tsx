@@ -17,7 +17,7 @@ export default function PlayerComponent({ player, spriteSize = 90, effects = [] 
     <div className="flex flex-col items-center gap-2">
       {/* 스프라이트 */}
       <div className={`relative ${effects.length > 0 ? 'animate-shake' : ''}`}>
-        <PlayerSVG width={spriteSize} height={Math.round(spriteSize * 1.2)} />
+        <PlayerSVG width={Math.round(spriteSize * 1.6)} height={spriteSize} />
         <BattleEffects effects={effects} />
         {/* 방어 배지 */}
         {player.block > 0 && (

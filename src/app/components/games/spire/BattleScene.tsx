@@ -105,7 +105,16 @@ export default function BattleScene({ state, dispatch }: Props) {
         className="flex-1 flex items-center justify-around px-4 py-4 bg-gradient-to-b from-zinc-800/40 to-zinc-900/40 overflow-hidden"
         onClick={handleFieldClick}
       >
-        {/* 적 영역 */}
+        {/* 플레이어 (왼쪽) */}
+        <div onClick={e => e.stopPropagation()}>
+          <PlayerComponent
+            player={player}
+            spriteSize={70}
+            effects={effects.filter(e => e.target === 'player')}
+          />
+        </div>
+
+        {/* 적 영역 (오른쪽) */}
         <div className={`flex ${aliveEnemies.length >= 3 ? 'gap-2' : 'gap-4'} items-end justify-center`} onClick={e => e.stopPropagation()}>
           {enemies.map((enemy, idx) => (
             enemy.hp > 0 && (
@@ -119,15 +128,6 @@ export default function BattleScene({ state, dispatch }: Props) {
               />
             )
           ))}
-        </div>
-
-        {/* 플레이어 */}
-        <div onClick={e => e.stopPropagation()}>
-          <PlayerComponent
-            player={player}
-            spriteSize={70}
-            effects={effects.filter(e => e.target === 'player')}
-          />
         </div>
       </div>
 
