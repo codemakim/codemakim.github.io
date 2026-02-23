@@ -1,4 +1,10 @@
+'use client';
+
+import { useState } from 'react';
+import { AnimatePresence } from 'motion/react';
 import type { GameState, GameAction, MapNode, ActMap } from '@/app/lib/games/spire/types';
+import CardListOverlay from './CardListOverlay';
+import RelicBar from './RelicBar';
 
 const NODE_META: Record<string, { emoji: string; label: string; color: string }> = {
   battle:  { emoji: '⚔️', label: '전투',  color: '#ef4444' },
@@ -30,12 +36,13 @@ interface Props {
 export default function MapScene({ state, dispatch }: Props) {
   const { map, currentAct, currentNodeId, player, relics, gold } = state;
   const actMap = map.acts[currentAct];
+  const [showDeck, setShowDeck] = useState(false);
   if (!actMap) return null;
 
   const posMap = new Map(actMap.nodes.map(n => [n.id, nodePos(n, actMap)]));
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto">
+    <div className="flex flex-col h-full overflow-y-auto relative">
       {/* 상단 상태 */}
       <div className="flex items-center justify-between px-4 py-3 bg-zinc-900/80 border-b border-zinc-700/50">
         <div className="flex items-center gap-3">
@@ -43,11 +50,7 @@ export default function MapScene({ state, dispatch }: Props) {
           <span className="text-sm text-yellow-300">💰 {gold}</span>
         </div>
         <div className="text-sm font-bold text-zinc-300">Act {currentAct + 1}</div>
-        <div className="flex gap-1">
-          {relics.map(r => (
-            <span key={r.id} title={r.name} className="text-lg cursor-help">{r.emoji}</span>
-          ))}
-        </div>
+        <RelicBar relics={relics} />
       </div>
 
       {/* 맵 SVG */}
@@ -106,21 +109,26 @@ export default function MapScene({ state, dispatch }: Props) {
         </svg>
       </div>
 
-      {/* 덱 보기 */}
+      {/* 덱 보기 버튼 */}
       <div className="px-4 pb-4">
-        <details className="text-xs text-zinc-400">
-          <summary className="cursor-pointer hover:text-zinc-200 transition-colors">
-            🃏 덱 보기 ({state.deck.length}장)
-          </summary>
-          <div className="mt-2 flex flex-wrap gap-1">
-            {state.deck.map((c, i) => (
-              <span key={i} className="px-2 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-zinc-300 text-xs">
-                {c.def.name}
-              </span>
-            ))}
-          </div>
-        </details>
+        <button
+          onClick={() => setShowDeck(true)}
+          className="text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
+        >
+          🃏 덱 보기 ({state.deck.length}장)
+        </button>
       </div>
+
+      {/* 덱 카드 오버레이 */}
+      <AnimatePresence>
+        {showDeck && (
+          <CardListOverlay
+            title={`덱 (${state.deck.length}장)`}
+            cards={state.deck}
+            onClose={() => setShowDeck(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useReducer } from 'react';
 import type {
   GameState, GameAction, PlayerState, BattleState, EnemyInstance,
   EnemyAction, CardInstance, CardDef, BuffType, PendingRewards, MapNode,
+  EffectEvent, VfxType,
 } from './types';
 import { createStarterDeck, makeInstance, REWARD_CARD_POOL } from './cards';
 import { BURNING_BLOOD, TREASURE_RELICS, ELITE_RELICS, BOSS_RELICS } from './relics';
@@ -150,6 +151,7 @@ function initBattle(state: GameState, node: MapNode): GameState {
     hand: [], drawPile: shuffled, discardPile: [], exhaustPile: [],
     activePowers: [], turn: 0,
     selectedCardIndex: null, targetingMode: false, pendingDamageBonus: 0,
+    pendingEffects: [],
   };
   battle = drawCards(battle, 5);
 
@@ -201,6 +203,10 @@ function applyCard(state: GameState, cardIndex: number, targetIndex: number): Ga
   // X 비용 = 사용한 에너지량
   const xValue = card.cost === -1 ? actualCost : 1;
 
+  // 이펙트 이벤트 큐: 멀티히트 스태거 및 블록/힐/버프 팝업용
+  const effectEvents: EffectEvent[] = [];
+  let hitDelay = 0; // 히트 간 스태거 누적 (120ms씩 증가)
+
   for (const effect of card.effects) {
     switch (effect.type) {
       case 'damage': {
@@ -225,6 +231,19 @@ function applyCard(state: GameState, cardIndex: number, targetIndex: number): Ga
             if (dmg <= eBlock) { eBlock -= dmg; }
             else { eHp -= (dmg - eBlock); eBlock = 0; }
             enemies[ti] = { ...e, hp: Math.max(0, eHp), block: eBlock };
+
+            // 실제 HP 피해 (방어에 흡수된 것은 제외)
+            const hpDmgActual = e.hp - enemies[ti].hp;
+            const effectVfx: VfxType | undefined =
+              (effect as { vfx?: VfxType }).vfx ?? card.vfx;
+            effectEvents.push({
+              delayMs: hitDelay,
+              type: 'damage',
+              value: hpDmgActual,   // 0이면 완전 방어 → BattleScene에서 VFX만 재생
+              target: ti,
+              vfx: effectVfx,
+            });
+            hitDelay += 120; // 히트마다 120ms 스태거
           }
         }
         break;
@@ -232,10 +251,11 @@ function applyCard(state: GameState, cardIndex: number, targetIndex: number): Ga
       case 'block': {
         const dex = getBuffValue(player.buffs, 'dexterity');
         player = { ...player, block: player.block + effect.value + dex };
+        effectEvents.push({ delayMs: 0, type: 'block', value: effect.value + dex, target: 'player', vfx: 'shield' });
         break;
       }
       case 'draw': {
-        const tmp: BattleState = { ...battle, hand, drawPile, discardPile, enemies, activePowers, exhaustPile, pendingDamageBonus };
+        const tmp: BattleState = { ...battle, hand, drawPile, discardPile, enemies, activePowers, exhaustPile, pendingDamageBonus, pendingEffects: [] };
         const drawn = drawCards(tmp, effect.value);
         hand = drawn.hand; drawPile = drawn.drawPile; discardPile = drawn.discardPile;
         break;
@@ -244,6 +264,7 @@ function applyCard(state: GameState, cardIndex: number, targetIndex: number): Ga
         const duration = effect.temporary ? 1 : undefined;
         if (effect.target === 'self') {
           player = { ...player, buffs: addBuff(player.buffs, effect.buff, effect.value, duration) };
+          effectEvents.push({ delayMs: 0, type: 'buff', value: effect.value, target: 'player', vfx: 'buff' });
         } else if (effect.target === 'enemy') {
           const e = enemies[targetIndex];
           if (e) enemies[targetIndex] = { ...e, buffs: addBuff(e.buffs, effect.buff, effect.value) };
@@ -254,6 +275,7 @@ function applyCard(state: GameState, cardIndex: number, targetIndex: number): Ga
       }
       case 'heal': {
         player = { ...player, hp: Math.min(player.maxHp, Math.max(0, player.hp + effect.value)) };
+        effectEvents.push({ delayMs: 0, type: 'heal', value: effect.value, target: 'player', vfx: 'heal' });
         break;
       }
       case 'gainEnergy': {
@@ -283,6 +305,7 @@ function applyCard(state: GameState, cardIndex: number, targetIndex: number): Ga
     ...battle, enemies, hand, drawPile, discardPile, exhaustPile,
     activePowers, pendingDamageBonus,
     selectedCardIndex: null, targetingMode: false,
+    pendingEffects: effectEvents, // 멀티히트 이펙트 이벤트 큐
   };
 
   // 적 전멸 체크
@@ -292,7 +315,13 @@ function applyCard(state: GameState, cardIndex: number, targetIndex: number): Ga
     if (!node) return state;
     const rewards = generateRewards({ ...state, player }, node);
     updateSave(state.score, state.currentAct, false);
-    return { ...state, player, battle: null, phase: 'reward', pendingRewards: rewards };
+    // 즉시 phase 전환하지 않고 pendingPhase를 설정 → BattleScene이 사망 연출 후 CONFIRM_BATTLE_END 디스패치
+    return {
+      ...state,
+      player,
+      battle: { ...newBattle, pendingPhase: 'reward' as const },
+      pendingRewards: rewards,
+    };
   }
 
   return { ...state, player, battle: newBattle };
@@ -364,7 +393,19 @@ function processEnemyTurn(state: GameState): GameState {
   let { player } = state;
   let { enemies } = state.battle;
 
-  // 1. 적 독 데미지
+  // 이펙트 이벤트 큐 (BattleScene이 스케줄링 후 CLEAR_EFFECTS로 비움)
+  const effectEvents: EffectEvent[] = [];
+  let nextDelay = 0;
+
+  // 1. 적 독 데미지 — 독 이벤트 수집 후 적용
+  state.battle.enemies.forEach((e, i) => {
+    const poison = getBuffValue(e.buffs, 'poison');
+    if (poison > 0) {
+      effectEvents.push({ delayMs: 0, type: 'damage', value: poison, target: i, vfx: 'poison' });
+    }
+  });
+  if (effectEvents.length > 0) nextDelay = 300; // 독 이펙트 후 300ms 간격
+
   enemies = enemies.map(e => {
     const poison = getBuffValue(e.buffs, 'poison');
     if (poison <= 0) return e;
@@ -375,11 +416,25 @@ function processEnemyTurn(state: GameState): GameState {
     };
   });
 
-  // 2. 적 행동
+  // 2. 적 행동 — 적마다 개별 피해 이벤트 (400ms 간격)
   for (let i = 0; i < enemies.length; i++) {
     if (enemies[i].hp <= 0) continue;
-    const r = executeEnemyAction(player, enemies, i, enemies[i].currentIntent.action);
+    const intentAction = enemies[i].currentIntent.action;
+    const prevPlayerHp = player.hp;
+    const r = executeEnemyAction(player, enemies, i, intentAction);
     player = r.player; enemies = r.enemies;
+
+    // 공격 행동인지 확인 (attack 또는 attack을 포함한 multi)
+    const isAttackAction = intentAction.type === 'attack' ||
+      (intentAction.type === 'multi' && intentAction.actions.some(a => a.type === 'attack'));
+
+    if (isAttackAction) {
+      const hpLost = Math.max(0, prevPlayerHp - player.hp);
+      const vfx: VfxType =
+        ('vfx' in intentAction && intentAction.vfx) ? intentAction.vfx as VfxType : 'impact';
+      effectEvents.push({ delayMs: nextDelay, type: 'damage', value: hpLost, target: 'player', vfx });
+      nextDelay += 400; // 적마다 400ms 간격
+    }
   }
 
   // 3. 플레이어 사망 체크
@@ -419,6 +474,7 @@ function processEnemyTurn(state: GameState): GameState {
   let newBattle: BattleState = {
     ...state.battle, enemies, hand: [], drawPile: state.battle.drawPile, discardPile,
     turn: state.battle.turn + 1, selectedCardIndex: null, targetingMode: false, pendingDamageBonus: 0,
+    pendingEffects: [], // 나중에 effectEvents로 교체
   };
   newBattle = drawCards(newBattle, 5);
 
@@ -430,7 +486,11 @@ function processEnemyTurn(state: GameState): GameState {
       updateSave(state.score, state.currentAct, false);
       return { ...state, player: { ...player, hp: 0 }, phase: 'gameOver', battle: null };
     }
+    effectEvents.push({ delayMs: nextDelay, type: 'damage', value: painCount, target: 'player' });
   }
+
+  // effectEvents를 newBattle에 적용
+  newBattle = { ...newBattle, pendingEffects: effectEvents };
 
   // 10. 에너지 충전
   player = { ...player, energy: player.maxEnergy };
@@ -599,6 +659,16 @@ function reducer(state: GameState, action: GameAction): GameState {
     case 'REST_REMOVE_CARD': {
       const newDeck = state.deck.filter((_, i) => i !== action.cardIndex);
       return { ...state, phase: 'map', deck: newDeck };
+    }
+
+    case 'CONFIRM_BATTLE_END': {
+      if (!state.battle?.pendingPhase) return state;
+      return { ...state, phase: state.battle.pendingPhase, battle: null };
+    }
+
+    case 'CLEAR_EFFECTS': {
+      if (!state.battle) return state;
+      return { ...state, battle: { ...state.battle, pendingEffects: [] } };
     }
 
     case 'RESTART': {

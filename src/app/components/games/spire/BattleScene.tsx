@@ -1,12 +1,15 @@
 'use client';
 
-import { useRef, useCallback, useEffect } from 'react';
-import type { GameState, GameAction, BattleState } from '@/app/lib/games/spire/types';
+import { useRef, useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import type { GameState, GameAction, BattleState, EffectEvent } from '@/app/lib/games/spire/types';
 import EnemyComponent from './EnemyComponent';
 import PlayerComponent from './PlayerComponent';
 import HandArea from './HandArea';
 import RelicBar from './RelicBar';
-import BattleEffects, { useEffects } from './BattleEffects';
+import ScreenFlash from './effects/ScreenFlash';
+import CardListOverlay from './CardListOverlay';
+import { useEffects } from './effects/EffectLayer';
 
 interface Props {
   state: GameState;
@@ -15,47 +18,68 @@ interface Props {
 
 export default function BattleScene({ state, dispatch }: Props) {
   const { player, battle, relics, currentAct } = state;
-  const { effects, addEffect } = useEffects();
-  const prevBattle = useRef<BattleState | null>(null);
-  const prevHp = useRef(player.hp);
-  const prevBlock = useRef(player.block);
+  const { effects, vfxList, addEffect, addVfx } = useEffects();
+  const [screenFlash, setScreenFlash] = useState(false);
+  const [showPile, setShowPile] = useState<'draw' | 'discard' | null>(null);
 
-  // 상태 변화 감지 → 이펙트 생성
+  // 사망한 적 인덱스 추적: hit flash(200ms) 후 AnimatePresence exit 애니메이션 트리거
+  const deadIndicesRef = useRef<Set<number>>(new Set());
+  const [deadIndices, setDeadIndices] = useState<Set<number>>(new Set());
+
+  // pendingEffects 소비자:
+  // Reducer가 생성한 이펙트 이벤트를 delayMs 스태거로 스케줄링한다.
+  // lastPendingRef로 동일 배열 참조를 중복 처리하지 않는다 (StrictMode 대응).
+  const lastPendingRef = useRef<EffectEvent[]>([]);
   useEffect(() => {
     if (!battle) return;
+    const events = battle.pendingEffects;
+    if (!events?.length || events === lastPendingRef.current) return;
+    lastPendingRef.current = events;
 
-    // 플레이어 데미지/블록 변화
-    const hpDiff = player.hp - prevHp.current;
-    const blockDiff = player.block - prevBlock.current;
-
-    if (hpDiff < 0) addEffect('damage', Math.abs(hpDiff), 'player');
-    else if (hpDiff > 0) addEffect('heal', hpDiff, 'player');
-    if (blockDiff > 0 && prevBlock.current === 0) addEffect('block', player.block, 'player');
-
-    // 적 HP 변화
-    if (prevBattle.current) {
-      const prevE = prevBattle.current.enemies;
-      battle.enemies.forEach((enemy, idx) => {
-        if (idx < prevE.length) {
-          const diff = enemy.hp - prevE[idx].hp;
-          if (diff < 0) addEffect('damage', Math.abs(diff), idx);
-          else if (diff > 0) addEffect('heal', diff, idx);
+    events.forEach(event => {
+      setTimeout(() => {
+        if (event.type === 'damage' && event.value === 0 && event.vfx) {
+          // 완전 방어: VFX만 재생
+          addVfx(event.vfx, event.target);
+        } else {
+          addEffect(event.type, event.value, event.target, event.vfx);
         }
-      });
-    }
+        // 큰 피해 시 화면 플래시
+        if (event.type === 'damage' && event.target === 'player' && event.value >= 15) {
+          setScreenFlash(true);
+          setTimeout(() => setScreenFlash(false), 400);
+        }
+      }, event.delayMs);
+    });
 
-    prevBattle.current = battle;
-    prevHp.current = player.hp;
-    prevBlock.current = player.block;
-  }, [battle, player.hp, player.block]);
+    // 이벤트 처리 완료 후 큐 비우기
+    dispatch({ type: 'CLEAR_EFFECTS' });
+    // 타이머는 cleanup 없이 실행 — CLEAR_EFFECTS 후에도 timers는 계속 동작함
+  }, [battle]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 새로 사망한 적 감지 → hit flash 이후(200ms) deadIndices에 추가 → AnimatePresence exit 트리거
+  useEffect(() => {
+    if (!battle) return;
+    const newDead = battle.enemies
+      .map((e, i) => i)
+      .filter(i => battle.enemies[i].hp <= 0 && !deadIndicesRef.current.has(i));
+    if (newDead.length === 0) return;
+
+    const t = setTimeout(() => {
+      newDead.forEach(i => deadIndicesRef.current.add(i));
+      setDeadIndices(new Set(deadIndicesRef.current));
+    }, 200);
+    return () => clearTimeout(t);
+  }, [battle?.enemies]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!battle) return null;
 
-  const { enemies, selectedCardIndex, targetingMode } = battle!;
+  const { enemies, selectedCardIndex, targetingMode } = battle;
 
   function handleEnemyClick(idx: number) {
     if (enemies[idx].hp <= 0) return;
     if (selectedCardIndex !== null && targetingMode) {
+      // VFX는 pendingEffects를 통해 처리됨 (Reducer가 EffectEvent 생성)
       dispatch({ type: 'PLAY_CARD', cardIndex: selectedCardIndex, targetIndex: idx });
     }
   }
@@ -70,8 +94,18 @@ export default function BattleScene({ state, dispatch }: Props) {
   const aliveEnemies = enemies.filter(e => e.hp > 0);
   const spriteBase = aliveEnemies.length >= 3 ? 60 : aliveEnemies.length === 2 ? 75 : 90;
 
+  // 모든 적 exit 애니메이션 완료 시 CONFIRM_BATTLE_END 디스패치
+  function handleEnemyExitComplete() {
+    if (battle?.pendingPhase) {
+      dispatch({ type: 'CONFIRM_BATTLE_END' });
+    }
+  }
+
   return (
-    <div className="flex flex-col h-full min-h-0">
+    <div className="flex flex-col h-full min-h-0 relative">
+      {/* 화면 플래시 */}
+      <ScreenFlash visible={screenFlash} />
+
       {/* 상단 정보 바 */}
       <div className="flex items-center justify-between px-3 py-2 bg-zinc-900/80 border-b border-zinc-700/50">
         <div className="flex items-center gap-3">
@@ -111,23 +145,37 @@ export default function BattleScene({ state, dispatch }: Props) {
             player={player}
             spriteSize={70}
             effects={effects.filter(e => e.target === 'player')}
+            vfxList={vfxList}
           />
         </div>
 
         {/* 적 영역 (오른쪽) */}
         <div className={`flex ${aliveEnemies.length >= 3 ? 'gap-2' : 'gap-4'} items-end justify-center`} onClick={e => e.stopPropagation()}>
-          {enemies.map((enemy, idx) => (
-            enemy.hp > 0 && (
-              <EnemyComponent
-                key={`${enemy.def.id}-${idx}`}
-                enemy={enemy}
-                selected={targetingMode}
-                onClick={() => handleEnemyClick(idx)}
-                spriteSize={enemy.def.tier === 'boss' ? spriteBase + 20 : spriteBase}
-                effects={effects.filter(e => e.target === idx)}
-              />
-            )
-          ))}
+          <AnimatePresence onExitComplete={handleEnemyExitComplete}>
+            {enemies.map((enemy, idx) => {
+              // deadIndices에 추가된 적: null 반환 → AnimatePresence가 exit 애니메이션 실행
+              if (deadIndices.has(idx)) return null;
+              // hp > 0이거나 아직 deadIndices에 없는 경우(200ms 대기 중) 표시
+              return (
+                <motion.div
+                  key={`${enemy.def.id}-${idx}`}
+                  layout
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.4 }}
+                >
+                  <EnemyComponent
+                    enemy={enemy}
+                    selected={targetingMode && enemy.hp > 0}
+                    onClick={() => handleEnemyClick(idx)}
+                    spriteSize={enemy.def.tier === 'boss' ? spriteBase + 20 : spriteBase}
+                    effects={effects.filter(e => e.target === idx)}
+                    vfxList={vfxList}
+                    enemyIdx={idx}
+                  />
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
         </div>
       </div>
 
@@ -138,15 +186,36 @@ export default function BattleScene({ state, dispatch }: Props) {
         </div>
       )}
 
-      {/* 손패 영역 */}
-      <div className="border-t border-zinc-700/50 bg-zinc-900/80">
-        <HandArea
-          battle={battle}
-          player={player}
-          dispatch={dispatch}
-          onEndTurn={() => dispatch({ type: 'END_TURN' })}
-        />
-      </div>
+      {/* 손패 영역: 전투 종료 연출 중에는 숨김 */}
+      {!battle.pendingPhase && (
+        <div className="border-t border-zinc-700/50 bg-zinc-900/80">
+          <HandArea
+            battle={battle}
+            player={player}
+            dispatch={dispatch}
+            onEndTurn={() => dispatch({ type: 'END_TURN' })}
+            onShowPile={setShowPile}
+          />
+        </div>
+      )}
+
+      {/* 드로우/버리기 파일 카드 오버레이 */}
+      <AnimatePresence>
+        {showPile === 'draw' && (
+          <CardListOverlay
+            title={`드로우 파일 (${battle.drawPile.length}장)`}
+            cards={battle.drawPile}
+            onClose={() => setShowPile(null)}
+          />
+        )}
+        {showPile === 'discard' && (
+          <CardListOverlay
+            title={`버리기 파일 (${battle.discardPile.length}장)`}
+            cards={battle.discardPile}
+            onClose={() => setShowPile(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

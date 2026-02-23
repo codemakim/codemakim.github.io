@@ -1,11 +1,15 @@
 import type { ComponentType } from 'react';
 
+// ===== 이펙트 타입 =====
+export type VfxType = 'slash' | 'impact' | 'magic' | 'pierce' | 'shield' | 'heal' | 'poison' | 'buff' | 'none';
+export type SfxType = 'slash' | 'hit' | 'heavy_hit' | 'block' | 'heal' | 'buff' | 'debuff' | 'none';
+
 // ===== 버프 =====
 export type BuffType = 'strength' | 'dexterity' | 'vulnerable' | 'weak' | 'poison' | 'thorns';
 
 // ===== 카드 효과 =====
 export type CardEffect =
-  | { type: 'damage'; value: number; target?: 'single' | 'all'; hits?: number }
+  | { type: 'damage'; value: number; target?: 'single' | 'all'; hits?: number; vfx?: VfxType }
   | { type: 'block'; value: number }
   | { type: 'draw'; value: number }
   | { type: 'buff'; buff: BuffType; value: number; target: 'self' | 'enemy' | 'allEnemies'; temporary?: boolean }
@@ -21,6 +25,8 @@ export interface CardDef {
   description: string;
   effects: CardEffect[];
   illustration?: ComponentType<{ width?: number; height?: number }>;
+  vfx?: VfxType;   // 카드 사용 시 재생할 시각 이펙트
+  sfx?: SfxType;   // 카드 사용 시 재생할 사운드 (추후 구현)
 }
 
 export interface CardInstance {
@@ -39,12 +45,12 @@ export interface BuffState {
 export type Intent = 'attack' | 'defend' | 'buff' | 'debuff' | 'special';
 
 export type EnemyAction =
-  | { type: 'attack'; damage: number; times?: number }
+  | { type: 'attack'; damage: number; times?: number; vfx?: VfxType; sfx?: SfxType }
   | { type: 'block'; value: number }
   | { type: 'buff'; buff: BuffType; value: number; target: 'self' }
   | { type: 'debuff'; buff: BuffType; value: number; target: 'player' }
   | { type: 'heal'; value: number }
-  | { type: 'multi'; actions: EnemyAction[] };
+  | { type: 'multi'; actions: EnemyAction[]; vfx?: VfxType };
 
 export interface EnemyPattern {
   weight: number;
@@ -107,6 +113,17 @@ export interface PlayerState {
   buffs: BuffState[];
 }
 
+// ===== 이펙트 이벤트 (Reducer → BattleScene 큐) =====
+// Reducer가 카드/적 행동을 처리하면서 이 이벤트를 생성한다.
+// BattleScene이 delayMs 스태거로 addEffect/addVfx를 스케줄링한다.
+export interface EffectEvent {
+  delayMs: number;        // 이전 이벤트 기준 지연 (ms) — 멀티히트 스태거에 사용
+  type: 'damage' | 'block' | 'heal' | 'buff';
+  value: number;          // 실제 값. damage에서 0이면 VFX만 재생 (완전 방어)
+  target: 'player' | number;  // 'player' 또는 적 인덱스
+  vfx?: VfxType;
+}
+
 // ===== 전투 =====
 export interface BattleState {
   enemies: EnemyInstance[];
@@ -119,6 +136,10 @@ export interface BattleState {
   selectedCardIndex: number | null;
   targetingMode: boolean;
   pendingDamageBonus: number;
+  // Reducer가 생성한 이펙트 이벤트 큐 (BattleScene이 CLEAR_EFFECTS로 비움)
+  pendingEffects: EffectEvent[];
+  // 모든 적 사망 후 사망 연출이 끝나면 이 phase로 전환 (CONFIRM_BATTLE_END 액션)
+  pendingPhase?: 'reward';
 }
 
 // ===== 맵 =====
@@ -188,6 +209,8 @@ export type GameAction =
   | { type: 'PROCEED_TO_MAP' }
   | { type: 'REST_HEAL' }
   | { type: 'REST_REMOVE_CARD'; cardIndex: number }
+  | { type: 'CONFIRM_BATTLE_END' }
+  | { type: 'CLEAR_EFFECTS' }
   | { type: 'RESTART' };
 
 // ===== 전투 이펙트 (교체 가능한 구조) =====
@@ -197,6 +220,7 @@ export interface BattleEffect {
   value: number;
   target: 'player' | number; // 'player' 또는 적 인덱스
   timestamp: number;
+  vfx?: VfxType; // 재생할 시각 이펙트
 }
 
 // ===== 저장 =====

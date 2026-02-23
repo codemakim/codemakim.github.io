@@ -1,6 +1,11 @@
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import { motion } from 'motion/react';
 import type { EnemyInstance, BattleEffect } from '@/app/lib/games/spire/types';
+import type { VfxInstance } from './effects/EffectLayer';
 import BuffIcon from './BuffIcon';
-import BattleEffects from './BattleEffects';
+import { VfxRenderer, PopupRenderer } from './effects/EffectLayer';
 
 const INTENT_META: Record<string, { emoji: string; label: string; color: string }> = {
   attack:  { emoji: '⚔️', label: '공격',  color: 'text-red-400' },
@@ -16,18 +21,47 @@ interface Props {
   onClick?: () => void;
   spriteSize?: number;
   effects?: BattleEffect[];
+  vfxList?: VfxInstance[];
+  enemyIdx?: number;
 }
 
-export default function EnemyComponent({ enemy, selected, onClick, spriteSize = 100, effects = [] }: Props) {
+export default function EnemyComponent({ enemy, selected, onClick, spriteSize = 100, effects = [], vfxList = [], enemyIdx = 0 }: Props) {
   const Sprite = enemy.def.sprite;
   const intent = INTENT_META[enemy.def.tier === 'boss' && enemy.currentIntent.intent === 'special'
     ? 'special' : enemy.currentIntent.intent] ?? INTENT_META.attack;
   const hpPct = Math.max(0, (enemy.hp / enemy.maxHp) * 100);
   const hpColor = hpPct > 50 ? 'bg-green-500' : hpPct > 25 ? 'bg-yellow-500' : 'bg-red-500';
 
+  const [shaking, setShaking] = useState(false);
+  const [hitFlash, setHitFlash] = useState(false);
+  const prevHp = useRef(enemy.hp);
+
+  useEffect(() => {
+    if (enemy.hp < prevHp.current) {
+      const dmg = prevHp.current - enemy.hp;
+      setShaking(true);
+      setHitFlash(true);
+      const shakeDur = dmg >= 15 ? 560 : 420;
+      setTimeout(() => setShaking(false), shakeDur);
+      setTimeout(() => setHitFlash(false), 200);
+    }
+    prevHp.current = enemy.hp;
+  }, [enemy.hp]);
+
+  const damageEffects = effects.filter(e => e.type === 'damage');
+  const isHeavyHit = damageEffects.some(e => e.value >= 15);
+
+  // filter 계산: 피격 flash > 타겟 선택 glow > 없음
+  // 'none' 대신 명시적 투명값 사용 → Motion이 이전 filter와 보간 가능
+  const filterStyle = hitFlash
+    ? 'drop-shadow(0 0 10px rgba(255,50,50,1)) brightness(1.5)'
+    : selected
+      ? 'drop-shadow(0 0 14px rgba(239,68,68,0.9)) brightness(1.05)'
+      : 'drop-shadow(0 0 0px rgba(0,0,0,0)) brightness(1)';
+
   return (
     <div
-      className={`flex flex-col items-center gap-2 cursor-pointer select-none transition-transform ${selected ? 'scale-105' : 'hover:scale-102'}`}
+      className={`flex flex-col items-center gap-2 cursor-pointer select-none ${selected ? 'scale-105' : 'hover:scale-102'} transition-transform`}
       onClick={onClick}
     >
       {/* 의도 표시 */}
@@ -40,16 +74,34 @@ export default function EnemyComponent({ enemy, selected, onClick, spriteSize = 
       </div>
 
       {/* 적 스프라이트 */}
-      <div className={`relative ${selected ? 'drop-shadow-[0_0_12px_rgba(239,68,68,0.8)]' : ''} ${effects.length > 0 ? 'animate-shake' : ''}`}>
+      <motion.div
+        className="relative"
+        animate={{
+          x: shaking
+            ? (isHeavyHit ? [-12, 10, -10, 8, -6, 4, 0] : [-8, 6, -6, 4, -3, 2, 0])
+            : 0,
+          filter: filterStyle,
+        }}
+        transition={{
+          x: { duration: isHeavyHit ? 0.56 : 0.42, ease: 'easeOut' },
+          filter: { duration: 0.12 },
+        }}
+      >
         <Sprite width={spriteSize} height={Math.round(spriteSize * 1.2)} />
-        <BattleEffects effects={effects} />
+
+        {/* VFX 이펙트 */}
+        <VfxRenderer vfxList={vfxList} target={enemyIdx} size={spriteSize + 24} />
+
+        {/* 데미지 팝업 */}
+        <PopupRenderer effects={effects} target={enemyIdx} />
+
         {/* 방어 표시 */}
         {enemy.block > 0 && (
           <div className="absolute bottom-0 right-0 bg-blue-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
             🛡️{enemy.block}
           </div>
         )}
-      </div>
+      </motion.div>
 
       {/* 이름 */}
       <div className="text-sm font-bold text-zinc-100">{enemy.def.name}</div>
