@@ -59,7 +59,7 @@ export default function PlayerComponent({ player, spriteSize = 90, effects = [],
           filter: { duration: 0.12 },
         }}
       >
-        <PlayerSVG width={Math.round(spriteSize * 1.6)} height={spriteSize} />
+        <PlayerSVG width={spriteSize} height={Math.round(spriteSize * 1.375)} />
 
         {/* VFX 이펙트 */}
         <VfxRenderer vfxList={vfxList} target="player" size={spriteSize + 24} />
