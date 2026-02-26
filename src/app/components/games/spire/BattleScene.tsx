@@ -169,7 +169,11 @@ export default function BattleScene({ state, dispatch }: Props) {
                     enemy={enemy}
                     selected={targetingMode && enemy.hp > 0}
                     onClick={() => handleEnemyClick(idx)}
-                    spriteSize={enemy.def.tier === 'boss' ? spriteBase + 20 : spriteBase}
+                    spriteSize={
+                      enemy.def.tier === 'boss' ? Math.round(spriteBase * 1.9) :
+                      enemy.def.tier === 'elite' ? Math.round(spriteBase * 1.35) :
+                      spriteBase
+                    }
                     effects={effects.filter(e => e.target === idx)}
                     vfxList={vfxList}
                     enemyIdx={idx}
