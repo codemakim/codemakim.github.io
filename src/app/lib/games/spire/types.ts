@@ -116,12 +116,15 @@ export interface PlayerState {
 // ===== 이펙트 이벤트 (Reducer → BattleScene 큐) =====
 // Reducer가 카드/적 행동을 처리하면서 이 이벤트를 생성한다.
 // BattleScene이 delayMs 스태거로 addEffect/addVfx를 스케줄링한다.
+export type VfxDir = 'right' | 'left' | 'random';
+
 export interface EffectEvent {
   delayMs: number;        // 이전 이벤트 기준 지연 (ms) — 멀티히트 스태거에 사용
   type: 'damage' | 'block' | 'heal' | 'buff';
   value: number;          // 실제 값. damage에서 0이면 VFX만 재생 (완전 방어)
   target: 'player' | number;  // 'player' 또는 적 인덱스
   vfx?: VfxType;
+  vfxDir?: VfxDir;        // slash 방향: right=플레이어→몬스터, left=몬스터→플레이어, random=연타
 }
 
 // ===== 전투 =====

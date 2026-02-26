@@ -2,69 +2,75 @@
 
 import { motion } from 'motion/react';
 import { useMemo } from 'react';
+import type { VfxDir } from '@/app/lib/games/spire/types';
 
 interface Props {
   size?: number;
+  dir?: VfxDir;
 }
 
-export default function SlashEffect({ size = 120 }: Props) {
-  const lines = useMemo(() => {
-    const baseAngle = -40 + (Math.random() * 30 - 15);
-    return [
-      { angle: baseAngle,      thick: 3,   opacity: 0.95, delay: 0 },
-      { angle: baseAngle + 12, thick: 2,   opacity: 0.7,  delay: 0.04 },
-      { angle: baseAngle + 22, thick: 1.5, opacity: 0.4,  delay: 0.07 },
-    ];
-  }, []);
+export default function SlashEffect({ size = 120, dir = 'right' }: Props) {
+  const { rotation, flipX, posOffsetX, offsetY } = useMemo(() => {
+    // 방향별 flipX 결정:
+    //   right → ) 방향 (플레이어→몬스터): 이미지 정방향 (scaleX 1)
+    //   left  → ( 방향 (몬스터→플레이어): 좌우 반전 (scaleX -1)
+    //   random → 연타: 무작위
+    const flipX = dir === 'right' ? 1 : dir === 'left' ? -1 : (Math.random() > 0.5 ? 1 : -1);
 
-  const cx = size / 2;
-  const cy = size / 2;
-  const len = size * 0.68;
+    // 각도: 단타는 좁은 범위, 연타는 넓은 범위
+    const spread = dir === 'random' ? 40 : 20;
+    const base = dir === 'left' ? 10 : -10;
+    const rotation = base + (Math.random() * spread - spread / 2);
+
+    // 위치 오프셋: 베는 방향 반대쪽으로 이미지를 옮겨 날카로운 끝이 타겟에 걸치도록
+    // right(flipX=1): 이미지를 왼쪽으로 → 날카로운 오른쪽 끝이 타겟 위에 위치
+    // left(flipX=-1): 이미지를 오른쪽으로 → 반전된 날카로운 왼쪽 끝이 타겟 위에 위치
+    const posOffsetX = -flipX * size * 0.45 + (Math.random() - 0.5) * size * 0.15;
+
+    return {
+      rotation,
+      flipX,
+      posOffsetX,
+      offsetY: (Math.random() - 0.5) * size * 0.15,
+    };
+  }, [size, dir]);
+
+  const imgW = size * 1.6;
+  const imgH = size * 0.65;
 
   return (
-    <div
+    <motion.div
       className="absolute pointer-events-none z-40"
       style={{
         top: '50%',
         left: '50%',
-        width: size,
-        height: size,
-        marginTop: -size / 2,
-        marginLeft: -size / 2,
+        width: imgW,
+        height: imgH,
+        marginTop: -imgH / 2 + offsetY,
+        marginLeft: -imgW / 2 + posOffsetX,
+        rotate: rotation,
+        scaleX: flipX,
       }}
+      initial={{ opacity: 0, scale: 0.55 }}
+      animate={{
+        opacity: [0, 1, 0.85, 0],
+        scale: [0.55, 1.05, 1.0, 0.9],
+      }}
+      transition={{ duration: 0.36, times: [0, 0.12, 0.5, 1], ease: 'easeOut' }}
     >
-      <motion.svg
-        width={size}
-        height={size}
-        viewBox={`0 0 ${size} ${size}`}
-        initial={{ opacity: 1 }}
-        animate={{ opacity: 0 }}
-        transition={{ duration: 0.5, delay: 0.2, ease: 'easeOut' }}
-      >
-        {lines.map((line, i) => {
-          const rad = (line.angle * Math.PI) / 180;
-          const x1 = cx - Math.cos(rad) * len / 2;
-          const y1 = cy - Math.sin(rad) * len / 2;
-          const x2 = cx + Math.cos(rad) * len / 2;
-          const y2 = cy + Math.sin(rad) * len / 2;
-
-          return (
-            <motion.path
-              key={i}
-              d={`M${x1},${y1} L${x2},${y2}`}
-              stroke="white"
-              strokeWidth={line.thick}
-              strokeLinecap="round"
-              fill="none"
-              opacity={line.opacity}
-              initial={{ pathLength: 0 }}
-              animate={{ pathLength: 1 }}
-              transition={{ duration: 0.2, delay: line.delay, ease: 'easeOut' }}
-              style={{ filter: 'drop-shadow(0 0 5px rgba(255,255,255,0.95))' }}
-            />
-          );
-        })}
-      </motion.svg>
-    </div>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/effects/slash/slash-desaturated.png"
+        alt=""
+        width={imgW}
+        height={imgH}
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'fill',
+          filter: 'brightness(1.4) drop-shadow(0 0 8px rgba(255,255,255,0.85))',
+        }}
+      />
+    </motion.div>
   );
 }

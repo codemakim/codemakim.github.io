@@ -142,6 +142,7 @@ export function applyCard(state: GameState, cardIndex: number, targetIndex: numb
               value: hpDmgActual,
               target: ti,
               vfx: effectVfx,
+              vfxDir: hits > 1 || targets.length > 1 ? 'random' : 'right',
             });
             hitDelay += 120;
           }
@@ -312,7 +313,10 @@ export function processEnemyTurn(state: GameState): GameState {
     };
   });
 
-  // 2. 적 행동 — 적마다 개별 피해 이벤트
+  // 2. 적 행동 전 block 리셋 (이전 턴에서 쌓인 block 초기화 — 원작과 동일)
+  enemies = enemies.map(e => ({ ...e, block: 0 }));
+
+  // 3. 적 행동 — 적마다 개별 피해 이벤트
   for (let i = 0; i < enemies.length; i++) {
     if (enemies[i].hp <= 0) continue;
     const intentAction = enemies[i].currentIntent.action;
@@ -338,10 +342,9 @@ export function processEnemyTurn(state: GameState): GameState {
     return { ...state, player: { ...player, hp: 0 }, phase: 'gameOver', battle: null };
   }
 
-  // 4. 적 버프 틱 + 방어 리셋 + 인텐트 전진
+  // 4. 적 버프 틱 + 인텐트 전진 (block 리셋은 다음 적 턴 시작 시 처리)
   enemies = enemies.map(e => ({
     ...e,
-    block: 0,
     buffs: tickBuffs(e.buffs),
     currentIntent: selectNextPattern(e),
     patternIndex: selectNextPatternIndex(e),

@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 
 interface Props {
   size?: number;
+  dir?: unknown; // VfxProps 호환용 (사용 안 함)
   color?: string;
   rayCount?: number;
 }

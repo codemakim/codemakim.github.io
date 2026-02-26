@@ -6,7 +6,7 @@ export const STRIKE: CardDef = {
   id: 'strike', name: '강타', type: 'attack', cost: 1,
   description: '6 데미지',
   effects: [{ type: 'damage', value: 6, target: 'single' }],
-  vfx: 'slash',
+  vfx: 'impact',
 };
 
 export const DEFEND: CardDef = {
@@ -23,7 +23,7 @@ export const BASH: CardDef = {
     { type: 'damage', value: 8, target: 'single' },
     { type: 'buff', buff: 'vulnerable', value: 2, target: 'enemy' },
   ],
-  vfx: 'impact',
+  vfx: 'slash',
 };
 
 // ===== 공격 카드 =====
