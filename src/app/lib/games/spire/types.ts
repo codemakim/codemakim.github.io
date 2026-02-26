@@ -93,7 +93,7 @@ export type RelicEffect =
   | { type: 'onTurnStart'; action: RelicAction }
   | { type: 'onBattleStart'; action: RelicAction }
   | { type: 'onRest'; healMultiplier: number }
-  | { type: 'passive'; stat: 'maxEnergy' | 'goldBonus'; value: number };
+  | { type: 'passive'; stat: 'maxEnergy' | 'goldBonus' | 'minDamage'; value: number };
 
 export interface RelicDef {
   id: string;

@@ -1,5 +1,15 @@
 import type { BuffState, BuffType, CardInstance, BattleState } from './types';
 
+// ===== 공통 랜덤 유틸 =====
+
+export function pickRandom<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+export function randInt(min: number, max: number): number {
+  return min + Math.floor(Math.random() * (max - min + 1));
+}
+
 // ===== 버프 유틸 =====
 
 export function getBuffValue(buffs: BuffState[], type: BuffType): number {

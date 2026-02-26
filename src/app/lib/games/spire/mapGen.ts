@@ -2,44 +2,65 @@ import type { ActMap, MapNode, MapEdge, MapNodeType, GameMap } from './types';
 
 const ROWS = 7;
 
-function pickNodeType(row: number): MapNodeType {
+/**
+ * 노드 타입을 가중치 기반으로 선택한다.
+ * predTypes: 이 노드로 연결되는 선행 노드들의 타입 집합
+ * - 선행에 elite가 있으면 elite 불가 (연속 엘리트 방지)
+ * - 선행에 rest가 있으면 rest 불가 (연속 휴식 방지)
+ * - 보스 직전 행(ROWS-3)은 rest 불가 (다음 행 ROWS-2가 항상 rest이므로)
+ */
+function pickNodeType(row: number, predTypes: Set<MapNodeType> = new Set()): MapNodeType {
   if (row === 0) return 'battle';
-  if (row === ROWS - 2) return 'rest';
+  if (row === ROWS - 2) return 'rest'; // 보스 직전: 항상 휴식
   if (row === ROWS - 1) return 'boss';
 
-  const roll = Math.random();
-  if (roll < 0.50) return 'battle';
-  if (roll < 0.65) return 'elite';
-  if (roll < 0.78) return 'rest';
-  if (roll < 0.88) return 'treasure';
-  return 'battle'; // event → battle로 단순화
+  const blocked = new Set<MapNodeType>();
+  if (predTypes.has('elite')) blocked.add('elite');
+  if (predTypes.has('rest'))  blocked.add('rest');
+  // 보스 직전 전 행은 rest 불가 — 다음 행이 항상 rest이므로 연속 방지
+  if (row === ROWS - 3) blocked.add('rest');
+
+  const weights: { type: MapNodeType; w: number }[] = [
+    { type: 'battle',   w: 50 },
+    { type: 'elite',    w: 15 },
+    { type: 'rest',     w: 13 },
+    { type: 'treasure', w: 10 },
+  ];
+
+  const pool = weights.filter(c => !blocked.has(c.type));
+  const total = pool.reduce((s, c) => s + c.w, 0);
+  let roll = Math.random() * total;
+  for (const c of pool) {
+    roll -= c.w;
+    if (roll <= 0) return c.type;
+  }
+  return 'battle';
 }
 
 function generateActMap(actIndex: number): ActMap {
+  // 1단계: 행별 노드 수 결정 및 빈 노드 생성 (타입은 아직 미정)
   const nodes: MapNode[] = [];
-  const nodeCountPerRow: number[] = [];
-
   for (let row = 0; row < ROWS; row++) {
     const isLast = row === ROWS - 1;
     const isFirst = row === 0;
-    const count = isLast ? 1 : isFirst ? 2 + Math.floor(Math.random() * 2) : 2 + Math.floor(Math.random() * 3);
-    nodeCountPerRow.push(count);
+    const count = isLast ? 1 : isFirst
+      ? 2 + Math.floor(Math.random() * 2)
+      : 2 + Math.floor(Math.random() * 3);
 
     for (let col = 0; col < count; col++) {
       nodes.push({
         id: `a${actIndex}_r${row}_c${col}`,
         row,
         col,
-        type: pickNodeType(row),
+        type: 'battle', // 3단계에서 교체
         visited: false,
         available: row === 0,
       });
     }
   }
 
-  // 엣지 생성: 각 노드를 다음 행의 1~2개 노드에 연결
+  // 2단계: 엣지 생성 (기존 로직)
   const edges: MapEdge[] = [];
-
   for (let row = 0; row < ROWS - 1; row++) {
     const rowNodes = nodes.filter(n => n.row === row);
     const nextRowNodes = nodes.filter(n => n.row === row + 1);
@@ -74,6 +95,21 @@ function generateActMap(actIndex: number): ActMap {
           edges.push({ from: fromNode.id, to: next.id });
         }
       }
+    }
+  }
+
+  // 3단계: 행 순서대로 타입 할당 — 선행 노드 타입을 알고 있으므로 연속 제약 적용 가능
+  const nodeMap = new Map(nodes.map(n => [n.id, n]));
+  for (let row = 0; row < ROWS; row++) {
+    for (const node of nodes.filter(n => n.row === row)) {
+      // 이 노드의 선행 노드(→ 이 노드로 오는 엣지) 타입 수집
+      const predTypes = new Set(
+        edges
+          .filter(e => e.to === node.id)
+          .map(e => nodeMap.get(e.from)?.type)
+          .filter((t): t is MapNodeType => t !== undefined)
+      );
+      node.type = pickNodeType(row, predTypes);
     }
   }
 

@@ -11,9 +11,9 @@ export const BURNING_BLOOD: RelicDef = {
 export const TOUGH_BOOTS: RelicDef = {
   id: 'tough_boots',
   name: '단단한 부츠',
-  description: '매 턴 시작 시 방어 2 획득',
+  description: '공격이 방어에 막혀도 최소 1의 피해를 준다',
   emoji: '🥾',
-  effect: { type: 'onTurnStart', action: { type: 'gainBlock', value: 2 } },
+  effect: { type: 'passive', stat: 'minDamage', value: 1 },
 };
 
 export const RAGE_MASK: RelicDef = {

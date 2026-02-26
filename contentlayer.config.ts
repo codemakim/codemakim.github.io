@@ -62,6 +62,7 @@ export const Post = defineDocumentType(() => ({
 
 export default makeSource({
   contentDirPath: './content',
+  contentDirExclude: ['CLAUDE.md'],
   documentTypes: [Post],
   mdx: {
     remarkPlugins: [remarkGfm, remarkMath],

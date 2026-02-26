@@ -37,8 +37,8 @@ export const BLADE_STORM: CardDef = {
 
 export const HEAVY_STRIKE: CardDef = {
   id: 'heavy_strike', name: '강력한 일격', type: 'attack', cost: 2,
-  description: '14 데미지',
-  effects: [{ type: 'damage', value: 14, target: 'single' }],
+  description: '18 데미지',
+  effects: [{ type: 'damage', value: 18, target: 'single' }],
   vfx: 'impact',
 };
 
@@ -54,8 +54,8 @@ export const ANGER: CardDef = {
 
 export const TWIN_STRIKE: CardDef = {
   id: 'twin_strike', name: '쌍검', type: 'attack', cost: 1,
-  description: '5 데미지 × 2회',
-  effects: [{ type: 'damage', value: 5, target: 'single', hits: 2 }],
+  description: '4 데미지 × 2회',
+  effects: [{ type: 'damage', value: 4, target: 'single', hits: 2 }],
   vfx: 'slash',
 };
 
@@ -101,8 +101,8 @@ export const EXECUTE: CardDef = {
 
 export const IRON_WALL: CardDef = {
   id: 'iron_wall', name: '철벽', type: 'skill', cost: 2,
-  description: '12 방어',
-  effects: [{ type: 'block', value: 12 }],
+  description: '14 방어',
+  effects: [{ type: 'block', value: 14 }],
   vfx: 'shield',
 };
 

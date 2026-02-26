@@ -73,15 +73,18 @@ src/app/
 │   └── games/
 │       ├── types.ts        # 게임 공통 타입
 │       ├── constants.ts    # 게임 메타 정보 상수
-│       └── spire/          # 미니 스파이어 게임 로직
-│           ├── types.ts    # 모든 타입 정의
-│           ├── cards.ts    # 카드 데이터 (확장 지점)
-│           ├── enemies.ts  # 적 데이터 (확장 지점)
-│           ├── relics.ts   # 유물 데이터 (확장 지점)
-│           ├── combat.ts   # 전투 계산 유틸
-│           ├── ai.ts       # 적 AI (패턴 선택)
-│           ├── mapGen.ts   # 맵 생성 알고리즘
-│           └── gameState.ts# useReducer 상태 관리
+│       └── spire/              # 미니 스파이어 게임 로직
+│           ├── types.ts        # 모든 타입 정의
+│           ├── cards.ts        # 카드 데이터 (확장 지점)
+│           ├── enemies.ts      # 적 데이터 (확장 지점)
+│           ├── relics.ts       # 유물 데이터 (확장 지점)
+│           ├── combat.ts       # 전투 계산 유틸 + 공통 랜덤 유틸
+│           ├── ai.ts           # 적 AI (패턴 선택)
+│           ├── mapGen.ts       # 맵 생성 알고리즘
+│           ├── battleLogic.ts  # 전투 초기화·카드 효과·적 턴 처리
+│           ├── rewardLogic.ts  # 보상 생성·수집 완료 처리
+│           ├── saveUtils.ts    # 베스트 기록·런 직렬화/저장
+│           └── gameState.ts    # 얇은 조율자: reducer + useSpireGame hook
 │
 └── styles/                 # CSS 모듈
     ├── base.css            # 기본 스타일 + 배경
