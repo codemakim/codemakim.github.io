@@ -8,7 +8,7 @@ export default function PlayerSVG({ width = 80, height = 120, className }: Props
       width={width}
       height={height}
       className={className}
-      style={{ objectFit: 'contain' }}
+      style={{ objectFit: 'contain', transform: 'scaleX(-1)' }}
       draggable={false}
     />
   );

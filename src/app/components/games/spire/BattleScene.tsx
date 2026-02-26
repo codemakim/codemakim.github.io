@@ -38,11 +38,13 @@ export default function BattleScene({ state, dispatch }: Props) {
 
     events.forEach(event => {
       setTimeout(() => {
+        // dir: battleLogic이 설정한 vfxDir 우선, 없으면 target으로 추론 (플레이어가 맞으면 left)
+        const dir = event.vfxDir ?? (event.target === 'player' ? 'left' : 'right');
         if (event.type === 'damage' && event.value === 0 && event.vfx) {
           // 완전 방어: VFX만 재생
-          addVfx(event.vfx, event.target);
+          addVfx(event.vfx, event.target, dir);
         } else {
-          addEffect(event.type, event.value, event.target, event.vfx);
+          addEffect(event.type, event.value, event.target, event.vfx, dir);
         }
         // 큰 피해 시 화면 플래시
         if (event.type === 'damage' && event.target === 'player' && event.value >= 15) {
@@ -143,7 +145,7 @@ export default function BattleScene({ state, dispatch }: Props) {
         <div onClick={e => e.stopPropagation()}>
           <PlayerComponent
             player={player}
-            spriteSize={70}
+            spriteSize={91}
             effects={effects.filter(e => e.target === 'player')}
             vfxList={vfxList}
           />
