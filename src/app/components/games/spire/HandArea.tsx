@@ -70,7 +70,7 @@ export default function HandArea({ battle, player, dispatch, onEndTurn, addVfx, 
 
       {/* 손패 */}
       {/* 5장 이상(md 80px × 5 = 400px)은 모바일에서 넘치므로 sm으로 축소 */}
-      <div className="flex items-end justify-center min-h-[100px] px-2 py-2 gap-1">
+      <div className={`flex items-end justify-center h-[136px] px-2 py-2 ${hand.length >= 5 ? 'gap-0.5' : 'gap-1'}`}>
         <AnimatePresence initial={false}>
           {hand.map((cardInst, idx) => {
             const card = cardInst.def;
@@ -90,7 +90,7 @@ export default function HandArea({ battle, player, dispatch, onEndTurn, addVfx, 
                   disabled={!canPlay}
                   selected={selectedCardIndex === idx}
                   onClick={() => handleCardClick(idx)}
-                  size="sm"
+                  size={hand.length >= 5 ? 'sm' : 'md'}
                 />
               </motion.div>
             );
