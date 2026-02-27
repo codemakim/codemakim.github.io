@@ -1,3 +1,6 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import type { GameState, GameAction } from '@/app/lib/games/spire/types';
 import CardComponent from './CardComponent';
 
@@ -8,9 +11,19 @@ interface Props {
 
 export default function RewardScene({ state, dispatch }: Props) {
   const rewards = state.pendingRewards;
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
   if (!rewards) return null;
 
   const allDone = rewards.cardCollected && rewards.goldCollected && rewards.relicCollected;
+  const cardSize = isMobile ? 'md' : 'lg';
 
   return (
     <div className="flex flex-col items-center gap-6 px-4 py-8 min-h-full">
@@ -49,12 +62,12 @@ export default function RewardScene({ state, dispatch }: Props) {
       {!rewards.cardCollected && rewards.cardChoices.length > 0 && (
         <div className="flex flex-col items-center gap-4 w-full">
           <h3 className="text-lg font-bold text-zinc-200">카드 획득 (1장 선택)</h3>
-          <div className="flex gap-4 flex-wrap justify-center">
+          <div className="grid grid-cols-3 gap-3 justify-items-center w-full">
             {rewards.cardChoices.map((card, idx) => (
               <div key={idx} className="flex flex-col items-center gap-2">
                 <CardComponent
                   card={card}
-                  size="lg"
+                  size={cardSize}
                   onClick={() => dispatch({ type: 'PICK_CARD_REWARD', cardIndex: idx })}
                 />
               </div>
