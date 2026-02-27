@@ -106,6 +106,9 @@ export default function EnemyComponent({ enemy, selected, onClick, spriteSize = 
       {/* 이름 */}
       <div className="text-sm font-bold text-zinc-100">{enemy.def.name}</div>
 
+      {/* 버프 — HP바 위에 배치해서 HP바가 항상 맨 아래에 오도록 */}
+      <BuffIcon buffs={enemy.buffs} />
+
       {/* HP 바 */}
       <div className="w-full max-w-[140px]">
         <div className="flex justify-between text-xs text-zinc-400 mb-1">
@@ -119,9 +122,6 @@ export default function EnemyComponent({ enemy, selected, onClick, spriteSize = 
           />
         </div>
       </div>
-
-      {/* 버프 */}
-      <BuffIcon buffs={enemy.buffs} />
     </div>
   );
 }

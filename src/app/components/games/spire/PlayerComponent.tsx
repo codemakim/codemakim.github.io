@@ -78,6 +78,9 @@ export default function PlayerComponent({ player, spriteSize = 90, effects = [],
       {/* 이름 */}
       <div className="text-sm font-bold text-zinc-100">전사</div>
 
+      {/* 버프 — HP바 위에 배치해서 HP바가 항상 맨 아래에 오도록 */}
+      <BuffIcon buffs={player.buffs} />
+
       {/* HP 바 */}
       <div className="w-full max-w-[120px]">
         <div className="flex justify-between text-xs text-zinc-400 mb-1">
@@ -91,9 +94,6 @@ export default function PlayerComponent({ player, spriteSize = 90, effects = [],
           />
         </div>
       </div>
-
-      {/* 버프 */}
-      <BuffIcon buffs={player.buffs} />
     </div>
   );
 }

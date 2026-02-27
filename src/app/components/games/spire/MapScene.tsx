@@ -15,16 +15,15 @@ const NODE_META: Record<string, { emoji: string; label: string; color: string }>
 };
 
 const SVG_W = 300;
-const SVG_H = 460;
-const ROW_H = SVG_H / 7;
+const ROW_H = 56; // 행당 고정 높이 — ROWS가 바뀌어도 자동 대응
 const PAD = 30;
 
-function nodePos(node: MapNode, actMap: ActMap): { x: number; y: number } {
+function nodePos(node: MapNode, actMap: ActMap, svgH: number): { x: number; y: number } {
   const nodesInRow = actMap.nodes.filter(n => n.row === node.row);
   const cols = nodesInRow.length;
   const usableW = SVG_W - PAD * 2;
   const x = cols === 1 ? SVG_W / 2 : PAD + (node.col / (cols - 1)) * usableW;
-  const y = SVG_H - PAD - node.row * ROW_H;
+  const y = svgH - PAD - node.row * ROW_H;
   return { x, y };
 }
 
@@ -39,7 +38,9 @@ export default function MapScene({ state, dispatch }: Props) {
   const [showDeck, setShowDeck] = useState(false);
   if (!actMap) return null;
 
-  const posMap = new Map(actMap.nodes.map(n => [n.id, nodePos(n, actMap)]));
+  const maxRow = Math.max(...actMap.nodes.map(n => n.row));
+  const svgH = PAD * 2 + (maxRow + 1) * ROW_H;
+  const posMap = new Map(actMap.nodes.map(n => [n.id, nodePos(n, actMap, svgH)]));
 
   return (
     <div className="flex flex-col h-full overflow-y-auto relative">
@@ -55,7 +56,7 @@ export default function MapScene({ state, dispatch }: Props) {
 
       {/* 맵 SVG */}
       <div className="flex justify-center py-4 px-2">
-        <svg width={SVG_W} height={SVG_H} viewBox={`0 0 ${SVG_W} ${SVG_H}`} className="max-w-full">
+        <svg width={SVG_W} height={svgH} viewBox={`0 0 ${SVG_W} ${svgH}`} className="max-w-full">
           {/* 엣지 (경로) */}
           {actMap.edges.map((edge, i) => {
             const from = posMap.get(edge.from);

@@ -46,12 +46,15 @@ export default function SpirePage() {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-zinc-900 text-white flex flex-col">
-      {header}
+  const isBattle = state.phase === 'battle';
 
-      {/* 메인 게임 영역 */}
-      <main className="flex-1 max-w-2xl mx-auto w-full flex flex-col">
+  return (
+    <div className={`${isBattle ? 'h-dvh' : 'min-h-screen'} bg-zinc-900 text-white flex flex-col`}>
+      {/* 전투 중엔 헤더 숨김 → 전투 필드에 최대 공간 확보 */}
+      {!isBattle && header}
+
+      {/* 메인 게임 영역: 전투 중엔 max-w 제한 없이 전체 폭 사용 */}
+      <main className={`flex-1 ${isBattle ? 'w-full' : 'max-w-2xl mx-auto w-full'} flex flex-col`}>
         {/*
           AnimatePresence mode="wait":
           - 이전 phase가 exit 애니메이션 완료 후 다음 phase enter

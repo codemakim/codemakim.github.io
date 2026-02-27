@@ -219,8 +219,8 @@ export const REWARD_CARD_POOL: CardDef[] = [
 
 export function createStarterDeck(): CardDef[] {
   return [
-    ...Array(5).fill(STRIKE),
-    ...Array(4).fill(DEFEND),
+    ...Array(4).fill(STRIKE),
+    ...Array(3).fill(DEFEND),
     BASH,
   ];
 }

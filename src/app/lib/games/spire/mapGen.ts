@@ -1,6 +1,6 @@
 import type { ActMap, MapNode, MapEdge, MapNodeType, GameMap } from './types';
 
-const ROWS = 7;
+const ROWS = 10;
 
 /**
  * 노드 타입을 가중치 기반으로 선택한다.

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useLayoutEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 
 const GAP = 6;
 
@@ -70,7 +71,7 @@ export default function Tooltip({ content, children, className = '' }: Props) {
     >
       {children}
 
-      {visible && (
+      {visible && typeof document !== 'undefined' && createPortal(
         <span
           ref={tooltipRef}
           className="pointer-events-none
@@ -86,7 +87,8 @@ export default function Tooltip({ content, children, className = '' }: Props) {
           }}
         >
           {content}
-        </span>
+        </span>,
+        document.body
       )}
     </span>
   );

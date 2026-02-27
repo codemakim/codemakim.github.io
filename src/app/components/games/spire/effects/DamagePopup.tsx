@@ -15,8 +15,12 @@ interface PopupProps {
 }
 
 function Popup({ effect }: PopupProps) {
-  const meta = META[effect.type] ?? META.damage;
-  const label = effect.type === 'miss' ? 'MISS'
+  const isBlocked = effect.type === 'damage' && effect.value === 0;
+  const meta = isBlocked
+    ? { color: '#60a5fa', shadow: '0 0 8px rgba(96,165,250,0.7), 0 2px 0 #000', prefix: '' }
+    : (META[effect.type] ?? META.damage);
+  const label = isBlocked ? '🛡️'
+    : effect.type === 'miss' ? 'MISS'
     : effect.type === 'block' ? `🛡️${effect.value}`
     : `${meta.prefix}${effect.value}`;
 

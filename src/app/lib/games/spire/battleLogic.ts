@@ -1,6 +1,6 @@
 import type {
   GameState, MapNode, BattleState, EnemyInstance, PlayerState,
-  EnemyAction, EnemyDef, BuffType, EffectEvent, VfxType,
+  EnemyAction, EnemyDef, BuffType, EffectEvent, VfxType, BuffState,
 } from './types';
 import { ALL_ENEMIES, NORMAL_ENEMIES, ELITE_ENEMIES, BOSS_ENEMIES } from './enemies';
 import {
@@ -55,7 +55,7 @@ export function initBattle(state: GameState, node: MapNode): GameState {
   battle = drawCards(battle, 5);
 
   // 전투 시작 유물 효과
-  let player = { ...state.player, block: 0, energy: state.player.maxEnergy };
+  let player = { ...state.player, block: 0, energy: state.player.maxEnergy, buffs: [] as BuffState[] };
   for (const relic of state.relics) {
     if (relic.effect.type === 'onBattleStart') {
       const action = relic.effect.action;
@@ -294,6 +294,10 @@ export function processEnemyTurn(state: GameState): GameState {
   const effectEvents: EffectEvent[] = [];
   let nextDelay = 0;
 
+  // 0. 플레이어 버프 틱 (플레이어 턴 종료 시점)
+  // 적이 이번 턴에 새로 건 디버프는 틱하지 않도록 적 행동 전에 처리
+  player = { ...player, buffs: tickBuffs(player.buffs) };
+
   // 1. 적 독 데미지
   state.battle.enemies.forEach((e, i) => {
     const poison = getBuffValue(e.buffs, 'poison');
@@ -351,8 +355,8 @@ export function processEnemyTurn(state: GameState): GameState {
     turnCount: e.turnCount + 1,
   }));
 
-  // 5. 플레이어 방어 리셋 + 버프 틱
-  player = { ...player, block: 0, buffs: tickBuffs(player.buffs) };
+  // 5. 플레이어 방어 리셋 (버프 틱은 함수 시작 시 처리됨)
+  player = { ...player, block: 0 };
 
   // 6. 턴 시작 유물 효과
   for (const relic of state.relics) {
