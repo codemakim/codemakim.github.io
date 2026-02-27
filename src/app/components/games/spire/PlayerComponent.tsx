@@ -78,8 +78,10 @@ export default function PlayerComponent({ player, spriteSize = 90, effects = [],
       {/* 이름 */}
       <div className="text-sm font-bold text-zinc-100">전사</div>
 
-      {/* 버프 — HP바 위에 배치해서 HP바가 항상 맨 아래에 오도록 */}
-      <BuffIcon buffs={player.buffs} />
+      {/* 버프 — HP바 위에 배치해서 HP바가 항상 맨 아래에 오도록. min-h로 공간 예약해 레이아웃 시프트 방지 */}
+      <div className="min-h-[20px] flex items-center">
+        <BuffIcon buffs={player.buffs} />
+      </div>
 
       {/* HP 바 */}
       <div className="w-full max-w-[120px]">

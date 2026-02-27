@@ -199,18 +199,16 @@ export default function BattleScene({ state, dispatch }: Props) {
         </div>
       </div>
 
-      {/* 손패 영역: 전투 종료 연출 중에는 숨김 */}
-      {!battle.pendingPhase && (
-        <div className="border-t border-zinc-700/50 bg-zinc-900/80">
-          <HandArea
-            battle={battle}
-            player={player}
-            dispatch={dispatch}
-            onEndTurn={() => dispatch({ type: 'END_TURN' })}
-            onShowPile={setShowPile}
-          />
-        </div>
-      )}
+      {/* 손패 영역: pendingPhase 중에는 공간 유지하면서 숨김 (레이아웃 시프트 방지) */}
+      <div className={`border-t border-zinc-700/50 bg-zinc-900/80 ${battle.pendingPhase ? 'invisible pointer-events-none' : ''}`}>
+        <HandArea
+          battle={battle}
+          player={player}
+          dispatch={dispatch}
+          onEndTurn={() => dispatch({ type: 'END_TURN' })}
+          onShowPile={setShowPile}
+        />
+      </div>
 
       {/* 드로우/버리기 파일 카드 오버레이 */}
       <AnimatePresence>
