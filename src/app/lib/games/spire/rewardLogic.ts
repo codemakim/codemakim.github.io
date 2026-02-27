@@ -37,7 +37,10 @@ export function generateRewards(state: GameState, node: MapNode): PendingRewards
   }
 
   const isElite = nodeType === 'elite';
-  const gold = randInt(isElite ? 30 : 15, isElite ? 50 : 25) + goldBonus;
+  const enemies = state.battle?.enemies ?? [];
+  const totalMaxHp = enemies.reduce((sum, e) => sum + e.maxHp, 0);
+  const difficultyBonus = Math.floor(totalMaxHp / 5);
+  const gold = randInt(isElite ? 30 : 15, isElite ? 50 : 25) + difficultyBonus + goldBonus;
   const relicPool = isElite ? ELITE_RELICS.filter(r => !state.relics.some(pr => pr.id === r.id)) : [];
   const relic = isElite && relicPool.length > 0 ? pickRandom(relicPool) : null;
 
