@@ -1,21 +1,10 @@
 import type { EnemyDef } from './types';
-import SlimeSVG from '@/app/components/games/spire/svg/SlimeSVG';
-import GoblinSVG from '@/app/components/games/spire/svg/GoblinSVG';
-import SkeletonSVG from '@/app/components/games/spire/svg/SkeletonSVG';
-import MushroomSVG from '@/app/components/games/spire/svg/MushroomSVG';
-import BatsSVG from '@/app/components/games/spire/svg/BatsSVG';
-import DarkMageSVG from '@/app/components/games/spire/svg/DarkMageSVG';
-import AncientKnightSVG from '@/app/components/games/spire/svg/AncientKnightSVG';
-import FireSpiritSVG from '@/app/components/games/spire/svg/FireSpiritSVG';
-import ShadowThiefSVG from '@/app/components/games/spire/svg/ShadowThiefSVG';
-import GolemSVG from '@/app/components/games/spire/svg/GolemSVG';
-import LichSVG from '@/app/components/games/spire/svg/LichSVG';
-import DragonSVG from '@/app/components/games/spire/svg/DragonSVG';
+// SVG 스프라이트는 UI 레이어(spriteMap.ts)에서 id로 조회 — domain → UI 역방향 의존성 제거
 
 // ===== 일반 적 =====
 
 export const SLIME: EnemyDef = {
-  id: 'slime', name: '슬라임', emoji: '🟢', hp: [12, 16], sprite: SlimeSVG,
+  id: 'slime', name: '슬라임', emoji: '🟢', hp: [12, 16],
   act: [1], tier: 'normal', sequential: true,
   patterns: [
     { weight: 1, intent: 'attack', intentValue: 6, action: { type: 'attack', damage: 6, vfx: 'impact' } },
@@ -24,7 +13,7 @@ export const SLIME: EnemyDef = {
 };
 
 export const GOBLIN: EnemyDef = {
-  id: 'goblin', name: '고블린', emoji: '👺', hp: [14, 18], sprite: GoblinSVG,
+  id: 'goblin', name: '고블린', emoji: '👺', hp: [14, 18],
   act: [1], tier: 'normal', sequential: false,
   patterns: [
     { weight: 7, intent: 'attack', intentValue: 7, action: { type: 'attack', damage: 7, vfx: 'slash' } },
@@ -33,7 +22,7 @@ export const GOBLIN: EnemyDef = {
 };
 
 export const SKELETON: EnemyDef = {
-  id: 'skeleton', name: '해골 전사', emoji: '💀', hp: [18, 22], sprite: SkeletonSVG,
+  id: 'skeleton', name: '해골 전사', emoji: '💀', hp: [18, 22],
   act: [1, 2], tier: 'normal', sequential: false,
   patterns: [
     { weight: 6, intent: 'attack', intentValue: 9, action: { type: 'attack', damage: 9, vfx: 'slash' } },
@@ -42,7 +31,7 @@ export const SKELETON: EnemyDef = {
 };
 
 export const MUSHROOM: EnemyDef = {
-  id: 'mushroom', name: '독버섯', emoji: '🍄', hp: [20, 25], sprite: MushroomSVG,
+  id: 'mushroom', name: '독버섯', emoji: '🍄', hp: [20, 25],
   act: [2], tier: 'normal', sequential: false,
   patterns: [
     { weight: 6, intent: 'debuff', action: { type: 'debuff', buff: 'poison', value: 3, target: 'player' } },
@@ -51,7 +40,7 @@ export const MUSHROOM: EnemyDef = {
 };
 
 export const BATS: EnemyDef = {
-  id: 'bats', name: '박쥐 떼', emoji: '🦇', hp: [10, 14], sprite: BatsSVG,
+  id: 'bats', name: '박쥐 떼', emoji: '🦇', hp: [10, 14],
   act: [2], tier: 'normal', sequential: false,
   patterns: [
     { weight: 7, intent: 'attack', intentValue: 4, action: { type: 'attack', damage: 4, times: 3, vfx: 'impact' } },
@@ -60,7 +49,7 @@ export const BATS: EnemyDef = {
 };
 
 export const DARK_MAGE: EnemyDef = {
-  id: 'dark_mage', name: '어둠 마법사', emoji: '🧙', hp: [25, 30], sprite: DarkMageSVG,
+  id: 'dark_mage', name: '어둠 마법사', emoji: '🧙', hp: [25, 30],
   act: [3], tier: 'normal', sequential: false,
   patterns: [
     { weight: 4, intent: 'attack', intentValue: 12, action: { type: 'attack', damage: 12, vfx: 'magic' } },
@@ -72,7 +61,7 @@ export const DARK_MAGE: EnemyDef = {
 // ===== 엘리트 =====
 
 export const ANCIENT_KNIGHT: EnemyDef = {
-  id: 'ancient_knight', name: '고대 기사', emoji: '⚔️', hp: [55, 65], sprite: AncientKnightSVG,
+  id: 'ancient_knight', name: '고대 기사', emoji: '⚔️', hp: [55, 65],
   act: [1, 2], tier: 'elite', sequential: true,
   patterns: [
     { weight: 1, intent: 'attack', intentValue: 15, action: { type: 'attack', damage: 15, vfx: 'slash' } },
@@ -89,7 +78,7 @@ export const ANCIENT_KNIGHT: EnemyDef = {
 };
 
 export const FIRE_SPIRIT: EnemyDef = {
-  id: 'fire_spirit', name: '화염 정령', emoji: '🔥', hp: [45, 55], sprite: FireSpiritSVG,
+  id: 'fire_spirit', name: '화염 정령', emoji: '🔥', hp: [45, 55],
   act: [2, 3], tier: 'elite', sequential: true,
   patterns: [
     {
@@ -106,7 +95,7 @@ export const FIRE_SPIRIT: EnemyDef = {
 };
 
 export const SHADOW_THIEF: EnemyDef = {
-  id: 'shadow_thief', name: '그림자 도적', emoji: '🗡️', hp: [40, 50], sprite: ShadowThiefSVG,
+  id: 'shadow_thief', name: '그림자 도적', emoji: '🗡️', hp: [40, 50],
   act: [1, 2, 3], tier: 'elite', sequential: true,
   patterns: [
     { weight: 1, intent: 'attack', intentValue: 5, action: { type: 'attack', damage: 5, times: 3, vfx: 'slash' } },
@@ -125,7 +114,7 @@ export const SHADOW_THIEF: EnemyDef = {
 // ===== 보스 =====
 
 export const GOLEM: EnemyDef = {
-  id: 'golem', name: '골렘', emoji: '🗿', hp: [100, 100], sprite: GolemSVG,
+  id: 'golem', name: '골렘', emoji: '🗿', hp: [100, 100],
   act: [1], tier: 'boss', sequential: true,
   patterns: [
     { weight: 1, intent: 'attack', intentValue: 12, action: { type: 'attack', damage: 12, vfx: 'impact' } },
@@ -135,7 +124,7 @@ export const GOLEM: EnemyDef = {
 };
 
 export const LICH: EnemyDef = {
-  id: 'lich', name: '리치', emoji: '👻', hp: [120, 120], sprite: LichSVG,
+  id: 'lich', name: '리치', emoji: '👻', hp: [120, 120],
   act: [2], tier: 'boss', sequential: true,
   patterns: [
     {
@@ -159,7 +148,7 @@ export const LICH: EnemyDef = {
 };
 
 export const DRAGON: EnemyDef = {
-  id: 'dragon', name: '드래곤', emoji: '🐉', hp: [150, 150], sprite: DragonSVG,
+  id: 'dragon', name: '드래곤', emoji: '🐉', hp: [150, 150],
   act: [3], tier: 'boss', sequential: true,
   patterns: [
     { weight: 1, intent: 'attack', intentValue: 15, action: { type: 'attack', damage: 15, times: 2, vfx: 'magic' } },

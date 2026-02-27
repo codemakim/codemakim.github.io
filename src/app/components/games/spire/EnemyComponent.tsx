@@ -6,14 +6,9 @@ import type { EnemyInstance, BattleEffect } from '@/app/lib/games/spire/types';
 import type { VfxInstance } from './effects/EffectLayer';
 import BuffIcon from './BuffIcon';
 import { VfxRenderer, PopupRenderer } from './effects/EffectLayer';
-
-const INTENT_META: Record<string, { emoji: string; label: string; color: string }> = {
-  attack:  { emoji: '⚔️', label: '공격',  color: 'text-red-400' },
-  defend:  { emoji: '🛡️', label: '방어',  color: 'text-blue-400' },
-  buff:    { emoji: '💪', label: '강화',  color: 'text-yellow-400' },
-  debuff:  { emoji: '😵', label: '약화',  color: 'text-purple-400' },
-  special: { emoji: '💥', label: '특수',  color: 'text-orange-400' },
-};
+import { INTENT_META } from '@/app/lib/games/spire/intentMeta';
+import { getIntentDisplay } from '@/app/lib/games/spire/displayHelpers';
+import { getEnemySprite } from './spriteMap';
 
 interface Props {
   enemy: EnemyInstance;
@@ -26,7 +21,7 @@ interface Props {
 }
 
 export default function EnemyComponent({ enemy, selected, onClick, spriteSize = 100, effects = [], vfxList = [], enemyIdx = 0 }: Props) {
-  const Sprite = enemy.def.sprite;
+  const Sprite = getEnemySprite(enemy.def.id);
   const intent = INTENT_META[enemy.def.tier === 'boss' && enemy.currentIntent.intent === 'special'
     ? 'special' : enemy.currentIntent.intent] ?? INTENT_META.attack;
   const hpPct = Math.max(0, (enemy.hp / enemy.maxHp) * 100);
@@ -68,16 +63,14 @@ export default function EnemyComponent({ enemy, selected, onClick, spriteSize = 
       <div className={`flex items-center gap-1 text-sm font-bold ${intent.color} bg-zinc-800/80 px-3 py-1 rounded-full`}>
         <span>{intent.emoji}</span>
         <span className="text-xs">{intent.label}</span>
-        {enemy.currentIntent.intentValue !== undefined && (() => {
-          const action = enemy.currentIntent.action;
-          const times = action.type === 'attack' ? (action.times ?? 1) : 1;
-          const strength = enemy.buffs.find(b => b.type === 'strength')?.value ?? 0;
-          const singleHit = enemy.currentIntent.intentValue + strength;
+        {(() => {
+          const display = getIntentDisplay(enemy);
+          if (!display) return null;
           return (
             <span className="text-xs text-white">
-              {times > 1
-                ? <>{singleHit}<span className="text-zinc-400 text-[10px]">×{times}</span></>
-                : singleHit
+              {display.times > 1
+                ? <>{display.singleHit}<span className="text-zinc-400 text-[10px]">×{display.times}</span></>
+                : display.singleHit
               }
             </span>
           );

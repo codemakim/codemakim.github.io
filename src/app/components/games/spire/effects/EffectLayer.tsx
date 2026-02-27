@@ -56,9 +56,9 @@ export function useEffects() {
     const id = `fx-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     const effect: BattleEffect = { id, type, value, target, timestamp: Date.now(), vfx };
 
-    // 동일 타겟·동일 타입 이펙트를 교체 — 연속 타격 시 이전 숫자가 exit 애니메이션으로 사라지고
-    // 새 숫자가 원점에서 다시 시작하여 "따다다닥" 타격감을 표현한다
-    setEffects(prev => [...prev.filter(e => !(e.target === target && e.type === type)), effect]);
+    // 각 타격을 독립 팝업으로 추가 — 연타 시 이전 숫자가 위에서 페이드되는 동안
+    // 새 숫자가 아래서 올라와 시간차·수직 위치로 구분됨
+    setEffects(prev => [...prev, effect]);
     setTimeout(() => setEffects(prev => prev.filter(e => e.id !== id)), EFFECT_TTL);
 
     if (vfx && vfx !== 'none') {

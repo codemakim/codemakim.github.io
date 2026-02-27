@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import type { BattleState, PlayerState, VfxType } from '@/app/lib/games/spire/types';
 import type { GameAction } from '@/app/lib/games/spire/types';
 import CardComponent from './CardComponent';
+import { getPowerLabel } from '@/app/lib/games/spire/displayHelpers';
 
 interface Props {
   battle: BattleState;
@@ -62,7 +63,7 @@ export default function HandArea({ battle, player, dispatch, onEndTurn, addVfx, 
         <div className="flex gap-2 justify-center flex-wrap px-2">
           {activePowers.map((pid, i) => (
             <span key={i} className="text-xs bg-purple-900/60 border border-purple-500/40 text-purple-200 px-2 py-0.5 rounded-full">
-              🔮 {pid === 'iron_will' ? '강철 의지' : pid === 'berserker' ? '광전사' : pid === 'thorns_card' ? '가시 갑옷' : pid}
+              🔮 {getPowerLabel(pid)}
             </span>
           ))}
         </div>

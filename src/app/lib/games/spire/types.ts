@@ -1,5 +1,3 @@
-import type { ComponentType } from 'react';
-
 // ===== 이펙트 타입 =====
 export type VfxType = 'slash' | 'impact' | 'magic' | 'pierce' | 'shield' | 'heal' | 'poison' | 'buff' | 'none';
 export type SfxType = 'slash' | 'hit' | 'heavy_hit' | 'block' | 'heal' | 'buff' | 'debuff' | 'none';
@@ -24,7 +22,6 @@ export interface CardDef {
   cost: number; // -1 = X 비용 (남은 에너지 전부)
   description: string;
   effects: CardEffect[];
-  illustration?: ComponentType<{ width?: number; height?: number }>;
   vfx?: VfxType;   // 카드 사용 시 재생할 시각 이펙트
   sfx?: SfxType;   // 카드 사용 시 재생할 사운드 (추후 구현)
 }
@@ -65,7 +62,7 @@ export interface EnemyDef {
   name: string;
   emoji: string;
   hp: [number, number];
-  sprite: ComponentType<{ width?: number; height?: number; className?: string }>;
+  // sprite는 UI 레이어(spriteMap.ts)에서 id로 조회 — domain이 React에 의존하지 않도록
   patterns: EnemyPattern[];
   act: (1 | 2 | 3)[];
   tier: 'normal' | 'elite' | 'boss';

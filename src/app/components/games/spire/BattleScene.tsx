@@ -9,7 +9,6 @@ import HandArea from './HandArea';
 import RelicBar from './RelicBar';
 import ScreenFlash from './effects/ScreenFlash';
 import CardListOverlay from './CardListOverlay';
-import BuffIcon from './BuffIcon';
 import { useEffects } from './effects/EffectLayer';
 
 interface Props {
@@ -105,38 +104,21 @@ export default function BattleScene({ state, dispatch }: Props) {
       {/* 화면 플래시 */}
       <ScreenFlash visible={screenFlash} />
 
-      {/* 상단 통합 바: HP·블록·버프 / Act / 에너지·유물 */}
+      {/* 상단 상태 바: HP / Act / 에너지 */}
       <div className="flex items-center justify-between px-3 py-1.5 bg-zinc-900/90 border-b border-zinc-700/50">
-        {/* 왼쪽: HP + 블록 + 버프 */}
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="flex items-center gap-1 shrink-0">
-            <span className="text-xs">❤️</span>
-            <span className="text-xs font-bold text-white">{player.hp}<span className="text-zinc-500">/{player.maxHp}</span></span>
-          </div>
-          {player.block > 0 && (
-            <span className="text-xs font-bold text-blue-300 shrink-0">🛡️{player.block}</span>
-          )}
-          {player.buffs.length > 0 && (
-            <div className="min-w-0 overflow-hidden">
-              <BuffIcon buffs={player.buffs} size="sm" />
-            </div>
-          )}
+        {/* 왼쪽: HP */}
+        <div className="flex items-center gap-1">
+          <span className="text-xs">❤️</span>
+          <span className="text-sm font-bold text-white">{player.hp}<span className="text-zinc-500 text-xs">/{player.maxHp}</span></span>
         </div>
 
         {/* 중앙: Act */}
-        <div className="text-xs text-zinc-500 font-medium shrink-0 px-2">{actLabel}</div>
+        <div className="text-xs text-zinc-500 font-medium">{actLabel}</div>
 
-        {/* 오른쪽: 에너지 + 유물 */}
-        <div className="flex items-center gap-2 justify-end">
-          <div className="flex items-center gap-1 shrink-0">
-            <span className="text-xs">⚡</span>
-            <span className="text-xs font-bold text-yellow-300">{player.energy}<span className="text-zinc-500">/{player.maxEnergy}</span></span>
-          </div>
-          {relics.length > 0 && (
-            <div className="flex items-center">
-              <RelicBar relics={relics} />
-            </div>
-          )}
+        {/* 오른쪽: 에너지 */}
+        <div className="flex items-center gap-1">
+          <span className="text-xs">⚡</span>
+          <span className="text-sm font-bold text-yellow-300">{player.energy}<span className="text-zinc-500 text-xs">/{player.maxEnergy}</span></span>
         </div>
       </div>
 
@@ -152,9 +134,19 @@ export default function BattleScene({ state, dispatch }: Props) {
 
       {/* 전투 필드 */}
       <div
-        className="flex-1 flex items-end justify-around px-4 pb-4 pt-2 bg-gradient-to-b from-zinc-800/40 to-zinc-900/40 overflow-hidden"
+        className="flex-1 flex flex-col bg-gradient-to-b from-zinc-800/40 to-zinc-900/40 overflow-hidden"
         onClick={handleFieldClick}
       >
+        {/* 유물 바 — 전투 필드 최상단 */}
+        {relics.length > 0 && (
+          <div className="px-3 pt-2 pb-1 flex justify-center flex-wrap gap-1" onClick={e => e.stopPropagation()}>
+            <RelicBar relics={relics} />
+          </div>
+        )}
+
+        {/* 캐릭터 영역 */}
+        <div className="flex-1 flex items-end justify-around px-4 pb-4 pt-1 overflow-hidden">
+
         {/* 플레이어 (왼쪽) */}
         <div onClick={e => e.stopPropagation()}>
           <PlayerComponent
@@ -197,6 +189,8 @@ export default function BattleScene({ state, dispatch }: Props) {
             })}
           </AnimatePresence>
         </div>
+
+        </div>{/* 캐릭터 영역 끝 */}
       </div>
 
       {/* 손패 영역: pendingPhase 중에는 공간 유지하면서 숨김 (레이아웃 시프트 방지) */}

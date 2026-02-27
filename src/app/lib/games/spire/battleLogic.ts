@@ -346,6 +346,26 @@ export function processEnemyTurn(state: GameState): GameState {
     return { ...state, player: { ...player, hp: 0 }, phase: 'gameOver', battle: null };
   }
 
+  // 3-b. 적 전체 사망 체크 (가시 등 반사 데미지로 적 턴 중 전멸한 경우)
+  const allEnemiesDead = enemies.every(e => e.hp <= 0);
+  if (allEnemiesDead) {
+    const node = state.map.acts[state.currentAct]?.nodes.find(n => n.id === state.currentNodeId);
+    if (!node) return state;
+    const rewards = generateRewards({ ...state, player }, node);
+    updateSave(state.score, state.currentAct, false);
+    return {
+      ...state,
+      player,
+      battle: {
+        ...state.battle,
+        enemies,
+        pendingPhase: 'reward' as const,
+        pendingEffects: effectEvents,
+      },
+      pendingRewards: rewards,
+    };
+  }
+
   // 4. 적 버프 틱 + 인텐트 전진 (block 리셋은 다음 적 턴 시작 시 처리)
   enemies = enemies.map(e => ({
     ...e,

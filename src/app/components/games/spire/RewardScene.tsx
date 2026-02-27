@@ -25,9 +25,16 @@ export default function RewardScene({ state, dispatch }: Props) {
   const allDone = rewards.cardCollected && rewards.goldCollected && rewards.relicCollected;
   const cardSize = isMobile ? 'md' : 'lg';
 
+  // 보물 상자 여부 판별 (골드·카드 없고 보스 보상도 아닌 경우)
+  const isTreasure = !rewards.isBossReward && rewards.gold === 0 && rewards.cardChoices.length === 0;
+  const title = rewards.isBossReward ? '🏆 보스 클리어!' : isTreasure ? '🎁 보물 상자' : '🏆 전투 승리!';
+
+  // 아무것도 없는 빈 보상인지 (유물 풀 소진)
+  const hasNothing = rewards.cardChoices.length === 0 && rewards.gold === 0 && !rewards.relic;
+
   return (
     <div className="flex flex-col items-center gap-6 px-4 py-8 min-h-full">
-      <h2 className="text-2xl font-bold text-yellow-300">🏆 전투 승리!</h2>
+      <h2 className="text-2xl font-bold text-yellow-300">{title}</h2>
 
       {/* 골드 */}
       {!rewards.goldCollected && rewards.gold > 0 && (
@@ -80,6 +87,13 @@ export default function RewardScene({ state, dispatch }: Props) {
             건너뛰기
           </button>
         </div>
+      )}
+
+      {/* 빈 보상 안내 (유물 풀 소진) */}
+      {hasNothing && (
+        <p className="text-zinc-400 text-sm text-center">
+          {isTreasure ? '이미 모든 유물을 보유하고 있습니다.' : '이번 보스의 유물 보상이 없습니다.'}
+        </p>
       )}
 
       {/* 계속 버튼 */}
