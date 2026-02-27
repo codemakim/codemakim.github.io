@@ -27,13 +27,13 @@ export function generateRewards(state: GameState, node: MapNode): PendingRewards
   if (nodeType === 'boss') {
     const relicPool = BOSS_RELICS.filter(r => !state.relics.some(pr => pr.id === r.id));
     const relic = relicPool.length > 0 ? pickRandom(relicPool) : null;
-    return { cardChoices: [], gold: 0, relic, cardCollected: true, goldCollected: true, relicCollected: false, isBossReward: true };
+    return { cardChoices: [], gold: 0, relic, cardCollected: true, goldCollected: true, relicCollected: relic === null, isBossReward: true };
   }
 
   if (nodeType === 'treasure') {
     const relicPool = TREASURE_RELICS.filter(r => !state.relics.some(pr => pr.id === r.id));
     const relic = relicPool.length > 0 ? pickRandom(relicPool) : null;
-    return { cardChoices: [], gold: 0, relic, cardCollected: true, goldCollected: true, relicCollected: false, isBossReward: false };
+    return { cardChoices: [], gold: 0, relic, cardCollected: true, goldCollected: true, relicCollected: relic === null, isBossReward: false };
   }
 
   const isElite = nodeType === 'elite';
