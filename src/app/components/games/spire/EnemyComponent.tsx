@@ -68,9 +68,20 @@ export default function EnemyComponent({ enemy, selected, onClick, spriteSize = 
       <div className={`flex items-center gap-1 text-sm font-bold ${intent.color} bg-zinc-800/80 px-3 py-1 rounded-full`}>
         <span>{intent.emoji}</span>
         <span className="text-xs">{intent.label}</span>
-        {enemy.currentIntent.intentValue !== undefined && (
-          <span className="text-xs text-white">{enemy.currentIntent.intentValue}</span>
-        )}
+        {enemy.currentIntent.intentValue !== undefined && (() => {
+          const action = enemy.currentIntent.action;
+          const times = action.type === 'attack' ? (action.times ?? 1) : 1;
+          const strength = enemy.buffs.find(b => b.type === 'strength')?.value ?? 0;
+          const singleHit = enemy.currentIntent.intentValue + strength;
+          return (
+            <span className="text-xs text-white">
+              {times > 1
+                ? <>{singleHit}<span className="text-zinc-400 text-[10px]">×{times}</span></>
+                : singleHit
+              }
+            </span>
+          );
+        })()}
       </div>
 
       {/* 적 스프라이트 */}
