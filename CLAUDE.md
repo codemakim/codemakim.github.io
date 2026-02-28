@@ -33,6 +33,12 @@
 | 습관 통계 | `src/app/lib/utils/habitStats.ts` |
 | 게임 페이지 | `src/app/games/` (5종: 2048, snake, minesweeper, memory, block-drop) |
 | 게임 공통 컴포넌트 | `src/app/components/games/` |
+| Spire 전투 초기화 | `src/app/lib/games/spire/battleInit.ts` |
+| Spire 카드 로직 | `src/app/lib/games/spire/cardLogic.ts` |
+| Spire 적 로직 | `src/app/lib/games/spire/enemyLogic.ts` |
+| 이펙트 렌더러 | `src/app/components/games/spire/effects/EffectLayer.tsx` |
+| 캐릭터 명세 | `src/app/lib/games/spire/characters.ts` |
+| 캐릭터 선택 UI | `src/app/components/games/spire/CharSelectScene.tsx` |
 
 ### 참고 문서
 
@@ -41,6 +47,39 @@
 - **게임 설계**: `docs/features/games/DESIGN.md`
 - **DB 구조**: `docs/features/habits/DATABASE.md`
 - **로드맵**: `docs/ROADMAP.md`
+
+### 이펙트 시스템 데이터 흐름 (Spire 게임)
+
+```
+cardLogic.ts / enemyLogic.ts
+  → EffectEvent[] 생성 (type, value, target, vfx, delayMs 포함)
+  → BattleState.pendingEffects[]에 적재
+  → BattleScene.tsx (useEffect로 delayMs 스태거 스케줄링)
+  → EffectLayer.tsx의 addEffect / addVfx 호출
+  → VfxRenderer (SlashEffect / ImpactEffect 등) + PopupRenderer (DamagePopup)
+```
+
+- **연타 카드**: 타격마다 `hitDelay += 120ms` 스태거로 독립 팝업 생성
+- **적 행동**: 적마다 `nextDelay += 400ms` 스태거
+- battleLogic.ts는 re-export 전용 — 실제 구현은 위 3개 파일에 있음
+
+### 캐릭터 시스템 (Spire 게임)
+
+```
+phase: 'charSelect'
+  → CharSelectScene (ALL_CHARACTERS 기반 그리드)
+    → SELECT_CHARACTER dispatch
+  → reducer: CharacterDef 기반 GameState 생성
+  → phase: 'map' (기존 게임 흐름)
+```
+
+- `ALL_CHARACTERS`(`characters.ts`)가 유일한 소스 → 추가만 하면 선택 화면 자동 반영
+- 새 캐릭터 추가: CharacterDef 정의 → ALL_CHARACTERS 배열에 추가
+- 전용 카드: `characterCards` → 런 중 `REWARD_CARD_POOL`에 혼합 (rewardLogic.ts)
+- 전용 유물: `characterRelics` → 런 중 각 유물 풀에 혼합 (rewardLogic.ts)
+- `GameState.characterId`로 런 중 캐릭터 식별
+- `passive`: 유물로 표현 불가한 고유 훅 전용 (현재 설명 텍스트만, 훅 미구현)
+- 이어하기: `LOAD_RUN` 액션으로 저장된 GameState 직접 복원
 
 ### 코드 탐색 순서
 

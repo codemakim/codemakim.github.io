@@ -2,6 +2,7 @@
 
 import { motion } from 'motion/react';
 import type { CardDef } from '@/app/lib/games/spire/types';
+import { getCardPreviewDesc, type CardPreviewStats } from '@/app/lib/games/spire/displayHelpers';
 
 const TYPE_STYLE: Record<string, { border: string; bg: string; icon: string; label: string }> = {
   attack: { border: 'border-red-500',    bg: 'from-red-950/80 to-red-900/60',       icon: '⚔️', label: '공격' },
@@ -16,9 +17,10 @@ interface Props {
   selected?: boolean;
   onClick?: () => void;
   size?: 'sm' | 'md' | 'lg';
+  previewStats?: CardPreviewStats;
 }
 
-export default function CardComponent({ card, disabled, selected, onClick, size = 'md' }: Props) {
+export default function CardComponent({ card, disabled, selected, onClick, size = 'md', previewStats }: Props) {
   const meta = TYPE_STYLE[card.type] ?? TYPE_STYLE.skill;
 
   const dims = {
@@ -32,6 +34,7 @@ export default function CardComponent({ card, disabled, selected, onClick, size 
   const iconSize  = size === 'lg' ? 'text-2xl'           : size === 'md' ? 'text-lg'          : 'text-base';
   const illSize   = size === 'lg' ? 'text-4xl'           : size === 'md' ? 'text-2xl'         : 'text-xl';
   const costDisplay = card.cost === -1 ? 'X' : card.cost === 99 ? '–' : String(card.cost);
+  const desc = previewStats ? getCardPreviewDesc(card, previewStats) : card.description;
 
   return (
     <motion.button
@@ -78,7 +81,7 @@ export default function CardComponent({ card, disabled, selected, onClick, size 
       <div className="bg-zinc-900/70 rounded-b-md px-1 py-1 text-center">
         <div className={`${nameSize} font-bold text-white leading-tight truncate`}>{card.name}</div>
         <div className="text-[8px] text-zinc-300 leading-tight mt-0.5 whitespace-pre-line line-clamp-2">
-          {card.description}
+          {desc}
         </div>
       </div>
     </motion.button>

@@ -8,6 +8,7 @@ import BattleScene from '@/app/components/games/spire/BattleScene';
 import MapScene from '@/app/components/games/spire/MapScene';
 import RewardScene from '@/app/components/games/spire/RewardScene';
 import RestScene from '@/app/components/games/spire/RestScene';
+import CharSelectScene from '@/app/components/games/spire/CharSelectScene';
 
 export default function SpirePage() {
   const { state, dispatch } = useSpireGame();
@@ -62,6 +63,20 @@ export default function SpirePage() {
           - 타이머/ref 없이 React StrictMode에서도 정상 동작
         */}
         <AnimatePresence mode="wait">
+
+          {/* 캐릭터 선택 화면 */}
+          {state.phase === 'charSelect' && (
+            <motion.div
+              key="charselect"
+              className="flex-1 flex flex-col"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <CharSelectScene dispatch={dispatch} />
+            </motion.div>
+          )}
 
           {/* 맵 화면 */}
           {state.phase === 'map' && (

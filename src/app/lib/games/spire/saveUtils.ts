@@ -30,6 +30,7 @@ const RUN_SAVE_KEY = 'game_spire_run';
 
 export function serializeRun(state: GameState): string {
   return JSON.stringify({
+    characterId: state.characterId,
     player: state.player,
     deck: state.deck.map(c => ({ defId: c.def.id, instanceId: c.instanceId, upgraded: c.upgraded })),
     relicIds: state.relics.map(r => r.id),
@@ -63,6 +64,7 @@ export function deserializeRun(json: string): GameState | null {
       .filter(Boolean) as import('./types').RelicDef[];
 
     return {
+      characterId: data.characterId ?? 'warrior',
       phase: data.phase || 'map',
       player: data.player,
       battle: null,
@@ -82,7 +84,7 @@ export function deserializeRun(json: string): GameState | null {
 
 export function saveRunToLocal(state: GameState): void {
   if (typeof window === 'undefined') return;
-  if (state.phase === 'gameOver' || state.phase === 'victory') {
+  if (state.phase === 'gameOver' || state.phase === 'victory' || state.phase === 'charSelect') {
     localStorage.removeItem(RUN_SAVE_KEY);
     return;
   }

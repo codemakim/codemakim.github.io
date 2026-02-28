@@ -1,10 +1,12 @@
 'use client';
 
+import { useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import type { BattleState, PlayerState, VfxType } from '@/app/lib/games/spire/types';
 import type { GameAction } from '@/app/lib/games/spire/types';
 import CardComponent from './CardComponent';
 import { getPowerLabel } from '@/app/lib/games/spire/displayHelpers';
+import { getBuffValue } from '@/app/lib/games/spire/combat';
 
 interface Props {
   battle: BattleState;
@@ -18,6 +20,29 @@ interface Props {
 export default function HandArea({ battle, player, dispatch, onEndTurn, addVfx, onShowPile }: Props) {
   const { hand, selectedCardIndex, drawPile, discardPile, activePowers } = battle;
   const aliveEnemies = battle.enemies.filter(e => e.hp > 0);
+
+  const previewStats = {
+    strength: getBuffValue(player.buffs, 'strength'),
+    isWeak: getBuffValue(player.buffs, 'weak') > 0,
+    damageBonus: battle.pendingDamageBonus,
+  };
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [fadeLeft, setFadeLeft] = useState(false);
+  const [fadeRight, setFadeRight] = useState(false);
+
+  function handleScroll() {
+    const el = scrollRef.current;
+    if (!el) return;
+    setFadeLeft(el.scrollLeft > 4);
+    setFadeRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+  }
+
+  // 카드 목록이 바뀌면 오른쪽 fade 여부 재계산
+  function onScrollContainerRef(el: HTMLDivElement | null) {
+    (scrollRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+    if (el) setFadeRight(el.scrollWidth > el.clientWidth);
+  }
 
   function handleCardClick(idx: number) {
     const cardInst = hand[idx];
@@ -58,47 +83,71 @@ export default function HandArea({ battle, player, dispatch, onEndTurn, addVfx, 
 
   return (
     <div className="flex flex-col gap-2">
-      {/* 파워 카드 표시 */}
-      {activePowers.length > 0 && (
+      {/* 파워 카드 + 공격 강화 상태 */}
+      {(activePowers.length > 0 || battle.pendingDamageBonus > 0) && (
         <div className="flex gap-2 justify-center flex-wrap px-2">
           {activePowers.map((pid, i) => (
             <span key={i} className="text-xs bg-purple-900/60 border border-purple-500/40 text-purple-200 px-2 py-0.5 rounded-full">
               🔮 {getPowerLabel(pid)}
             </span>
           ))}
+          {battle.pendingDamageBonus > 0 && (
+            <span className="text-xs bg-amber-900/60 border border-amber-500/40 text-amber-200 px-2 py-0.5 rounded-full">
+              ⚔️ 공격 강화 +{battle.pendingDamageBonus}
+            </span>
+          )}
         </div>
       )}
 
-      {/* 손패 */}
-      {/* 5장 이상(md 80px × 5 = 400px)은 모바일에서 넘치므로 sm으로 축소 */}
-      <div className="flex items-end justify-center h-[108px] px-2 py-2 gap-1">
-        <AnimatePresence initial={false}>
-          {hand.map((cardInst, idx) => {
-            const card = cardInst.def;
-            const cost = card.cost === -1 ? player.energy : card.cost;
-            const canPlay = card.type !== 'curse' && player.energy >= cost;
-            return (
-              <motion.div
-                key={cardInst.instanceId}
-                initial={{ opacity: 0, y: 20, scale: 0.85 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 16, scale: 0.8 }}
-                transition={{ type: 'spring', damping: 20, stiffness: 300, duration: 0.3 }}
-              >
-                <CardComponent
-                  card={card}
-                  disabled={!canPlay}
-                  selected={selectedCardIndex === idx}
-                  onClick={() => handleCardClick(idx)}
-                  size="sm"
-                />
-              </motion.div>
-            );
-          })}
-        </AnimatePresence>
-        {hand.length === 0 && (
-          <div className="text-zinc-500 text-sm">손패가 없다</div>
+      {/* 손패 — 수평 스크롤 */}
+      <div className="relative">
+        {/* 왼쪽 fade 힌트 */}
+        {fadeLeft && (
+          <div className="absolute left-0 top-0 h-full w-8 bg-gradient-to-r from-zinc-900 to-transparent z-10 pointer-events-none" />
         )}
+        {/* 오른쪽 fade 힌트 */}
+        {fadeRight && (
+          <div className="absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-zinc-900 to-transparent z-10 pointer-events-none" />
+        )}
+
+        {/* 카드가 적으면 중앙 정렬, 많으면 스크롤 */}
+        <div className="flex justify-center overflow-hidden">
+          <div
+            ref={onScrollContainerRef}
+            onScroll={handleScroll}
+            className="overflow-x-auto flex items-end gap-1 px-3 py-2 h-[116px] [&::-webkit-scrollbar]:hidden"
+            style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
+          >
+            <AnimatePresence initial={false}>
+              {hand.map((cardInst, idx) => {
+                const card = cardInst.def;
+                const cost = card.cost === -1 ? player.energy : card.cost;
+                const canPlay = card.type !== 'curse' && player.energy >= cost;
+                return (
+                  <motion.div
+                    key={cardInst.instanceId}
+                    initial={{ opacity: 0, y: 20, scale: 0.85 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 16, scale: 0.8 }}
+                    transition={{ type: 'spring', damping: 20, stiffness: 300, duration: 0.3 }}
+                  >
+                    <CardComponent
+                      card={card}
+                      disabled={!canPlay}
+                      selected={selectedCardIndex === idx}
+                      onClick={() => handleCardClick(idx)}
+                      size="sm"
+                      previewStats={previewStats}
+                    />
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+            {hand.length === 0 && (
+              <div className="text-zinc-500 text-sm self-center">손패가 없다</div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* 하단 정보 */}

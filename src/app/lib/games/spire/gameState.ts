@@ -2,9 +2,9 @@
 
 import { useReducer } from 'react';
 import type { GameState, GameAction, MapNode } from './types';
-import { createStarterDeck, makeInstance } from './cards';
-import { BURNING_BLOOD } from './relics';
+import { makeInstance } from './cards';
 import { generateMap, makeNextNodesAvailable } from './mapGen';
+import { ALL_CHARACTERS } from './characters';
 import { applyCard, initBattle, processEnemyTurn } from './battleLogic';
 import { generateRewards, checkRewardsDone } from './rewardLogic';
 
@@ -14,18 +14,16 @@ export { loadSave, serializeRun, deserializeRun, saveRunToLocal, loadRunFromLoca
 // ===== 초기 상태 =====
 
 function createInitialState(): GameState {
-  const map = generateMap();
-  const deck = createStarterDeck().map(def => makeInstance(def));
-
   return {
-    phase: 'map',
-    player: { hp: 80, maxHp: 80, block: 0, energy: 3, maxEnergy: 3, buffs: [] },
+    characterId: '',
+    phase: 'charSelect',
+    player: { hp: 0, maxHp: 0, block: 0, energy: 0, maxEnergy: 0, buffs: [] },
     battle: null,
-    map,
+    map: { acts: [] },
     currentAct: 0,
     currentNodeId: '',
-    deck,
-    relics: [BURNING_BLOOD],
+    deck: [],
+    relics: [],
     gold: 0,
     score: 0,
     pendingRewards: null,
@@ -169,6 +167,36 @@ function reducer(state: GameState, action: GameAction): GameState {
     case 'CLEAR_EFFECTS': {
       if (!state.battle) return state;
       return { ...state, battle: { ...state.battle, pendingEffects: [] } };
+    }
+
+    case 'LOAD_RUN': {
+      return action.savedState;
+    }
+
+    case 'SELECT_CHARACTER': {
+      const charDef = ALL_CHARACTERS.find(c => c.id === action.characterId);
+      if (!charDef) return state;
+      return {
+        characterId: charDef.id,
+        phase: 'map',
+        player: {
+          hp: charDef.startingHp,
+          maxHp: charDef.startingHp,
+          block: 0,
+          energy: charDef.startingEnergy,
+          maxEnergy: charDef.startingEnergy,
+          buffs: [],
+        },
+        battle: null,
+        map: generateMap(),
+        currentAct: 0,
+        currentNodeId: '',
+        deck: charDef.startingDeck.map(def => makeInstance(def)),
+        relics: [charDef.startingRelic],
+        gold: 0,
+        score: 0,
+        pendingRewards: null,
+      };
     }
 
     case 'RESTART': {

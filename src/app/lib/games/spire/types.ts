@@ -168,8 +168,29 @@ export interface GameMap {
   acts: ActMap[];
 }
 
+// ===== 캐릭터 =====
+export interface CharacterPassive {
+  id: string;
+  description: string;
+  // 훅 구현은 추후 — 지금은 설명 표시용
+}
+
+export interface CharacterDef {
+  id: string;
+  name: string;
+  emoji: string;
+  description: string;
+  startingHp: number;
+  startingEnergy: number;
+  startingDeck: CardDef[];
+  startingRelic: RelicDef;
+  characterCards: CardDef[];     // 런 중 보상 카드 풀에 혼합
+  characterRelics: RelicDef[];   // 런 중 유물 풀에 혼합
+  passive?: CharacterPassive;
+}
+
 // ===== 게임 상태 =====
-export type GamePhase = 'map' | 'battle' | 'reward' | 'rest' | 'gameOver' | 'victory';
+export type GamePhase = 'charSelect' | 'map' | 'battle' | 'reward' | 'rest' | 'gameOver' | 'victory';
 
 export interface PendingRewards {
   cardChoices: CardDef[];
@@ -182,6 +203,7 @@ export interface PendingRewards {
 }
 
 export interface GameState {
+  characterId: string;
   phase: GamePhase;
   player: PlayerState;
   battle: BattleState | null;
@@ -211,7 +233,9 @@ export type GameAction =
   | { type: 'REST_REMOVE_CARD'; cardIndex: number }
   | { type: 'CONFIRM_BATTLE_END' }
   | { type: 'CLEAR_EFFECTS' }
-  | { type: 'RESTART' };
+  | { type: 'RESTART' }
+  | { type: 'SELECT_CHARACTER'; characterId: string }
+  | { type: 'LOAD_RUN'; savedState: GameState };
 
 // ===== 전투 이펙트 (교체 가능한 구조) =====
 export interface BattleEffect {
@@ -233,6 +257,7 @@ export interface SpireSaveData {
 
 // ===== 중간 저장 (직렬화 가능 구조) =====
 export interface SpireRunSave {
+  characterId: string;
   player: PlayerState;
   deck: Array<{ defId: string; instanceId: string; upgraded: boolean }>;
   relicIds: string[];

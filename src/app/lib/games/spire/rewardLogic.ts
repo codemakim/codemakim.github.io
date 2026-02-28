@@ -1,13 +1,15 @@
 import type { GameState, PendingRewards, MapNode, CardDef } from './types';
 import { REWARD_CARD_POOL } from './cards';
 import { TREASURE_RELICS, ELITE_RELICS, BOSS_RELICS } from './relics';
+import { ALL_CHARACTERS } from './characters';
 import { pickRandom, randInt } from './combat';
 import { updateSave } from './saveUtils';
 
 // ===== 카드 선택지 생성 =====
 
-export function generateCardChoices(): CardDef[] {
-  const pool = [...REWARD_CARD_POOL];
+export function generateCardChoices(characterId: string): CardDef[] {
+  const charDef = ALL_CHARACTERS.find(c => c.id === characterId);
+  const pool = [...REWARD_CARD_POOL, ...(charDef?.characterCards ?? [])];
   const picks: CardDef[] = [];
   for (let i = 0; i < 3 && pool.length > 0; i++) {
     const idx = Math.floor(Math.random() * pool.length);
@@ -24,14 +26,16 @@ export function generateRewards(state: GameState, node: MapNode): PendingRewards
   const hasAncientCoin = state.relics.some(r => r.id === 'ancient_coin');
   const goldBonus = hasAncientCoin ? 25 : 0;
 
+  const charRelics = ALL_CHARACTERS.find(c => c.id === state.characterId)?.characterRelics ?? [];
+
   if (nodeType === 'boss') {
-    const relicPool = BOSS_RELICS.filter(r => !state.relics.some(pr => pr.id === r.id));
+    const relicPool = [...BOSS_RELICS, ...charRelics].filter(r => !state.relics.some(pr => pr.id === r.id));
     const relic = relicPool.length > 0 ? pickRandom(relicPool) : null;
     return { cardChoices: [], gold: 0, relic, cardCollected: true, goldCollected: true, relicCollected: relic === null, isBossReward: true };
   }
 
   if (nodeType === 'treasure') {
-    const relicPool = TREASURE_RELICS.filter(r => !state.relics.some(pr => pr.id === r.id));
+    const relicPool = [...TREASURE_RELICS, ...charRelics].filter(r => !state.relics.some(pr => pr.id === r.id));
     const relic = relicPool.length > 0 ? pickRandom(relicPool) : null;
     return { cardChoices: [], gold: 0, relic, cardCollected: true, goldCollected: true, relicCollected: relic === null, isBossReward: false };
   }
@@ -41,11 +45,11 @@ export function generateRewards(state: GameState, node: MapNode): PendingRewards
   const totalMaxHp = enemies.reduce((sum, e) => sum + e.maxHp, 0);
   const difficultyBonus = Math.floor(totalMaxHp / 8);
   const gold = randInt(isElite ? 30 : 15, isElite ? 50 : 25) + difficultyBonus + goldBonus;
-  const relicPool = isElite ? ELITE_RELICS.filter(r => !state.relics.some(pr => pr.id === r.id)) : [];
+  const relicPool = isElite ? [...ELITE_RELICS, ...charRelics].filter(r => !state.relics.some(pr => pr.id === r.id)) : [];
   const relic = isElite && relicPool.length > 0 ? pickRandom(relicPool) : null;
 
   return {
-    cardChoices: generateCardChoices(),
+    cardChoices: generateCardChoices(state.characterId),
     gold,
     relic,
     cardCollected: false,
