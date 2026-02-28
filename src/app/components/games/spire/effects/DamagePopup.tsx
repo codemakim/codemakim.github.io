@@ -1,3 +1,20 @@
+/**
+ * @file DamagePopup.tsx
+ * @description 전투 숫자 팝업 컴포넌트
+ *
+ * 역할:
+ *   BattleEffect[] 배열을 받아 각 이펙트를 독립 <Popup>으로 렌더링.
+ *   연타 카드는 타격마다 독립 BattleEffect를 생성하므로
+ *   각 숫자가 수직(y: -85px easeOut) + 수평(xOffset: ±14px 랜덤) 분산으로
+ *   시간차를 두고 올라오며 겹침 없이 표시된다.
+ *
+ * 애니메이션 파라미터:
+ *   - duration: 1.3s
+ *   - opacity keyframes: [0, 0.07, 0.5, 1] (빠른 등장 → 유지 → 서서히 페이드)
+ *   - scale: spring (damping 10, stiffness 300) — 15 이상 피해 시 1.3배 강조
+ *
+ * 표시 타입: damage(빨강 -N) / block(파랑 🛡️N) / heal(초록 +N) / miss(회색 MISS)
+ */
 'use client';
 
 import { useState } from 'react';

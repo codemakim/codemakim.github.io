@@ -1,3 +1,21 @@
+/**
+ * @file EffectLayer.tsx
+ * @description 전투 이펙트 상태 관리 및 렌더링 컴포넌트
+ *
+ * 이펙트 흐름 (소비 측):
+ *   BattleScene.tsx → useEffect로 pendingEffects[] 순회
+ *   → addEffect(type, value, target, vfx, dir)  : 숫자 팝업 + VFX 동시 표시
+ *   → addVfx(vfx, target, dir)                  : VFX만 표시 (카드 사용 연출)
+ *
+ * 렌더링 구조:
+ *   useEffects()      — BattleEffect[] + VfxInstance[] 상태 + add* 콜백 반환
+ *   VfxRenderer       — 특정 target(player | enemyIdx)의 VFX 애니메이션 렌더링
+ *   PopupRenderer     — 특정 target의 숫자 팝업(DamagePopup) 렌더링
+ *
+ * VFX TTL:
+ *   magic/buff: 900ms / shield: 700ms / heal: 1100ms / poison: 800ms / 기타: 600ms
+ *   BattleEffect(숫자 팝업) TTL: 1600ms (EFFECT_TTL)
+ */
 'use client';
 
 import { useState, useCallback } from 'react';

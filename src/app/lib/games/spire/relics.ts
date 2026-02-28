@@ -10,9 +10,9 @@ export const BURNING_BLOOD: RelicDef = {
 
 export const TOUGH_BOOTS: RelicDef = {
   id: 'tough_boots',
-  name: '단단한 부츠',
+  name: '쐐기촉',
   description: '공격이 방어에 막혀도 최소 1의 피해를 준다',
-  emoji: '🥾',
+  emoji: '🗡️',
   effect: { type: 'passive', stat: 'minDamage', value: 1 },
 };
 

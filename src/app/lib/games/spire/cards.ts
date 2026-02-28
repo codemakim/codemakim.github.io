@@ -107,11 +107,11 @@ export const IRON_WALL: CardDef = {
 };
 
 export const BLOODLESS_DEFENSE: CardDef = {
-  id: 'bloodless_defense', name: '무혈 수비', type: 'skill', cost: 1,
-  description: '8 방어\nHP 3 잃음',
+  id: 'bloodless_defense', name: '위치 사수', type: 'skill', cost: 0,
+  description: '9 방어\nHP 2 잃음',
   effects: [
-    { type: 'block', value: 8 },
-    { type: 'heal', value: -3 },
+    { type: 'block', value: 9 },
+    { type: 'heal', value: -2 },
   ],
   vfx: 'shield',
 };

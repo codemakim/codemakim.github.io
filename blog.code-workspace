@@ -1,15 +1,12 @@
 {
-	"folders": [
-		{
-			"path": "."
-		},
-		{
-			"path": "../../doit_everyday"
-		}
-	],
-	"settings": {
-		"files.associations": {
-			"*.mdx": "markdown"
-		}
-	}
+  "folders": [
+    {
+      "path": ".",
+    },
+  ],
+  "settings": {
+    "files.associations": {
+      "*.mdx": "markdown",
+    },
+  },
 }
