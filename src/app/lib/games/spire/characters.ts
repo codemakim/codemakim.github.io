@@ -9,7 +9,7 @@
  */
 
 import type { CharacterDef } from './types';
-import { STRIKE, DEFEND, BASH } from './cards';
+import { SLASH, GUARD, ASSAULT } from './cards';
 import { BURNING_BLOOD } from './relics';
 
 // ===== 전사 =====
@@ -22,9 +22,9 @@ const WARRIOR: CharacterDef = {
   startingHp: 80,
   startingEnergy: 3,
   startingDeck: [
-    STRIKE, STRIKE, STRIKE, STRIKE,
-    DEFEND, DEFEND, DEFEND,
-    BASH,
+    SLASH, SLASH, SLASH, SLASH,
+    GUARD, GUARD, GUARD,
+    ASSAULT,
   ],
   startingRelic: BURNING_BLOOD,
   characterCards: [],   // 추후 추가

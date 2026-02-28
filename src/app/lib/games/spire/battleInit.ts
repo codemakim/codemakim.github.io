@@ -75,7 +75,7 @@ export function initBattle(state: GameState, node: MapNode): GameState {
   }
 
   // PAIN 체크
-  const painCount = battle.hand.filter(c => c.def.id === 'pain').length;
+  const painCount = battle.hand.filter(c => c.def.id === 'wound').length;
   if (painCount > 0) player = { ...player, hp: Math.max(1, player.hp - painCount) };
 
   return {

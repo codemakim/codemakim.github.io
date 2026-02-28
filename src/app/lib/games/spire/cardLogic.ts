@@ -60,7 +60,7 @@ export function applyCard(state: GameState, cardIndex: number, targetIndex: numb
         const strength = getBuffValue(player.buffs, 'strength');
         const isWeak = getBuffValue(player.buffs, 'weak') > 0;
         const targets = effect.target === 'all' ? enemies.map((_, i) => i) : [targetIndex];
-        const hits = card.id === 'whirlwind' ? xValue : (effect.hits ?? 1);
+        const hits = card.id === 'onslaught' ? xValue : (effect.hits ?? 1);
         const hasToughBoots = state.relics.some(r => r.id === 'tough_boots');
         // 힘·보너스 효과는 타격마다 독립 적용 → 연타일수록 배증
         const hitBonus = card.type === 'attack' ? pendingDamageBonus : 0;
@@ -72,7 +72,7 @@ export function applyCard(state: GameState, cardIndex: number, targetIndex: numb
             if (!e || e.hp <= 0) continue;
             const isVulnerable = getBuffValue(e.buffs, 'vulnerable') > 0;
             let baseDmg = effect.value;
-            if (card.id === 'execute' && e.hp <= e.maxHp * 0.5) baseDmg = 25;
+            if (card.id === 'verdict' && e.hp <= e.maxHp * 0.5) baseDmg = 25;
             if (hitBonus > 0) baseDmg += hitBonus; // 모든 타격에 적용
             const dmg = calcDamage(baseDmg, strength, isWeak, isVulnerable);
             let eBlock = e.block, eHp = e.hp;
@@ -142,7 +142,7 @@ export function applyCard(state: GameState, cardIndex: number, targetIndex: numb
     }
   }
 
-  if (card.id === 'counter_stance') pendingDamageBonus = 3;
+  if (card.id === 'ready_stance') pendingDamageBonus = 3;
 
   if (card.type === 'power') {
     exhaustPile.push(cardInst);

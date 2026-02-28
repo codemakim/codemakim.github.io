@@ -48,7 +48,7 @@ export interface CardPreviewStats {
 export function getCardPreviewDesc(card: CardDef, stats: CardPreviewStats): string {
   // effects 없거나 특수 케이스 → 원본 유지
   if (card.effects.length === 0) return card.description;
-  const KEEP_ORIGINAL = ['execute', 'counter_stance', 'pain'];
+  const KEEP_ORIGINAL = ['verdict', 'ready_stance', 'wound'];
   if (KEEP_ORIGINAL.includes(card.id)) return card.description;
 
   const BUFF_NAMES: Record<string, string> = {
@@ -64,7 +64,7 @@ export function getCardPreviewDesc(card: CardDef, stats: CardPreviewStats): stri
       case 'damage': {
         const base = effect.value + (card.type === 'attack' ? stats.damageBonus : 0);
         const dmg = calcDamage(base, stats.strength, stats.isWeak, false);
-        if (card.id === 'whirlwind') {
+        if (card.id === 'onslaught') {
           parts.push(`에너지 1당\n전체에 ${dmg} 데미지`);
         } else if (effect.hits && effect.hits > 1) {
           const prefix = effect.target === 'all' ? '적 전체에 ' : '';

@@ -198,8 +198,8 @@ export function processEnemyTurn(state: GameState): GameState {
 
   // 7. 파워 카드 효과
   const powers = state.battle.activePowers;
-  if (powers.includes('iron_will')) player = { ...player, block: player.block + 3 };
-  if (powers.includes('berserker')) player = { ...player, buffs: addBuff(player.buffs, 'strength', 1) };
+  if (powers.includes('endurance')) player = { ...player, block: player.block + 3 };
+  if (powers.includes('bloodlust')) player = { ...player, buffs: addBuff(player.buffs, 'strength', 1) };
 
   // 8. 카드 드로우
   const discardPile = [...state.battle.discardPile, ...state.battle.hand];
@@ -211,7 +211,7 @@ export function processEnemyTurn(state: GameState): GameState {
   newBattle = drawCards(newBattle, 5);
 
   // 9. PAIN 저주 체크
-  const painCount = newBattle.hand.filter(c => c.def.id === 'pain').length;
+  const painCount = newBattle.hand.filter(c => c.def.id === 'wound').length;
   if (painCount > 0) {
     player = { ...player, hp: player.hp - painCount };
     if (player.hp <= 0) {
