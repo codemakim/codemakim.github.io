@@ -24,16 +24,14 @@ export default function SeriesFilter({
 }: SeriesFilterProps) {
   return (
     <div className="card p-6 mb-8">
-      <h2 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">
+      <h2 className="text-lg font-black mb-4" style={{ color: "var(--text-primary)" }}>
         시리즈로 필터링
       </h2>
 
       <div className="flex flex-wrap gap-2">
         <button
           onClick={() => onSeriesSelect(null)}
-          className={`tag rounded-full cursor-pointer ${
-            selectedSeries === null ? "tag-active" : ""
-          }`}
+          className={`tag cursor-pointer ${selectedSeries === null ? "tag-active" : ""}`}
         >
           전체 <span className="ml-1 text-xs opacity-70">({totalCount})</span>
         </button>
@@ -42,9 +40,7 @@ export default function SeriesFilter({
           <button
             key={s.name}
             onClick={() => onSeriesSelect(s.name)}
-            className={`tag rounded-full cursor-pointer ${
-              selectedSeries === s.name ? "tag-active" : ""
-            }`}
+            className={`tag cursor-pointer ${selectedSeries === s.name ? "tag-active" : ""}`}
           >
             {s.name} <span className="ml-1 text-xs opacity-70">({s.count})</span>
           </button>
@@ -52,28 +48,24 @@ export default function SeriesFilter({
       </div>
 
       {selectedSeries && (
-        <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-[#2A2A2A]">
-          <p className="text-sm text-zinc-700 dark:text-[#A0A0A0]">
-            <span className="font-medium text-zinc-900 dark:text-white">
+        <div className="mt-4 pt-4" style={{ borderTop: "var(--nb-border)" }}>
+          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+            <span className="font-bold" style={{ color: "var(--text-primary)" }}>
               [{selectedSeries}]
             </span>{" "}
             시리즈의 포스트{" "}
-            <span className="font-medium">
+            <span className="font-bold">
               ({series.find((s) => s.name === selectedSeries)?.count || 0}개)
             </span>
           </p>
 
-          {/* 학습 현황 + 초기화 (localStorage 기반) */}
           <SeriesStudyStatus
             seriesName={selectedSeries}
             postPaths={seriesPostsMap[selectedSeries] || []}
             className="mt-3"
           />
 
-          <button
-            onClick={() => onSeriesSelect(null)}
-            className="link mt-2 text-sm hover:underline"
-          >
+          <button onClick={() => onSeriesSelect(null)} className="link mt-2 text-sm hover:underline">
             ✕ 필터 해제
           </button>
         </div>
@@ -81,4 +73,3 @@ export default function SeriesFilter({
     </div>
   );
 }
-
