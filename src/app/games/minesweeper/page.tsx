@@ -16,14 +16,14 @@ const CONFIGS: Record<Difficulty, { rows: number; cols: number; mines: number; l
 };
 
 const NUMBER_COLORS: Record<number, string> = {
-  1: 'text-blue-600 dark:text-blue-400',
-  2: 'text-green-600 dark:text-green-400',
-  3: 'text-red-600 dark:text-red-400',
-  4: 'text-purple-700 dark:text-purple-400',
-  5: 'text-amber-700 dark:text-amber-400',
-  6: 'text-teal-600 dark:text-teal-400',
-  7: 'text-zinc-900 dark:text-zinc-100',
-  8: 'text-zinc-500 dark:text-zinc-400',
+  1: 'text-blue-600',
+  2: 'text-green-600',
+  3: 'text-red-600',
+  4: 'text-purple-700',
+  5: 'text-amber-700',
+  6: 'text-teal-600',
+  7: 'text-zinc-900',
+  8: 'text-zinc-500',
 };
 
 interface Cell {
@@ -226,15 +226,15 @@ export default function MinesweeperGame() {
             onClick={() => handleDifficultyChange(key)}
             className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
               difficulty === key
-                ? 'bg-zinc-800 dark:bg-white text-white dark:text-zinc-900 border-transparent'
-                : 'border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400'
+                ? 'bg-zinc-800 text-white border-transparent'
+                : 'border-zinc-200 text-zinc-600 hover:border-zinc-400'
             }`}
           >
             {cfg.label}
           </button>
         ))}
       </div>
-      <div className="flex gap-4 text-sm text-zinc-600 dark:text-zinc-400">
+      <div className="flex gap-4 text-sm text-zinc-600">
         <span>💣 {mines - flagCount}</span>
         <span>⏱ {time}초</span>
       </div>
@@ -266,9 +266,9 @@ export default function MinesweeperGame() {
                 style={{ width: cellSize, height: cellSize, fontSize: Math.max(8, cellSize - 10) }}
                 className={`flex items-center justify-center font-bold rounded-sm border transition-colors select-none ${
                   cell.revealed
-                    ? 'bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700'
-                    : 'bg-zinc-200 dark:bg-zinc-600 border-zinc-300 dark:border-zinc-500 active:bg-zinc-300 dark:active:bg-zinc-500'
-                } ${cell.mine && cell.revealed ? 'bg-red-100 dark:bg-red-900/40' : ''}`}
+                    ? 'bg-zinc-50 border-zinc-200'
+                    : 'bg-zinc-200 border-zinc-300 active:bg-zinc-300'
+                } ${cell.mine && cell.revealed ? 'bg-red-100' : ''}`}
                 onClick={() => handleReveal(r, c)}
                 onContextMenu={(e) => handleFlag(e, r, c)}
                 onTouchStart={() => startLongPress(r, c)}
@@ -286,7 +286,7 @@ export default function MinesweeperGame() {
           )}
         </div>
       </div>
-      <p className="text-center text-xs text-zinc-400 dark:text-zinc-600 mt-4">
+      <p className="text-center text-xs text-zinc-400 mt-4">
         클릭=열기 · 우클릭(또는 롱프레스)=깃발
       </p>
     </GameLayout>

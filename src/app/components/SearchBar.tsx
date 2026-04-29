@@ -42,7 +42,7 @@ export default function SearchBar({
           {/* 검색 아이콘 또는 로딩 스피너 */}
           {isSearching ? (
             <svg
-              className="w-5 h-5 text-zinc-500 dark:text-zinc-400 animate-spin"
+              className="w-5 h-5 text-zinc-500  animate-spin"
               fill="none"
               viewBox="0 0 24 24"
             >
@@ -62,7 +62,7 @@ export default function SearchBar({
             </svg>
           ) : (
           <svg
-              className="w-5 h-5 text-zinc-400 dark:text-zinc-500 group-focus-within:text-zinc-600 dark:group-focus-within:text-zinc-300 transition-colors"
+              className="w-5 h-5 text-zinc-400  group-focus-within:text-zinc-600  transition-colors"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -84,8 +84,8 @@ export default function SearchBar({
             placeholder={PLACEHOLDER_TEXTS[placeholderIndex]}
             className="
               flex-1 bg-transparent outline-none
-              text-zinc-900 dark:text-white
-              placeholder-zinc-400 dark:placeholder-zinc-500
+              text-zinc-900 
+              placeholder-zinc-400 
               text-sm
             "
           />
@@ -93,7 +93,7 @@ export default function SearchBar({
           {/* 검색 결과 카운트 */}
           {searchQuery && (
             <div className="flex items-center gap-2">
-              <span className="text-sm text-zinc-600 dark:text-zinc-400">
+              <span className="text-sm text-zinc-600 ">
                 {resultsCount}개 / {totalCount}개
               </span>
               

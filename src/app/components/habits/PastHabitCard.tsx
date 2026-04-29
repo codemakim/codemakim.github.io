@@ -73,47 +73,47 @@ export default function PastHabitCard({ habit }: PastHabitCardProps) {
     >
       {isCompletedHabit && (
         <div className="mb-1">
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-zinc-100 text-zinc-700  ">
             완료
           </span>
         </div>
       )}
-      <h3 className="font-bold text-lg mb-2 text-zinc-900 dark:text-white line-clamp-2">
+      <h3 className="font-bold text-lg mb-2 text-zinc-900  line-clamp-2">
         {habit.title}
       </h3>
       {habit.description && (
-        <p className="text-sm text-zinc-600 dark:text-zinc-400 line-clamp-2 mb-3">
+        <p className="text-sm text-zinc-600  line-clamp-2 mb-3">
           {habit.description}
         </p>
       )}
       {loading ? (
-        <div className="text-xs text-zinc-500 dark:text-zinc-500">
+        <div className="text-xs text-zinc-500 ">
           통계 계산 중...
         </div>
       ) : stats ? (
         <div className="space-y-1">
           {/* 달성률 | 최대 연속 */}
           <div className="flex items-center gap-3 text-sm">
-            <span className="text-zinc-900 dark:text-white font-medium">
+            <span className="text-zinc-900  font-medium">
               달성률: {stats.completionRate}%
             </span>
-            <span className="text-zinc-600 dark:text-zinc-400">|</span>
-            <span className="text-zinc-600 dark:text-zinc-400">
+            <span className="text-zinc-600 ">|</span>
+            <span className="text-zinc-600 ">
               최대 연속: {stats.maxStreak}일
             </span>
           </div>
           {/* 완료 일수 / 총 일수 */}
-          <div className="text-xs text-zinc-500 dark:text-zinc-500">
+          <div className="text-xs text-zinc-500 ">
             {stats.completedDays}일 / {stats.totalDays}일 완료
           </div>
           {/* 기간 */}
-          <div className="text-xs text-zinc-500 dark:text-zinc-500">
+          <div className="text-xs text-zinc-500 ">
             {formatDateKorean(habit.start_date)} ~{" "}
             {formatDateKorean(habit.end_date)}
           </div>
         </div>
       ) : (
-        <div className="text-xs text-zinc-500 dark:text-zinc-500">
+        <div className="text-xs text-zinc-500 ">
           {formatDateKorean(habit.start_date)} ~{" "}
           {formatDateKorean(habit.end_date)}
         </div>

@@ -231,12 +231,12 @@ export default function SnakeGame() {
             ref={canvasRef}
             width={canvasSize}
             height={canvasSize}
-            className="rounded-xl border border-zinc-200 dark:border-zinc-700 touch-none"
+            className="rounded-xl border border-zinc-200  touch-none"
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
           />
         )}
-        <p className="text-center text-xs text-zinc-400 dark:text-zinc-600">
+        <p className="text-center text-xs text-zinc-400 ">
           방향키(WASD) 또는 스와이프로 조작
         </p>
       </div>

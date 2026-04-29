@@ -54,7 +54,7 @@ export default function ReadToggleButton({
           pointer-events-none absolute ${dims.bubbleTop} left-1/2 -translate-x-1/2
           px-3 py-1 rounded-full text-xs whitespace-nowrap shadow-sm
           bg-zinc-900 text-white
-          dark:bg-zinc-50 dark:text-zinc-900
+           
           transition-transform duration-200
           ${isLocked ? "scale-95" : "scale-100"}
         `}
@@ -64,7 +64,7 @@ export default function ReadToggleButton({
         <div
           className={`
             absolute left-1/2 -bottom-1 w-2 h-2 -translate-x-1/2 rotate-45
-            bg-zinc-900 dark:bg-zinc-50
+            bg-zinc-900 
           `}
         />
       </div>
@@ -88,8 +88,8 @@ export default function ReadToggleButton({
           ${isLocked ? "cursor-not-allowed opacity-60" : "cursor-pointer"}
           ${
             isReadState
-              ? "bg-zinc-900 dark:bg-white border-zinc-900 dark:border-white shadow-lg scale-100"
-              : "bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700 hover:border-zinc-900 dark:hover:border-white hover:shadow-md hover:scale-105 active:scale-95"
+              ? "bg-zinc-900  border-zinc-900  shadow-lg scale-100"
+              : "bg-white  border-zinc-300  hover:border-zinc-900  hover:shadow-md hover:scale-105 active:scale-95"
           }
         `}
         aria-label={isReadState ? "읽음 취소" : "읽음 처리"}
@@ -98,7 +98,7 @@ export default function ReadToggleButton({
         {isReadState ? (
           <svg
             key={checkAnimKey}
-            className={`${dims.icon} text-white dark:text-zinc-900 animate-checkmark`}
+            className={`${dims.icon} text-white  animate-checkmark`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -117,7 +117,7 @@ export default function ReadToggleButton({
           </svg>
         ) : (
           <svg
-            className={`${dims.icon} text-zinc-600 dark:text-zinc-400`}
+            className={`${dims.icon} text-zinc-600 `}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"

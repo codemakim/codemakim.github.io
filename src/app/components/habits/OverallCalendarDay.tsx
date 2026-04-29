@@ -13,10 +13,10 @@ export default function OverallCalendarDay({ date, stats, isLoading }: OverallCa
   
   // 성공률에 따른 색상 결정
   const getColor = (successRate: number) => {
-    if (successRate === 100) return 'text-green-600 dark:text-green-400';
-    if (successRate >= 50) return 'text-yellow-600 dark:text-yellow-400';
-    if (successRate > 0) return 'text-orange-600 dark:text-orange-400';
-    return 'text-zinc-400 dark:text-zinc-600';
+    if (successRate === 100) return 'text-green-600 ';
+    if (successRate >= 50) return 'text-yellow-600 ';
+    if (successRate > 0) return 'text-orange-600 ';
+    return 'text-zinc-400 ';
   };
 
   // 원형 차트를 위한 stroke-dasharray 계산
@@ -30,8 +30,8 @@ export default function OverallCalendarDay({ date, stats, isLoading }: OverallCa
         className={`
           text-xs font-medium mb-1 flex-shrink-0
           ${isToday
-            ? 'text-zinc-900 dark:text-white font-bold'
-            : 'text-zinc-600 dark:text-zinc-400'
+            ? 'text-zinc-900  font-bold'
+            : 'text-zinc-600 '
           }
         `}
       >
@@ -40,7 +40,7 @@ export default function OverallCalendarDay({ date, stats, isLoading }: OverallCa
       
       {/* 원형 파이차트 */}
       {isLoading ? (
-        <div className="w-6 h-6 flex-shrink-0 aspect-square rounded-full border-2 border-zinc-200 dark:border-zinc-800 opacity-30 animate-pulse"></div>
+        <div className="w-6 h-6 flex-shrink-0 aspect-square rounded-full border-2 border-zinc-200  opacity-30 animate-pulse"></div>
       ) : stats.totalHabits > 0 ? (
         <div className="relative w-8 h-6 flex-shrink-0 flex items-center justify-center">
           <svg className="w-6 h-6 transform -rotate-90 flex-shrink-0" viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet">
@@ -52,7 +52,7 @@ export default function OverallCalendarDay({ date, stats, isLoading }: OverallCa
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
-              className="text-zinc-300 dark:text-zinc-700"
+              className="text-zinc-300 "
             />
             {/* 성공률 원 */}
             <circle
@@ -76,8 +76,8 @@ export default function OverallCalendarDay({ date, stats, isLoading }: OverallCa
             <span
               className={`
                 text-xs font-bold leading-none whitespace-nowrap
-                text-zinc-900 dark:text-white
-                drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)] dark:drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]
+                text-zinc-900 
+                drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)] (0,0,0,0.8)]
               `}
             >
               {stats.successRate}%
@@ -85,7 +85,7 @@ export default function OverallCalendarDay({ date, stats, isLoading }: OverallCa
           </div>
         </div>
       ) : (
-        <div className="w-6 h-6 flex-shrink-0 aspect-square rounded-full border-2 border-zinc-200 dark:border-zinc-800 opacity-30"></div>
+        <div className="w-6 h-6 flex-shrink-0 aspect-square rounded-full border-2 border-zinc-200  opacity-30"></div>
       )}
     </div>
   );

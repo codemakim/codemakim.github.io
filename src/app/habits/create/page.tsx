@@ -107,7 +107,7 @@ function CreateHabitContent() {
   if (!mounted) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-zinc-600 dark:text-zinc-400">로딩 중...</div>
+        <div className="text-zinc-600">로딩 중...</div>
       </div>
     );
   }
@@ -128,7 +128,7 @@ function CreateHabitContent() {
           <h2 className="text-2xl font-bold mb-6">새 습관 만들기</h2>
           
           {error && (
-            <div className="mb-4 p-3 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded">
+            <div className="mb-4 p-3 bg-red-100 text-red-800 rounded">
               {error}
             </div>
           )}
@@ -148,14 +148,14 @@ function CreateHabitContent() {
                 placeholder="예: 물 2L 마시기"
                 className="input"
               />
-              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+              <p className="mt-1 text-xs text-zinc-500">
                 {title.length}/50자
               </p>
             </div>
 
             <div>
               <label htmlFor="description" className="block text-sm font-medium mb-2">
-                설명 <span className="text-xs text-zinc-500 dark:text-zinc-400">(선택사항)</span>
+                설명 <span className="text-xs text-zinc-500">(선택사항)</span>
               </label>
               <textarea
                 id="description"
@@ -166,7 +166,7 @@ function CreateHabitContent() {
                 placeholder="습관에 대한 추가 설명을 입력하세요 (예: 구체적인 목표나 방법)"
                 className="input resize-none"
               />
-              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+              <p className="mt-1 text-xs text-zinc-500">
                 {description.length}/200자
               </p>
             </div>
@@ -219,8 +219,8 @@ function CreateHabitContent() {
                       className={`
                         aspect-square rounded-lg border-2 transition-all
                         ${isSelected
-                          ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 border-zinc-900 dark:border-white'
-                          : 'bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-600'
+                          ? 'bg-zinc-900 text-white border-zinc-900'
+                          : 'bg-white text-zinc-700 border-zinc-300 hover:border-zinc-400'
                         }
                       `}
                       aria-label={`${WEEKDAY_LABELS[index]}요일 ${isSelected ? '선택됨' : '선택 안됨'}`}
@@ -250,8 +250,8 @@ function CreateHabitContent() {
                       className={`
                         aspect-square rounded-lg border-2 transition-all
                         ${isSelected
-                          ? 'border-zinc-900 dark:border-white scale-110'
-                          : 'border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-600'
+                          ? 'border-zinc-900 scale-110'
+                          : 'border-zinc-300 hover:border-zinc-400'
                         }
                       `}
                       style={{ backgroundColor: paletteColor }}
@@ -282,7 +282,7 @@ function CreateHabitContent() {
               <button
                 type="button"
                 onClick={() => router.back()}
-                className="flex-1 px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                className="flex-1 px-4 py-2 border border-zinc-300 rounded-lg bg-white text-zinc-700 hover:bg-zinc-50 transition-colors"
                 disabled={loading}
               >
                 취소

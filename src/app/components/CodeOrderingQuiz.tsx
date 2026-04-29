@@ -62,9 +62,9 @@ function SortableLine({ item }: { item: LineItem }) {
       className={`
         group relative w-full
         p-4 md:p-5 rounded-xl
-        bg-zinc-50 dark:bg-zinc-800
-        border border-zinc-200 dark:border-zinc-700
-        hover:bg-zinc-100 dark:hover:bg-zinc-700
+        bg-zinc-50 
+        border border-zinc-200 
+        hover:bg-zinc-100 
         active:scale-[0.98]
         transition-all duration-200
         select-none
@@ -72,7 +72,7 @@ function SortableLine({ item }: { item: LineItem }) {
       `}
     >
       {/* 코드 텍스트 - 전체 영역 드래그 가능, 텍스트 선택 불가 */}
-      <code className="block w-full text-sm md:text-base font-mono text-zinc-800 dark:text-zinc-200 whitespace-pre-wrap break-all select-none pointer-events-none">
+      <code className="block w-full text-sm md:text-base font-mono text-zinc-800  whitespace-pre-wrap break-all select-none pointer-events-none">
         {item.text}
       </code>
     </div>
@@ -136,12 +136,12 @@ export default function CodeOrderingQuiz({
     <div className="card p-6 my-8 space-y-4">
       {/* 헤더 */}
       {title && (
-        <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">
+        <h3 className="text-xl font-bold text-zinc-900  mb-2">
           {title}
         </h3>
       )}
       {description && (
-        <p className="text-sm text-zinc-600 dark:text-zinc-300 mb-4">
+        <p className="text-sm text-zinc-600  mb-4">
           {description}
         </p>
       )}
@@ -182,17 +182,17 @@ export default function CodeOrderingQuiz({
 
         {/* 결과 메시지 */}
         {result === "correct" && (
-          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700">
+          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-green-100  border border-green-300 ">
             <span className="text-2xl">✅</span>
-            <span className="text-sm font-medium text-green-700 dark:text-green-300">
+            <span className="text-sm font-medium text-green-700 ">
               정답입니다!
             </span>
           </div>
         )}
         {result === "wrong" && (
-          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700">
+          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-orange-100  border border-orange-300 ">
             <span className="text-2xl">❌</span>
-            <span className="text-sm font-medium text-orange-700 dark:text-orange-300">
+            <span className="text-sm font-medium text-orange-700 ">
               조금만 더 고민해볼까요?
             </span>
           </div>

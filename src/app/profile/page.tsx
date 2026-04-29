@@ -34,11 +34,11 @@ function ProfileContent() {
       <header className="header md:sticky md:top-0 z-50">
         <div className="max-w-4xl mx-auto px-4 py-6">
           <Link href="/" className="block hover:opacity-80 transition-opacity mb-2">
-            <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">
+            <h1 className="text-3xl font-bold text-zinc-900 ">
               그냥 블로그
             </h1>
           </Link>
-          <p className="text-zinc-600 dark:text-zinc-400">프로필</p>
+          <p className="text-zinc-600 ">프로필</p>
         </div>
       </header>
 
@@ -48,20 +48,20 @@ function ProfileContent() {
 
           <div className="space-y-4 mb-8">
             <div>
-              <label className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+              <label className="text-sm font-medium text-zinc-600 ">
                 이메일
               </label>
-              <p className="text-zinc-900 dark:text-white mt-1">
+              <p className="text-zinc-900  mt-1">
                 {user?.email}
               </p>
             </div>
 
             {user?.created_at && (
               <div>
-                <label className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                <label className="text-sm font-medium text-zinc-600 ">
                   가입일
                 </label>
-                <p className="text-zinc-900 dark:text-white mt-1">
+                <p className="text-zinc-900  mt-1">
                   {mounted
                     ? new Date(user.created_at).toLocaleDateString('ko-KR')
                     : new Date(user.created_at).toISOString().split('T')[0]
@@ -72,7 +72,7 @@ function ProfileContent() {
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded">
+            <div className="mb-4 p-3 bg-red-100  text-red-800  rounded">
               {error}
             </div>
           )}

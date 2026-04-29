@@ -38,7 +38,7 @@ export default function ThumbnailBlockDrop() {
             fill="none"
             stroke="currentColor"
             strokeWidth="0.3"
-            className="text-zinc-200 dark:text-zinc-700"
+            className="text-zinc-200 "
           />
         ))
       )}

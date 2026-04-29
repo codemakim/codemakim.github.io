@@ -19,13 +19,13 @@ export default function HabitsHeader({ viewMode, onToggleView }: HabitsHeaderPro
           {/* 토글 버튼 - 아이콘만 */}
           <button
             onClick={onToggleView}
-            className="tooltip-wrapper flex items-center justify-center w-10 h-10 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+            className="tooltip-wrapper flex items-center justify-center w-10 h-10 rounded-lg border border-zinc-300  bg-white  hover:bg-zinc-50  transition-colors"
             aria-label={viewMode === 'list' ? '달력 뷰로 전환' : '목록 뷰로 전환'}
             data-tooltip={viewMode === 'list' ? '달력 뷰로 전환' : '목록 뷰로 전환'}
           >
             {viewMode === 'list' ? (
               <svg
-                className="w-5 h-5 text-zinc-600 dark:text-zinc-400"
+                className="w-5 h-5 text-zinc-600 "
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -39,7 +39,7 @@ export default function HabitsHeader({ viewMode, onToggleView }: HabitsHeaderPro
               </svg>
             ) : (
               <svg
-                className="w-5 h-5 text-zinc-600 dark:text-zinc-400"
+                className="w-5 h-5 text-zinc-600 "
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -56,12 +56,12 @@ export default function HabitsHeader({ viewMode, onToggleView }: HabitsHeaderPro
           {/* 과거 습관 - 아이콘만 */}
           <Link
             href="/habits/archive"
-            className="tooltip-wrapper flex items-center justify-center w-10 h-10 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+            className="tooltip-wrapper flex items-center justify-center w-10 h-10 rounded-lg border border-zinc-300  bg-white  hover:bg-zinc-50  transition-colors"
             aria-label="과거 습관"
             data-tooltip="과거 습관"
           >
             <svg
-              className="w-5 h-5 text-zinc-600 dark:text-zinc-400"
+              className="w-5 h-5 text-zinc-600 "
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -77,7 +77,7 @@ export default function HabitsHeader({ viewMode, onToggleView }: HabitsHeaderPro
           {/* 습관 추가 - + 아이콘만 */}
           <Link
             href="/habits/create"
-            className="tooltip-wrapper flex items-center justify-center w-10 h-10 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors"
+            className="tooltip-wrapper flex items-center justify-center w-10 h-10 rounded-lg bg-zinc-900  text-white  hover:bg-zinc-800  transition-colors"
             aria-label="습관 추가"
             data-tooltip="습관 추가"
           >

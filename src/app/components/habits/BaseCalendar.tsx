@@ -65,11 +65,11 @@ export default function BaseCalendar({
       <div className="flex items-center justify-between mb-6">
         <button
           onClick={goToPreviousMonth}
-          className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+          className="p-2 rounded-lg hover:bg-zinc-100  transition-colors"
           aria-label="이전 달"
         >
           <svg
-            className="w-5 h-5 text-zinc-600 dark:text-zinc-400"
+            className="w-5 h-5 text-zinc-600 "
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -84,12 +84,12 @@ export default function BaseCalendar({
         </button>
         
         <div className="flex items-center gap-3">
-          <h3 className="text-lg font-bold text-zinc-900 dark:text-white">
+          <h3 className="text-lg font-bold text-zinc-900 ">
             {year}년 {month + 1}월
           </h3>
           <button
             onClick={goToToday}
-            className="text-sm px-3 py-1 rounded-lg border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-600 dark:text-zinc-400"
+            className="text-sm px-3 py-1 rounded-lg border border-zinc-300  hover:bg-zinc-100  transition-colors text-zinc-600 "
           >
             오늘
           </button>
@@ -97,11 +97,11 @@ export default function BaseCalendar({
         
         <button
           onClick={goToNextMonth}
-          className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+          className="p-2 rounded-lg hover:bg-zinc-100  transition-colors"
           aria-label="다음 달"
         >
           <svg
-            className="w-5 h-5 text-zinc-600 dark:text-zinc-400"
+            className="w-5 h-5 text-zinc-600 "
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -121,7 +121,7 @@ export default function BaseCalendar({
         {weekdayLabels.map((label, index) => (
           <div
             key={index}
-            className="text-center text-sm font-medium text-zinc-600 dark:text-zinc-400 py-2"
+            className="text-center text-sm font-medium text-zinc-600  py-2"
           >
             {label}
           </div>
@@ -137,7 +137,7 @@ export default function BaseCalendar({
               aspect-square flex items-center justify-center
               ${date === null
                 ? 'opacity-0 cursor-default'
-                : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer'
+                : 'hover:bg-zinc-100  rounded-lg transition-colors cursor-pointer'
               }
             `}
           >

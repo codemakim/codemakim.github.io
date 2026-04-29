@@ -25,7 +25,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   if (!mounted || loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-zinc-600 dark:text-zinc-400">로딩 중...</div>
+        <div className="text-zinc-600 ">로딩 중...</div>
       </div>
     );
   }

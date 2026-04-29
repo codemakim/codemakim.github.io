@@ -42,7 +42,7 @@ function ArchiveContent() {
   if (!mounted) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-zinc-600 dark:text-zinc-400">로딩 중...</div>
+        <div className="text-zinc-600">로딩 중...</div>
       </div>
     );
   }
@@ -64,11 +64,11 @@ function ArchiveContent() {
       <main className="max-w-4xl mx-auto px-4 py-8">
         {isLoading ? (
           <div className="card p-8 text-center">
-            <div className="text-zinc-600 dark:text-zinc-400">로딩 중...</div>
+            <div className="text-zinc-600">로딩 중...</div>
           </div>
         ) : !hasHabits ? (
           <div className="card p-8 text-center">
-            <p className="text-zinc-600 dark:text-zinc-400">
+            <p className="text-zinc-600">
               등록된 습관이 없습니다.
             </p>
           </div>

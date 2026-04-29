@@ -132,7 +132,7 @@ function EditHabitContent() {
   if (!mounted) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-zinc-600 dark:text-zinc-400">로딩 중...</div>
+        <div className="text-zinc-600">로딩 중...</div>
       </div>
     );
   }
@@ -143,7 +143,7 @@ function EditHabitContent() {
         <PageHeader subtitle="습관 수정" />
         <main className="max-w-4xl mx-auto px-4 py-8">
           <div className="card p-8 text-center">
-            <div className="text-zinc-600 dark:text-zinc-400">로딩 중...</div>
+            <div className="text-zinc-600">로딩 중...</div>
           </div>
         </main>
       </div>
@@ -156,7 +156,7 @@ function EditHabitContent() {
         <PageHeader subtitle="습관 수정" />
         <main className="max-w-4xl mx-auto px-4 py-8">
           <div className="card p-8">
-            <div className="text-red-600 dark:text-red-400 mb-4">{error}</div>
+            <div className="text-red-600 mb-4">{error}</div>
             <div className="flex gap-3">
               <button
                 onClick={loadHabit}
@@ -190,7 +190,7 @@ function EditHabitContent() {
           <h2 className="text-2xl font-bold mb-6">습관 수정</h2>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded">
+            <div className="mb-4 p-3 bg-red-100 text-red-800 rounded">
               {error}
             </div>
           )}
@@ -212,7 +212,7 @@ function EditHabitContent() {
                   placeholder="예: 물 2L 마시기"
                   className="input"
                 />
-                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                <p className="mt-1 text-xs text-zinc-500">
                   {title.length}/50자
                 </p>
               </div>
@@ -220,7 +220,7 @@ function EditHabitContent() {
               {/* 설명 */}
               <div>
                 <label htmlFor="description" className="block text-sm font-medium mb-2">
-                  설명 <span className="text-xs text-zinc-500 dark:text-zinc-400">(선택사항)</span>
+                  설명 <span className="text-xs text-zinc-500">(선택사항)</span>
                 </label>
                 <textarea
                   id="description"
@@ -231,7 +231,7 @@ function EditHabitContent() {
                   placeholder="습관에 대한 추가 설명을 입력하세요 (예: 구체적인 목표나 방법)"
                   className="input resize-none"
                 />
-                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                <p className="mt-1 text-xs text-zinc-500">
                   {description.length}/200자
                 </p>
               </div>
@@ -252,8 +252,8 @@ function EditHabitContent() {
                         className={`
                           aspect-square rounded-lg border-2 transition-all
                           ${isSelected
-                            ? 'border-zinc-900 dark:border-white scale-110'
-                            : 'border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-600'
+                            ? 'border-zinc-900 scale-110'
+                            : 'border-zinc-300 hover:border-zinc-400'
                           }
                         `}
                         style={{ backgroundColor: paletteColor }}
@@ -281,27 +281,27 @@ function EditHabitContent() {
               </div>
 
               {/* 읽기 전용 정보 */}
-              <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800">
-                <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+              <div className="pt-4 border-t border-zinc-200">
+                <p className="text-sm text-zinc-500 mb-4">
                   다음 항목은 데이터 무결성을 위해 수정할 수 없습니다:
                 </p>
                 <div className="space-y-3 text-sm">
                   <div className="flex items-center gap-2">
-                    <span className="text-zinc-500 dark:text-zinc-400">기간:</span>
-                    <span className="text-zinc-900 dark:text-white">
+                    <span className="text-zinc-500">기간:</span>
+                    <span className="text-zinc-900">
                       {formatDateKorean(habit.start_date)} ~ {formatDateKorean(habit.end_date)}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-zinc-500 dark:text-zinc-400">수행 요일:</span>
+                    <span className="text-zinc-500">수행 요일:</span>
                     <div className="flex gap-1">
                       {WEEKDAY_LABELS.map((label, index) => (
                         <span
                           key={index}
                           className={`px-2 py-1 rounded text-xs ${
                             habit.weekdays.includes(index)
-                              ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
-                              : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'
+                              ? 'bg-zinc-900 text-white'
+                              : 'bg-zinc-100 text-zinc-500'
                           }`}
                         >
                           {label}
@@ -317,7 +317,7 @@ function EditHabitContent() {
                 <button
                   type="button"
                   onClick={() => router.back()}
-                  className="flex-1 px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                  className="flex-1 px-4 py-2 border border-zinc-300 rounded-lg bg-white text-zinc-700 hover:bg-zinc-50 transition-colors"
                   disabled={saving}
                 >
                   취소

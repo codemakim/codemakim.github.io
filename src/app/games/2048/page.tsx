@@ -97,20 +97,20 @@ function hasWon(board: Board): boolean {
 
 function getTileClass(value: number): string {
   const classes: Record<number, string> = {
-    0:    'bg-zinc-100 dark:bg-zinc-800',
-    2:    'bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-white',
-    4:    'bg-zinc-300 dark:bg-zinc-600 text-zinc-900 dark:text-white',
-    8:    'bg-amber-200 dark:bg-amber-700 text-zinc-900 dark:text-white',
-    16:   'bg-amber-300 dark:bg-amber-600 text-zinc-900 dark:text-white',
-    32:   'bg-orange-300 dark:bg-orange-600 text-white',
-    64:   'bg-orange-400 dark:bg-orange-500 text-white',
-    128:  'bg-yellow-300 dark:bg-yellow-600 text-zinc-900 dark:text-white',
-    256:  'bg-yellow-400 dark:bg-yellow-500 text-zinc-900 dark:text-white',
-    512:  'bg-green-400 dark:bg-green-600 text-white',
-    1024: 'bg-blue-400 dark:bg-blue-600 text-white',
-    2048: 'bg-purple-500 dark:bg-purple-600 text-white',
+    0:    'bg-zinc-100 ',
+    2:    'bg-zinc-200  text-zinc-900 ',
+    4:    'bg-zinc-300  text-zinc-900 ',
+    8:    'bg-amber-200  text-zinc-900 ',
+    16:   'bg-amber-300  text-zinc-900 ',
+    32:   'bg-orange-300  text-white',
+    64:   'bg-orange-400  text-white',
+    128:  'bg-yellow-300  text-zinc-900 ',
+    256:  'bg-yellow-400  text-zinc-900 ',
+    512:  'bg-green-400  text-white',
+    1024: 'bg-blue-400  text-white',
+    2048: 'bg-purple-500  text-white',
   };
-  return classes[value] || 'bg-purple-600 dark:bg-purple-500 text-white';
+  return classes[value] || 'bg-purple-600  text-white';
 }
 
 function getTileTextSize(value: number): string {
@@ -222,9 +222,9 @@ export default function Game2048() {
     >
       {/* 게임 설명 */}
       <div className="card-content px-4 py-3 mb-4 max-w-[420px] mx-auto">
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+        <p className="text-xs text-zinc-500  leading-relaxed">
           방향키(또는 스와이프)로 모든 타일을 밀면, 같은 숫자끼리 합쳐진다.
-          합쳐질 때마다 점수가 올라가고, <strong className="text-zinc-700 dark:text-zinc-300">2048</strong> 타일을 만들면 승리한다.
+          합쳐질 때마다 점수가 올라가고, <strong className="text-zinc-700 ">2048</strong> 타일을 만들면 승리한다.
         </p>
       </div>
 
@@ -250,7 +250,7 @@ export default function Game2048() {
           ))
         )}
       </div>
-      <p className="text-center text-xs text-zinc-400 dark:text-zinc-600 mt-4">
+      <p className="text-center text-xs text-zinc-400  mt-4">
         방향키 또는 스와이프로 조작
       </p>
     </GameLayout>

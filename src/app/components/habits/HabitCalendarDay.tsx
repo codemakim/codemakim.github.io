@@ -24,8 +24,8 @@ export default function HabitCalendarDay({
         className={`
           text-xs font-medium mb-1 flex-shrink-0
           ${isToday
-            ? 'text-zinc-900 dark:text-white font-bold'
-            : 'text-zinc-600 dark:text-zinc-400'
+            ? 'text-zinc-900  font-bold'
+            : 'text-zinc-600 '
           }
         `}
       >
@@ -34,7 +34,7 @@ export default function HabitCalendarDay({
       
       {/* 상태 표시 */}
       {isLoading ? (
-        <div className="w-6 h-6 flex-shrink-0 aspect-square rounded-full border-2 border-zinc-200 dark:border-zinc-800 opacity-30 animate-pulse"></div>
+        <div className="w-6 h-6 flex-shrink-0 aspect-square rounded-full border-2 border-zinc-200  opacity-30 animate-pulse"></div>
       ) : status.shouldDo ? (
         // 수행해야 하는 날
         <div
@@ -63,7 +63,7 @@ export default function HabitCalendarDay({
         </div>
       ) : (
         // 수행하지 않는 날
-        <div className="w-6 h-6 flex-shrink-0 aspect-square rounded-full border-2 border-zinc-200 dark:border-zinc-800 opacity-30"></div>
+        <div className="w-6 h-6 flex-shrink-0 aspect-square rounded-full border-2 border-zinc-200  opacity-30"></div>
       )}
     </div>
   );

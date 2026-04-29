@@ -13,7 +13,7 @@ export default function ThumbnailSnake() {
             fill="none"
             stroke="currentColor"
             strokeWidth="0.5"
-            className="text-zinc-200 dark:text-zinc-700"
+            className="text-zinc-200 "
           />
         ))
       )}

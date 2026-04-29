@@ -133,8 +133,8 @@ export default function MemoryGame() {
           onClick={() => handleDifficultyChange(key)}
           className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
             difficulty === key
-              ? 'bg-zinc-800 dark:bg-white text-white dark:text-zinc-900 border-transparent'
-              : 'border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400'
+              ? 'bg-zinc-800  text-white  border-transparent'
+              : 'border-zinc-200  text-zinc-600  hover:border-zinc-400'
           }`}
         >
           {cfg.label}
@@ -153,7 +153,7 @@ export default function MemoryGame() {
       status={status === 'won' ? 'won' : undefined}
     >
       {/* 점수 레이블 오버라이드 표시 */}
-      <p className="text-xs text-zinc-400 dark:text-zinc-600 mb-3 text-center">
+      <p className="text-xs text-zinc-400  mb-3 text-center">
         시도 횟수: {attempts}회
       </p>
 
@@ -188,9 +188,9 @@ export default function MemoryGame() {
               {/* 뒷면 */}
               <div
                 style={{ backfaceVisibility: 'hidden', position: 'absolute', inset: 0 }}
-                className="rounded-xl bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center border border-zinc-300 dark:border-zinc-600"
+                className="rounded-xl bg-zinc-200  flex items-center justify-center border border-zinc-300 "
               >
-                <span className="text-zinc-400 dark:text-zinc-500 text-xl font-bold">?</span>
+                <span className="text-zinc-400  text-xl font-bold">?</span>
               </div>
               {/* 앞면 */}
               <div
@@ -202,8 +202,8 @@ export default function MemoryGame() {
                 }}
                 className={`rounded-xl flex items-center justify-center border ${
                   card.matched
-                    ? 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-700'
-                    : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-600'
+                    ? 'bg-green-50  border-green-200 '
+                    : 'bg-white  border-zinc-200 '
                 }`}
               >
                 <span style={{ fontSize: 'clamp(20px, 5vw, 36px)' }}>{card.emoji}</span>
@@ -212,7 +212,7 @@ export default function MemoryGame() {
           </button>
         ))}
       </div>
-      <p className="text-center text-xs text-zinc-400 dark:text-zinc-600 mt-4">
+      <p className="text-center text-xs text-zinc-400  mt-4">
         카드를 탭하여 같은 쌍을 찾아라
       </p>
     </GameLayout>

@@ -41,12 +41,12 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="card max-w-md w-full p-8">
         <h1 className="text-3xl font-bold mb-2">로그인</h1>
-        <p className="text-zinc-600 dark:text-zinc-400 mb-6">
+        <p className="text-zinc-600  mb-6">
           구글이나 깃허브 계정으로 로그인하세요
         </p>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded">
+          <div className="mb-4 p-3 bg-red-100  text-red-800  rounded">
             {error}
           </div>
         )}
@@ -66,7 +66,7 @@ export default function LoginPage() {
           />
         </div>
 
-        <p className="mt-6 text-center text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="mt-6 text-center text-sm text-zinc-600 ">
           <Link href="/" className="link">
             홈으로 돌아가기
           </Link>

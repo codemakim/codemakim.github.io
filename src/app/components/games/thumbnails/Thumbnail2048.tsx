@@ -19,7 +19,7 @@ export default function Thumbnail2048() {
             height="24"
             rx="3"
             fill="currentColor"
-            className="text-zinc-200 dark:text-zinc-700"
+            className="text-zinc-200 "
           />
         ))
       )}

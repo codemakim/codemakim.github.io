@@ -55,8 +55,8 @@ export default function HabitStats({ habit }: HabitStatsProps) {
   if (loading) {
     return (
       <div className="card p-6">
-        <h3 className="text-xl font-bold mb-4 text-zinc-900 dark:text-white">통계</h3>
-        <div className="text-zinc-600 dark:text-zinc-400">로딩 중...</div>
+        <h3 className="text-xl font-bold mb-4 text-zinc-900 ">통계</h3>
+        <div className="text-zinc-600 ">로딩 중...</div>
       </div>
     );
   }
@@ -67,7 +67,7 @@ export default function HabitStats({ habit }: HabitStatsProps) {
 
   return (
     <div className="card p-6">
-      <h3 className="text-xl font-bold mb-4 text-zinc-900 dark:text-white">통계</h3>
+      <h3 className="text-xl font-bold mb-4 text-zinc-900 ">통계</h3>
       
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {/* 완료율 */}
@@ -75,33 +75,33 @@ export default function HabitStats({ habit }: HabitStatsProps) {
           <div className="text-3xl font-bold mb-1" style={{ color: habit.color }}>
             {stats.completionRate}%
           </div>
-          <div className="text-sm text-zinc-600 dark:text-zinc-400">완료율</div>
+          <div className="text-sm text-zinc-600 ">완료율</div>
         </div>
 
         {/* 완료 일수 */}
         <div className="text-center">
-          <div className="text-3xl font-bold mb-1 text-zinc-900 dark:text-white">
+          <div className="text-3xl font-bold mb-1 text-zinc-900 ">
             {stats.completedDays}
           </div>
-          <div className="text-sm text-zinc-600 dark:text-zinc-400">
+          <div className="text-sm text-zinc-600 ">
             완료 / {stats.totalDays}일
           </div>
         </div>
 
         {/* 현재 연속 달성 */}
         <div className="text-center">
-          <div className="text-3xl font-bold mb-1 text-zinc-900 dark:text-white">
+          <div className="text-3xl font-bold mb-1 text-zinc-900 ">
             {stats.currentStreak ?? 0}
           </div>
-          <div className="text-sm text-zinc-600 dark:text-zinc-400">현재 연속 달성</div>
+          <div className="text-sm text-zinc-600 ">현재 연속 달성</div>
         </div>
 
         {/* 최대 연속 달성 */}
         <div className="text-center">
-          <div className="text-3xl font-bold mb-1 text-zinc-900 dark:text-white">
+          <div className="text-3xl font-bold mb-1 text-zinc-900 ">
             {stats.maxStreak}
           </div>
-          <div className="text-sm text-zinc-600 dark:text-zinc-400">최대 연속 달성</div>
+          <div className="text-sm text-zinc-600 ">최대 연속 달성</div>
         </div>
       </div>
     </div>

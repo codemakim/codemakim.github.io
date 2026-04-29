@@ -21,7 +21,7 @@ export default function HeaderAuth() {
       {user ? (
         <Link
           href="/profile"
-          className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
+          className="text-zinc-600  hover:text-zinc-900  transition-colors"
           aria-label="프로필"
         >
           <svg

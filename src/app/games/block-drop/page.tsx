@@ -356,7 +356,7 @@ export default function BlockDropGame() {
       desktopOnly
     >
       <div className="flex flex-col items-center gap-4">
-        <div className="flex gap-4 text-sm text-zinc-500 dark:text-zinc-400">
+        <div className="flex gap-4 text-sm text-zinc-500 ">
           <span>레벨 {level}</span>
           <span>줄 {lines}</span>
         </div>
@@ -372,13 +372,13 @@ export default function BlockDropGame() {
             ref={canvasRef}
             width={canvasW}
             height={canvasH}
-            className="rounded-xl border border-zinc-200 dark:border-zinc-700 touch-none"
+            className="rounded-xl border border-zinc-200  touch-none"
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
           />
         )}
 
-        <div className="text-xs text-zinc-400 dark:text-zinc-600 text-center space-y-1">
+        <div className="text-xs text-zinc-400  text-center space-y-1">
           <p>← → 이동 · ↑ 회전 · ↓ 소프트드롭 · Space 하드드롭</p>
           <p>모바일: 스와이프 이동 · 탭 회전 · 더블탭 하드드롭</p>
         </div>
