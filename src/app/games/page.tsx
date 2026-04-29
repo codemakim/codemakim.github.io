@@ -12,7 +12,7 @@ export default function GamesPage() {
             <GameCard key={game.id} game={game} />
           ))}
         </div>
-        <p className="text-center text-xs text-zinc-400 dark:text-zinc-600 mt-8">
+        <p className="text-center text-xs mt-8" style={{ color: "var(--text-secondary)" }}>
           로그인 없이 즐기는 무료 게임 · 최고 점수는 이 기기에 저장됩니다
         </p>
       </main>

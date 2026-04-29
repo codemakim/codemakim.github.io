@@ -72,13 +72,18 @@ textarea.input {
 }
 
 /* 포스트 본문 */
-.post-content {
-  /* 패딩은 Tailwind 클래스로 제어 */
-}
-
 .post-content.prose {
   max-width: none;
   font-size: 1.125rem;
+  color: var(--text-primary) !important;
+}
+
+.post-content.prose :where(p, li, td, th):not(:where([class~="not-prose"] *)) {
+  color: var(--text-primary) !important;
+}
+
+.post-content.prose :where(h1, h2, h3, h4, h5, h6):not(:where([class~="not-prose"] *)) {
+  color: var(--text-primary) !important;
 }
 
 .post-content.prose :where(h1):not(:where([class~="not-prose"] *)) {
@@ -94,6 +99,24 @@ textarea.input {
 .post-content.prose :where(h3):not(:where([class~="not-prose"] *)) {
   font-size: 1.25rem;
   font-weight: 700;
+}
+
+.post-content.prose :where(strong):not(:where([class~="not-prose"] *)) {
+  color: var(--text-primary) !important;
+}
+
+.post-content.prose :where(a):not(:where([class~="not-prose"] *)) {
+  color: var(--accent) !important;
+}
+
+.post-content.prose :where(blockquote):not(:where([class~="not-prose"] *)) {
+  color: var(--text-secondary) !important;
+  border-left-color: var(--nb-color) !important;
+  border-left-width: 3px !important;
+}
+
+.post-content.prose :where(hr):not(:where([class~="not-prose"] *)) {
+  border-color: var(--nb-color) !important;
 }
 
 /* 코드 블록 — 네오브루탈리즘 */
