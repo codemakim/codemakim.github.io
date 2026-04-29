@@ -9,16 +9,14 @@ interface PostListProps {
 }
 
 export default function PostList({ posts, selectedTag }: PostListProps) {
-  // 선택된 태그로 필터링
   const filteredPosts = selectedTag
     ? posts.filter((post) => post.tags?.includes(selectedTag))
     : posts;
 
-  // 빈 상태 처리
   if (filteredPosts.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-zinc-500 dark:text-zinc-400 text-lg">
+        <p className="text-lg" style={{ color: "var(--text-secondary)" }}>
           해당 태그의 포스트가 없습니다.
         </p>
       </div>
@@ -26,33 +24,29 @@ export default function PostList({ posts, selectedTag }: PostListProps) {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       {filteredPosts.map((post) => (
         <article key={post._id} className="card p-6">
           <Link href={post.url}>
-            <h2 className="link text-2xl font-semibold text-zinc-900 dark:text-white transition-colors">
+            <h2 className="text-xl font-black mb-1 hover:underline" style={{ color: "var(--text-primary)" }}>
               {post.title}
             </h2>
           </Link>
 
           {post.description && (
-            <p className="text-zinc-700 dark:text-zinc-300 mt-2">
+            <p className="mt-1 mb-3 text-sm" style={{ color: "var(--text-secondary)" }}>
               {post.description}
             </p>
           )}
 
-          <div className="flex items-center justify-between mt-4 gap-4">
-            <time className="text-sm text-zinc-600 dark:text-zinc-400 whitespace-nowrap flex-shrink-0 min-w-fit">
-              {format(new Date(post.date), "yyyy년 M월 d일", { locale: ko })}
+          <div className="flex items-center justify-between gap-4">
+            <time className="text-xs font-mono" style={{ color: "var(--text-secondary)" }}>
+              {format(new Date(post.date), "yyyy-MM-dd")}
             </time>
-
             {post.tags && (
               <div className="flex gap-2 flex-wrap">
                 {post.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="tag text-xs whitespace-nowrap"
-                  >
+                  <span key={tag} className="tag">
                     {tag}
                   </span>
                 ))}
@@ -64,4 +58,3 @@ export default function PostList({ posts, selectedTag }: PostListProps) {
     </div>
   );
 }
-

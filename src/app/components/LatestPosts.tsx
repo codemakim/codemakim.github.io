@@ -17,53 +17,48 @@ export default function LatestPosts({
   return (
     <section className="mb-8">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">
+        <h2 className="text-2xl font-black" style={{ color: "var(--text-primary)" }}>
           최신 포스트
         </h2>
-        <Link href={viewAllHref} className="link text-sm hover:underline">
+        <Link href={viewAllHref} className="link text-sm font-bold hover:underline">
           {viewAllText} →
         </Link>
       </div>
 
-      <div className="card">
-        <div className="divide-y divide-zinc-200 dark:divide-[#2A2A2A]">
-          {posts.map((post) => (
-            <Link
-              key={post._id}
-              href={post.url}
-              className="block hover:bg-zinc-50 dark:hover:bg-[#1A1A1A] transition-colors -mx-1 px-4 py-3 rounded"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-lg mb-1 text-zinc-900 dark:text-white line-clamp-1">
-                    {post.title}
-                  </h3>
-                  {post.description && (
-                    <p className="text-sm text-zinc-600 dark:text-zinc-400 line-clamp-1 mb-1">
-                      {post.description}
-                    </p>
-                  )}
-                  <time className="text-xs text-zinc-500 dark:text-zinc-500">
-                    {format(new Date(post.date), "yyyy년 M월 d일", {
-                      locale: ko,
-                    })}
-                  </time>
-                </div>
-                {post.tags && post.tags.length > 0 && (
-                  <div className="flex gap-1 flex-wrap flex-shrink-0">
-                    {post.tags.slice(0, 2).map((tag) => (
-                      <span key={tag} className="tag text-xs whitespace-nowrap">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
+      <div className="space-y-3">
+        {posts.map((post) => (
+          <Link
+            key={post._id}
+            href={post.url}
+            className="card block p-4"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-base mb-1 line-clamp-1" style={{ color: "var(--text-primary)" }}>
+                  {post.title}
+                </h3>
+                {post.description && (
+                  <p className="text-sm line-clamp-1 mb-1" style={{ color: "var(--text-secondary)" }}>
+                    {post.description}
+                  </p>
                 )}
+                <time className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                  {format(new Date(post.date), "yyyy년 M월 d일", { locale: ko })}
+                </time>
               </div>
-            </Link>
-          ))}
-        </div>
+              {post.tags && post.tags.length > 0 && (
+                <div className="flex gap-1 flex-wrap flex-shrink-0">
+                  {post.tags.slice(0, 2).map((tag) => (
+                    <span key={tag} className="tag">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </Link>
+        ))}
       </div>
     </section>
   );
 }
-

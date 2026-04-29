@@ -5,11 +5,8 @@ export interface FeatureTileProps {
   title: string;
   description?: string;
   actionText: string;
-  colSpan?: string; // Tailwind col-span 클래스 (예: "md:col-span-2")
-  minHeight?: string; // Tailwind min-height 클래스 (예: "min-h-[200px]")
-  padding?: string; // Tailwind padding 클래스 (예: "p-8")
-  titleSize?: string; // Tailwind text-size 클래스 (예: "text-3xl")
-  className?: string; // 추가 클래스
+  colSpan?: string;
+  className?: string;
 }
 
 export default function FeatureTile({
@@ -18,32 +15,27 @@ export default function FeatureTile({
   description,
   actionText,
   colSpan = "",
-  minHeight = "min-h-[200px]",
-  padding = "p-6",
-  titleSize = "text-2xl",
   className = "",
 }: FeatureTileProps) {
   return (
     <Link
       href={href}
-      className={`card ${colSpan} h-full ${minHeight} hover:shadow-elevation-3 transition-all ${className}`}
+      className={`card ${colSpan} ${className}`}
+      style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", minHeight: "180px", padding: "1.5rem" }}
     >
-      <div className={`${padding} h-full flex flex-col justify-between`}>
-        <div>
-          <h2 className={`${titleSize} font-bold mb-2 text-zinc-900 dark:text-white`}>
-            {title}
-          </h2>
-          {description && (
-            <p className="text-zinc-600 dark:text-zinc-400">
-              {description}
-            </p>
-          )}
-        </div>
-        <div className="text-sm text-zinc-500 dark:text-zinc-500">
-          {actionText} →
-        </div>
+      <div>
+        <h2 className="text-2xl font-black mb-2" style={{ color: "var(--text-primary)" }}>
+          {title}
+        </h2>
+        {description && (
+          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+            {description}
+          </p>
+        )}
+      </div>
+      <div className="text-sm font-bold" style={{ color: "var(--accent)" }}>
+        {actionText} →
       </div>
     </Link>
   );
 }
-
