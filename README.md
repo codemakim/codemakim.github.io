@@ -72,7 +72,9 @@ npm start
 
 프로젝트 관련 문서는 `docs/` 폴더에 있습니다:
 
+- `docs/ARCHITECTURE.md` - 코드 구조 및 데이터 흐름
 - `docs/ROADMAP.md` - 프로젝트 진행 상황 및 로드맵
-- `docs/HABITS_DESIGN.md` - 습관 관리 기능 설계
-- `docs/HABITS_DATABASE.md` - 데이터베이스 스키마
-- `docs/HABITS_AUTH.md` - 인증 시스템 설계
+- `docs/features/habits/DESIGN.md` - 습관 관리 기능 설계
+- `docs/features/habits/DATABASE.md` - 데이터베이스 스키마
+- `docs/features/habits/AUTH.md` - 인증 시스템 설계
+- `docs/features/games/DESIGN.md` - 게임 코너 설계
