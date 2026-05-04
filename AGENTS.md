@@ -11,7 +11,8 @@
 - **런타임**: Node.js 20.9+ (Next.js 16 요구사항)
 - **배포**: GitHub Pages 정적 배포 (`output: 'export'`, `trailingSlash: true`)
 - **백엔드**: Supabase (습관 관리 기능)
-- **폰트**: Geist, **다크모드** 지원 필수
+- **폰트**: Geist
+- **디자인 시스템**: 네오브루탈리즘 라이트 전용 (다크모드 폐기). 변수는 `src/app/styles/design.css`
 - **환경변수**: `.env.local`에 Supabase 키 필요. 상세는 `docs/features/habits/DATABASE.md`
 
 ---
@@ -41,6 +42,7 @@
 | 이펙트 렌더러 | `src/app/components/games/spire/effects/EffectLayer.tsx` |
 | 캐릭터 명세 | `src/app/lib/games/spire/characters.ts` |
 | 캐릭터 선택 UI | `src/app/components/games/spire/CharSelectScene.tsx` |
+| 디자인 시스템 변수 | `src/app/styles/design.css` |
 
 ### 참고 문서
 
@@ -95,9 +97,11 @@ phase: 'charSelect'
 
 - 서버 컴포넌트 기본, 클라이언트 컴포넌트는 필요 시에만 `"use client"`
 - MDX frontmatter: `title`(필수), `date`(필수), `description`, `tags`
-- **다크모드 필수**: 모든 색상에 `dark:` 클래스 추가
+- **라이트 전용**: `dark:` 클래스 신규 추가 금지. 색상은 `design.css`의 CSS 변수(`var(--bg-card)`, `var(--text-primary)` 등) 사용
 - **모바일 우선** 반응형, `max-w-4xl mx-auto px-4` 기본 레이아웃
 - 습관 데이터는 HabitsProvider 캐시에서만 가져오기
+
+> 예외: Spire 게임(`src/app/components/games/spire/`)과 `games/snake`, `games/block-drop` 페이지는 의도적으로 자체 다크 톤을 유지함 (`8908d6f` 참조). 해당 영역에서만 `dark:` 클래스 허용.
 
 ### 모바일 UX 규칙
 
@@ -106,14 +110,21 @@ phase: 'charSelect'
   - ❌ `className="header sticky top-0 z-50"`
 - **스크롤 이벤트**: `.app-wrapper`의 `scrollTop` 사용 (`window.scrollY` 아님)
 
-### 스타일링 패턴
+### 스타일링 패턴 (네오브루탈리즘)
+
+- 카드/컨테이너: 흰 배경 + 검정 2px 테두리 + 4px 오프셋 그림자 (`var(--nb-border)`, `var(--nb-shadow)`)
+- 색상은 항상 CSS 변수 사용:
 
 ```
-색상: bg-white dark:bg-gray-900 / text-gray-900 dark:text-white
-태그: text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200
-제목(홈): text-3xl font-bold
-제목(포스트): text-4xl font-bold
+배경: var(--bg-primary) / var(--bg-card) / var(--bg-secondary)
+텍스트: var(--text-primary) / var(--text-secondary)
+액센트: var(--accent) (배경) / var(--accent-text) (그 위 텍스트)
+태그: var(--tag-bg) / var(--tag-text)
 ```
+
+- 호버: `transform: translate(-2px, -2px)` + `var(--nb-shadow-hover)` 패턴
+- 제목(홈): `text-3xl font-bold`, 제목(포스트): `text-4xl font-bold`
+- 둥근 모서리는 기본 사용하지 않음(`border-radius: 0`) — 네오브루탈리즘 원칙
 
 ### 태그 관리 원칙
 
@@ -135,7 +146,7 @@ phase: 'charSelect'
 
 - TypeScript 오류 확인 → `npm run build` 순서로 진행
 - 스타일 수정 시 체크리스트:
-  - [ ] 라이트/다크모드 모두 확인
+  - [ ] CSS 변수(`design.css`) 사용 — 인라인 hex 색 지양
   - [ ] 모바일/데스크톱 반응형 확인
   - [ ] 기존 기능에 영향 없는지 확인
 
@@ -154,7 +165,8 @@ npx tsc --noEmit  # 타입 체크 (build 전 권장)
 ## 금지사항
 
 - frontmatter에서 `title`, `date` 누락
-- `dark:` 클래스 생략
+- 일반 페이지/컴포넌트에 `dark:` 클래스 신규 추가 (라이트 전용. Spire/snake/block-drop만 예외)
+- `design.css` 변수 대신 인라인 hex 색 하드코딩
 - 클라이언트 컴포넌트 남용
 - 사용자 승인 없이 다음 단계 진행
 - HabitsProvider 우회하여 직접 DB 호출
