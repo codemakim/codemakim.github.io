@@ -1,0 +1,12 @@
+---
+id: cleanup-timing
+question: useEffect cleanup은 정확히 언제 실행되는가?
+shortAnswer: 다음 effect가 실행되기 직전, 또는 컴포넌트가 unmount되기 직전에 실행된다.
+relatedTopic: use-effect-is-not-lifecycle
+---
+
+React는 한 번의 업데이트를 render phase와 commit phase로 분리한다. commit이 끝나고 브라우저가 paint한 뒤 `useEffect`의 콜백이 실행되며, **cleanup은 다음 effect 콜백이 실행되기 직전에 호출된다.** 마지막 cleanup은 컴포넌트가 unmount되기 직전에 한 번 더 실행된다.
+
+따라서 의존성 배열이 바뀌어 effect가 재실행될 때마다 cleanup이 한 번 돈다는 뜻이다. 구독을 해제하지 않으면 같은 컴포넌트 안에서 구독이 누적되고, 타이머는 중복 실행되고, AbortController는 만료된 요청을 취소하지 못한다.
+
+`useLayoutEffect`도 같은 모델이지만 **paint 직전 동기 실행**이라는 점만 다르다. cleanup 시점은 동일.
