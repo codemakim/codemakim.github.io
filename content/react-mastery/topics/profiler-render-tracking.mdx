@@ -1,0 +1,73 @@
+---
+title: Profiler로 렌더 추적
+slug: profiler-render-tracking
+readingTimeMin: 13
+description: 추측으로 최적화하지 않고 렌더 비용을 측정한다
+tags: [React, Profiler, 성능]
+---
+
+## 한 장 핵심
+
+React 성능 최적화는 "느낌"으로 시작하면 거의 틀린다. 먼저 어떤 상호작용이 느린지 정하고, React DevTools Profiler나 `<Profiler>`로 어떤 subtree가 얼마나 오래 render/commit되는지 확인해야 한다.
+
+Profiler의 핵심 질문은 두 가지다. 첫째, 실제 업데이트에서 시간이 어디에 쓰였는가. 둘째, memoization이 기대대로 작동해 `actualDuration`이 줄었는가. 이 답 없이 `memo`, `useMemo`, context 분리부터 적용하면 코드만 복잡해질 수 있다.
+
+## Vue와 비교
+
+Vue Devtools에도 component update 추적과 performance 도구가 있다. Vue에서는 reactive dependency가 어떤 컴포넌트를 깨웠는지 보는 감각이 중요하다. React에서는 "어떤 state/props/context 변경이 어떤 subtree render로 이어졌는가"를 보는 감각이 중요하다.
+
+React Profiler는 render 비용과 commit 정보를 보여준다. 이때 render가 많다는 사실만으로 문제라고 단정하면 안 된다. 작은 컴포넌트가 자주 render되는 것은 괜찮을 수 있다. 느린 것은 대개 큰 리스트, 비싼 계산, 불안정한 props로 깨지는 memo, 너무 넓은 context consumer 범위다.
+
+Vue에서 computed와 watcher를 최적화하기 전에 dependency를 확인하듯, React에서는 Profiler로 render 원인을 좁힌 뒤 최적화한다.
+
+## React 내부 원리
+
+React는 `<Profiler>` 컴포넌트를 제공한다. 특정 subtree를 감싸면 해당 subtree가 commit될 때마다 `onRender` callback이 호출되고, duration 정보를 받을 수 있다.
+
+```tsx
+import { Profiler } from "react";
+
+function onRender(
+  id: string,
+  phase: "mount" | "update" | "nested-update",
+  actualDuration: number,
+  baseDuration: number,
+  startTime: number,
+  commitTime: number,
+) {
+  console.table({
+    id,
+    phase,
+    actualDuration,
+    baseDuration,
+    startTime,
+    commitTime,
+  });
+}
+
+export function ProfiledSearchPage() {
+  return (
+    <Profiler id="SearchPage" onRender={onRender}>
+      <SearchPage />
+    </Profiler>
+  );
+}
+```
+
+`actualDuration`은 현재 업데이트에서 실제로 렌더링에 걸린 시간이다. `baseDuration`은 최적화가 없을 때 전체 subtree를 다시 렌더하는 비용의 추정치다. memoization이 잘 작동하면 update에서 actualDuration이 baseDuration보다 의미 있게 낮아질 수 있다.
+
+개발 중에는 React DevTools의 Profiler 탭이 더 편하다. 실제 상호작용을 녹화하고, 어떤 컴포넌트가 render되었는지 flamegraph로 확인한다. 프로덕션 프로파일링은 별도 profiling build가 필요하므로 운영 번들에서 무작정 같은 결과를 기대하면 안 된다.
+
+## 실무에서 터지는 문제
+
+- **개발 모드 숫자를 절대값으로 믿음**: 개발 모드는 추가 경고와 Strict Mode 영향이 있다. 방향성 파악에 쓰고, 중요한 수치는 profiling build나 실제 환경에서 확인한다.
+- **render 횟수만 줄이려 함**: render 100번보다 1번의 비싼 chart 계산이 더 문제일 수 있다. 시간과 사용자 interaction 기준으로 본다.
+- **why만 보고 how much를 안 봄**: "왜 렌더됐는가"와 "얼마나 비쌌는가"는 다르다. 둘을 같이 봐야 한다.
+- **최적화 후 재측정 생략**: `memo`를 추가했으면 actualDuration이 줄었는지 다시 확인한다. 줄지 않으면 제거하는 편이 낫다.
+
+## 참고
+
+- [공식 — Profiler](https://react.dev/reference/react/Profiler)
+- [공식 — React Developer Tools](https://react.dev/learn/react-developer-tools)
+- [공식 — React Performance tracks](https://react.dev/reference/dev-tools/react-performance-tracks)
+- [공식 — memo](https://react.dev/reference/react/memo)

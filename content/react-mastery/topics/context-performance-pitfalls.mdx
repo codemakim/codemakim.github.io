@@ -1,0 +1,68 @@
+---
+title: Context의 성능 함정
+slug: context-performance-pitfalls
+readingTimeMin: 14
+description: Context는 상태관리 라이브러리가 아니라 값 전달 메커니즘이다
+tags: [React, Context, 성능]
+---
+
+## 한 장 핵심
+
+Context는 prop drilling을 줄이기 위한 값 전달 메커니즘이다. 전역 상태관리 라이브러리처럼 아무 값이나 크게 담아도 되는 저장소가 아니다. Provider의 `value`가 바뀌면 그 context를 읽는 consumer들은 새 값을 반영하기 위해 다시 렌더될 수 있다.
+
+성능 문제는 보통 context 자체보다 "너무 자주 바뀌는 큰 value"에서 시작된다. 사용자 정보, 테마처럼 낮은 빈도로 바뀌는 값은 적합하다. 입력 중인 폼 값, 마우스 위치, 큰 list filter 상태처럼 자주 바뀌는 값은 context에 넣는 순간 넓은 렌더 범위를 만들 수 있다.
+
+## Vue와 비교
+
+Vue의 provide/inject도 깊은 트리에 값을 전달하는 장치다. reactive 값을 provide하면 inject한 쪽에서 반응형으로 읽을 수 있지만, Vue는 의존성 추적 단위가 더 세밀하게 보이는 편이다.
+
+React context는 consumer가 context 값을 읽는다. Provider value가 바뀌면 React는 그 값을 읽는 컴포넌트들을 새 값으로 렌더해야 한다. `memo`로 감싼 컴포넌트라도 context 자체가 바뀌면 다시 렌더될 수 있다.
+
+Vue의 store 사용 경험을 React context에 그대로 옮기면 문제가 생긴다. React에서는 "어떤 값이 얼마나 자주 바뀌고, 그 값을 읽는 consumer 범위가 어디까지인가"를 먼저 설계해야 한다.
+
+## React 내부 원리
+
+Context consumer는 가장 가까운 Provider의 `value`를 읽는다. 이 값이 매 render마다 새 객체로 만들어지면, 내부 값이 실질적으로 같아도 참조는 바뀐다.
+
+```tsx
+import { createContext, useMemo, useState } from "react";
+
+type Session = {
+  userId: string | null;
+  login: (id: string) => void;
+};
+
+export const SessionContext = createContext<Session | null>(null);
+
+export function SessionProvider({ children }: { children: React.ReactNode }) {
+  const [userId, setUserId] = useState<string | null>(null);
+
+  const value = useMemo(
+    () => ({
+      userId,
+      login: setUserId,
+    }),
+    [userId],
+  );
+
+  return <SessionContext value={value}>{children}</SessionContext>;
+}
+```
+
+`useMemo`는 Provider value의 불필요한 참조 변경을 줄인다. 하지만 이것만으로 모든 문제가 해결되지는 않는다. `userId`가 바뀌면 이 context를 읽는 consumer들은 새 값을 봐야 하므로 다시 렌더된다.
+
+큰 context는 여러 작은 context로 나누는 편이 낫다. 자주 바뀌는 값과 거의 바뀌지 않는 action을 분리하거나, context를 읽는 outer component와 memoized child를 나눠 필요한 prop만 내려주는 방식도 효과적이다.
+
+## 실무에서 터지는 문제
+
+- **모든 전역 상태를 하나의 AppContext에 넣음**: auth, theme, modal, form, filter, cache를 한 value에 넣으면 작은 변경이 넓은 렌더를 만든다.
+- **Provider value inline 객체**: `<Provider value={{ user, theme }}>`는 부모 render마다 새 객체다. 필요한 경우 `useMemo`로 안정화한다.
+- **memo가 context 변경을 막는다고 착각**: `memo`는 props 비교 도구다. 컴포넌트가 context를 직접 읽으면 context 변경으로 다시 렌더될 수 있다.
+- **자주 바뀌는 입력 state를 context에 둠**: 검색 input, 드래그 좌표, hover state는 가까운 컴포넌트에 두거나 전용 external store 패턴을 검토한다.
+
+## 참고
+
+- [공식 — Passing Data Deeply with Context](https://react.dev/learn/passing-data-deeply-with-context)
+- [공식 — useContext](https://react.dev/reference/react/useContext)
+- [공식 — memo: Updating a memoized component using a context](https://react.dev/reference/react/memo#updating-a-memoized-component-using-a-context)
+- [공식 — Scaling Up with Reducer and Context](https://react.dev/learn/scaling-up-with-reducer-and-context)

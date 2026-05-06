@@ -1,0 +1,67 @@
+---
+title: memo / useMemo / useCallback의 진짜 비용
+slug: memo-real-cost
+readingTimeMin: 15
+description: 메모이제이션은 공짜가 아니며 의미론이 아니라 성능 힌트다
+tags: [React, 성능, 고급]
+---
+
+## 한 장 핵심
+
+`memo`, `useMemo`, `useCallback`은 React 성능 최적화 도구다. 하지만 "렌더를 막는 마법"이 아니다. 비교 비용, dependency 관리 비용, 코드 복잡도, stale closure 위험을 함께 만든다.
+
+기준은 단순하다. 렌더가 실제로 비싸고, 같은 입력이 자주 반복되며, props나 계산 결과의 참조 안정성을 유지할 수 있을 때만 값이 있다. React Compiler가 활성화된 환경에서는 많은 수동 메모이제이션의 필요가 줄어들지만, effect dependency를 안정화하거나 특정 계산을 통제해야 하는 경우에는 여전히 escape hatch로 남는다.
+
+## Vue와 비교
+
+Vue의 `computed`는 반응형 의존성을 자동 추적하고, 의존 값이 바뀌기 전까지 계산 결과를 캐시한다. `watch`나 `computed`를 쓰면 어떤 값에 의존하는지가 런타임 반응성 시스템에 의해 관리된다.
+
+React의 `useMemo`는 의존성 배열을 개발자가 직접 적는다. React는 배열의 각 값을 `Object.is`로 비교해 캐시 재사용 여부를 결정한다. 의존성이 빠지면 stale 값이 되고, 의존성이 불안정하면 매번 다시 계산된다.
+
+`useCallback`도 특별한 함수 최적화 엔진이 아니다. 공식 문서 기준으로는 함수를 반환하는 `useMemo`와 개념적으로 같다. "함수 자체를 빠르게 만든다"가 아니라 "같은 dependency라면 같은 함수 참조를 재사용한다"가 정확하다.
+
+## React 내부 원리
+
+`memo(Component)`는 부모가 다시 렌더되어도 props가 이전과 같으면 해당 컴포넌트의 re-render를 건너뛸 수 있게 한다. 기본 비교는 각 prop의 `Object.is` 비교다. 하지만 컴포넌트 자신의 state가 바뀌거나 읽고 있는 context가 바뀌면 memoized component도 다시 렌더된다.
+
+```tsx
+import { memo, useMemo } from "react";
+
+const ProductList = memo(function ProductList({ items }: { items: string[] }) {
+  return (
+    <ul>
+      {items.map((item) => (
+        <li key={item}>{item}</li>
+      ))}
+    </ul>
+  );
+});
+
+export function SearchResult({ products, query }: { products: string[]; query: string }) {
+  const filtered = useMemo(
+    () => products.filter((name) => name.includes(query)),
+    [products, query],
+  );
+
+  return <ProductList items={filtered} />;
+}
+```
+
+여기서 `useMemo`가 없으면 `filtered` 배열은 매 render마다 새 참조가 된다. 그러면 `ProductList`는 `memo`로 감싸도 `items` prop이 매번 달라졌다고 판단한다.
+
+하지만 이 패턴이 항상 이득은 아니다. `products.filter`가 싸고 목록이 작으면 캐시 관리 비용과 코드 복잡도가 더 크다. 또한 dependency가 매번 새 객체라면 `useMemo`는 계속 무효화된다.
+
+## 실무에서 터지는 문제
+
+- **전부 memo로 감쌈**: 앱 전체에 `memo`를 뿌리면 비교 비용과 복잡도가 늘어난다. 실제 병목 컴포넌트부터 잡는다.
+- **불안정한 props 전달**: `memo` 자식에게 inline object나 inline function을 계속 넘기면 매번 다른 prop이다. 필요한 경우 props를 primitive로 줄이거나 callback을 안정화한다.
+- **custom comparator 남용**: 비교 함수가 렌더보다 비싸면 손해다. 함수 prop 비교를 빼먹으면 stale closure 버그도 만든다.
+- **useMemo를 의미론으로 사용**: `useMemo`는 성능 최적화다. 캐시가 없으면 깨지는 로직을 만들면 안 된다.
+- **Compiler 시대 감각 부재**: React Compiler를 쓰는 새 코드에서는 먼저 순수하고 명확한 코드를 쓰고, 수동 memo는 측정 후 필요한 곳에만 둔다.
+
+## 참고
+
+- [공식 — memo](https://react.dev/reference/react/memo)
+- [공식 — useMemo](https://react.dev/reference/react/useMemo)
+- [공식 — useCallback](https://react.dev/reference/react/useCallback)
+- [공식 — React Compiler Introduction](https://react.dev/learn/react-compiler/introduction)

@@ -1,0 +1,58 @@
+---
+title: Render phase와 Commit phase
+slug: render-and-commit-phase
+readingTimeMin: 13
+description: 계산 단계와 반영 단계를 분리해서 봐야 하는 이유
+tags: [React, 렌더링, 고급]
+---
+
+## 한 장 핵심
+
+React 업데이트는 크게 render phase와 commit phase로 나눠 볼 수 있다. render phase는 컴포넌트 함수를 호출해 다음 UI를 계산하는 단계고, commit phase는 계산 결과를 실제 host 환경에 반영하는 단계다. 웹에서는 이 host 환경이 DOM이다.
+
+이 분리를 이해하면 React의 많은 규칙이 자연스러워진다. render phase는 중단되거나 다시 실행될 수 있으므로 순수해야 한다. commit phase는 실제 DOM mutation과 ref 연결, layout effect 실행처럼 외부 세계에 영향을 주는 작업이 일어나는 시점이다.
+
+## Vue와 비교
+
+Vue에서도 render effect가 virtual DOM을 만들고 patch 단계가 DOM을 갱신한다. 다만 Vue를 쓸 때는 반응형 값 변경과 DOM 갱신이 더 직접적으로 연결되어 보인다. `nextTick` 같은 API도 "DOM 패치가 끝난 뒤"라는 감각을 명시적으로 준다.
+
+React에서는 render와 commit 사이의 분리가 더 강하게 드러난다. render는 UI 계산이고, commit은 반영이다. `useEffect`는 commit 이후 비동기적인 passive effect 위치에 있고, `useLayoutEffect`는 DOM mutation 이후 브라우저 paint 전에 동기적으로 실행된다.
+
+Vue의 `onMounted`를 React의 `useEffect`와 1:1로 대응시키면 이 구조를 놓치기 쉽다. React에서 더 중요한 질문은 "이 코드는 계산 단계에 있어도 되는가, 아니면 반영 이후에 실행되어야 하는가"다.
+
+## React 내부 원리
+
+공식 문서는 업데이트 과정을 Trigger, Render, Commit으로 설명한다. state 업데이트나 최초 root render가 render를 트리거하고, React는 컴포넌트를 호출해 다음 UI를 계산한다. re-render에서는 이전 결과와 비교해 어떤 DOM 속성이 달라졌는지 계산하지만, 그 정보를 DOM에 적용하는 것은 commit 단계까지 미룬다.
+
+```tsx
+import { useLayoutEffect, useRef } from "react";
+
+export function MeasuredBox() {
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useLayoutEffect(() => {
+    const rect = ref.current?.getBoundingClientRect();
+    console.log(rect?.height);
+  });
+
+  return <div ref={ref}>content</div>;
+}
+```
+
+`ref.current`는 DOM node가 commit된 뒤에 의미가 있다. 그래서 레이아웃 측정은 render 본문이 아니라 `useLayoutEffect`에 둔다. 반대로 데이터를 계산해 JSX로 반환하는 일은 render 안에 있어야 한다.
+
+commit 단계에서도 모든 effect가 같은 시점에 실행되는 것은 아니다. DOM mutation과 ref 반영이 먼저 일어나고, layout effect는 paint 전에 실행된다. passive effect인 `useEffect`는 일반적으로 paint 이후 실행되어 외부 시스템 동기화에 쓰인다.
+
+## 실무에서 터지는 문제
+
+- **render 중 DOM 읽기**: `document.querySelector`나 layout 측정은 render 순수성을 깨고 서버 렌더링에서도 터질 수 있다. ref와 layout effect로 옮긴다.
+- **layout effect 남용**: `useLayoutEffect`는 paint를 막을 수 있다. 실제 레이아웃 측정이나 깜박임 방지가 필요할 때만 쓴다.
+- **effect로 렌더 계산을 보정**: props에서 계산 가능한 값을 effect로 state에 다시 넣으면 render가 두 번 돈다. 렌더 중 계산하는 편이 낫다.
+- **Strict Mode 로그를 운영 동작으로 착각**: 개발 모드에서 render가 더 호출될 수 있다. render가 순수하면 추가 호출은 외부 결과를 만들지 않는다.
+
+## 참고
+
+- [공식 — Render and Commit](https://react.dev/learn/render-and-commit)
+- [공식 — useLayoutEffect](https://react.dev/reference/react/useLayoutEffect)
+- [공식 — useEffect](https://react.dev/reference/react/useEffect)
+- [공식 — Keeping Components Pure](https://react.dev/learn/keeping-components-pure)

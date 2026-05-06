@@ -1,0 +1,67 @@
+---
+title: Suspense와 Concurrent Rendering
+slug: suspense-and-concurrent
+readingTimeMin: 15
+description: fallback, transition, interruptible rendering을 함께 이해한다
+tags: [React, Suspense, 동시성]
+---
+
+## 한 장 핵심
+
+Suspense는 컴포넌트 트리 일부가 아직 준비되지 않았을 때 가장 가까운 boundary의 fallback을 보여주는 모델이다. Concurrent rendering은 React가 렌더링 작업을 중단 가능하게 다루고, 더 급한 업데이트를 먼저 처리할 수 있게 만든 기반이다.
+
+둘은 함께 쓰일 때 사용자 경험 차이가 커진다. 이미 보이는 화면을 무작정 fallback으로 갈아치우는 대신, transition으로 표시된 업데이트는 기존 UI를 유지한 채 다음 UI를 백그라운드에서 준비할 수 있다. 이 때문에 router나 framework는 페이지 전환을 transition으로 감싸는 것이 권장된다.
+
+## Vue와 비교
+
+Vue에도 `<Suspense>`가 있지만, React Suspense는 concurrent rendering, streaming server rendering, selective hydration 같은 React 렌더링 전략과 깊게 연결되어 있다. 단순 loading wrapper라기보다 "이 하위 트리는 아직 준비되지 않았다"는 신호를 React scheduler와 연결하는 경계다.
+
+Vue Router에서 페이지 전환 loading 상태를 직접 관리하는 경험이 있다면, React의 transition은 "이 업데이트는 긴급하지 않으니 기존 상호작용을 막지 말라"는 우선순위 표시로 이해하면 된다.
+
+React에서 중요한 구분은 urgent update와 transition update다. input value는 즉시 반영되어야 하고, 검색 결과 목록이나 route content는 조금 늦어도 된다. 이 둘을 분리하지 않으면 concurrent feature를 써도 체감이 약하다.
+
+## React 내부 원리
+
+Suspense boundary는 children이 suspend하면 fallback을 보여준다. 공식 문서 기준으로, 처음 mount되기 전에 suspend된 render의 state는 보존되지 않고 준비되면 다시 렌더를 시도한다. 이미 보이던 content가 다시 suspend되면 fallback이 나타날 수 있지만, 그 업데이트가 `startTransition`이나 `useDeferredValue`에서 왔다면 원치 않는 fallback 교체를 피할 수 있다.
+
+```tsx
+import { Suspense, useState, useTransition } from "react";
+
+export function Tabs() {
+  const [tab, setTab] = useState("overview");
+  const [isPending, startTransition] = useTransition();
+
+  function selectTab(nextTab: string) {
+    startTransition(() => {
+      setTab(nextTab);
+    });
+  }
+
+  return (
+    <>
+      <button onClick={() => selectTab("overview")}>Overview</button>
+      <button onClick={() => selectTab("reports")}>Reports</button>
+      {isPending && <span>loading...</span>}
+      <Suspense fallback={<p>Preparing tab...</p>}>
+        <TabContent tab={tab} />
+      </Suspense>
+    </>
+  );
+}
+```
+
+transition으로 표시된 업데이트는 non-blocking이다. 사용자가 탭을 눌렀다가 바로 다른 탭을 누르면 React는 오래된 렌더링 작업을 버리고 최신 탭 기준으로 다시 준비할 수 있다.
+
+## 실무에서 터지는 문제
+
+- **Suspense를 아무 promise나 던지는 도구로 이해함**: data fetching Suspense는 framework나 Suspense-enabled library와 함께 설계해야 한다. 직접 promise를 던지는 패턴은 운영 복잡도가 크다.
+- **fallback boundary를 너무 크게 잡음**: 전체 페이지를 spinner로 바꾸면 작은 지연도 큰 화면 점프로 보인다. 사용자 경험 단위로 boundary를 나눈다.
+- **input state를 transition에 넣음**: controlled input의 값은 동기적으로 업데이트해야 한다. transition에는 결과 목록이나 탭 content 같은 파생 화면을 넣는다.
+- **pending 상태를 전역 loading으로만 표시**: transition은 기존 UI를 유지하는 데 가치가 있다. 버튼, 탭, 섹션 근처에 pending 신호를 작게 보여주는 편이 낫다.
+
+## 참고
+
+- [공식 — Suspense](https://react.dev/reference/react/Suspense)
+- [공식 — useTransition](https://react.dev/reference/react/useTransition)
+- [공식 — React v18.0](https://react.dev/blog/2022/03/29/react-v18)
+- [공식 — startTransition](https://react.dev/reference/react/startTransition)

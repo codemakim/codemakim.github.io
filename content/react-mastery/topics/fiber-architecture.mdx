@@ -1,0 +1,69 @@
+---
+title: Fiber가 해결하는 문제
+slug: fiber-architecture
+readingTimeMin: 14
+description: React가 렌더링 작업을 쪼개고 우선순위를 줄 수 있게 된 이유
+tags: [React, Fiber, 고급]
+---
+
+## 한 장 핵심
+
+Fiber는 React의 공개 API가 아니라 내부 렌더링 아키텍처다. 핵심은 컴포넌트 트리를 한 번에 끝까지 재귀 호출하는 작업으로 보지 않고, 중단·재개·폐기할 수 있는 작은 작업 단위로 다룰 수 있게 만든 것이다.
+
+이 변화가 중요한 이유는 UI 작업의 우선순위가 모두 같지 않기 때문이다. 사용자가 타이핑하는 입력 반응은 즉시 처리되어야 하지만, 큰 목록 필터링 결과를 다시 그리는 작업은 조금 늦어도 된다. Fiber는 이런 작업 조율을 가능하게 한 기반이고, React 18의 concurrent rendering, transition, Suspense 개선은 그 위에 올라간 사용자 경험 기능이다.
+
+## Vue와 비교
+
+Vue는 반응형 의존성 추적을 통해 어떤 effect가 다시 실행되어야 하는지 비교적 직접적으로 찾는다. 값이 바뀌면 그 값을 읽은 render effect나 watcher가 스케줄링된다. 개발자는 "어떤 reactive source가 어떤 effect를 깨우는가"를 중심으로 사고한다.
+
+React는 컴포넌트 함수 호출 결과로 UI 트리를 다시 계산하고, 그 계산 작업을 scheduler가 조율한다. Fiber 관점에서는 각 컴포넌트와 host node 주변의 작업 정보가 트리 구조로 연결되어 있고, React는 이 작업들을 진행하면서 필요하면 더 중요한 업데이트를 먼저 처리할 수 있다.
+
+Vue에도 scheduler와 job queue가 있지만, React Fiber의 학습 포인트는 "상태 변경이 곧 DOM 패치"가 아니라 "업데이트가 렌더링 작업으로 예약되고, 그 작업이 우선순위와 중단 가능성을 가진다"는 점이다.
+
+## React 내부 원리
+
+초기 React의 reconciler는 트리를 동기적으로 내려가며 작업을 끝내는 모델에 가까웠다. 트리가 크면 JavaScript 메인 스레드를 오래 붙잡을 수 있고, 그 동안 입력·애니메이션·hover 같은 더 급한 상호작용이 밀린다.
+
+Fiber는 이 작업을 "나중에 이어 할 수 있는 단위"로 표현한다. 공개 설명에서 자주 언급되는 목표는 incremental rendering, 즉 렌더링 작업을 조각으로 나눠 여러 프레임에 분산하는 것이다. 또한 새 업데이트가 들어오면 진행 중인 작업을 버리고 최신 작업으로 다시 계산할 수 있다.
+
+```tsx
+import { startTransition, useState } from "react";
+
+export default function SearchBox({ items }: { items: string[] }) {
+  const [text, setText] = useState("");
+  const [query, setQuery] = useState("");
+
+  function onChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const next = e.target.value;
+    setText(next);
+    startTransition(() => {
+      setQuery(next);
+    });
+  }
+
+  const filtered = items.filter((item) => item.includes(query));
+
+  return (
+    <>
+      <input value={text} onChange={onChange} />
+      <p>{filtered.length} results</p>
+    </>
+  );
+}
+```
+
+여기서 입력값 `text` 업데이트는 급하고, 검색 결과 `query` 업데이트는 transition으로 표시된다. React는 급한 입력 반응을 우선 처리하고, 오래 걸리는 렌더링 작업은 중단되거나 최신 입력 기준으로 다시 시작될 수 있다. 이 동작을 가능하게 하는 내부 기반이 Fiber다.
+
+## 실무에서 터지는 문제
+
+- **Fiber를 직접 다루려 함**: Fiber node는 public API가 아니다. 앱 코드는 `startTransition`, `Suspense`, `memo`, 상태 위치 조정 같은 공개 API로 의도를 표현한다.
+- **concurrent rendering을 병렬 실행으로 오해함**: React가 여러 UI 버전을 준비할 수 있다는 말은 대개 메인 스레드 JavaScript에서 작업을 조율한다는 뜻이다. Web Worker처럼 자동 병렬 처리되는 모델이 아니다.
+- **중단 가능성을 고려하지 않는 render 코드**: render 중 외부 객체를 변경하거나 랜덤값을 발생시키면, 버려진 render의 흔적이 남을 수 있다. render는 순수해야 한다.
+- **transition을 모든 업데이트에 씀**: 입력 제어 state처럼 즉시 반영되어야 하는 값은 transition에 넣으면 안 된다. 무거운 결과 렌더링이나 페이지 전환처럼 늦어도 되는 업데이트에 사용한다.
+
+## 참고
+
+- [공식 — React v18.0](https://react.dev/blog/2022/03/29/react-v18)
+- [공식 — useTransition](https://react.dev/reference/react/useTransition)
+- [공식 — Keeping Components Pure](https://react.dev/learn/keeping-components-pure)
+- [Andrew Clark — React Fiber Architecture](https://github.com/acdlite/react-fiber-architecture)

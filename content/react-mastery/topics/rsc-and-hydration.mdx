@@ -1,0 +1,59 @@
+---
+title: Server Components와 Hydration
+slug: rsc-and-hydration
+readingTimeMin: 15
+description: 서버에서 계산된 UI와 브라우저에서 살아나는 UI의 경계
+tags: [React, RSC, Next.js]
+---
+
+## 한 장 핵심
+
+Hydration은 서버에서 만든 HTML에 브라우저의 React가 이벤트 핸들러와 상태를 붙여 interactive하게 만드는 과정이다. React Server Components(RSC)는 더 나아가 일부 컴포넌트를 클라이언트 번들 밖 서버 환경에서 렌더링하게 하는 모델이다.
+
+둘은 같은 말이 아니다. SSR은 HTML을 먼저 보내 초기 표시를 빠르게 만드는 전략이고, hydration은 그 HTML에 클라이언트 React를 붙이는 과정이다. RSC는 클라이언트에서 실행될 필요 없는 UI 계산과 데이터 접근을 서버 컴포넌트로 옮겨 클라이언트 JavaScript를 줄이는 아키텍처다.
+
+## Vue와 비교
+
+Nuxt를 써봤다면 SSR HTML과 client hydration의 감각은 익숙하다. 서버에서 만든 HTML이 먼저 내려오고, 클라이언트에서 같은 컴포넌트 트리가 다시 연결된다. 이때 서버와 클라이언트 출력이 다르면 hydration mismatch가 난다.
+
+RSC는 Nuxt SSR과만 비교하면 놓치는 부분이 있다. RSC의 Server Component는 브라우저 번들에 포함되지 않는 컴포넌트다. 이벤트 핸들러, state, effect를 쓸 수 없고, 필요한 경우 `"use client"` 경계 아래 Client Component로 내려가야 한다.
+
+Vue 생태계의 islands나 partial hydration 아이디어와 비슷하게 느껴질 수 있지만, React RSC는 컴포넌트 트리 안에서 서버 전용 컴포넌트와 클라이언트 컴포넌트가 경계를 이루는 방식으로 접근한다.
+
+## React 내부 원리
+
+`hydrateRoot`는 서버 환경에서 만든 HTML이 들어 있는 DOM node에 React를 attach한다. hydration 중 React는 서버에서 생성된 markup과 클라이언트 render 결과가 같다고 기대한다. 시간, 랜덤값, 브라우저 전용 상태가 첫 render에 섞이면 mismatch가 생긴다.
+
+```tsx
+"use client";
+
+import { useEffect, useState } from "react";
+
+export function LocalTime() {
+  const [time, setTime] = useState<string | null>(null);
+
+  useEffect(() => {
+    setTime(new Date().toLocaleTimeString());
+  }, []);
+
+  return <span>{time ?? "..."}</span>;
+}
+```
+
+현재 시간은 서버와 클라이언트가 다르게 렌더할 수 있다. 첫 render에서는 안정적인 placeholder를 보여주고, hydration 이후 effect에서 브라우저 값을 채우면 mismatch를 피할 수 있다.
+
+RSC에서 Server Component는 서버나 빌드 환경에서 실행될 수 있다. 데이터베이스 접근, 파일 시스템 접근, 비밀 키가 필요한 작업은 서버 쪽에 둘 수 있다. 반대로 버튼 클릭, localStorage, `useState`, `useEffect`가 필요하면 Client Component 경계가 필요하다.
+
+## 실무에서 터지는 문제
+
+- **서버와 클라이언트 첫 출력 불일치**: `Date.now()`, `Math.random()`, `window.innerWidth`를 첫 render에 쓰면 mismatch 후보가 된다.
+- **Server Component에서 Hook 사용**: state/effect/event handler가 필요하면 `"use client"` 파일로 분리한다.
+- **Client Component를 너무 위에 둠**: 루트 근처에 `"use client"`를 붙이면 하위가 대량으로 클라이언트 번들에 들어갈 수 있다. 상호작용이 필요한 leaf에 가깝게 둔다.
+- **RSC를 보안 경계로 과신**: Server Component 코드는 클라이언트 번들에 가지 않지만, props로 Client Component에 넘기는 데이터는 직렬화되어 전달된다. 민감한 값은 넘기지 않는다.
+
+## 참고
+
+- [공식 — Server Components](https://react.dev/reference/rsc/server-components)
+- [공식 — hydrateRoot](https://react.dev/reference/react-dom/client/hydrateRoot)
+- [공식 — use client](https://react.dev/reference/rsc/use-client)
+- [Next.js 공식 — Server and Client Components](https://nextjs.org/docs/app/getting-started/server-and-client-components)
