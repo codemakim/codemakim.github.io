@@ -1,0 +1,78 @@
+---
+title: Reconciliation과 key
+slug: reconciliation-and-key
+readingTimeMin: 15
+description: key는 list warning 제거용이 아니라 identity 선언이다
+tags: [React, Reconciliation, 고급]
+---
+
+## 한 장 핵심
+
+Reconciliation은 이전 render 결과와 다음 render 결과를 비교해 무엇을 유지하고, 무엇을 새로 만들고, 어떤 DOM 작업을 commit할지 결정하는 과정이다. 이때 React가 가장 중요하게 보는 것은 트리 안의 위치, element type, 그리고 형제 사이의 `key`다.
+
+`key`는 단순히 console warning을 없애는 장식이 아니다. React에게 "이 항목은 이전 render의 어떤 항목과 같은 정체성을 가진다"라고 알려주는 힌트다. 정체성이 유지되면 DOM과 컴포넌트 state를 보존할 수 있고, 정체성이 바뀌면 state를 버리고 새로 시작한다.
+
+## Vue와 비교
+
+Vue도 `v-for`에서 `:key`를 요구하고, 안정적인 key가 없으면 DOM 재사용과 컴포넌트 상태 보존이 어긋날 수 있다. 이 점은 React와 매우 비슷하다. 둘 다 list index를 key로 쓰면 삽입, 삭제, 정렬에서 항목의 정체성과 위치가 섞이는 문제가 생긴다.
+
+차이는 React에서 key가 list 바깥에서도 state reset 도구로 자주 쓰인다는 점이다. React는 기본적으로 같은 부모 아래 같은 위치의 같은 컴포넌트 type이면 state를 보존한다. 여기에 다른 `key`를 주면 같은 위치라도 다른 인스턴스로 취급한다.
+
+Vue에서는 반응형 데이터와 템플릿 패치 모델을 함께 떠올리는 일이 많다. React에서는 "이번 render의 element tree에서 이 위치의 이 element가 지난 render의 무엇과 같은가"를 기준으로 사고하면 key 문제가 선명해진다.
+
+## React 내부 원리
+
+React는 render 단계에서 새 React element 트리를 만든다. 이후 이전 트리와 새 트리를 비교하면서 유지할 node와 버릴 node를 결정한다. 공식 문서는 리스트에서 key가 항목을 나중에 다시 매칭할 수 있게 해준다고 설명한다.
+
+```tsx
+type Todo = {
+  id: string;
+  title: string;
+};
+
+export function TodoList({ todos }: { todos: Todo[] }) {
+  return (
+    <ul>
+      {todos.map((todo) => (
+        <li key={todo.id}>{todo.title}</li>
+      ))}
+    </ul>
+  );
+}
+```
+
+여기서 `todo.id`는 형제 `li` 사이에서만 유일하면 된다. 전역 유일 ID일 필요는 없지만, 같은 list 안에서는 render가 반복되어도 같은 항목에 같은 key가 붙어야 한다.
+
+반대로 다음 코드는 정렬이나 중간 삽입이 있을 때 위험하다.
+
+```tsx
+{todos.map((todo, index) => (
+  <TodoRow key={index} todo={todo} />
+))}
+```
+
+index key는 "첫 번째 row", "두 번째 row"라는 위치를 정체성으로 삼는다. 첫 번째에 새 todo가 들어오면 기존 첫 번째 row의 state가 새 todo에 붙을 수 있다. 입력값, focus, animation state처럼 DOM이나 컴포넌트 내부 상태가 있는 row에서 특히 치명적이다.
+
+key는 state reset에도 쓸 수 있다.
+
+```tsx
+export function ChatPanel({ recipientId }: { recipientId: string }) {
+  return <Chat key={recipientId} recipientId={recipientId} />;
+}
+```
+
+수신자가 바뀌면 `Chat`의 위치와 type은 같지만 key가 다르다. React는 이전 `Chat`을 제거하고 새 `Chat`을 만들며, draft state도 함께 초기화된다. 이 동작은 버그가 아니라 명시적인 정체성 교체다.
+
+## 실무에서 터지는 문제
+
+- **key를 하위 컴포넌트 안에 넣음**: key는 배열을 만드는 자리에서 형제 element에 붙어야 한다. `TodoRow` 내부의 최상위 `li`에 key를 넣어도 부모 배열 매칭에는 도움이 되지 않는다.
+- **랜덤 key 사용**: `key={crypto.randomUUID()}`처럼 render마다 새 key를 만들면 React는 매번 새 항목으로 본다. state가 계속 날아가고 DOM 재사용도 깨진다.
+- **index key 남용**: 항목이 정렬, 필터링, 삽입, 삭제될 수 있으면 index key는 피한다. 정말 정적인 목록에서만 허용한다.
+- **key가 render를 막는다고 착각**: key는 identity 매칭을 돕는 장치다. 컴포넌트 호출 자체를 건너뛰는 최적화 도구가 아니다. 불필요한 render를 줄이는 문제는 `memo`, props 안정성, 상태 위치 조정으로 따로 다룬다.
+
+## 참고
+
+- [공식 — Rendering Lists](https://react.dev/learn/rendering-lists)
+- [공식 — Preserving and Resetting State](https://react.dev/learn/preserving-and-resetting-state)
+- [공식 — Tutorial: Tic-Tac-Toe의 key 설명](https://react.dev/learn/tutorial-tic-tac-toe)
+- [Legacy 공식 — Reconciliation](https://legacy.reactjs.org/docs/reconciliation.html)
