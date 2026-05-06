@@ -1,40 +1,67 @@
 ---
 title: "[React Router 5/12] React Router - Router Hooks"
 date: "2025-08-19"
-description: "useParams, useSearchParams, useLocation, useNavigate 활용"
-tags: ["React", "고급", "프론트엔드"]
+description: "현재 URL에서 pathname, params, query, match 정보를 읽는 Router Hooks 기준"
+tags: ["React", "중급", "프론트엔드"]
 series: "React Router"
 seriesOrder: 5
 ---
 
-# React Router 가이드 - Router Hooks
+# React Router - Router Hooks
 
-> React Router v6를 기반으로 한 라우팅 학습 자료  
-> 출처: [React Router Documentation](https://reactrouter.com/)
+라우팅을 쓰다 보면 컴포넌트가 URL을 읽어야 하는 순간이 생긴다.
 
----
+현재 글의 `postId`가 무엇인지 알아야 상세 데이터를 가져올 수 있다. 목록 화면은 `?tag=react&page=2` 같은 쿼리로 필터 상태를 복원해야 한다. 레이아웃은 지금 사용자가 관리자 영역에 있는지 확인해 메뉴를 다르게 보여줄 수 있다.
 
-## Router Hooks
-
-Router hooks는 라우터가 가진 “현재 위치 정보”와 “이동 기능”을 컴포넌트에서 읽고 쓰기 위한 API다.
-
-앞선 글에서 `useNavigate()`는 이미 깊게 다뤘다. 이 글은 `useLocation`, `useParams`, `useSearchParams`, `useMatch`, `useRoutes`를 중심으로 정리한다.
+React Router의 훅은 이처럼 **현재 URL에서 필요한 정보를 읽거나, URL을 바꾸는 API**다.
 
 ---
 
-## 1. `useLocation()`: 현재 위치의 단일 진실 소스
+## 왜 필요한가
 
-`useLocation()`은 현재 URL을 구조화해서 제공한다.
+라우터 정보는 전역 객체처럼 아무 곳에서나 읽는 값이 아니다. React Router는 라우터 컨텍스트 안에 현재 위치와 라우트 매칭 정보를 넣어두고, 컴포넌트는 훅으로 필요한 조각만 꺼낸다.
 
-- `pathname`: `/posts/42`
-- `search`: `?tag=react&page=2`
-- `hash`: `#section-1`
-- `state`: `navigate(path, { state })`로 전달한 값
+이번 글에서는 훅을 기능별로 묶는다.
+
+- `useLocation`: 현재 URL 전체 정보를 읽는다.
+- `useParams`: 동적 경로 조각을 읽는다.
+- `useSearchParams`: 쿼리 스트링을 읽고 쓴다.
+- `useMatch`: 현재 URL이 특정 패턴과 맞는지 확인한다.
+- `useRoutes`: 라우트 정의를 객체 배열로 구성한다.
+
+`useNavigate`는 앞 글에서 다뤘으므로, 여기서는 "현재 URL에서 무엇을 읽을 것인가"에 집중한다.
+
+---
+
+## 원리와 기준
+
+URL은 화면 상태의 일부다. 하지만 URL 안의 모든 값이 같은 의미를 가지지는 않는다.
+
+| URL 조각      | 예                       | 의미                      |
+| ------------- | ------------------------ | ------------------------- |
+| `pathname`    | `/posts/42`              | 어떤 화면인가             |
+| route params  | `:postId` → `42`         | 리소스의 정체성           |
+| search params | `?tag=react&page=2`      | 같은 화면 안의 보기 옵션  |
+| hash          | `#comments`              | 문서 안의 위치            |
+| state         | `{ from: "/dashboard" }` | 히스토리에 붙는 보조 정보 |
+
+기준은 단순하다.
+
+- 리소스 자체를 구분하면 params에 둔다.
+- 필터, 정렬, 페이지처럼 같은 화면의 옵션이면 search params에 둔다.
+- 새로고침 후에도 반드시 필요한 값은 `location.state`에 두지 않는다.
+- URL 변경에 따라 부수효과를 실행해야 하면 `useLocation()`을 관찰한다.
+
+---
+
+## `useLocation`: 현재 위치 읽기
+
+`useLocation()`은 현재 위치 객체를 반환한다.
 
 ```tsx
 import { useLocation } from "react-router-dom";
 
-export default function DebugLocation() {
+export default function LocationDebugPanel() {
   const location = useLocation();
 
   return (
@@ -47,25 +74,38 @@ export default function DebugLocation() {
           state: location.state,
         },
         null,
-        2
+        2,
       )}
     </pre>
   );
 }
 ```
 
-### 실무 포인트: `location.state`는 영속 저장소가 아니다
+실무에서는 디버깅보다 URL 변경에 따른 부수효과에 더 자주 쓴다. 예를 들어 페이지 이동 때마다 analytics 이벤트를 보낸다.
 
-`state`는 히스토리 엔트리에 붙는 값이다. 새로고침, 새 탭 열기, 직접 URL 입력 같은 케이스에서는 기대대로 존재하지 않을 수 있다.
+```tsx
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 
-- 반드시 존재해야 하는 값: URL(파라미터/쿼리) 또는 서버/스토어에 둔다.
-- 있으면 좋은 값: `state`로 전달한다. 예: “어떤 버튼을 눌러 들어왔는지” 같은 보조 정보
+export function PageViewTracker() {
+  const location = useLocation();
+
+  useEffect(() => {
+    const path = location.pathname + location.search;
+    console.log("page_view", path);
+  }, [location.pathname, location.search]);
+
+  return null;
+}
+```
+
+`location` 전체를 의존성에 넣어도 동작하지만, 실제로 관찰하려는 값이 `pathname`과 `search`라면 의존성을 좁히는 편이 의도를 더 잘 드러낸다.
 
 ---
 
-## 2. `useParams()`: URL 세그먼트를 변수로 읽는다
+## `useParams`: 동적 세그먼트 읽기
 
-동적 라우트(`/posts/:postId`)의 파라미터를 읽는다. 값은 항상 문자열이다.
+라우트가 `/posts/:postId`라면 `postId`는 `useParams()`로 읽는다.
 
 ```tsx
 import { useParams } from "react-router-dom";
@@ -73,125 +113,223 @@ import { useParams } from "react-router-dom";
 export default function PostDetailPage() {
   const { postId } = useParams();
 
-  if (!postId) return <div>잘못된 접근이다.</div>;
-  return <div>postId: {postId}</div>;
+  if (!postId) {
+    return <p>잘못된 글 주소다.</p>;
+  }
+
+  return <article>글 ID: {postId}</article>;
 }
 ```
 
-실무에서는 파라미터 형식 검증을 빠르게 한다. 숫자 ID면 숫자로 파싱하고, 실패하면 404 또는 목록으로 보낸다.
+params 값은 문자열이거나 `undefined`다. 숫자처럼 보여도 숫자가 아니다. 숫자 ID를 기대한다면 명시적으로 검증한다.
+
+```tsx
+import { useParams } from "react-router-dom";
+
+export default function NumericPostPage() {
+  const { postId } = useParams();
+  const numericPostId = Number(postId);
+
+  if (!postId || !Number.isInteger(numericPostId) || numericPostId <= 0) {
+    return <p>존재하지 않는 글 주소다.</p>;
+  }
+
+  return <article>글 번호: {numericPostId}</article>;
+}
+```
+
+라우트가 맞지 않는 404와, 라우트는 맞지만 데이터가 없는 상태는 분리해서 생각한다. `/posts/abc`는 잘못된 파라미터이고, `/posts/999`는 형식은 맞지만 데이터가 없을 수 있는 상태다.
 
 ---
 
-## 3. `useSearchParams()`: URL 쿼리를 상태로 다룬다
+## `useSearchParams`: 쿼리를 상태로 다루기
 
-필터/정렬/페이지네이션은 쿼리 스트링이 가장 자연스러운 저장소다. 새로고침과 링크 공유가 동시에 된다.
+검색, 필터, 정렬, 페이지네이션은 쿼리 스트링에 잘 맞는다.
 
 ```tsx
 import { useSearchParams } from "react-router-dom";
 
-export default function PostsPage() {
+export default function PostListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const tag = searchParams.get("tag") ?? "all";
   const page = Number(searchParams.get("page") ?? "1");
+  const safePage = Number.isInteger(page) && page > 0 ? page : 1;
 
-  function goNext() {
+  function changeTag(nextTag: string) {
     setSearchParams((prev) => {
-      // prev는 undefined가 아니라 현재 URLSearchParams이다.
-      // 쿼리가 비어 있어도 prev는 빈 URLSearchParams로 들어온다.
       const next = new URLSearchParams(prev);
 
-      // page를 바깥 스코프에서 캡처하면 stale 값이 될 수 있다.
-      // 그래서 prev(next)에서 다시 읽어서 증가시킨다.
+      if (nextTag === "all") {
+        next.delete("tag");
+      } else {
+        next.set("tag", nextTag);
+      }
+
+      next.set("page", "1");
+      return next;
+    });
+  }
+
+  function goNextPage() {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
       const currentPage = Number(next.get("page") ?? "1");
-      next.set("page", String((Number.isFinite(currentPage) ? currentPage : 1) + 1));
+      const safeCurrentPage =
+        Number.isInteger(currentPage) && currentPage > 0 ? currentPage : 1;
+
+      next.set("page", String(safeCurrentPage + 1));
       return next;
     });
   }
 
   return (
-    <div>
-      <div>tag: {tag}</div>
-      <div>page: {Number.isFinite(page) ? page : 1}</div>
-      <button onClick={goNext}>next</button>
-    </div>
+    <section>
+      <p>현재 태그: {tag}</p>
+      <p>현재 페이지: {safePage}</p>
+
+      <button type="button" onClick={() => changeTag("react")}>
+        React
+      </button>
+      <button type="button" onClick={goNextPage}>
+        다음 페이지
+      </button>
+    </section>
   );
 }
 ```
 
-### 실무 포인트: `setSearchParams((prev) => prev.set(...) )`는 피한다
+`URLSearchParams`는 mutable 객체다. 그래서 `prev`를 직접 바꾸기보다 `new URLSearchParams(prev)`로 복사한 뒤 반환하는 습관이 안전하다.
 
-`URLSearchParams`는 mutable이다. `prev`를 직접 변경하면 의도가 흐려지고, 일부 구현에서는 예기치 않은 결과가 나온다.
+또 하나의 기준은 히스토리다. 검색창에서 한 글자 입력할 때마다 URL을 바꾼다면, 뒤로가기가 검색어 한 글자씩 이동할 수 있다. 이런 경우에는 `replace` 옵션을 검토한다.
 
-- 안전한 방식: `new URLSearchParams(prev)`로 복사한 뒤 수정해 반환한다.
+```tsx
+setSearchParams({ q: "react" }, { replace: true });
+```
+
+반면 태그 변경이나 페이지 이동은 사용자가 뒤로가기로 이전 보기 상태로 돌아가고 싶을 수 있으므로 일반 push가 더 자연스럽다.
 
 ---
 
-## 4. `useMatch()`: “이 경로 패턴에 현재 URL이 매칭되는가”
+## `useMatch`: 특정 패턴 매칭
 
-메뉴 하이라이트, 조건부 렌더링, 특정 섹션에서만 동작하는 로직에 쓴다.
+현재 URL이 특정 라우트 패턴에 해당하는지 확인해야 할 때 `useMatch()`를 쓴다.
 
 ```tsx
 import { useMatch } from "react-router-dom";
 
-export default function AdminOnlyBadge() {
+export function AdminBadge() {
   const isAdminArea = Boolean(useMatch("/admin/*"));
-  if (!isAdminArea) return null;
-  return <div>admin area</div>;
+
+  if (!isAdminArea) {
+    return null;
+  }
+
+  return <span>관리자 영역</span>;
 }
 ```
 
-`NavLink`로 해결되는 경우가 많다. `useMatch`는 “링크가 아니라 로직이 필요할 때” 쓰는 편이 적절하다.
+메뉴 활성화만 필요하면 `NavLink`가 더 단순하다. `useMatch()`는 링크 스타일이 아니라 로직이 필요할 때 적합하다.
+
+```tsx
+import { NavLink } from "react-router-dom";
+
+export function MainNav() {
+  return (
+    <nav>
+      <NavLink to="/posts">글</NavLink>
+      <NavLink to="/admin">관리</NavLink>
+    </nav>
+  );
+}
+```
 
 ---
 
-## 5. `useRoutes()`: 라우트를 객체로 구성한다
+## `useRoutes`: 라우트 정의를 객체로 구성하기
 
-라우트가 커지면 JSX로 중첩을 계속 쓰기보다, 라우트 정의를 별도 파일로 분리하고 재사용하는 편이 낫다.
+작은 앱에서는 `<Routes>`와 `<Route>` JSX가 읽기 쉽다. 라우트가 커지고 중첩이 많아지면 객체 배열로 분리하는 편이 관리하기 쉽다.
 
 ```tsx
-import { useRoutes } from "react-router-dom";
+import { Outlet, useRoutes } from "react-router-dom";
 
-function AppRoutes() {
+function DashboardLayout() {
+  return (
+    <section>
+      <h1>대시보드</h1>
+      <Outlet />
+    </section>
+  );
+}
+
+export function AppRoutes() {
   return useRoutes([
-    { path: "/", element: <div>home</div> },
-    { path: "/about", element: <div>about</div> },
+    { path: "/", element: <p>홈</p> },
+    { path: "/posts", element: <p>글 목록</p> },
+    { path: "/posts/:postId", element: <p>글 상세</p> },
     {
       path: "/dashboard",
-      element: <div>layout</div>,
+      element: <DashboardLayout />,
       children: [
-        { index: true, element: <div>overview</div> },
-        { path: "settings", element: <div>settings</div> },
+        { index: true, element: <p>요약</p> },
+        { path: "settings", element: <p>설정</p> },
       ],
     },
+    { path: "*", element: <p>페이지를 찾을 수 없다.</p> },
   ]);
 }
 ```
 
-실무에서는 “라우트 정의 파일”을 중심으로 접근 제어, 코드 스플리팅, breadcrumb 메타 같은 관심사를 모으는 설계가 많이 쓰인다.
-
-### Vue Router와 비교
-
-```javascript
-// Vue Router
-import { useRouter } from "vue-router";
-const router = useRouter();
-// 네비게이션
-router.push("/about");
-router.push({ path: "/user", query: { id: 123 } });
-router.replace("/login");
-router.go(-1);
-```
-
-```jsx
-// React Router
-import { useNavigate } from "react-router-dom";
-const navigate = useNavigate();
-// 네비게이션
-navigate("/about");
-navigate("/user?id=123");
-navigate("/login", { replace: true });
-navigate(-1);
-```
+객체 라우트는 코드 스플리팅, 권한 메타, breadcrumb 같은 정보를 같이 관리할 때 유용하다. 다만 처음부터 라우트 설정 파일을 과하게 추상화하면 오히려 읽기 어려워진다. 작은 앱에서는 JSX 라우트로 시작해도 충분하다.
 
 ---
+
+## 함정과 디버깅
+
+### params를 바로 숫자로 믿는다
+
+`useParams()` 값은 항상 문자열 또는 `undefined`다. `Number(undefined)`는 `NaN`이고, `Number("")`는 `0`이다. 숫자 ID가 필요하면 양의 정수인지까지 검증한다.
+
+### 쿼리 값을 React state와 중복 저장한다
+
+`const [tag, setTag] = useState(searchParams.get("tag"))`처럼 복사하면 URL과 state가 서로 어긋날 수 있다. URL이 단일 진실 소스라면 렌더링 때 `searchParams`에서 계산한다.
+
+### `searchParams`를 직접 수정하고 `setSearchParams`를 호출하지 않는다
+
+```tsx
+searchParams.set("page", "2");
+```
+
+이 코드는 객체 값은 바꿀 수 있지만 URL 변경을 보장하지 않는다. URL을 바꾸려면 `setSearchParams()`를 호출한다.
+
+### `location.state`를 필수 데이터 저장소로 쓴다
+
+`location.state`는 있으면 편한 보조 정보다. 새로고침 이후에도 필요한 값은 params, search params, 서버 데이터로 복원할 수 있어야 한다.
+
+---
+
+## Vue Router와 비교
+
+Vue Router와 React Router는 URL에서 값을 읽는 기준이 비슷하다.
+
+| 목적             | Vue Router                  | React Router         |
+| ---------------- | --------------------------- | -------------------- |
+| 현재 위치        | `useRoute()`                | `useLocation()`      |
+| 동적 params      | `route.params.postId`       | `useParams().postId` |
+| query string     | `route.query.page`          | `useSearchParams()`  |
+| 코드 이동        | `useRouter().push()`        | `useNavigate()`      |
+| 특정 경로 매칭   | `route.matched`, route meta | `useMatch()`         |
+| 라우트 객체 구성 | `createRouter({ routes })`  | `useRoutes(routes)`  |
+
+Vue Router는 `route` 객체에 현재 라우트 정보가 모여 있고, `router` 객체가 이동을 담당한다. React Router는 필요한 정보마다 훅을 나누어 제공한다. 어느 쪽이든 중요한 기준은 같다. URL에 있는 값은 새로고침과 공유 링크에서도 복원 가능해야 한다.
+
+---
+
+## 체크리스트
+
+- `useLocation`, `useParams`, `useSearchParams`의 역할 차이를 설명할 수 있다.
+- params는 리소스의 정체성, search params는 보기 옵션이라는 기준을 적용할 수 있다.
+- `useParams()` 값이 문자열 또는 `undefined`라는 점을 고려해 검증할 수 있다.
+- `URLSearchParams`를 복사해서 수정하는 안전한 패턴을 사용할 수 있다.
+- `location.state`에 필수 데이터를 넣으면 안 되는 이유를 설명할 수 있다.
+- `NavLink`로 충분한 상황과 `useMatch()`가 필요한 상황을 구분할 수 있다.

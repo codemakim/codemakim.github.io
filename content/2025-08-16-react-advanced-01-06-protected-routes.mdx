@@ -1,34 +1,39 @@
 ---
 title: "[React Router 6/12] React Router - Protected Routes"
 date: "2025-08-20"
-description: "인증 기반 라우트 보호, 리다이렉트 처리"
-tags: ["React", "고급", "프론트엔드"]
+description: "인증 상태, 권한, 리다이렉트, 로딩 깜빡임을 고려한 보호 라우트 패턴"
+tags: ["React", "중급", "프론트엔드"]
 series: "React Router"
 seriesOrder: 6
 ---
 
-# React Router 가이드 - Protected Routes
+# React Router - Protected Routes
 
-> React Router v6를 기반으로 한 라우팅 학습 자료  
-> 출처: [React Router Documentation](https://reactrouter.com/)
+로그인한 사용자만 볼 수 있는 화면이 있다. 관리자만 접근해야 하는 화면도 있다. 결제한 사용자만 들어갈 수 있는 구독자 페이지도 있다.
 
----
+이런 화면을 라우터 수준에서 제어하는 패턴을 Protected Routes라고 부른다. 한국어로는 보호 라우트, 인증 라우트, 접근 제어 라우트처럼 부를 수 있다.
 
-## Protected Routes
-
-Protected routes는 “라우트에 접근할 수 있는 조건”을 코드로 표현하는 패턴이다. 인증 여부, 역할(RBAC), 구독 상태, 조직 멤버십 같은 정책이 여기에 들어간다.
-
-실무에서 이 주제는 단순히 “안 들어가게 막는다” 수준이 아니라, 다음까지 포함한다.
-
-- 로그인 전: 막는다
-- 로그인 후: 원래 가려던 페이지로 되돌린다
-- 권한 부족: 403(unauthorized) 화면으로 보낸다
-- 인증 상태 확인 중: 깜빡임 없이 로딩 상태를 보여준다
-- 보안: 클라이언트 가드는 UX일 뿐, 서버에서도 권한을 강제한다
+중요한 점은 하나다. **클라이언트 라우트 보호는 보안의 전부가 아니라 사용자 경험의 일부**다. 화면을 숨기는 것과 서버 권한을 보장하는 것은 다른 문제다.
 
 ---
 
-## 1. 가장 단순한 인증 가드
+## 왜 필요한가
+
+보호 라우트가 없으면 사용자는 주소창에 `/dashboard`나 `/admin`을 직접 입력해서 화면에 접근할 수 있다. 물론 서버 API가 제대로 막고 있다면 민감한 데이터는 내려오지 않는다. 하지만 빈 화면, 에러 화면, 순간적으로 보였다가 사라지는 화면은 사용자를 혼란스럽게 만든다.
+
+보호 라우트는 다음 문제를 해결한다.
+
+- 로그인하지 않은 사용자를 로그인 페이지로 보낸다.
+- 로그인 후 원래 가려던 페이지로 되돌린다.
+- 권한이 부족한 사용자를 403 화면으로 보낸다.
+- 인증 상태 확인 중에는 화면 깜빡임을 막는다.
+- 클라이언트 가드와 서버 권한 검사의 역할을 분리한다.
+
+---
+
+## 원리와 기준
+
+React Router에서 보호 라우트는 보통 컴포넌트 합성으로 만든다. 조건을 만족하면 children을 렌더링하고, 만족하지 않으면 `<Navigate />`로 다른 경로를 렌더링한다.
 
 ```tsx
 import { Navigate } from "react-router-dom";
@@ -40,20 +45,72 @@ export function RequireAuth({
   isAuthenticated: boolean;
   children: React.ReactNode;
 }) {
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
   return children;
 }
 ```
 
-이 방식은 “렌더 결과를 바꾼다”는 점에서 안전하다. 렌더링 중에 `navigate()`를 호출하지 않는다.
+이 방식은 렌더링 중에 `navigate()`를 직접 호출하지 않는다. 조건에 따른 렌더링 결과로 `<Navigate />`를 반환한다.
+
+기준은 다음과 같다.
+
+- 인증 여부를 모르면 로딩 상태를 먼저 보여준다.
+- 인증되지 않았으면 로그인 페이지로 보낸다.
+- 인증됐지만 권한이 부족하면 403 페이지로 보낸다.
+- 민감한 데이터 접근은 서버 API와 RLS, 세션 검사에서 다시 막는다.
 
 ---
 
-## 2. 원래 가려던 페이지로 되돌리기
+## 최소 예제
 
-로그인 성공 후 원래 경로로 복귀시키려면, “차단된 순간의 목적지”를 저장해야 한다.
+가장 작은 보호 라우트는 boolean 인증 상태만 받는다.
 
-여기서 흔한 실수는 `location` 객체 전체를 통째로 넣는 것이다. 팀 규칙과 직렬화 이슈를 피하려면 문자열로 최소화하는 편이 낫다.
+```tsx
+import { Navigate, Route, Routes } from "react-router-dom";
+
+function RequireAuth({
+  isAuthenticated,
+  children,
+}: {
+  isAuthenticated: boolean;
+  children: React.ReactNode;
+}) {
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+}
+
+function AppRoutes({ isAuthenticated }: { isAuthenticated: boolean }) {
+  return (
+    <Routes>
+      <Route path="/login" element={<p>로그인</p>} />
+      <Route
+        path="/dashboard"
+        element={
+          <RequireAuth isAuthenticated={isAuthenticated}>
+            <p>대시보드</p>
+          </RequireAuth>
+        }
+      />
+    </Routes>
+  );
+}
+```
+
+`replace`를 쓰는 이유는 뒤로가기를 눌렀을 때 다시 보호 화면으로 돌아왔다가 즉시 로그인으로 튕기는 흐름을 줄이기 위해서다.
+
+---
+
+## 원래 가려던 페이지로 되돌리기
+
+사용자가 `/dashboard/settings`에 직접 접근했다가 로그인 페이지로 이동했다면, 로그인 성공 후 `/dashboard/settings`로 되돌아가는 것이 자연스럽다.
+
+이를 위해 차단된 순간의 경로를 `state.from`에 저장한다.
 
 ```tsx
 import { Navigate, useLocation } from "react-router-dom";
@@ -76,12 +133,22 @@ export function RequireAuth({
 }
 ```
 
-로그인 페이지는 `state.from`으로 복귀한다.
+로그인 페이지에서는 이 값을 읽어서 성공 후 이동한다.
 
 ```tsx
 import { useLocation, useNavigate } from "react-router-dom";
 
-type LoginState = { from?: string };
+type LoginState = {
+  from?: string;
+};
+
+function isSafeInternalPath(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    value.startsWith("/") &&
+    !value.startsWith("//")
+  );
+}
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -89,34 +156,33 @@ export default function LoginPage() {
   const state = (location.state ?? {}) as LoginState;
 
   async function handleLogin() {
-    // 로그인 성공 가정
-    const to = state.from ?? "/dashboard";
-    navigate(to, { replace: true });
+    const fallbackPath = "/dashboard";
+    const nextPath = isSafeInternalPath(state.from) ? state.from : fallbackPath;
+
+    navigate(nextPath, { replace: true });
   }
 
-  return <button onClick={handleLogin}>login</button>;
+  return <button onClick={handleLogin}>로그인</button>;
 }
 ```
 
-### 실무 포인트: open redirect를 막는다
-
-`from`이 외부 URL로 변조되면 피싱으로 이어질 수 있다. `from`은 “앱 내부 경로”만 허용하도록 검증하는 편이 안전하다.
+`from`은 반드시 내부 경로인지 확인한다. 외부 URL을 허용하면 로그인 후 악성 사이트로 보내는 open redirect 문제가 생길 수 있다.
 
 ---
 
-## 3. 인증 로딩 상태(깜빡임) 처리
+## 인증 로딩 상태 처리
 
-실무에서 가장 많이 터지는 UX는 “처음에는 비로그인으로 보였다가 곧 로그인으로 바뀌며 화면이 튄다”는 현상이다.
+실무에서는 인증 상태가 처음부터 확정되어 있지 않은 경우가 많다. 앱이 시작된 뒤 세션을 복원하거나, `/me` API를 호출해 사용자 정보를 가져오기 때문이다.
 
-인증 확인이 비동기라면 로딩 상태를 분리해야 한다.
+이때 `false`를 기본값으로 두면 로그인한 사용자도 처음에는 비로그인으로 판단되어 로그인 페이지로 튕길 수 있다.
 
 ```tsx
 import { Navigate, useLocation } from "react-router-dom";
 
 type AuthState =
   | { status: "loading" }
-  | { status: "authenticated"; user: { role: string } }
-  | { status: "anonymous" };
+  | { status: "anonymous" }
+  | { status: "authenticated"; user: { id: string; role: "user" | "admin" } };
 
 export function RequireAuth({
   auth,
@@ -127,7 +193,9 @@ export function RequireAuth({
 }) {
   const location = useLocation();
 
-  if (auth.status === "loading") return <div>loading...</div>;
+  if (auth.status === "loading") {
+    return <p>인증 상태를 확인하는 중이다.</p>;
+  }
 
   if (auth.status === "anonymous") {
     const from = location.pathname + location.search + location.hash;
@@ -138,97 +206,146 @@ export function RequireAuth({
 }
 ```
 
+`loading`, `anonymous`, `authenticated`를 분리하면 화면 깜빡임과 잘못된 리다이렉트를 줄일 수 있다.
+
 ---
 
-## 4. 역할 기반 접근 제어(RBAC)
+## 권한 기반 접근 제어
 
-권한은 인증과 다르다. 로그인했어도 권한이 없으면 접근을 막아야 한다.
+인증과 권한은 다르다. 로그인한 사용자라도 관리자 화면에는 들어가면 안 될 수 있다.
 
 ```tsx
 import { Navigate } from "react-router-dom";
 
+type Role = "user" | "admin";
+
 export function RequireRole({
-  userRole,
+  role,
   allowedRoles,
   children,
 }: {
-  userRole: string;
-  allowedRoles: string[];
+  role: Role;
+  allowedRoles: Role[];
   children: React.ReactNode;
 }) {
-  if (!allowedRoles.includes(userRole)) {
-    return <Navigate to="/unauthorized" replace />;
+  if (!allowedRoles.includes(role)) {
+    return <Navigate to="/forbidden" replace />;
   }
+
   return children;
 }
 ```
 
-실무에서는 “권한 정책은 서버에서 강제한다”가 기본이고, 클라이언트는 사용자 경험을 위해 빠르게 차단하는 역할을 한다.
+라우트에 적용하면 다음처럼 된다.
+
+```tsx
+import { Route, Routes } from "react-router-dom";
+
+type AuthState =
+  | { status: "loading" }
+  | { status: "anonymous" }
+  | { status: "authenticated"; user: { id: string; role: "user" | "admin" } };
+
+export function AppRoutes({ auth }: { auth: AuthState }) {
+  return (
+    <Routes>
+      <Route path="/login" element={<p>로그인</p>} />
+      <Route path="/forbidden" element={<p>접근 권한이 없다.</p>} />
+      <Route
+        path="/admin"
+        element={
+          <RequireAuth auth={auth}>
+            {auth.status === "authenticated" ? (
+              <RequireRole role={auth.user.role} allowedRoles={["admin"]}>
+                <p>관리자 화면</p>
+              </RequireRole>
+            ) : null}
+          </RequireAuth>
+        }
+      />
+    </Routes>
+  );
+}
+```
+
+이 예제는 클라이언트 화면 보호만 보여준다. `/api/admin` 같은 서버 API는 별도로 세션과 권한을 검사해야 한다.
 
 ---
 
-## 5. 라우트에 적용하는 방식
+## 서버 권한과의 역할 분리
 
-Protected route는 컴포넌트로 감싸서 적용한다.
+클라이언트 보호 라우트는 사용자가 보기 전에 빠르게 안내하는 UX 장치다. 브라우저에서 실행되는 코드는 사용자가 볼 수 있고 조작할 수 있다. 따라서 다음 정보는 클라이언트 가드만 믿으면 안 된다.
 
-```tsx
-import { Routes, Route } from "react-router-dom";
+- 관리자 데이터
+- 결제 정보
+- 개인정보
+- 조직별 비공개 리소스
+- 쓰기 권한이 필요한 API
 
-<Routes>
-  <Route path="/login" element={<LoginPage />} />
-  <Route
-    path="/admin"
-    element={
-      <RequireAuth auth={auth}>
-        <RequireRole userRole={auth.status === "authenticated" ? auth.user.role : ""} allowedRoles={["admin"]}>
-          <AdminPage />
-        </RequireRole>
-      </RequireAuth>
-    }
-  />
-</Routes>;
+서버는 요청마다 사용자의 세션과 권한을 확인해야 한다. Supabase를 쓴다면 RLS 정책도 이 층에 포함된다. 클라이언트 가드는 "접근하면 안 되는 화면을 자연스럽게 보내는 역할"이고, 서버 검사는 "데이터를 실제로 보호하는 역할"이다.
+
+---
+
+## 함정과 디버깅
+
+### 인증 기본값을 `false`로 둔다
+
+앱 시작 직후 아직 세션을 확인하지 않았는데 `false`로 판단하면 로그인 사용자가 로그인 페이지로 튕긴다. `loading` 상태를 별도로 둔다.
+
+### `Navigate`에 `replace`를 빼먹는다
+
+보호 라우트에서 로그인 페이지로 보낼 때 push 이동을 하면, 뒤로가기를 눌렀을 때 다시 보호 라우트로 돌아와 또 로그인 페이지로 이동할 수 있다. 인증 복구성 리다이렉트는 대개 `replace`가 자연스럽다.
+
+### `from`을 검증하지 않는다
+
+`state.from`이나 query string의 `redirectTo`를 그대로 `navigate()`에 넣으면 open redirect 위험이 생긴다. 내부 경로만 허용한다.
+
+### 클라이언트 가드를 보안으로 착각한다
+
+React 코드에서 버튼을 숨기는 것은 권한 검사가 아니다. API, 데이터베이스, 서버 액션에서 권한을 다시 확인해야 한다.
+
+---
 
 ## Vue Router와 비교
 
-Vue Router는 라우트 메타와 전역 가드가 먼저 떠오른다. React Router는 “라우트를 컴포넌트로 감싼다”는 구성이 더 자연스럽다.
+Vue Router에서는 route meta와 navigation guard를 먼저 떠올리기 쉽다.
 
-### Vue Router: meta + navigation guard
-
-```javascript
-// router.beforeEach 기반 (개념 예시)
-router.beforeEach((to, from, next) => {
+```ts
+router.beforeEach((to) => {
   const isAuthenticated = authStore.isAuthenticated;
-  const role = authStore.user?.role;
 
   if (to.meta.requiresAuth && !isAuthenticated) {
-    next({ path: "/login", query: { from: to.fullPath } });
-    return;
+    return {
+      path: "/login",
+      query: { from: to.fullPath },
+      replace: true,
+    };
   }
-
-  if (to.meta.role && to.meta.role !== role) {
-    next({ path: "/unauthorized" });
-    return;
-  }
-
-  next();
 });
 ```
 
-### React Router: wrapper component + `<Navigate />`
+React Router에서는 라우트를 컴포넌트로 감싸는 방식이 자연스럽다.
 
 ```tsx
-import { Navigate, useLocation } from "react-router-dom";
-
-function RequireAuth({ isAuthenticated, children }: { isAuthenticated: boolean; children: React.ReactNode }) {
-  const location = useLocation();
-  if (!isAuthenticated) {
-    const from = location.pathname + location.search + location.hash;
-    return <Navigate to="/login" replace state={{ from }} />;
+<Route
+  path="/dashboard"
+  element={
+    <RequireAuth auth={auth}>
+      <DashboardPage />
+    </RequireAuth>
   }
-  return children;
-}
+/>
 ```
 
-두 방식 모두 목표는 동일하다. 차이는 “정책을 어디에 둬서 팀이 유지보수하기 쉬운가”에 있다. React Router에서는 라우트 정의에서 감싸는 방식이 컴포넌트 합성에 잘 맞는다.
+Vue Router는 라우터 설정 중심으로 정책을 모으기 쉽고, React Router는 컴포넌트 합성으로 정책을 표현하기 쉽다. 어느 방식이든 인증 로딩 상태, 원래 경로 복귀, 서버 권한 검사를 분리해야 한다.
 
 ---
+
+## 체크리스트
+
+- 클라이언트 보호 라우트와 서버 권한 검사의 역할 차이를 설명할 수 있다.
+- `<Navigate />`를 사용해 렌더링 중 직접 `navigate()` 호출을 피할 수 있다.
+- 인증 상태를 `loading`, `anonymous`, `authenticated`로 분리할 수 있다.
+- 로그인 후 원래 경로로 복귀하기 위해 `location.state.from`을 사용할 수 있다.
+- `from` 값이 내부 경로인지 검증해야 하는 이유를 설명할 수 있다.
+- 인증과 권한을 분리해 `RequireAuth`, `RequireRole` 같은 컴포넌트로 표현할 수 있다.

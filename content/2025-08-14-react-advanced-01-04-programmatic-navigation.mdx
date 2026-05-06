@@ -1,207 +1,363 @@
 ---
 title: "[React Router 4/12] React Router - 프로그래밍 방식 네비게이션"
 date: "2025-08-18"
-description: "useNavigate, 조건부 네비게이션, 히스토리 조작"
-tags: ["React", "고급", "프론트엔드"]
+description: "useNavigate로 로그인, 폼 저장, 뒤로가기 같은 코드 기반 이동을 처리하는 기준"
+tags: ["React", "중급", "프론트엔드"]
 series: "React Router"
 seriesOrder: 4
 ---
 
-# React Router 가이드 - 프로그래밍 방식 네비게이션
+# React Router - 프로그래밍 방식 네비게이션
 
-> React Router v6를 기반으로 한 라우팅 학습 자료  
-> 출처: [React Router Documentation](https://reactrouter.com/)
+앞 글까지는 사용자가 링크를 눌러 이동하는 흐름을 다뤘다. 하지만 실제 화면에서는 사용자의 클릭만으로 이동이 끝나지 않는다.
 
----
+로그인에 성공하면 대시보드로 보내야 한다. 글 저장이 끝나면 새로 만든 글의 상세 페이지로 이동해야 한다. 권한이 없으면 로그인 페이지나 403 페이지로 복구해야 한다. 이처럼 **코드가 이동 시점을 결정해야 하는 순간**에 프로그래밍 방식 네비게이션이 필요하다.
 
-## 프로그래밍 방식 네비게이션
-
-프로그래밍 방식 네비게이션은 클릭(Link)으로만 이동을 처리하기 어려운 순간에 필요해진다.
-
-대표적인 상황은 다음과 같다.
-
-- 로그인/권한 체크 후 리다이렉트가 필요하다.
-- 폼 제출이 성공하면 상세 페이지로 이동해야 한다.
-- 에러가 발생하면 안전한 화면으로 복구해야 한다.
-- 모달/서브플로우가 끝나면 “이전 화면”으로 돌아가야 한다.
-
-React Router v6에서 이 기능의 중심은 `useNavigate()`이다.
+React Router에서는 `useNavigate()`가 이 역할을 맡는다.
 
 ---
 
-## 1. `useNavigate()`가 하는 일
+## 왜 필요한가
 
-`useNavigate()`는 내부적으로 History API를 사용해 히스토리 스택을 조작하고, 그 결과로 URL과 매칭되는 화면을 교체한다.
+`Link`는 "사용자가 이 링크를 누르면 여기로 간다"를 표현한다. 반면 `useNavigate()`는 "이 조건이 만족되면 코드가 여기로 보낸다"를 표현한다.
+
+대표적인 사용처는 다음과 같다.
+
+- 로그인 성공 후 `/dashboard`로 이동한다.
+- 회원가입 완료 후 환영 페이지로 이동한다.
+- 글 저장 성공 후 `/posts/:postId`로 이동한다.
+- 잘못된 단계로 직접 접근하면 이전 단계로 돌려보낸다.
+- 취소 버튼을 눌렀을 때 이전 화면 또는 목록 화면으로 보낸다.
+
+핵심은 **이동이 렌더링 결과가 아니라 이벤트나 비동기 작업의 결과**라는 점이다.
+
+---
+
+## 원리와 기준
+
+`useNavigate()`는 네비게이션 함수를 반환한다. 이 함수는 URL을 바꾸고, React Router는 바뀐 URL에 맞는 라우트 화면을 다시 렌더링한다.
 
 ```tsx
 import { useNavigate } from "react-router-dom";
 
-export default function Example() {
+export default function DashboardButton() {
   const navigate = useNavigate();
 
   return (
-    <button onClick={() => navigate("/dashboard")}>Go dashboard</button>
+    <button type="button" onClick={() => navigate("/dashboard")}>
+      대시보드로 이동
+    </button>
   );
 }
 ```
 
-여기서 중요한 점은 “URL을 바꾸는 행위”가 곧 “화면을 바꾸는 행위”라는 사실이다. 그래서 네비게이션은 렌더링 중에 실행하면 안 된다.
+여기서 중요한 기준이 있다.
+
+- 사용자가 직접 이동할 수 있는 곳은 `Link`나 `NavLink`를 우선 사용한다.
+- 저장, 로그인, 권한 확인처럼 코드가 결과를 판단해야 하면 `useNavigate()`를 사용한다.
+- 렌더링 중에는 `navigate()`를 호출하지 않는다.
+- 조건부 리다이렉트가 화면의 결과라면 `<Navigate />`를 검토한다.
 
 ---
 
-## 2. 렌더링 중 네비게이션을 하면 안 되는 이유
+## 최소 예제
 
-아래 코드는 흔히 나오는 실수다.
+가장 단순한 예제는 버튼 클릭 후 이동이다.
 
 ```tsx
 import { useNavigate } from "react-router-dom";
 
-export default function BadExample({ isLoggedIn }: { isLoggedIn: boolean }) {
+export default function PostActions() {
+  const navigate = useNavigate();
+
+  return (
+    <div>
+      <button type="button" onClick={() => navigate("/posts")}>
+        글 목록
+      </button>
+      <button type="button" onClick={() => navigate("/posts/new")}>
+        새 글 작성
+      </button>
+    </div>
+  );
+}
+```
+
+이 코드는 동작하지만, 단순 이동이라면 `Link`가 더 낫다.
+
+```tsx
+import { Link } from "react-router-dom";
+
+export default function PostLinks() {
+  return (
+    <nav>
+      <Link to="/posts">글 목록</Link>
+      <Link to="/posts/new">새 글 작성</Link>
+    </nav>
+  );
+}
+```
+
+`useNavigate()`는 "이동 버튼"을 만들기 위한 API라기보다, **작업 결과에 따라 이동을 실행하는 API**로 보는 편이 정확하다.
+
+---
+
+## 실무 예제: 저장 성공 후 상세 페이지로 이동
+
+글 작성 화면에서는 서버 요청이 성공한 뒤에야 이동할 수 있다. 새 글의 `id`를 서버 응답으로 받아야 상세 URL을 만들 수 있기 때문이다.
+
+```tsx
+import { FormEvent, useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+type CreatedPost = {
+  id: string;
+};
+
+async function createPost(title: string): Promise<CreatedPost> {
+  const response = await fetch("/api/posts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title }),
+  });
+
+  if (!response.ok) {
+    throw new Error("글 저장에 실패했다.");
+  }
+
+  return response.json();
+}
+
+export default function CreatePostPage() {
+  const navigate = useNavigate();
+  const [title, setTitle] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) {
+      setError("제목을 입력해야 한다.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setError(null);
+
+      const post = await createPost(trimmedTitle);
+      navigate(`/posts/${post.id}`, { replace: true });
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : "알 수 없는 오류가 발생했다.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <label htmlFor="title">제목</label>
+      <input
+        id="title"
+        value={title}
+        onChange={(event) => setTitle(event.target.value)}
+      />
+
+      {error ? <p role="alert">{error}</p> : null}
+
+      <button type="submit" disabled={isSubmitting}>
+        {isSubmitting ? "저장 중" : "저장"}
+      </button>
+    </form>
+  );
+}
+```
+
+여기서 `replace: true`는 작성 페이지를 히스토리에서 덮어쓴다. 저장 후 뒤로가기를 눌렀을 때 빈 작성 폼으로 돌아가는 대신, 그 이전 화면으로 돌아가게 만들 수 있다.
+
+항상 `replace`를 쓰는 것은 아니다. 사용자가 뒤로가기로 이전 상태를 다시 확인해야 한다면 일반 이동을 유지한다.
+
+---
+
+## `replace`와 `state`
+
+`navigate()`의 두 번째 인자로 이동 옵션을 넘길 수 있다.
+
+```tsx
+navigate("/dashboard", { replace: true });
+```
+
+`replace: true`는 현재 히스토리 항목을 새 경로로 대체한다. 로그인 페이지, 저장 완료 페이지, 권한 복구 화면처럼 "뒤로가기로 다시 돌아오면 어색한 화면"에서 자주 쓴다.
+
+`state`는 URL에 노출하지 않는 보조 값을 다음 화면에 전달할 때 사용한다.
+
+```tsx
+import { useLocation, useNavigate } from "react-router-dom";
+
+type LoginState = {
+  from?: string;
+};
+
+export function LoginPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const state = (location.state ?? {}) as LoginState;
+
+  async function handleLoginSuccess() {
+    navigate(state.from ?? "/dashboard", { replace: true });
+  }
+
+  return <button onClick={handleLoginSuccess}>로그인</button>;
+}
+```
+
+`state`는 히스토리 항목에 붙는 보조 정보다. 새로고침, 새 탭 열기, 직접 URL 입력 이후에도 반드시 남아야 하는 값은 URL 파라미터, 쿼리 스트링, 서버 저장소에 둔다.
+
+---
+
+## 상대 경로 이동
+
+중첩 라우트 안에서는 상대 경로 이동이 유용하다.
+
+```tsx
+import { useNavigate } from "react-router-dom";
+
+export default function ProjectToolbar() {
+  const navigate = useNavigate();
+
+  return (
+    <button type="button" onClick={() => navigate("settings")}>
+      설정
+    </button>
+  );
+}
+```
+
+현재 경로가 `/teams/acme/projects/42`라면 `settings`는 현재 라우트 기준으로 해석된다. 상위 URL 구조가 바뀌어도 하위 화면 이동 의도가 유지된다.
+
+다만 팀 안에서 상대 경로 해석 기준을 통일해야 한다. 라우트 기준인지, URL path 기준인지 헷갈리는 구조라면 절대 경로와 라우트 상수를 쓰는 편이 더 명확할 수 있다.
+
+---
+
+## 뒤로가기와 fallback
+
+`navigate(-1)`은 브라우저 히스토리에서 한 칸 뒤로 이동한다.
+
+```tsx
+import { useNavigate } from "react-router-dom";
+
+export default function BackButton() {
+  const navigate = useNavigate();
+
+  return (
+    <button type="button" onClick={() => navigate(-1)}>
+      뒤로
+    </button>
+  );
+}
+```
+
+문제는 사용자가 공유 링크나 새 탭으로 바로 들어온 경우다. 이때는 앱 안의 이전 화면이 없을 수 있다. 그래서 업무 화면에서는 fallback 경로를 함께 둔다.
+
+```tsx
+import { useNavigate } from "react-router-dom";
+
+export function CancelButton() {
+  const navigate = useNavigate();
+
+  function goBackOrList() {
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+
+    navigate("/posts", { replace: true });
+  }
+
+  return (
+    <button type="button" onClick={goBackOrList}>
+      취소
+    </button>
+  );
+}
+```
+
+`navigate(-1)`은 편하지만, "어디로 돌아가는가"를 코드만 보고 알기 어렵다. 사용자가 항상 특정 목록으로 돌아가야 하는 화면이라면 `navigate("/posts")`가 더 명확하다.
+
+---
+
+## 함정과 디버깅
+
+### 렌더링 중에 `navigate()`를 호출한다
+
+다음 코드는 피해야 한다.
+
+```tsx
+import { useNavigate } from "react-router-dom";
+
+export function BadGuard({ isLoggedIn }: { isLoggedIn: boolean }) {
   const navigate = useNavigate();
 
   if (!isLoggedIn) {
     navigate("/login");
   }
 
-  return <div>dashboard</div>;
+  return <div>대시보드</div>;
 }
 ```
 
-렌더링 중에 `navigate`를 호출하면 렌더-이동-렌더가 반복되며 루프가 생길 수 있다. 네비게이션은 이벤트 핸들러에서 실행하거나, 조건부 리다이렉트가 필요하면 `useEffect` 또는 `<Navigate />`를 쓴다.
+렌더링은 화면을 계산하는 단계다. 이 단계에서 URL을 바꾸면 렌더링이 다시 발생하고, 조건에 따라 반복 이동이 생길 수 있다.
+
+조건에 따라 다른 화면을 보여주는 것이 목적이라면 `<Navigate />`를 사용한다.
 
 ```tsx
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 
-export default function Guarded({ isLoggedIn }: { isLoggedIn: boolean }) {
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!isLoggedIn) navigate("/login", { replace: true });
-  }, [isLoggedIn, navigate]);
-
-  if (!isLoggedIn) return null;
-  return <div>dashboard</div>;
-}
-```
-
-`replace: true`를 쓰는 이유는 뒤로가기를 눌렀을 때 다시 보호된 페이지로 돌아오는 UX를 막기 위해서다.
-
----
-
-## 3. `navigate(path, options)` 옵션: `replace`와 `state`
-
-### `replace: true`
-
-`replace: true`는 히스토리 스택에 새 항목을 추가하지 않고 현재 항목을 덮어쓴다.
-
-- 로그인 성공 후 `/login` → `/dashboard`로 갈 때 자주 쓴다.
-- 뒤로가기를 눌렀을 때 로그인 화면으로 돌아가는 것을 막는다.
-
-```tsx
-navigate("/dashboard", { replace: true });
-```
-
-### `state`: URL에 드러나지 않는 전달값
-
-`state`는 URL 쿼리에 노출하지 않고 화면 간에 값을 전달할 때 쓴다. 결제 플로우나 폼 작성 플로우에서 “이전 화면 정보”를 넘길 때 유용하다.
-
-```tsx
-navigate("/login", {
-  state: { from: "/dashboard", reason: "auth_required" },
-});
-```
-
-받는 쪽에서는 `useLocation()`으로 꺼낸다.
-
-```tsx
-import { useLocation, useNavigate } from "react-router-dom";
-
-type LoginState = { from?: string; reason?: string };
-
-export default function LoginPage() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const state = (location.state ?? {}) as LoginState;
-
-  async function onLoginSuccess() {
-    navigate(state.from ?? "/dashboard", { replace: true });
+export function Guard({ isLoggedIn }: { isLoggedIn: boolean }) {
+  if (!isLoggedIn) {
+    return <Navigate to="/login" replace />;
   }
 
-  return <button onClick={onLoginSuccess}>Login</button>;
+  return <div>대시보드</div>;
 }
 ```
 
-`state`는 새로고침하면 사라질 수 있다. 지속성이 필요한 값은 쿼리 스트링이나 서버 저장소가 더 적합하다.
+비동기 작업의 결과로 이동해야 한다면 이벤트 핸들러나 `useEffect` 안에서 실행한다.
 
----
+### `state`를 영속 데이터처럼 쓴다
 
-## 4. 상대 경로 네비게이션과 “유지보수 가능한 링크”
+`location.state`에 주문 번호, 인증 토큰, 필수 필터 값을 넣으면 새로고침이나 직접 접근에서 깨진다. 필수 값은 URL이나 서버에 둔다. `state`는 "이전 화면 경로", "토스트 메시지 종류" 같은 보조 정보에 적합하다.
 
-중첩 라우트 구조에서는 절대 경로 문자열을 여기저기 박아두면 라우트 변경 시 폭발한다. React Router는 상대 경로 네비게이션을 지원한다.
+### 뒤로가기만 믿는다
 
-```tsx
-// /dashboard/projects 화면에서
-navigate("new"); // /dashboard/projects/new
-```
-
-상대 경로를 쓰면 상위 경로가 바뀌어도 의도한 이동이 유지된다. 구조 변화에 강한 네비게이션이 된다.
-
----
-
-## 5. 히스토리 기반 이동: `navigate(-1)`, `navigate(1)`
-
-“목록으로” 같은 고정 경로 이동은 쉬운데, “이전 화면으로”는 함정이 많다. 히스토리 스택 기반 이동은 다음처럼 한다.
-
-```tsx
-<button onClick={() => navigate(-1)}>back</button>
-```
-
-실무에서는 직접 진입(링크 공유)으로 들어온 경우 히스토리가 없을 수 있다. 이때를 대비해 fallback 경로를 둔다.
-
-```tsx
-function goBackOrFallback() {
-  if (window.history.length > 1) navigate(-1);
-  else navigate("/posts", { replace: true });
-}
-```
-
----
-
-## 6. 실무 예제: 폼 제출 성공 후 상세로 이동하기
-
-CRUD 화면에서 가장 흔한 흐름이다.
-
-```tsx
-import { useNavigate } from "react-router-dom";
-
-export default function CreatePostPage() {
-  const navigate = useNavigate();
-
-  async function onSubmit() {
-    // 서버가 생성된 id를 돌려준다고 가정한다.
-    const created = { id: "42" };
-    navigate(`/posts/${created.id}`, { replace: true });
-  }
-
-  return <button onClick={onSubmit}>create</button>;
-}
-```
-
-`replace: true`는 “작성 페이지”를 히스토리에서 제거해, 뒤로가기가 목록으로 자연스럽게 이어지게 만드는 데 쓴다.
+`navigate(-1)`은 이전 화면이 무엇인지 보장하지 않는다. 외부 사이트에서 들어온 경우, 뒤로가기가 앱 밖으로 나갈 수도 있다. 업무 흐름이 명확한 버튼에는 fallback 경로를 둔다.
 
 ---
 
 ## Vue Router와 비교
 
-개념은 동일하고 API 이름이 다르다. 핵심 차이는 “어디서 네비게이션을 실행하는가”와 “replace/state 전달 방식”이다.
+Vue Router의 `useRouter()`와 React Router의 `useNavigate()`는 같은 문제를 해결한다.
 
-| 기능 | Vue Router | React Router |
-| --- | --- | --- |
-| 네비게이션 훅 | `useRouter()` | `useNavigate()` |
-| push 이동 | `router.push("/dashboard")` | `navigate("/dashboard")` |
-| replace 이동 | `router.replace("/dashboard")` | `navigate("/dashboard", { replace: true })` |
-| state 전달 | `router.push({ state: ... })`는 제한적, 보통 `query`/store 사용 | `navigate(path, { state: ... })` |
-| 뒤로/앞으로 | `router.back()`, `router.forward()` | `navigate(-1)`, `navigate(1)` |
+| 목적           | Vue Router                              | React Router                                |
+| -------------- | --------------------------------------- | ------------------------------------------- |
+| 코드로 이동    | `router.push("/dashboard")`             | `navigate("/dashboard")`                    |
+| 현재 항목 대체 | `router.replace("/dashboard")`          | `navigate("/dashboard", { replace: true })` |
+| 뒤로가기       | `router.back()`                         | `navigate(-1)`                              |
+| 앞으로가기     | `router.forward()`                      | `navigate(1)`                               |
+| 쿼리 이동      | `router.push({ query: { page: "2" } })` | `navigate("/posts?page=2")`                 |
+
+Vue Router에서는 라우터 객체가 중심이고, React Router에서는 훅이 현재 컴포넌트에 필요한 네비게이션 함수를 제공한다. 차이는 API 모양이고, 기준은 동일하다. 링크로 표현되는 이동은 링크로 두고, 작업 결과에 따른 이동만 코드로 실행한다.
 
 ---
+
+## 체크리스트
+
+- `Link`로 충분한 이동과 `useNavigate()`가 필요한 이동을 구분할 수 있다.
+- 렌더링 중에 `navigate()`를 호출하면 안 되는 이유를 설명할 수 있다.
+- 로그인 성공, 저장 성공, 권한 복구에서 `replace: true`를 언제 쓸지 판단할 수 있다.
+- `location.state`가 새로고침 이후에도 보장되는 저장소가 아니라는 점을 알고 있다.
+- `navigate(-1)`을 사용할 때 fallback 경로가 필요한 상황을 설명할 수 있다.

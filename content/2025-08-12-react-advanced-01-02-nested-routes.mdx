@@ -1,72 +1,170 @@
 ---
 title: "[React Router 2/12] React Router - 중첩 라우트"
 date: "2025-08-16"
-description: "Outlet, Layout 패턴, Index Route 활용"
-tags: ["React", "고급", "프론트엔드"]
+description: "Outlet, Layout Route, Index Route로 공통 레이아웃을 재사용하는 방법을 학습한다"
+tags: ["React", "Vue", "중급", "프론트엔드"]
 series: "React Router"
 seriesOrder: 2
 ---
 
 # React Router 가이드 - 중첩 라우트
 
-> React Router v6를 기반으로 한 라우팅 학습 자료  
-> 출처: [React Router Documentation](https://reactrouter.com/)
+> React Router 최신 Declarative Mode 문서를 기준으로 정리한 학습 자료다.
+> 예제는 기존 React SPA 프로젝트에서 많이 쓰는 `react-router-dom` import를 사용한다.
 
 ---
 
-## 중첩 라우트
+## 왜 필요한가
 
-중첩 라우트는 URL의 계층 구조를 UI의 계층 구조로 매핑하는 기능이다. 실무에서 중첩 라우트는 레이아웃 재사용을 위해 가장 많이 쓴다.
+1편에서는 URL 하나와 컴포넌트 하나를 연결했다. 하지만 실제 앱은 페이지마다 완전히 새 화면이 아니다.
 
-- 상위 라우트: 공통 UI를 렌더링한다. 예를 들어 헤더, 사이드바, 탭 바가 여기에 해당한다.
-- 하위 라우트: 상위 UI 안에서 바뀌는 본문 영역을 담당한다.
+대시보드 앱을 떠올려보자.
 
-React Router v6에서 중첩 라우트는 `Outlet`을 중심으로 동작한다. 상위 라우트의 `element`가 렌더링되고, 그 내부의 `<Outlet />` 자리에 하위 라우트의 `element`가 들어간다.
+- 모든 화면에 상단 헤더가 있다.
+- `/dashboard` 아래 화면에는 사이드바가 있다.
+- `/dashboard/projects`와 `/dashboard/settings`는 사이드바를 공유한다.
+- 바뀌는 부분은 오른쪽 본문뿐이다.
 
----
+중첩 라우트는 이 구조를 라우트 트리로 표현한다. 상위 라우트는 공통 레이아웃을 렌더링하고, 하위 라우트는 그 안의 특정 위치에 들어간다.
 
-## 왜 중첩 라우트가 필요한가
-
-중첩 라우트가 없으면 화면이 늘어날수록 다음 문제가 커진다.
-
-- 공통 레이아웃 코드가 페이지마다 복붙된다.
-- 메뉴 활성 상태, 권한 체크, 레이아웃 스켈레톤 같은 로직이 페이지마다 중복된다.
-- URL은 `/dashboard/projects/42`처럼 계층적인데 UI는 파일 단위로 분리되어 구조가 흐려진다.
-
-중첩 라우트는 라우트 트리 자체가 UI 구조를 설명한다. 이 성질 때문에 실무에서 유지보수 비용을 크게 줄인다.
+그 특정 위치가 `<Outlet />`이다.
 
 ---
 
-## 핵심 원리: 매칭된 라우트가 스택처럼 쌓인다
+## 원리: 부모 화면 안에 자식 화면이 들어간다
 
-URL이 `/dashboard/projects/42`라면 라우트 매칭 결과는 대략 다음처럼 누적된다.
+React Router에서 라우트를 중첩하면 자식 경로는 부모 경로를 이어받는다.
 
-- `/`에 매칭되는 상위 라우트의 `element`
-- `/dashboard`에 매칭되는 하위 라우트의 `element`
-- `/dashboard/projects/:projectId`에 매칭되는 더 하위 라우트의 `element`
+```tsx
+<Route path="/dashboard" element={<DashboardLayout />}>
+  <Route index element={<DashboardHomePage />} />
+  <Route path="projects" element={<ProjectsPage />} />
+</Route>
+```
 
-렌더링은 바깥에서 안쪽으로 진행되고, 안쪽 UI는 바깥 UI의 `<Outlet />` 위치에 주입된다.
+이 설정은 두 주소를 만든다.
 
-이 구조를 모르면 중첩 라우트가 잘 안 되는 이유를 끝까지 못 찾는다. 대부분의 렌더링 실패는 `Outlet` 누락, child path의 절대/상대 혼동에서 발생한다.
+- `/dashboard`
+- `/dashboard/projects`
+
+주소가 `/dashboard/projects`일 때 렌더링 흐름은 다음과 같다.
+
+```
+DashboardLayout 렌더링
+  ↓
+DashboardLayout 안의 <Outlet /> 위치 탐색
+  ↓
+ProjectsPage를 그 자리에 렌더링
+```
+
+부모 컴포넌트에 `<Outlet />`이 없으면 자식 라우트가 매칭되어도 화면에 나타날 자리가 없다.
 
 ---
 
-## 예제: 대시보드 레이아웃 + 중첩 화면
+## 최소 예제
 
-요구사항을 다음처럼 잡는다.
-
-- `/dashboard`로 진입하면 대시보드 홈이 나온다.
-- `/dashboard/projects`는 프로젝트 목록이다.
-- `/dashboard/projects/:projectId`는 프로젝트 상세다.
-- `/dashboard/settings`는 설정 화면이다.
-- 헤더는 모든 페이지에서 유지된다.
-- 대시보드 영역에서는 사이드바가 유지된다.
-
-### 1. 라우트 트리 정의
+먼저 가장 작은 중첩 라우트를 만든다.
 
 ```tsx
 // App.tsx
-import { Routes, Route } from "react-router-dom";
+import { Link, Outlet, Route, Routes } from "react-router-dom";
+
+function DashboardLayout() {
+  return (
+    <section>
+      <h1>Dashboard</h1>
+      <nav>
+        <Link to="/dashboard">Overview</Link>
+        {" | "}
+        <Link to="/dashboard/settings">Settings</Link>
+      </nav>
+
+      <Outlet />
+    </section>
+  );
+}
+
+function DashboardHomePage() {
+  return <p>대시보드 홈이다.</p>;
+}
+
+function SettingsPage() {
+  return <p>설정 화면이다.</p>;
+}
+
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/dashboard" element={<DashboardLayout />}>
+        <Route index element={<DashboardHomePage />} />
+        <Route path="settings" element={<SettingsPage />} />
+      </Route>
+    </Routes>
+  );
+}
+```
+
+핵심은 세 가지다.
+
+- `DashboardLayout`은 공통 UI를 담당한다.
+- `<Outlet />`은 자식 화면이 들어갈 자리다.
+- `index` 라우트는 `/dashboard`에 정확히 들어왔을 때 보여줄 기본 자식 화면이다.
+
+---
+
+## Layout Route
+
+상위 라우트가 URL 조각을 추가하지 않고 레이아웃만 제공할 수도 있다. 이런 라우트를 Layout Route라고 부른다.
+
+```tsx
+<Routes>
+  <Route element={<RootLayout />}>
+    <Route index element={<HomePage />} />
+    <Route path="login" element={<LoginPage />} />
+    <Route path="dashboard" element={<DashboardLayout />}>
+      <Route index element={<DashboardHomePage />} />
+      <Route path="settings" element={<SettingsPage />} />
+    </Route>
+  </Route>
+</Routes>
+```
+
+위 예제에서 `RootLayout` 라우트는 `path`가 없다. 그래서 URL에는 아무 조각도 더하지 않는다. 대신 모든 자식 라우트에 공통 헤더나 페이지 폭 같은 레이아웃을 제공한다.
+
+```tsx
+// layouts/RootLayout.tsx
+import { Link, Outlet } from "react-router-dom";
+
+export default function RootLayout() {
+  return (
+    <div>
+      <header>
+        <Link to="/">Home</Link>
+        {" | "}
+        <Link to="/dashboard">Dashboard</Link>
+        {" | "}
+        <Link to="/login">Login</Link>
+      </header>
+
+      <main>
+        <Outlet />
+      </main>
+    </div>
+  );
+}
+```
+
+URL을 만들고 싶으면 `path`를 둔다. 레이아웃만 만들고 싶으면 `path` 없이 `element`와 자식 라우트만 둔다.
+
+---
+
+## 실무 예제: 대시보드 레이아웃
+
+조금 더 실제에 가까운 예제를 보자.
+
+```tsx
+// App.tsx
+import { Route, Routes } from "react-router-dom";
 import RootLayout from "./layouts/RootLayout";
 import DashboardLayout from "./layouts/DashboardLayout";
 import HomePage from "./pages/HomePage";
@@ -74,7 +172,6 @@ import LoginPage from "./pages/LoginPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import DashboardHomePage from "./pages/dashboard/DashboardHomePage";
 import ProjectsPage from "./pages/dashboard/ProjectsPage";
-import ProjectDetailPage from "./pages/dashboard/ProjectDetailPage";
 import SettingsPage from "./pages/dashboard/SettingsPage";
 
 export default function App() {
@@ -87,7 +184,6 @@ export default function App() {
         <Route path="dashboard" element={<DashboardLayout />}>
           <Route index element={<DashboardHomePage />} />
           <Route path="projects" element={<ProjectsPage />} />
-          <Route path="projects/:projectId" element={<ProjectDetailPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
 
@@ -98,49 +194,11 @@ export default function App() {
 }
 ```
 
-여기서 중요한 지점은 두 가지이다.
-
-- 상위 라우트는 `path`가 없어도 된다. 이 라우트는 레이아웃만 제공한다.
-- 하위 라우트의 `path`는 기본이 상대 경로이다. `projects`는 `/dashboard/projects`로 해석된다.
-
-### 2. 상위 레이아웃에서 `Outlet`로 하위 화면 주입
-
-```tsx
-// layouts/RootLayout.tsx
-import { Outlet, NavLink } from "react-router-dom";
-
-export default function RootLayout() {
-  return (
-    <div>
-      <header>
-        <nav>
-          <NavLink to="/" end>
-            Home
-          </NavLink>
-          {" | "}
-          <NavLink to="/dashboard">Dashboard</NavLink>
-          {" | "}
-          <NavLink to="/login">Login</NavLink>
-        </nav>
-      </header>
-
-      <main>
-        <Outlet />
-      </main>
-    </div>
-  );
-}
-```
-
-`end`는 루트(`/`) 매칭을 정확히 끝까지 일치시키는 옵션이다. 이 옵션이 없으면 `/dashboard`에서도 Home이 활성화되는 문제가 생긴다.
-
-### 3. 대시보드 레이아웃에서 다시 `Outlet`을 둔다
-
-대시보드 하위 페이지들은 사이드바를 공유한다. 그래서 `DashboardLayout`이 사이드바를 렌더링하고 본문은 `Outlet`로 밀어 넣는다.
+`DashboardLayout`은 대시보드 영역의 공통 UI만 책임진다.
 
 ```tsx
 // layouts/DashboardLayout.tsx
-import { Outlet, NavLink } from "react-router-dom";
+import { NavLink, Outlet } from "react-router-dom";
 
 export default function DashboardLayout() {
   return (
@@ -166,72 +224,82 @@ export default function DashboardLayout() {
 }
 ```
 
-여기서 `to="projects"` 같은 상대 링크를 쓰는 이유는 단순하다. 상위 경로(`/dashboard`)가 바뀌어도 하위 메뉴 링크가 같이 안전하게 따라간다.
+여기서 `to="projects"`는 상대 링크다. 현재 라우트가 `/dashboard`이므로 최종 주소는 `/dashboard/projects`가 된다. 상위 경로가 바뀌어도 하위 메뉴 링크를 덜 고치게 된다.
 
-### 4. 하위 페이지는 본문만 책임진다
+---
+
+## Index Route 기준
+
+`index` 라우트는 “부모 주소에 정확히 들어왔을 때 보여줄 기본 자식 화면”이다.
 
 ```tsx
-// pages/dashboard/ProjectDetailPage.tsx
-import { useParams } from "react-router-dom";
-
-export default function ProjectDetailPage() {
-  const { projectId } = useParams();
-  return <div>projectId: {projectId}</div>;
-}
+<Route path="dashboard" element={<DashboardLayout />}>
+  <Route index element={<DashboardHomePage />} />
+  <Route path="settings" element={<SettingsPage />} />
+</Route>
 ```
 
-이 컴포넌트는 헤더나 사이드바를 알 필요가 없다. 본문만 담당하고, 레이아웃은 상위 라우트가 책임진다.
+- `/dashboard` → `DashboardHomePage`
+- `/dashboard/settings` → `SettingsPage`
+
+`index` 라우트는 자식을 가질 수 없다. 기본 화면이면서 동시에 더 깊은 레이아웃이 필요하다면 `index`가 아니라 별도 Layout Route를 써야 한다.
 
 ---
 
-## Index Route가 실무에서 중요한 이유
-
-`index` 라우트는 부모 경로에 정확히 매칭되는 기본 화면이다.
-
-- `/dashboard`로 들어왔을 때 보여줄 화면을 `index`로 둔다.
-- `/dashboard/projects` 같은 세부 경로는 `path="projects"`로 둔다.
-
-이 패턴이 없으면 다음 중 하나로 흘러간다.
-
-- 부모 라우트 `element`에 조건문을 넣어 화면을 바꾼다.
-- `/dashboard`용 컴포넌트와 `/dashboard/*`용 컴포넌트를 따로 만들어 중복이 생긴다.
-
-Index Route는 라우트 트리 안에서 기본 화면을 명시하므로 구조가 깔끔해진다.
-
----
-
-## 실무에서 자주 터지는 함정
+## 함정과 디버깅
 
 ### 1. `Outlet`을 빼먹는다
 
-부모 라우트가 렌더링되는데 자식 화면이 안 나오면 `Outlet` 누락이 1순위 원인이다.
+부모 레이아웃은 보이는데 자식 화면이 보이지 않으면 `<Outlet />`부터 확인한다. 자식 라우트는 자동으로 부모 컴포넌트 아래 아무 데나 붙지 않는다.
 
 ### 2. 자식 `path`에 `/`를 붙인다
 
 ```tsx
-// 잘못된 예시
+// 피해야 하는 예
 <Route path="dashboard" element={<DashboardLayout />}>
-  <Route path="/projects" element={<ProjectsPage />} />
+  <Route path="/settings" element={<SettingsPage />} />
 </Route>
 ```
 
-`/projects`는 절대 경로가 되어 `/dashboard/projects`가 아니라 `/projects`에 매칭된다. 부모 라우트 구조를 깨뜨린다.
+자식 라우트에서 `/settings`처럼 시작하면 절대 경로처럼 읽힌다. 중첩 구조를 표현하려면 보통 `settings`처럼 상대 경로를 쓴다.
 
-### 3. 활성 링크가 과하게 잡힌다
+### 3. 루트 메뉴가 항상 활성화된다
 
-`NavLink`는 기본이 prefix 매칭이다. `/dashboard` 메뉴가 `/dashboard/projects`에서도 활성화되는 것이 정상이다. 반대로 루트(`/`)는 예외로 취급해야 하는 경우가 많아 `end`를 자주 쓴다.
+`NavLink`는 현재 URL과 링크의 매칭 여부를 계산한다. 루트(`/`) 링크는 모든 주소의 시작처럼 보일 수 있으므로 `end`를 붙여 정확히 `/`일 때만 활성화한다.
+
+```tsx
+<NavLink to="/" end>
+  Home
+</NavLink>
+```
+
+### 4. 레이아웃 컴포넌트가 데이터를 너무 많이 안다
+
+레이아웃은 공통 UI와 공통 컨텍스트만 책임지는 편이 좋다. 각 페이지 고유 데이터는 자식 페이지에서 다루면 라우트 구조가 오래 버틴다.
 
 ---
 
 ## Vue Router와 비교
 
-중첩 라우트 개념은 Vue Router의 `children`과 동일한 문제를 푸는 방식이다. 차이는 라우트 정의 형태와 렌더링 자리 표시자 이름이다.
+Vue Router의 `children`과 React Router의 중첩 라우트는 같은 문제를 푼다.
 
-| 기능 | Vue Router | React Router |
-| --- | --- | --- |
-| 중첩 정의 | `children` | `<Route>` 중첩 |
-| 렌더링 자리 | `<router-view />` | `<Outlet />` |
-| 기본 자식 | `path: ""` 또는 별도 설정 | `index` |
-| 활성 링크 | `<router-link>` 기본 제공 | `<NavLink>` |
+| 관심사             | Vue Router        | React Router             |
+| ------------------ | ----------------- | ------------------------ |
+| 중첩 정의          | `children` 배열   | `<Route>` 안의 `<Route>` |
+| 자식 표시 위치     | `<router-view />` | `<Outlet />`             |
+| 기본 자식          | `path: ""`        | `index`                  |
+| 경로 없는 레이아웃 | 부모 route 객체   | `path` 없는 `<Route>`    |
+| 활성 링크          | `<router-link>`   | `<NavLink>`              |
+
+Vue에서는 라우트 객체를 먼저 떠올리는 경우가 많고, React Router에서는 컴포넌트 트리 안에서 “부모가 자식을 어디에 렌더링하는가”를 더 직접적으로 본다.
 
 ---
+
+## 체크리스트
+
+- 중첩 라우트가 공통 레이아웃 재사용 문제를 해결한다는 것을 설명할 수 있다.
+- `<Outlet />`이 자식 라우트의 렌더링 위치라는 것을 이해한다.
+- `index` 라우트와 `path`가 있는 자식 라우트를 구분할 수 있다.
+- `path` 없는 Layout Route가 URL 조각을 추가하지 않는다는 것을 안다.
+- 자식 경로와 상대 링크를 사용할 수 있다.
+- `NavLink`의 `end`가 필요한 상황을 설명할 수 있다.

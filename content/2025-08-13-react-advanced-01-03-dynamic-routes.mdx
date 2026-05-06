@@ -1,125 +1,161 @@
 ---
 title: "[React Router 3/12] React Router - 동적 라우트"
 date: "2025-08-17"
-description: "URL 파라미터, useParams, 쿼리 스트링 처리"
-tags: ["React", "고급", "프론트엔드"]
+description: "URL 파라미터와 쿼리 스트링을 읽고 검증하는 방법을 학습한다"
+tags: ["React", "Vue", "중급", "프론트엔드"]
 series: "React Router"
 seriesOrder: 3
 ---
 
 # React Router 가이드 - 동적 라우트
 
-> React Router v6를 기반으로 한 라우팅 학습 자료  
-> 출처: [React Router Documentation](https://reactrouter.com/)
+> React Router 최신 Declarative Mode 문서를 기준으로 정리한 학습 자료다.
+> 예제는 기존 React SPA 프로젝트에서 많이 쓰는 `react-router-dom` import를 사용한다.
 
 ---
 
-## 동적 라우트
+## 왜 필요한가
 
-동적 라우트는 URL의 일부를 변수로 취급해 한 컴포넌트가 여러 URL을 처리하게 만드는 기능이다.
+목록 화면을 만들면 곧 상세 화면이 필요해진다.
 
-실무에서 동적 라우트는 “리스트 → 상세”, “리소스 ID 기반 화면”, “조직/프로젝트/사용자 같은 멀티 테넌트 경로”에서 필수로 등장한다.
+- `/posts/react-state`
+- `/posts/react-router`
+- `/users/42`
+- `/orgs/acme/projects/7`
 
-예시:
-
-- `/posts/42`에서 `42`는 `postId`라는 파라미터가 된다.
-- `/orgs/acme/projects/7`에서 `acme`, `7`은 각각 `orgSlug`, `projectId`가 된다.
-
----
-
-## URL 파라미터와 쿼리 스트링의 역할 분리
-
-둘을 섞어 쓰면 라우팅 설계가 금방 망가진다. 실무에서는 기준을 명확히 잡는다.
-
-- URL 파라미터(`/posts/:postId`): 리소스의 “정체성”을 나타낸다. 이 값이 바뀌면 보통 완전히 다른 리소스를 본다.
-- 쿼리 스트링(`/posts?tag=react&page=2`): 같은 화면/리소스 범주에서 “보기 옵션”을 나타낸다. 필터, 정렬, 페이지네이션이 여기에 해당한다.
-
-이 분리를 지키면 다음이 좋아진다.
-
-- 링크 공유가 안정된다.
-- 캐시 키(React Query 등)를 설계하기 쉬워진다.
-- 뒤로가기/앞으로가기 UX가 예측 가능해진다.
-
----
-
-## 1. 동적 라우트 정의
-
-가장 기본은 `:paramName` 문법이다.
+이 주소들은 모두 같은 패턴을 가진다. 화면 구조는 같지만 URL 일부가 바뀐다.
 
 ```tsx
-import { Routes, Route } from "react-router-dom";
-import PostsPage from "./pages/PostsPage";
-import PostDetailPage from "./pages/PostDetailPage";
-import NotFoundPage from "./pages/NotFoundPage";
+<Route path="/posts/:postId" element={<PostDetailPage />} />
+```
 
-export default function AppRoutes() {
+`:postId`는 “이 자리는 값이 바뀐다”는 표시다. React Router는 실제 URL에서 해당 부분을 읽어 `useParams()`로 제공한다.
+
+---
+
+## 원리: 파라미터와 쿼리 스트링을 나눈다
+
+동적 라우트를 배울 때 가장 먼저 잡아야 하는 기준은 “URL 파라미터”와 “쿼리 스트링”의 역할 분리다.
+
+| 종류         | 예시                      | 의미                               |
+| ------------ | ------------------------- | ---------------------------------- |
+| URL 파라미터 | `/posts/:postId`          | 어떤 리소스인지 나타낸다           |
+| 쿼리 스트링  | `/posts?tag=react&page=2` | 같은 화면에서 보기 옵션을 나타낸다 |
+
+`/posts/react-router`에서 `react-router`는 글의 정체성이다. 값이 바뀌면 다른 글을 본다.
+
+`/posts?tag=react&page=2`에서 `tag`와 `page`는 목록을 보는 방식이다. 같은 글 목록 화면 안에서 필터와 페이지가 바뀐다.
+
+이 기준을 지키면 링크 공유, 새로고침, 뒤로가기, 데이터 캐시 설계가 쉬워진다.
+
+---
+
+## 최소 예제: `useParams()`
+
+먼저 상세 페이지 라우트를 만든다.
+
+```tsx
+// App.tsx
+import { Link, Route, Routes, useParams } from "react-router-dom";
+
+const posts = [
+  { id: "react-state", title: "React state 이해하기" },
+  { id: "react-router", title: "React Router 시작하기" },
+];
+
+function PostsPage() {
+  return (
+    <section>
+      <h1>글 목록</h1>
+      <ul>
+        {posts.map((post) => (
+          <li key={post.id}>
+            <Link to={`/posts/${post.id}`}>{post.title}</Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function PostDetailPage() {
+  const { postId } = useParams();
+  const post = posts.find((item) => item.id === postId);
+
+  if (!post) {
+    return (
+      <section>
+        <h1>글을 찾을 수 없다</h1>
+        <Link to="/posts">목록으로 이동</Link>
+      </section>
+    );
+  }
+
+  return (
+    <article>
+      <h1>{post.title}</h1>
+      <p>postId: {post.id}</p>
+    </article>
+  );
+}
+
+export default function App() {
   return (
     <Routes>
       <Route path="/posts" element={<PostsPage />} />
       <Route path="/posts/:postId" element={<PostDetailPage />} />
-      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }
 ```
 
-여기서 `:postId`는 “문자열 세그먼트 1개”를 의미한다. `42`, `abc`, `2025-08-13` 같은 값이 모두 들어올 수 있다.
+`useParams()`로 읽은 값은 문자열이거나 `undefined`다. 숫자처럼 보여도 문자열이다.
 
 ---
 
-## 2. `useParams()`로 파라미터 읽기
+## 파라미터 검증
 
-`useParams()`는 항상 문자열을 돌려준다. 숫자처럼 보여도 문자열이다.
+라우트 파라미터는 타입을 보장하지 않는다. `/users/:userId`에 `/users/abc`가 들어와도 라우트 자체는 매칭된다.
+
+숫자 ID가 필요한 화면이라면 먼저 검증한다.
 
 ```tsx
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 
-export default function PostDetailPage() {
-  const { postId } = useParams();
+function toPositiveNumber(value: string | undefined) {
+  if (!value) return null;
 
-  if (!postId) {
-    // 라우트 정의상 거의 일어나지 않지만, 타입/런타임 가드로 남겨둔다.
-    return <div>잘못된 접근이다.</div>;
+  const numberValue = Number(value);
+  if (!Number.isInteger(numberValue)) return null;
+  if (numberValue <= 0) return null;
+
+  return numberValue;
+}
+
+export default function UserDetailPage() {
+  const { userId } = useParams();
+  const numericUserId = toPositiveNumber(userId);
+
+  if (numericUserId === null) {
+    return (
+      <section>
+        <h1>잘못된 사용자 주소다</h1>
+        <Link to="/users">사용자 목록으로 이동</Link>
+      </section>
+    );
   }
 
-  return <div>postId: {postId}</div>;
+  return <h1>userId: {numericUserId}</h1>;
 }
 ```
 
-### 실무 TIP: 파라미터는 “검증 가능한 형태”로 제한한다
-
-`postId`가 숫자여야 한다면 화면이 뜬 뒤에 API에서 400/404가 터지기 전에, 라우팅 레벨에서 빠르게 검증하는 편이 좋다.
-
-```tsx
-import { useMemo } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-
-export default function PostDetailPage() {
-  const navigate = useNavigate();
-  const { postId } = useParams();
-
-  const numericId = useMemo(() => {
-    if (!postId) return null;
-    const n = Number(postId);
-    return Number.isFinite(n) ? n : null;
-  }, [postId]);
-
-  if (numericId === null) {
-    navigate("/posts", { replace: true });
-    return null;
-  }
-
-  return <div>numericId: {numericId}</div>;
-}
-```
-
-이 패턴은 “잘못된 URL이 들어왔을 때 어떤 UX를 줄지”를 결정하는 문제이다. 팀 규칙에 따라 404 페이지로 보내거나, 목록으로 보내거나, 에러 메시지를 보여준다.
+렌더링 중에 `navigate()`를 바로 호출하는 방식은 피한다. 렌더링은 화면을 계산하는 단계이므로, 잘못된 주소는 404 UI를 보여주거나 이벤트/효과 안에서 이동시키는 편이 안전하다.
 
 ---
 
-## 3. 쿼리 스트링은 `useSearchParams()`로 다룬다
+## 쿼리 스트링: `useSearchParams()`
 
-React Router v6는 쿼리 스트링을 URLSearchParams로 제공한다.
+필터, 정렬, 페이지네이션은 쿼리 스트링으로 두기 좋다.
 
 ```tsx
 import { useSearchParams } from "react-router-dom";
@@ -128,88 +164,188 @@ export default function PostsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const tag = searchParams.get("tag") ?? "all";
-  const page = Number(searchParams.get("page") ?? "1");
+  const rawPage = Number(searchParams.get("page") ?? "1");
+  const page = Number.isInteger(rawPage) && rawPage > 0 ? rawPage : 1;
 
-  function goNext() {
-    setSearchParams((prev) => {
-      // prev는 undefined가 아니라 "현재 쿼리 문자열"을 나타내는 URLSearchParams이다.
-      // 쿼리가 비어 있어도 prev는 빈 URLSearchParams로 들어온다.
-      //
-      // 또한 page를 바깥 스코프에서 캡처하면(closure) 업데이트 시점에 stale 값이 될 수 있다.
-      // 그래서 반드시 prev에서 다시 읽고, 그 값을 기반으로 next를 만든다.
-      const next = new URLSearchParams(prev);
-      const currentPage = Number(next.get("page") ?? "1");
-      next.set("page", String((Number.isFinite(currentPage) ? currentPage : 1) + 1));
-      return next;
-    });
+  function selectTag(nextTag: string) {
+    const next = new URLSearchParams(searchParams);
+
+    if (nextTag === "all") {
+      next.delete("tag");
+    } else {
+      next.set("tag", nextTag);
+    }
+
+    next.set("page", "1");
+    setSearchParams(next);
+  }
+
+  function goNextPage() {
+    const next = new URLSearchParams(searchParams);
+    next.set("page", String(page + 1));
+    setSearchParams(next);
   }
 
   return (
-    <div>
-      <div>tag: {tag}</div>
-      <div>page: {Number.isFinite(page) ? page : 1}</div>
-      <button onClick={goNext}>next page</button>
-    </div>
+    <section>
+      <h1>글 목록</h1>
+      <p>현재 태그: {tag}</p>
+      <p>현재 페이지: {page}</p>
+
+      <button onClick={() => selectTag("react")}>React 태그</button>
+      <button onClick={() => selectTag("all")}>전체</button>
+      <button onClick={goNextPage}>다음 페이지</button>
+    </section>
   );
 }
 ```
 
-### 실무 TIP: 쿼리 스트링은 상태다
-
-필터/정렬/페이지는 컴포넌트 로컬 state로만 두면 공유, 새로고침, 뒤로가기에서 깨진다. 쿼리 스트링을 “화면 상태의 저장소”로 쓰면 다음이 된다.
-
-- 새로고침해도 상태가 유지된다.
-- 링크 공유가 된다.
-- 브라우저 히스토리와 자연스럽게 동작한다.
+`searchParams`는 `URLSearchParams` 객체다. 값을 바꿀 때는 기존 객체를 직접 수정하기보다 새 `URLSearchParams`를 만들어 `setSearchParams()`에 넘기는 패턴이 안전하다.
 
 ---
 
-## 4. 링크 생성은 문자열 합치기 대신 규칙을 둔다
+## 실무 예제: 목록 상태를 URL에 저장하기
 
-실무에서 동적 라우트는 링크 생성 버그가 자주 터진다.
+목록 화면에서 자주 필요한 상태는 다음과 같다.
 
-- 숫자/문자열 혼용
-- 인코딩 누락(공백, 한글, `/` 포함 값)
-- 상대/절대 경로 혼동
+- 검색어: `q`
+- 태그: `tag`
+- 페이지: `page`
 
-가장 기본은 `Link`에 명확한 경로를 주는 것이다.
+이 값들을 컴포넌트 state에만 두면 새로고침과 링크 공유에서 사라진다. URL에 두면 브라우저 기능과 자연스럽게 맞물린다.
 
 ```tsx
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
-export default function PostRow({ postId }: { postId: string }) {
-  return <Link to={`/posts/${encodeURIComponent(postId)}`}>open</Link>;
+type Post = {
+  id: string;
+  title: string;
+  tag: string;
+};
+
+const posts: Post[] = [
+  { id: "react-state", title: "React state 이해하기", tag: "react" },
+  { id: "router-basic", title: "라우팅 기초", tag: "router" },
+  { id: "router-query", title: "쿼리 스트링 다루기", tag: "router" },
+];
+
+export default function PostsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const q = searchParams.get("q") ?? "";
+  const tag = searchParams.get("tag") ?? "all";
+
+  const filteredPosts = posts.filter((post) => {
+    const matchesKeyword = post.title.toLowerCase().includes(q.toLowerCase());
+    const matchesTag = tag === "all" || post.tag === tag;
+    return matchesKeyword && matchesTag;
+  });
+
+  function updateSearch(nextValue: string) {
+    const next = new URLSearchParams(searchParams);
+
+    if (nextValue.trim() === "") {
+      next.delete("q");
+    } else {
+      next.set("q", nextValue);
+    }
+
+    setSearchParams(next, { replace: true });
+  }
+
+  function updateTag(nextTag: string) {
+    const next = new URLSearchParams(searchParams);
+
+    if (nextTag === "all") {
+      next.delete("tag");
+    } else {
+      next.set("tag", nextTag);
+    }
+
+    setSearchParams(next);
+  }
+
+  return (
+    <section>
+      <h1>글 목록</h1>
+
+      <input
+        value={q}
+        onChange={(event) => updateSearch(event.target.value)}
+        placeholder="검색어"
+      />
+
+      <button onClick={() => updateTag("all")}>전체</button>
+      <button onClick={() => updateTag("react")}>React</button>
+      <button onClick={() => updateTag("router")}>Router</button>
+
+      {filteredPosts.length === 0 ? (
+        <p>조건에 맞는 글이 없다.</p>
+      ) : (
+        <ul>
+          {filteredPosts.map((post) => (
+            <li key={post.id}>
+              <Link to={`/posts/${encodeURIComponent(post.id)}`}>
+                {post.title}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
 }
 ```
 
-`encodeURIComponent`는 파라미터가 “세그먼트”로 안전하게 들어가게 만든다. 슬래시나 공백이 섞일 수 있는 값을 그대로 붙이면 라우트 매칭 자체가 깨진다.
+검색어 입력에는 `{ replace: true }`를 사용했다. 글자를 하나 입력할 때마다 히스토리 스택이 쌓이면 뒤로가기 경험이 나빠지기 때문이다. 반대로 태그 변경은 사용자가 명시적으로 화면 상태를 바꾸는 동작이므로 히스토리에 남겨도 자연스럽다.
 
 ---
 
-## 5. 중첩 라우트에서 파라미터는 합쳐진다
+## 함정과 디버깅
 
-중첩 라우트 구조에서 파라미터는 부모/자식에서 함께 매칭되고, `useParams()`에서는 합쳐진 형태로 읽힌다.
+### 1. 파라미터를 숫자로 착각한다
+
+`useParams()` 값은 문자열이다. API가 숫자 ID를 요구한다면 `Number()` 변환과 유효성 검사를 먼저 한다.
+
+### 2. 없는 리소스를 라우트 404와 섞는다
+
+`/wrong-url`은 라우트가 없는 404다. `/posts/not-exists`는 라우트는 맞지만 데이터가 없는 상태다. 두 경우의 UI를 분리하면 디버깅이 쉬워진다.
+
+### 3. `searchParams`를 직접 수정한다
+
+`searchParams.set("page", "2")`만 호출하고 `setSearchParams()`를 호출하지 않으면 URL은 바뀌지 않는다. 새 객체를 만들고 `setSearchParams(next)`를 호출한다.
+
+### 4. 링크에 원본 문자열을 그대로 붙인다
+
+ID나 slug에 공백, 한글, `/`가 들어갈 수 있다면 `encodeURIComponent()`를 사용한다.
 
 ```tsx
-<Route path="orgs/:orgSlug" element={<OrgLayout />}>
-  <Route path="projects/:projectId" element={<ProjectDetailPage />} />
-</Route>
+<Link to={`/posts/${encodeURIComponent(post.id)}`}>{post.title}</Link>
 ```
-
-`/orgs/acme/projects/7`로 들어오면 `orgSlug`, `projectId`를 모두 얻는다.
-
-이 성질은 실무에서 “상위 컨텍스트(조직/테넌트)를 기준으로 API 베이스 URL을 잡는 설계”로 이어진다.
 
 ---
 
 ## Vue Router와 비교
 
-동적 세그먼트라는 개념은 동일하다. 차이는 값을 꺼내는 API와 쿼리를 다루는 방식에 있다.
+개념은 Vue Router와 거의 같다. 차이는 값을 읽고 쓰는 API 형태다.
 
-| 기능 | Vue Router | React Router |
-| --- | --- | --- |
-| 동적 라우트 | `/posts/:postId` | `/posts/:postId` |
-| 파라미터 접근 | `route.params.postId` | `useParams().postId` |
-| 쿼리 접근 | `route.query.page` | `useSearchParams().get("page")` |
+| 관심사           | Vue Router               | React Router                    |
+| ---------------- | ------------------------ | ------------------------------- |
+| 동적 경로        | `/posts/:postId`         | `/posts/:postId`                |
+| 파라미터 읽기    | `route.params.postId`    | `useParams().postId`            |
+| 쿼리 읽기        | `route.query.page`       | `useSearchParams().get("page")` |
+| 쿼리 쓰기        | `router.push({ query })` | `setSearchParams()`             |
+| 없는 리소스 처리 | 컴포넌트/가드에서 처리   | 컴포넌트/라우트 경계에서 처리   |
+
+Vue Router를 알고 있다면 `params`와 `query`의 역할 분리만 그대로 가져오면 된다. React Router에서는 그 값을 Hook으로 읽고, 화면 안에서 더 명시적으로 처리하는 흐름이 많다.
 
 ---
+
+## 체크리스트
+
+- `:postId` 같은 동적 세그먼트가 URL 일부를 변수로 만든다는 것을 이해한다.
+- `useParams()` 값이 문자열 또는 `undefined`라는 것을 안다.
+- URL 파라미터와 쿼리 스트링의 역할을 구분할 수 있다.
+- 숫자 ID 같은 파라미터를 화면에서 사용하기 전에 검증할 수 있다.
+- `useSearchParams()`로 필터와 페이지 상태를 URL에 저장할 수 있다.
+- 라우트 404와 데이터 없음 상태를 구분해 처리할 수 있다.
