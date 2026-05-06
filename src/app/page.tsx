@@ -4,6 +4,7 @@ import FeatureTiles from "./components/FeatureTiles";
 import FeatureTile from "./components/FeatureTile";
 import LatestPosts from "./components/LatestPosts";
 import HeaderAuth from "./components/HeaderAuth";
+import TodayCard from "./components/react-mastery/TodayCard";
 
 export default function LandingPage() {
   const latestPosts = getPublicPosts()
@@ -21,7 +22,17 @@ export default function LandingPage() {
       />
 
       <main className="max-w-6xl mx-auto px-4 py-10">
+        <section className="mb-12">
+          <TodayCard />
+        </section>
+
         <FeatureTiles className="mb-12">
+          <FeatureTile
+            href="/react-mastery"
+            title="React 마스터리"
+            description="시니어 React 전환 코스"
+            actionText="트랙 보기"
+          />
           <FeatureTile
             href="/blog"
             title="블로그"
