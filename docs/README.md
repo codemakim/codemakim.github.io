@@ -22,6 +22,7 @@
 
 - **`ARCHITECTURE.md`**: 프로젝트 아키텍처, 코드 구조, 데이터 흐름, 주요 패턴
 - **`ROADMAP.md`**: 프로젝트 로드맵, Phase별 작업, 현재 상태
+- **`AI_HARNESS_LEARNING_PLAN.md`**: AI 코딩 에이전트 제어를 위한 하네스 엔지니어링 학습 계획
 
 ### 기능별 문서 (`features/`)
 
