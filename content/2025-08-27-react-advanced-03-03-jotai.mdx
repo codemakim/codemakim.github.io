@@ -1,171 +1,327 @@
 ---
-title: "[상태 관리 3/5] 상태 관리 - Jotai"
+title: "[상태 관리 4/6] Jotai — 상태 그래프가 필요한 화면"
 date: "2025-09-03"
-description: "원자(atom) 기반 상태 모델과 파생 상태 설계"
+description: "derived atom, async atom, write atom으로 파생 상태 그래프를 선언적으로 관리하는 방법"
 tags: ["React", "고급", "프론트엔드"]
 series: "상태 관리"
-seriesOrder: 3
+seriesOrder: 4
 ---
 
-# 상태 관리 - Jotai
+## 1. 오늘 풀 문제
 
-Jotai는 원자(atom) 기반 상태 관리 라이브러리이다. 전역 store 하나를 크게 두는 대신, 상태를 작은 조각으로 쪼개고 의존 관계를 조립한다.
+체크아웃 화면을 생각해보자. 수량을 바꾸면 소계가 바뀐다. 쿠폰을 적용하면 할인 금액이 바뀌고 최종 금액이 바뀐다. 배송지를 바꾸면 배송비 API를 호출해서 배송비가 바뀌고 다시 최종 금액이 바뀐다.
 
-Zustand가 “store 중심”이라면, Jotai는 “상태 그래프 중심”이다.
+이 구조는 "값이 다른 값에 의존하는 그래프"다.
 
----
+Zustand selector로 구현한다면 각 컴포넌트가 어떤 값에 의존하는지를 직접 `select`로 명시해야 한다. 의존 관계가 바뀌면 selector를 고쳐야 한다. 파생 계산이 여러 컴포넌트에 흩어지면 일관성을 보장하기 어렵다.
 
-## 1. Jotai가 필요한 순간
-
-Jotai는 다음 요구가 강할 때 적합하다.
-
-- 상태를 작은 조각으로 나누고, 조합(파생)해서 쓰고 싶다.
-- 특정 상태 조각이 바뀔 때 필요한 컴포넌트만 리렌더링되게 만들고 싶다.
-- 컴포넌트 트리와 상태 그래프가 비슷한 형태를 갖는다(설정 화면, 폼 마법사, 에디터).
-
-반대로 “도메인 상태가 크고 규칙이 많다”면 Redux Toolkit 쪽이 더 적합할 수 있다.
+Jotai는 이 문제를 다른 방식으로 푼다. "atom이 atom을 의존한다"는 선언적 그래프를 모듈 레벨에서 정의하면, 구독한 컴포넌트는 필요한 최종 값만 읽는다. 의존 추적과 메모이제이션은 Jotai가 처리한다.
 
 ---
 
-## 2. 핵심 원리: atom과 파생 atom
+## 2. 정신 모델
 
-atom은 상태의 최소 단위다.
+Jotai를 이해하려면 네 가지 개념을 구분해야 한다.
 
-```tsx
-import { atom } from "jotai";
+**atom** — 상태의 최소 단위다. `atom(초기값)` 형태로 모듈 레벨에서 한 번만 선언한다. 컴포넌트 안에서 선언하면 렌더마다 새 atom이 생성되어 상태가 초기화된다(뒤에서 다시 다룬다).
 
-export const countAtom = atom(0);
-```
+**derived atom** — 다른 atom을 `get`으로 읽어 계산한다. `get(otherAtom)`을 호출하는 순간 Jotai는 의존을 등록한다. 의존한 atom이 바뀌면 자동으로 재계산되고, 결과가 달라진 경우에만 구독 컴포넌트가 리렌더링된다.
 
-파생 atom은 다른 atom을 읽어 계산한다.
+**async atom** — derived atom의 계산 함수가 `async`이면 비동기 fetch를 포함할 수 있다. 의존한 atom이 바뀌면 재실행된다.
 
-```tsx
-import { atom } from "jotai";
-import { countAtom } from "./atoms";
+**write atom** — 읽기 전용 derived atom과 달리, 두 번째 인자로 setter 함수를 받는다. 여러 atom을 한 번에 업데이트하는 "액션" 역할을 한다.
 
-export const doubleCountAtom = atom((get) => get(countAtom) * 2);
-```
-
-이 모델은 “계산된 상태(derived state)”를 컴포넌트 밖으로 빼서 규칙으로 고정한다.
+**Provider는 선택사항**이다. Provider 없이 사용하면 모듈 단위 전역 store가 암묵적으로 생성된다. 테스트 격리나 SSR을 위해 명시적 Provider가 필요할 때만 감싼다.
 
 ---
 
-## 3. 최소 예제: 읽기/쓰기 분리
+## 3. 최소 코드
 
-```tsx
-import { useAtomValue, useSetAtom } from "jotai";
-import { countAtom } from "./atoms";
+체크아웃 합계 계산을 최소한으로 구현한다.
 
-export function CounterView() {
-  const count = useAtomValue(countAtom);
-  return <div>{count}</div>;
-}
+```typescript
+import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai'
 
-export function CounterControls() {
-  const setCount = useSetAtom(countAtom);
+// 원본 상태 atom
+const qtyAtom = atom(1)
+const priceAtom = atom(9900)
+const couponAtom = atom<number | null>(null)
+
+// derived atom: 소계
+const subtotalAtom = atom((get) => get(qtyAtom) * get(priceAtom))
+
+// derived atom: 최종 금액 (쿠폰 적용)
+const totalAtom = atom((get) => {
+  const subtotal = get(subtotalAtom)
+  const coupon = get(couponAtom)
+  return coupon ? Math.max(0, subtotal - coupon) : subtotal
+})
+
+function CheckoutSummary() {
+  const [qty, setQty] = useAtom(qtyAtom)
+  const total = useAtomValue(totalAtom)
+
   return (
     <div>
-      <button onClick={() => setCount((c) => c + 1)}>+</button>
-      <button onClick={() => setCount((c) => c - 1)}>-</button>
+      <input
+        type="number"
+        value={qty}
+        onChange={e => setQty(Number(e.target.value))}
+        min={1}
+      />
+      <p>합계: {total.toLocaleString()}원</p>
     </div>
-  );
+  )
 }
 ```
 
-읽기 컴포넌트와 쓰기 컴포넌트를 분리하면 리렌더링 경계가 선명해진다.
+`subtotalAtom`은 `qtyAtom`과 `priceAtom`에 의존한다. `totalAtom`은 `subtotalAtom`과 `couponAtom`에 의존한다. `CheckoutSummary`는 `totalAtom`만 읽는다. 의존 그래프는 모듈 레벨에 선언되어 있고, 컴포넌트는 최종 값을 소비한다.
+
+`useAtom`은 읽기와 쓰기를 함께 반환한다. 쓰기만 필요하면 `useSetAtom`, 읽기만 필요하면 `useAtomValue`를 쓴다. 역할을 분리하면 불필요한 리렌더링을 줄일 수 있다.
 
 ---
 
-## 4. 실무 예제: 장바구니 합계는 파생 상태로 둔다
+## 4. 실무 코드
 
-장바구니 합계는 “원본 데이터(items)가 바뀌면 자동으로 계산되는 값”이다. 이런 값은 파생 atom으로 두는 편이 적합하다.
+### 4-1. async atom + loadable: Suspense 없이 비동기 처리
 
-```tsx
+배송비는 배송지가 확정되면 API로 조회한다. async atom으로 선언하면 배송지 atom이 바뀔 때마다 자동으로 재요청된다.
+
+```typescript
+import { atom } from "jotai";
+import { loadable } from "jotai/utils";
+
+const addressAtom = atom("");
+
+// async atom: addressAtom이 바뀌면 재실행
+const shippingAtom = atom(async (get) => {
+  const address = get(addressAtom);
+  if (!address) return 0;
+  const res = await fetch(
+    `/api/shipping?address=${encodeURIComponent(address)}`,
+  );
+  if (!res.ok) throw new Error("배송비 조회 실패");
+  const { cost } = (await res.json()) as { cost: number };
+  return cost;
+});
+
+// loadable로 감싸면 Suspense 없이 로딩/에러 상태를 직접 처리
+const shippingLoadable = loadable(shippingAtom);
+```
+
+`loadable`은 `{ state: 'loading' | 'hasData' | 'hasError', data, error }` 형태의 값을 반환한다. Suspense boundary 없이 컴포넌트 안에서 세 가지 상태를 분기 처리할 수 있다.
+
+```typescript
+import { useAtomValue, useSetAtom } from 'jotai'
+
+function ShippingCost() {
+  const shipping = useAtomValue(shippingLoadable)
+  const setAddress = useSetAtom(addressAtom)
+
+  return (
+    <div>
+      <input
+        placeholder="배송지 입력"
+        onChange={e => setAddress(e.target.value)}
+      />
+      {shipping.state === 'loading' && <span>배송비 계산 중...</span>}
+      {shipping.state === 'hasError' && (
+        <span>배송비 조회 실패: {String(shipping.error)}</span>
+      )}
+      {shipping.state === 'hasData' && (
+        <span>배송비: {shipping.data.toLocaleString()}원</span>
+      )}
+    </div>
+  )
+}
+```
+
+### 4-2. write atom: 여러 atom을 한 번에 초기화
+
+페이지를 벗어나거나 주문을 완료하면 체크아웃 상태를 초기화해야 한다. 각 atom을 컴포넌트에서 따로 초기화하면 실수가 생긴다. write atom으로 초기화 로직을 한 곳에 둔다.
+
+```typescript
+import { atom } from 'jotai'
+import { useSetAtom } from 'jotai'
+
+// 두 번째 인자: (_get, set) => void 형태의 setter
+const resetCheckoutAtom = atom(null, (_get, set) => {
+  set(qtyAtom, 1)
+  set(couponAtom, null)
+  set(addressAtom, '')
+})
+
+function ResetButton() {
+  const reset = useSetAtom(resetCheckoutAtom)
+  return <button onClick={reset}>초기화</button>
+}
+```
+
+write atom의 첫 번째 인자는 읽기 값이다. "쓰기 전용" 액션으로 쓸 때는 `null`로 두고 `useSetAtom`만 사용한다.
+
+### 4-3. useHydrateAtoms: SSR 초기값 주입
+
+Next.js 같은 SSR 환경에서는 서버에서 패치한 값을 클라이언트 atom에 주입해야 한다.
+
+```typescript
+import { useHydrateAtoms } from 'jotai/utils'
+import { priceAtom, qtyAtom } from './checkoutAtoms'
+
+// 서버 컴포넌트에서 props로 내려온 초기값을 atom에 주입
+function CheckoutPageClient({
+  initialPrice,
+  initialQty,
+}: {
+  initialPrice: number
+  initialQty: number
+}) {
+  useHydrateAtoms([
+    [priceAtom, initialPrice],
+    [qtyAtom, initialQty],
+  ])
+  return <CheckoutSummary />
+}
+```
+
+`useHydrateAtoms`는 첫 렌더에만 실행된다. 이후 사용자가 값을 바꾸어도 다시 덮어쓰지 않는다.
+
+### 4-4. atomFamily: 파라미터화된 atom
+
+상품 ID별로 수량 atom을 따로 관리할 때 `atomFamily`를 쓴다.
+
+```typescript
+import { atom } from 'jotai'
+import { atomFamily } from 'jotai/utils'
+
+// 상품 ID를 키로 수량 atom 생성
+const itemQtyAtomFamily = atomFamily((productId: string) => atom(0))
+
+function CartItem({ productId }: { productId: string }) {
+  const [qty, setQty] = useAtom(itemQtyAtomFamily(productId))
+  return (
+    <div>
+      <span>{productId}</span>
+      <button onClick={() => setQty(q => q + 1)}>+</button>
+      <span>{qty}</span>
+    </div>
+  )
+}
+```
+
+같은 `productId`로 호출하면 항상 같은 atom 인스턴스를 반환한다.
+
+---
+
+## 5. 망하는 패턴
+
+### 5-1. atom을 컴포넌트 안에서 생성
+
+```typescript
+// 잘못된 예: 렌더마다 새 atom이 생성된다
+function BadCounter() {
+  const countAtom = atom(0) // 매 렌더마다 새 atom
+  const [count, setCount] = useAtom(countAtom)
+  return <button onClick={() => setCount(c => c + 1)}>{count}</button>
+}
+```
+
+`atom()`을 호출할 때마다 새 atom 인스턴스가 만들어진다. 컴포넌트가 리렌더링되면 새 atom이 생기고, 이전 상태는 버려진다. atom은 반드시 모듈 레벨 또는 컴포넌트 외부에서 한 번만 선언해야 한다.
+
+### 5-2. 모든 전역 상태에 Jotai를 쓰는 것
+
+Jotai는 "파생 상태 그래프"가 복잡할 때 가장 강점이 있다. 단순한 전역 상태(사용자 인증 정보, 모달 열림 여부, 알림 목록)는 Zustand가 더 간단하다. 도구를 섞어 써도 된다. 파생 의존이 필요한 영역에만 Jotai를 쓰고, 나머지는 Zustand나 Context로 충분하다.
+
+### 5-3. async atom 에러 처리 없음
+
+async atom이 `throw`하면 두 가지 처리 경로가 있다.
+
+- **loadable 사용**: `state === 'hasError'`로 컴포넌트 안에서 처리
+- **ErrorBoundary 사용**: `loadable` 없이 `useAtomValue`로 async atom을 직접 읽으면 반드시 Suspense boundary와 ErrorBoundary가 필요
+
+둘 중 하나를 선택하지 않으면 에러가 UI 전체를 깨뜨릴 수 있다.
+
+### 5-4. loadable 없이 async atom을 직접 `useAtomValue`로 읽기
+
+```typescript
+// loadable 없이 async atom 직접 읽기 — Suspense boundary 필수
+function ShippingDisplay() {
+  const cost = useAtomValue(shippingAtom) // Suspense 없으면 오류
+  return <span>{cost}원</span>
+}
+```
+
+이 패턴 자체가 잘못된 건 아니다. Suspense boundary로 감싸면 동작한다. 문제는 Suspense를 의도치 않게 생략했을 때다. 로딩 UI를 세밀하게 제어하고 싶거나 Suspense 설정이 번거로운 상황이라면 `loadable`이 더 안전하다.
+
+---
+
+## 6. Vue/Nuxt 비교
+
+Vue의 `computed`는 Jotai derived atom과 개념적으로 가장 가깝다.
+
+**Vue computed**
+
+```typescript
+import { ref, computed } from "vue";
+
+const qty = ref(1);
+const price = ref(9900);
+const coupon = ref<number | null>(null);
+
+const subtotal = computed(() => qty.value * price.value);
+const total = computed(() =>
+  coupon.value ? Math.max(0, subtotal.value - coupon.value) : subtotal.value,
+);
+```
+
+**Jotai derived atom**
+
+```typescript
 import { atom } from "jotai";
 
-type CartItem = { id: string; price: number; quantity: number };
+const qtyAtom = atom(1);
+const priceAtom = atom(9900);
+const couponAtom = atom<number | null>(null);
 
-export const cartItemsAtom = atom<CartItem[]>([]);
-
-export const cartTotalAtom = atom((get) => {
-  const items = get(cartItemsAtom);
-  return items.reduce((sum, it) => sum + it.price * it.quantity, 0);
+const subtotalAtom = atom((get) => get(qtyAtom) * get(priceAtom));
+const totalAtom = atom((get) => {
+  const subtotal = get(subtotalAtom);
+  const coupon = get(couponAtom);
+  return coupon ? Math.max(0, subtotal - coupon) : subtotal;
 });
 ```
 
-컴포넌트는 계산 로직을 모른다.
+두 코드의 구조는 거의 동일하다. 차이는 의존 추적 방식이다.
 
-```tsx
-import { useAtomValue } from "jotai";
-import { cartTotalAtom } from "./cartAtoms";
+| 관점       | Vue computed                | Jotai derived atom        |
+| ---------- | --------------------------- | ------------------------- |
+| 의존 추적  | 자동 (`.value` 접근 감지)   | 명시적 (`get(atom)` 호출) |
+| 비동기     | `watchEffect` + `ref` 조합  | async atom 직접 지원      |
+| 범위       | 컴포넌트/Composable 내부    | 모듈 레벨, 컴포넌트 외부  |
+| 상태 위치  | Pinia store 또는 Composable | atom 파일 (모듈 단위)     |
+| SSR 초기화 | Pinia `state` hydration     | `useHydrateAtoms`         |
 
-export function CartTotal() {
-  const total = useAtomValue(cartTotalAtom);
-  return <div>{total}</div>;
-}
-```
-
-이 구조는 “계산 규칙이 바뀌는 요구사항”에 강하다.
+Vue `watchEffect`와 Jotai의 비교는 "사이드 이펙트를 어떻게 선언하느냐" 문제다. Vue는 반응형 값을 자동으로 추적해서 변경 시 실행한다. Jotai는 write atom의 setter 안에서 여러 atom을 읽고 쓰는 방식으로 사이드 이펙트를 표현한다.
 
 ---
 
-## 5. 영속화: `atomWithStorage`
+## 7. 마스터 체크
 
-UI 설정(테마, 언어, 마지막 선택)은 영속화가 자주 필요하다.
+**derived atom과 `createSelector`(Redux)의 차이는?**
 
-```tsx
-import { atomWithStorage } from "jotai/utils";
+`createSelector`는 입력 selector 목록을 배열로 명시하고, 출력 selector를 별도 함수로 작성한다. 메모이제이션은 마지막 입력값 비교로 작동한다. Jotai derived atom은 `get(atom)` 호출로 의존을 자동으로 등록하고, atom 값이 변경될 때만 재계산된다. 의존 목록을 별도로 명시하지 않아도 된다.
 
-export const themeAtom = atomWithStorage<"light" | "dark">("theme", "light");
-```
+**atom을 컴포넌트 안에서 생성하면 안 되는 이유는?**
 
----
+`atom()`은 새 atom 인스턴스를 생성한다. 컴포넌트 안에 두면 렌더마다 새 인스턴스가 만들어진다. Jotai는 인스턴스를 키로 상태를 관리하므로 새 인스턴스 = 빈 상태다. 이전 상태는 누적되지 않는다.
 
-## 6. 비동기 atom은 무엇을 의미하는가
+**async atom 에러 처리 방법 두 가지는?**
 
-Jotai는 async atom으로 비동기 값을 만들 수 있다. 이 패턴은 “상태 그래프 안에서 비동기를 조합한다”는 의미다.
+첫째, `loadable(asyncAtom)`으로 감싸면 `state === 'hasError'`에서 `error`를 읽어 컴포넌트 안에서 처리한다. 둘째, `loadable` 없이 `useAtomValue(asyncAtom)`을 쓰고 위에 ErrorBoundary를 두면 `throw`된 에러를 boundary가 잡는다.
 
-다만 실무에서는 서버 상태는 React Query로 분리하는 기준이 더 안정적이다. async atom으로 서버 데이터를 들고 있으면 캐시/재시도/무효화 규칙을 Jotai 쪽에서 다시 설계하게 된다.
+**loadable의 세 가지 state 값은?**
 
-async atom은 다음에 가깝다.
-
-- 로컬 계산이 비동기인 경우(예: 브라우저 API 기반)
-- 단발성 로컬 리소스 로딩
-- 서버 상태를 이미 React Query로 관리하는 상황에서 “UI 레벨 조합”만 필요할 때
+`'loading'` — 비동기 계산이 진행 중이다. `'hasData'` — 계산이 완료되었고 `data` 필드에 결과가 있다. `'hasError'` — 계산 중 에러가 발생했고 `error` 필드에 원인이 있다.
 
 ---
 
-## 7. 자주 터지는 함정
-
-### 1) atom을 너무 잘게 쪼갠다
-
-상태 조각이 지나치게 많아지면 추적 비용이 커진다. “파생 규칙이 복잡해지는 지점”에서 구조를 다시 잡아야 한다.
-
-### 2) 비동기 atom으로 서버 상태를 만들기 시작한다
-
-React Query와 역할이 겹치며, 결국 캐시/무효화 규칙이 분산된다.
-
-### 3) 파생 atom이 무거운 계산을 반복한다
-
-파생 계산이 비싸면 메모이제이션 전략과 데이터 구조를 점검해야 한다.
-
----
-
-## Vue와 비교
-
-Vue의 `ref`/`computed` 모델은 Jotai의 atom/derived atom과 개념적으로 닮아 있다. 차이는 “상태를 어디에 모으느냐”에서 나타난다.
-
-| 관점 | Vue | Jotai |
-| --- | --- | --- |
-| 원본 상태 | `ref`, `reactive` | atom |
-| 파생 상태 | `computed` | derived atom |
-| 영속화 | 플러그인/직접 | `atomWithStorage` |
-| 전역 구조 | Pinia store 중심이 흔함 | atom 그래프 중심 |
-
----
-
-## 체크리스트
-
-- atom과 derived atom의 역할을 구분할 수 있다.
-- 계산된 상태를 컴포넌트 밖으로 빼는 이유를 설명할 수 있다.
-- 서버 상태는 React Query로 분리하는 기준을 이해한다.
+다음 글에서는 4가지 도구를 어떤 기준으로 선택하는지 다룬다.
