@@ -1,0 +1,237 @@
+---
+title: "[Next.js 고급 10/12] Image, Font, Static Export"
+date: "2025-09-06"
+description: "이미지와 폰트 최적화를 LCP, CLS, 배포 인프라 기준으로 설계한다"
+tags: ["Next.js", "React", "중급", "프론트엔드"]
+series: "Next.js 고급"
+seriesOrder: 10
+---
+
+# Image, Font, Static Export
+
+이미지 최적화는 `<Image>`를 쓰는 문제가 아니다. LCP 후보가 무엇인지, CLS가 왜 생기는지, 배포 환경에 이미지 최적화 서버가 있는지를 함께 봐야 한다.
+
+Next.js의 `next/image`는 강력하지만 마법이 아니다. static export에서는 기본 이미지 최적화 서버가 없으므로 `images.unoptimized`나 custom loader, 별도 CDN 파이프라인을 고려해야 한다.
+
+---
+
+## 왜 필요한가
+
+메인 페이지의 hero 이미지가 2MB이고 크기 정보가 없다면 다음 문제가 생긴다.
+
+- LCP가 이미지 다운로드에 묶인다.
+- 이미지가 늦게 로드되며 레이아웃이 밀린다.
+- 모바일에서도 데스크톱 크기 이미지를 받을 수 있다.
+- GitHub Pages에서는 기본 이미지 최적화 서버가 없다.
+
+이미지 최적화는 파일 크기, 레이아웃 안정성, responsive delivery, 배포 인프라의 합이다.
+
+---
+
+## `width`와 `height`
+
+고정 비율 이미지는 `width`와 `height`를 명시한다.
+
+```tsx
+import Image from "next/image";
+
+export function PostCover() {
+  return (
+    <Image
+      src="/images/app-router-cover.png"
+      alt="App Router 화면 구조"
+      width={1200}
+      height={630}
+    />
+  );
+}
+```
+
+브라우저는 이미지가 로드되기 전에 공간을 예약할 수 있다. 이 공간 예약이 CLS를 줄인다.
+
+---
+
+## `fill`과 `sizes`
+
+컨테이너에 맞게 채우는 이미지는 `fill`을 쓴다. 이때 `sizes`를 빼면 브라우저가 필요한 이미지 크기를 제대로 고르기 어렵다.
+
+```tsx
+import Image from "next/image";
+
+export function ResponsiveCover() {
+  return (
+    <div style={{ position: "relative", aspectRatio: "16 / 9" }}>
+      <Image
+        src="/images/dashboard.png"
+        alt="대시보드 화면"
+        fill
+        sizes="(max-width: 768px) 100vw, 768px"
+        style={{ objectFit: "cover" }}
+      />
+    </div>
+  );
+}
+```
+
+`fill`을 쓰는 부모는 안정적인 크기를 가져야 한다. `aspect-ratio`, 고정 높이, grid/flex 제약 없이 쓰면 레이아웃이 흔들린다.
+
+---
+
+## LCP 후보와 preload
+
+첫 화면의 핵심 이미지가 LCP 후보라면 우선순위를 높인다.
+
+```tsx
+<Image
+  src="/images/hero.png"
+  alt="Next.js 고급 시리즈"
+  width={1600}
+  height={900}
+  sizes="100vw"
+  priority
+/>
+```
+
+모든 이미지에 `priority`를 붙이면 우선순위의 의미가 사라진다. 첫 viewport에서 가장 큰 핵심 이미지처럼 실제 LCP 후보에만 쓴다.
+
+---
+
+## remote image 설정
+
+외부 이미지를 쓰면 허용할 host를 설정해야 한다.
+
+```js
+// next.config.js
+const nextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.example.com",
+        pathname: "/posts/**",
+      },
+    ],
+  },
+};
+
+module.exports = nextConfig;
+```
+
+remote pattern은 성능만이 아니라 보안과 운영 비용의 경계다. 임의 origin을 열어두면 이미지 프록시가 예상 밖의 요청을 처리할 수 있다.
+
+---
+
+## static export와 이미지 최적화
+
+`output: "export"`에서는 기본 `next/image` 최적화 서버를 사용할 수 없다. 선택지는 세 가지다.
+
+첫째, 최적화를 끄고 정적 파일을 그대로 배포한다.
+
+```js
+// next.config.js
+const nextConfig = {
+  output: "export",
+  images: {
+    unoptimized: true,
+  },
+};
+
+module.exports = nextConfig;
+```
+
+둘째, Cloudinary 같은 외부 이미지 CDN을 custom loader로 연결한다.
+
+```js
+// next.config.js
+const nextConfig = {
+  output: "export",
+  images: {
+    loader: "custom",
+    loaderFile: "./image-loader.ts",
+  },
+};
+
+module.exports = nextConfig;
+```
+
+셋째, 빌드 전에 이미지를 여러 크기로 생성하는 별도 파이프라인을 둔다. GitHub Pages 블로그라면 이 방식이 예측 가능하다.
+
+---
+
+## 폰트와 CLS
+
+Next.js의 font 최적화는 폰트 파일 로딩과 layout shift를 줄이는 데 도움을 준다.
+
+```tsx
+// app/layout.tsx
+import { Geist } from "next/font/google";
+import type { ReactNode } from "react";
+
+const geist = Geist({
+  subsets: ["latin"],
+  display: "swap",
+});
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return (
+    <html lang="ko" className={geist.className}>
+      <body>{children}</body>
+    </html>
+  );
+}
+```
+
+폰트는 텍스트의 모양만 바꾸는 자산이 아니다. 늦게 로드되면 FOUT/FOIT와 CLS 원인이 된다. 한 화면에 너무 많은 폰트 굵기와 패밀리를 쓰면 네트워크 비용도 커진다.
+
+---
+
+## 실무 기준
+
+| 상황         | 선택                                      |
+| ------------ | ----------------------------------------- |
+| 본문 이미지  | `width`/`height` 명시                     |
+| 카드 썸네일  | `fill` + 안정적인 aspect ratio + `sizes`  |
+| 첫 화면 hero | 실제 LCP 후보일 때만 `priority`           |
+| 외부 이미지  | `remotePatterns` 제한                     |
+| GitHub Pages | `unoptimized` 또는 외부 CDN/custom loader |
+| 폰트         | 필요한 패밀리/weight만 로드               |
+
+---
+
+## 함정과 디버깅
+
+이미지 문제가 생기면 Lighthouse 점수부터 보지 말고 원인을 분류한다.
+
+1. LCP 후보가 이미지인가.
+2. 이미지 크기와 실제 표시 크기가 맞는가.
+3. `sizes`가 viewport별 표시 폭과 맞는가.
+4. 이미지 공간이 로드 전부터 예약되는가.
+5. static export에서 기본 이미지 최적화를 기대하고 있지 않은가.
+6. 폰트 로딩으로 텍스트 레이아웃이 흔들리는가.
+
+성능 지표는 점수가 아니라 원인 후보를 찾는 지도다.
+
+---
+
+## Nuxt와 비교
+
+Nuxt Image도 provider/CDN과 연결해 responsive image를 만든다. Next.js의 `next/image`와 마찬가지로 배포 인프라와 분리해서 생각할 수 없다.
+
+| 기준            | Nuxt                         | Next.js                      |
+| --------------- | ---------------------------- | ---------------------------- |
+| 이미지 컴포넌트 | Nuxt Image                   | `next/image`                 |
+| 외부 provider   | provider 설정                | loader/custom loader         |
+| 폰트            | Nuxt Fonts/직접 구성         | `next/font`                  |
+| 정적 배포       | provider 또는 prerender 전략 | `unoptimized`, custom loader |
+
+---
+
+## 체크리스트
+
+- 이미지 최적화를 LCP/CLS/배포 인프라 문제로 설명할 수 있다.
+- `width`/`height`가 CLS를 줄이는 이유를 알고 있다.
+- `fill`을 쓸 때 부모 크기와 `sizes`를 함께 설계할 수 있다.
+- `priority`를 실제 LCP 후보에만 적용할 수 있다.
+- remote image 설정을 열어두지 않아야 하는 이유를 설명할 수 있다.
+- static export에서 기본 `next/image` 최적화가 제한된다는 점을 알고 있다.
+- 폰트 로딩이 CLS/LCP에 영향을 줄 수 있다는 점을 설명할 수 있다.

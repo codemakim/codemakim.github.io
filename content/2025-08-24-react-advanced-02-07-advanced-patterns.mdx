@@ -1,211 +1,327 @@
 ---
 title: "[React Query 7/8] React Query - 고급 패턴"
 date: "2025-08-30"
-description: "Prefetching, Preloading, Query Keys 최적화"
-tags: ["React", "고급", "프론트엔드"]
+description: "앱이 커질 때 쿼리 구조를 분리하는 패턴 - API 클라이언트, key factory, query options, prefetch, suspense"
+tags: ["React", "중급", "프론트엔드"]
 series: "React Query"
 seriesOrder: 7
 ---
 
 # React Query 가이드 - 고급 패턴
 
-> TanStack Query v5를 기반으로 한 데이터 페칭 학습 자료  
-> 출처: [TanStack Query Documentation](https://tanstack.com/query/)
+1~6편에서 데이터 읽기, 쓰기, 캐싱, 낙관적 업데이트, 무한 스크롤까지 다뤘다. 컴포넌트 단위로 보면 충분히 굴러가는 코드다.
+
+문제는 화면이 늘어나면서 시작된다. 같은 게시글을 다섯 군데서 가져오는데 키 모양이 조금씩 다르고, fetch 에러 처리는 컴포넌트마다 직접 하고 있고, 새 페이지를 추가할 때마다 옵션이 비슷한데 매번 복사한다. 어떤 키를 무효화해야 하는지 찾으려면 grep을 쓰는 일이 잦다.
+
+이 글은 새로운 API를 더 보여주는 글이 아니라, 1~6편에서 배운 조각을 앱 규모에서 일관되게 굴리기 위한 구조 패턴을 정리한다.
 
 ---
 
-## 고급 패턴
+## 왜 필요한가
 
-고급 패턴은 “기능이 되는 코드”를 넘어 “운영 가능한 데이터 계층”을 만드는 패턴이다.
+화면이 5개를 넘어가면 다음 증상이 나타난다.
 
-이 글은 실무에서 자주 쓰는 고급 패턴을 6개로 정리한다.
+- 같은 리소스의 `queryKey`가 페이지마다 다르게 생긴다(`["post", id]` vs `["posts", id]`).
+- `fetch` 호출과 `res.ok` 검사 코드가 컴포넌트 안에 흩어진다.
+- `staleTime`, `gcTime`, `select` 같은 옵션을 컴포넌트마다 다시 입력한다.
+- 무효화할 때 어떤 키를 넘겨야 하는지 코드 검색으로만 알 수 있다.
+- 무엇이 어디서 페치되는지 파악하려면 트리 전체를 따라가야 한다.
 
-- prefetch
-- initialData/placeholderData
-- dependent queries
-- query cancellation
-- query filters(조건부 무효화)
-- select(데이터 변환)
+라이브러리 사용법의 문제가 아니다. 정책의 위치 문제다. 정책이 컴포넌트 안에 박혀 있으면 같은 결정을 여러 곳에서 다시 한다. 정책을 모듈로 끌어올리면 컴포넌트는 "무엇을 보여줄지"만 다룬다.
 
 ---
 
-## 1. prefetch: 다음 화면을 미리 데운다
+## 원리: 결정의 위치를 옮긴다
 
-목록에서 상세로 넘어갈 때 “대기 시간”을 줄이려면, 사용자의 의도를 예측해 캐시를 데운다.
+다음 표는 같은 앱이 작을 때와 클 때 정책이 어디에 있는지를 비교한다.
+
+| 결정            | 작은 앱                  | 큰 앱                     |
+| --------------- | ------------------------ | ------------------------- |
+| URL과 에러 처리 | 컴포넌트 안 `fetch`      | API 클라이언트 모듈       |
+| 캐시 키 모양    | 컴포넌트 안 인라인       | key factory 모듈          |
+| 쿼리 옵션       | `useQuery` 호출마다 반복 | `queryOptions` helper     |
+| 무효화 범위     | 페이지마다 직접 키 작성  | factory의 prefix 이용     |
+| 데이터 가공     | 컴포넌트 안에서 `map`    | `select` 옵션             |
+| 로딩/에러 UI    | 컴포넌트 안 분기         | Suspense + error boundary |
+
+이 글의 패턴들은 같은 결정을 두 번 하지 않게 만드는 것이 목적이다.
+
+---
+
+## 패턴 1: API 클라이언트 모듈
+
+`fetchJson` 같은 공통 헬퍼는 1편에서 짧게 나왔다. 앱이 커지면 리소스별 함수까지 한 곳에 둔다.
+
+```ts
+// src/api/client.ts
+type ApiError = Error & { status?: number };
+
+export async function fetchJson<T>(
+  input: RequestInfo,
+  init?: RequestInit,
+): Promise<T> {
+  const res = await fetch(input, init);
+  if (!res.ok) {
+    const err: ApiError = new Error(`request failed: ${res.status}`);
+    err.status = res.status;
+    throw err;
+  }
+  return (await res.json()) as T;
+}
+```
+
+```ts
+// src/api/posts.ts
+import { fetchJson } from "./client";
+
+export interface Post {
+  id: string;
+  title: string;
+  body: string;
+}
+
+export interface PostListParams {
+  page: number;
+  tag?: string;
+}
+
+export function getPosts(params: PostListParams, signal?: AbortSignal) {
+  const url = new URL("/api/posts", window.location.origin);
+  url.searchParams.set("page", String(params.page));
+  if (params.tag) url.searchParams.set("tag", params.tag);
+  return fetchJson<{ posts: Post[]; totalPages: number }>(url.toString(), {
+    signal,
+  });
+}
+
+export function getPost(id: string, signal?: AbortSignal) {
+  return fetchJson<Post>(`/api/posts/${id}`, { signal });
+}
+```
+
+이렇게 분리하면 컴포넌트는 `getPosts({ page, tag }, signal)`만 호출한다. 4xx/5xx throw 규칙, URL 조립, 타입은 모두 모듈 안으로 들어간다. 인증 만료(401)나 트래킹 헤더 같은 공통 처리도 한 곳에서 추가한다.
+
+---
+
+## 패턴 2: query key factory
+
+`queryKey`를 인라인으로 두면 같은 리소스를 다르게 표현하는 일이 생긴다. factory를 만들면 키 모양과 무효화 범위가 함께 결정된다.
+
+```ts
+// src/queries/postKeys.ts
+import type { PostListParams } from "../api/posts";
+
+export const postKeys = {
+  all: ["posts"] as const,
+  lists: () => [...postKeys.all, "list"] as const,
+  list: (params: PostListParams) => [...postKeys.lists(), params] as const,
+  details: () => [...postKeys.all, "detail"] as const,
+  detail: (id: string) => [...postKeys.details(), id] as const,
+};
+```
+
+이 구조의 장점은 무효화 범위를 키 자체로 표현할 수 있다는 점이다.
+
+| 무효화 범위           | 호출                                                   |
+| --------------------- | ------------------------------------------------------ |
+| 게시글 관련 모든 캐시 | `invalidateQueries({ queryKey: postKeys.all })`        |
+| 모든 목록(필터 무관)  | `invalidateQueries({ queryKey: postKeys.lists() })`    |
+| 특정 필터의 목록만    | `invalidateQueries({ queryKey: postKeys.list(p) })`    |
+| 특정 글의 상세만      | `invalidateQueries({ queryKey: postKeys.detail(id) })` |
+
+이런 단계적 범위가 없으면 결국 `invalidateQueries({ queryKey: ["posts"] })`처럼 가장 넓게 잡거나, 반대로 너무 좁게 잡아서 다른 화면이 갱신되지 않는다.
+
+---
+
+## 패턴 3: queryOptions로 옵션을 함께 묶는다
+
+TanStack Query v5의 `queryOptions` 헬퍼는 `queryKey`와 `queryFn`, 그리고 `staleTime` 같은 옵션을 한 객체로 묶는다. 같은 리소스를 여러 곳에서 쓸 때 옵션이 어긋나는 일이 줄어든다.
+
+```ts
+// src/queries/postQueries.ts
+import { queryOptions } from "@tanstack/react-query";
+import { getPost, getPosts, type PostListParams } from "../api/posts";
+import { postKeys } from "./postKeys";
+
+export function postsQuery(params: PostListParams) {
+  return queryOptions({
+    queryKey: postKeys.list(params),
+    queryFn: ({ signal }) => getPosts(params, signal),
+    staleTime: 1000 * 30,
+  });
+}
+
+export function postQuery(id: string) {
+  return queryOptions({
+    queryKey: postKeys.detail(id),
+    queryFn: ({ signal }) => getPost(id, signal),
+    staleTime: 1000 * 60 * 5,
+  });
+}
+```
+
+컴포넌트는 옵션 객체를 그대로 넘긴다.
+
+```tsx
+import { useQuery } from "@tanstack/react-query";
+import { postQuery } from "../queries/postQueries";
+
+export function PostDetail({ postId }: { postId: string }) {
+  const query = useQuery(postQuery(postId));
+
+  if (query.isPending) return <p aria-busy="true">불러오는 중이다.</p>;
+  if (query.isError) return <p role="alert">글을 가져오지 못했다.</p>;
+  return <article>{query.data.body}</article>;
+}
+```
+
+같은 옵션 객체는 prefetch와 router loader에도 그대로 쓸 수 있다. 페이지마다 키와 함수와 staleTime을 따로 지정하지 않는다.
+
+---
+
+## 패턴 4: prefetch로 화면 전환 깜빡임을 줄인다
+
+목록에서 상세로 넘어갈 때 항상 빈 화면이 잠깐 보이는 문제는 prefetch로 줄일 수 있다. 사용자의 의도가 보이는 순간 캐시를 미리 데운다.
 
 ```tsx
 import { useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
+import { postQuery } from "../queries/postQueries";
 
-function UserRow({ userId, name }: { userId: string; name: string }) {
+interface Props {
+  id: string;
+  title: string;
+}
+
+export function PostRow({ id, title }: Props) {
   const queryClient = useQueryClient();
 
+  function warm() {
+    queryClient.prefetchQuery(postQuery(id));
+  }
+
   return (
-    <div
-      onMouseEnter={() => {
-        queryClient.prefetchQuery({
-          queryKey: ["user", userId],
-          queryFn: () => fetch(`/api/users/${userId}`).then((r) => r.json()),
-        });
-      }}
-    >
-      {name}
-    </div>
+    <Link to={`/posts/${id}`} onMouseEnter={warm} onFocus={warm}>
+      {title}
+    </Link>
   );
 }
 ```
 
-prefetch는 “항상 켠다”가 아니라, 네트워크/디바이스/화면 빈도에 따라 전략을 둔다.
+prefetch는 무료가 아니다. 다음 기준으로 켤지 정한다.
+
+- 사용자가 거의 항상 진입하는 경로(검색 결과 첫 항목 등)는 적극적으로 켠다.
+- 모바일은 hover가 없다. 첫 화면 진입 후 idle 시점에 prefetch를 트리거하거나, intersection observer로 화면에 들어온 항목만 prefetch한다.
+- 데이터 비용이 큰 페이지(이미지 다발, 무거운 응답)는 prefetch가 오히려 첫 진입을 느리게 만들 수 있다. 측정 후 결정한다.
 
 ---
 
-## 2. initialData/placeholderData: UX를 흔들지 않는다
+## 패턴 5: select로 컴포넌트 변환을 캐시 옆으로 옮긴다
 
-### initialData
-
-리스트에서 이미 가져온 사용자 데이터를 상세의 초기값으로 쓸 수 있다.
+`select`는 캐시에 저장된 원본은 그대로 두고, 컴포넌트가 받는 데이터만 변환한다. 같은 데이터에서 서로 다른 모양이 필요한 컴포넌트에 유용하다.
 
 ```tsx
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
+import { postsQuery } from "../queries/postQueries";
 
-function UserDetail({ userId }: { userId: string }) {
-  const queryClient = useQueryClient();
-
+export function PostTitleList({ page }: { page: number }) {
   const query = useQuery({
-    queryKey: ["user", userId],
-    queryFn: () => fetch(`/api/users/${userId}`).then((r) => r.json()),
-    initialData: () => {
-      const users = queryClient.getQueryData<any[]>(["users"]);
-      return users?.find((u) => u.id === userId);
-    },
+    ...postsQuery({ page }),
+    select: (data) => data.posts.map((p) => ({ id: p.id, title: p.title })),
   });
 
-  if (query.isPending) return <div>loading...</div>;
-  return <div>{query.data.name}</div>;
+  if (query.isPending) return null;
+  return (
+    <ul>
+      {query.data?.map((p) => (
+        <li key={p.id}>{p.title}</li>
+      ))}
+    </ul>
+  );
 }
 ```
 
-initialData는 “정확한 최신값”을 보장하지 않는다. 대신 “초기 UI 깜빡임”을 줄인다.
-
-### placeholderData
-
-페이지네이션에서 이전 데이터를 유지해 빈 화면을 막는다(2편에서 다룬다).
+`select`는 매 렌더마다 호출된다. 변환이 무거우면 결과를 메모이제이션하거나, 변환 자체를 서버 응답 단계로 옮긴다.
 
 ---
 
-## 3. dependent queries: 입력값이 준비된 뒤 실행한다
+## 패턴 6: Suspense와 Error Boundary로 분기 코드를 줄인다
+
+`isPending`/`isError` 분기를 모든 페이지에서 반복하면 본문 코드가 잘 안 보인다. v5에서는 `useSuspenseQuery`로 로딩과 에러를 컴포넌트 바깥 경계로 옮길 수 있다.
 
 ```tsx
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { Suspense } from "react";
+import { ErrorBoundary } from "../shared/ErrorBoundary";
+import { postQuery } from "../queries/postQueries";
 
-function UserProjects({ userId }: { userId: string }) {
-  const user = useQuery({
-    queryKey: ["user", userId],
-    queryFn: () => fetch(`/api/users/${userId}`).then((r) => r.json()),
-  });
+function PostBody({ postId }: { postId: string }) {
+  const query = useSuspenseQuery(postQuery(postId));
+  return <article>{query.data.body}</article>;
+}
 
-  const projects = useQuery({
-    queryKey: ["projects", user.data?.id],
-    queryFn: () => fetch(`/api/users/${user.data.id}/projects`).then((r) => r.json()),
-    enabled: Boolean(user.data?.id),
-  });
-
-  if (user.isPending || projects.isPending) return <div>loading...</div>;
-  return <ProjectList items={projects.data} />;
+export function PostDetail({ postId }: { postId: string }) {
+  return (
+    <ErrorBoundary fallback={<p role="alert">글을 가져오지 못했다.</p>}>
+      <Suspense fallback={<p aria-busy="true">불러오는 중이다.</p>}>
+        <PostBody postId={postId} />
+      </Suspense>
+    </ErrorBoundary>
+  );
 }
 ```
 
-enabled를 빼먹으면 `undefined`로 요청이 나가거나, 불필요한 요청이 발생한다.
+이 구조의 장점은 `PostBody`가 `query.data.body`를 항상 안전하게 접근한다는 점이다. `data`가 `undefined`일 가능성이 타입에서 사라진다. 단점은 다음과 같다.
+
+- 첫 진입에서 데이터가 없으면 항상 fallback이 보인다. `placeholderData`로 이전 페이지를 유지할 수 있지만 첫 진입 자체에서는 깜빡임이 생긴다.
+- error boundary에 의존하므로 리트라이 UX를 boundary 쪽에 만들어야 한다.
+
+모든 페이지를 suspense로 옮길 필요는 없다. 본문이 비면 안 되는 핵심 화면(상세, 결제 확인 등)에 우선 적용하고, 사이드바 같은 보조 영역은 일반 `useQuery`로 둔다.
 
 ---
 
-## 4. query cancellation: 오래된 요청을 취소한다
+## 함정과 디버깅
 
-검색 쿼리처럼 입력이 빠르게 바뀌는 경우는 이전 요청 결과가 늦게 도착해 UI를 덮어쓰는 문제가 생긴다. queryFn의 `signal`을 사용한다.
+### 1. predicate 무효화로 모든 문제를 해결한다
 
-```tsx
-import type { QueryFunctionContext } from "@tanstack/react-query";
-import { useQuery } from "@tanstack/react-query";
+`invalidateQueries({ predicate })`로 캐시 일부만 정리하는 패턴은 강력하지만, 키 설계가 흔들리는 신호일 때가 많다. predicate를 자주 쓰고 있다면 키 factory에 새 단계를 추가하는 편이 디버깅에 유리하다.
 
-async function search({ queryKey, signal }: QueryFunctionContext) {
-  const [, q] = queryKey as ["search", string];
-  const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`, { signal });
-  if (!res.ok) throw new Error("failed");
-  return await res.json();
-}
+### 2. queryClient를 컴포넌트마다 직접 import한다
 
-function Search({ q }: { q: string }) {
-  return useQuery({ queryKey: ["search", q], queryFn: search, enabled: q.length > 0 });
-}
-```
+`useQueryClient()` 대신 모듈 최상단에서 export한 `queryClient`를 import해 쓰면 테스트가 어려워진다. 테스트마다 다른 인스턴스를 주입할 수 없기 때문이다. 기본은 항상 `useQueryClient()`로 받아 쓴다.
+
+### 3. queryOptions를 만들면서 옵션을 컴포넌트에서 다시 덮는다
+
+`queryOptions`로 묶은 옵션을 컴포넌트에서 `staleTime`만 다시 지정하는 패턴은 다른 화면과의 동작 차이를 만든다. 옵션을 다르게 줄 합리적 이유가 있다면 별도 옵션 함수로 분리한다(예: `postQueryFresh(id)`).
+
+### 4. select로 비교 대상 객체를 매번 새로 만든다
+
+`select`가 매 렌더마다 새 배열/객체를 만들면 그 배열을 props로 받는 자식이 매번 리렌더된다. 변환 결과가 안정적인 참조가 되도록 결과를 단순한 모양으로 두거나, 호출하는 컴포넌트에서 `useMemo`를 사용한다.
 
 ---
 
-## 5. query filters: 조건부로 무효화/제거한다
+## Vue Query와 비교
 
-여러 캐시 중 “특정 조건”만 정리해야 하는 경우가 있다.
+Vue Query에도 동일한 구조 패턴이 가능하다. 어휘는 거의 같다.
 
-```tsx
-import { useQueryClient } from "@tanstack/react-query";
+| 패턴              | Vue Query                    | React Query                 |
+| ----------------- | ---------------------------- | --------------------------- |
+| API 클라이언트    | composable/모듈 함수         | 모듈 함수                   |
+| query key factory | 상수/모듈                    | 상수/모듈                   |
+| query options     | 컴포저블이 보통 그 역할을 함 | `queryOptions` 헬퍼         |
+| prefetch          | `queryClient.prefetchQuery`  | `queryClient.prefetchQuery` |
+| Suspense 통합     | `<Suspense>` + suspense 옵션 | `useSuspenseQuery`          |
+| 데이터 변환       | `select`                     | `select`                    |
 
-function useCleanup() {
-  const queryClient = useQueryClient();
-
-  function invalidateArchivedPosts() {
-    queryClient.invalidateQueries({
-      predicate: (q) => q.queryKey[0] === "posts" && Boolean((q.state.data as any)?.isArchived),
-    });
-  }
-
-  return { invalidateArchivedPosts };
-}
-```
-
-predicate는 강력하지만 남용하면 디버깅이 어려워진다. 가능한 한 queryKey 설계로 해결하는 편이 낫다.
-
----
-
-## 6. select: UI에 필요한 형태로 변환한다
-
-select는 “캐시에 저장된 원본 데이터”가 아니라 “컴포넌트에 제공되는 데이터”를 변환한다.
-
-```tsx
-import { useQuery } from "@tanstack/react-query";
-
-function Users() {
-  const query = useQuery({
-    queryKey: ["users"],
-    queryFn: () => fetch("/api/users").then((r) => r.json()),
-    select: (users: any[]) => users.map((u) => ({ id: u.id, label: u.name })),
-  });
-
-  if (query.isPending) return <div>loading...</div>;
-  return <UserSelect options={query.data} />;
-}
-```
-
-select는 UI 코드에서 반복되는 변환 로직을 줄인다. 단, 과도한 변환이 성능 병목이 되면 memoization 기준을 다시 잡아야 한다.
-
----
-
-## Vue와 비교
-
-Vue Query에서도 같은 패턴이 존재한다. 차이는 “prefetch를 어디에서 하느냐(컴포저블/컴포넌트)” 정도로 나타난다.
-
-| 패턴 | Vue Query | React Query |
-| --- | --- | --- |
-| prefetch | queryClient.prefetchQuery | queryClient.prefetchQuery |
-| initialData | initialData 옵션 | initialData 옵션 |
-| dependent | enabled | enabled |
-| cancellation | signal 사용 | signal 사용 |
-| select | select 옵션 | select 옵션 |
+Pinia store에 서버 데이터까지 직접 보관하던 팀이 Vue Query로 옮길 때, 가장 자주 등장하는 단계가 위 표의 첫 두 줄이다. fetch 규칙과 키를 모듈로 끌어올리는 것이 store에 직접 데이터를 보관하지 않게 만드는 첫걸음이다.
 
 ---
 
 ## 체크리스트
 
-- prefetch가 성능 최적화이면서 네트워크 비용이라는 점을 이해한다.
-- dependent query에서 enabled를 쓰는 이유를 설명할 수 있다.
-- query cancellation이 필요한 상황을 설명할 수 있다.
-- predicate 무효화를 최소화하고 queryKey 설계로 우선 해결할 수 있다.
-
----
+- API 클라이언트 모듈을 두는 이유를 한 문장으로 설명할 수 있다.
+- query key factory로 무효화 범위를 단계적으로 표현할 수 있다.
+- `queryOptions` 헬퍼로 묶은 옵션이 prefetch, useQuery, router loader에서 어떻게 재사용되는지 설명할 수 있다.
+- prefetch를 켤지 끌지 결정하는 기준 두 가지를 댈 수 있다.
+- `select`가 매 렌더마다 호출된다는 점과 그에 따른 함정을 알고 있다.
+- `useSuspenseQuery`가 어떤 분기 코드를 줄여주는지, 어떤 비용을 가져오는지 설명할 수 있다.

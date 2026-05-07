@@ -1,192 +1,370 @@
 ---
 title: "[React Router 7/12] React Router - 로딩 및 에러 처리"
 date: "2025-08-21"
-description: "Suspense, ErrorBoundary, Lazy Loading 적용"
-tags: ["React", "고급", "프론트엔드"]
+description: "라우트 전환에서 코드 로딩, 데이터 로딩, 에러 상태를 분리하는 기준"
+tags: ["React", "중급", "프론트엔드"]
 series: "React Router"
 seriesOrder: 7
 ---
 
 # React Router 가이드 - 로딩 및 에러 처리
 
-> React Router v6를 기반으로 한 라우팅 학습 자료  
-> 출처: [React Router Documentation](https://reactrouter.com/)
+앞 글까지는 URL과 화면을 연결하고, 중첩 라우트와 보호 라우트까지 만들었다. 이제 남는 문제는 전환 중 상태다.
+
+사용자가 `/posts/1`에서 `/posts/2`로 이동했는데 화면이 잠깐 비거나, 데이터를 못 가져왔는데 계속 로딩만 보이거나, 존재하지 않는 글인데 앱 전체 에러 화면이 뜨면 라우팅 경험이 무너진다.
+
+라우터에서 로딩과 에러를 다룰 때는 먼저 상태를 섞지 않아야 한다.
+
+- 코드가 아직 다운로드되지 않은 상태
+- 데이터 응답을 기다리는 상태
+- 라우트 자체가 없는 상태
+- 라우트는 맞지만 리소스가 없는 상태
+- 네트워크나 서버 오류가 난 상태
+
+이 글은 이 상태들을 분리해 어떤 UI를 어디에 둘지 정리한다.
 
 ---
 
-## 로딩 및 에러 처리
+## 왜 필요한가
 
-로딩과 에러 처리는 라우팅에서 UX 품질을 결정하는 축이다. 화면 전환이 빠르더라도, 데이터와 코드가 준비되지 않으면 사용자는 “멈춘 앱”으로 인지한다.
+라우팅은 URL을 바꾸는 일처럼 보이지만, 실제로는 사용자가 다른 작업 맥락으로 이동하는 일이다. 이때 앱은 최소한 세 가지 질문에 답해야 한다.
 
-이 글은 다음을 목표로 한다.
+1. 새 화면의 코드가 준비됐는가
+2. 새 화면에 필요한 데이터가 준비됐는가
+3. 실패했다면 사용자가 무엇을 할 수 있는가
 
-- 라우트 전환 시 로딩 UI를 어디에 둘지 결정한다.
-- 비동기 에러가 어디서 터지는지 분류한다.
-- 에러를 “복구 가능한 형태”로 만든다.
-
----
-
-## 1. 로딩의 종류를 먼저 나눈다
-
-실무에서 로딩은 크게 두 가지다.
-
-- 코드 로딩: 번들 분할로 인해 해당 화면 컴포넌트 자체가 아직 없다.
-- 데이터 로딩: 컴포넌트는 떠 있지만 API 응답을 기다린다.
-
-두 로딩은 해결책이 다르다.
-
-| 로딩 종류 | 대표 원인 | 대표 해결책 |
-| --- | --- | --- |
-| 코드 로딩 | `React.lazy()` / dynamic import | `Suspense fallback` |
-| 데이터 로딩 | fetch/React Query 등 | skeleton/placeholder, 캐시, prefetch |
+이 질문을 구분하지 않으면 모든 실패가 `loading...`이나 `something went wrong`으로 뭉개진다. 디버깅도 어려워진다. URL이 틀린 것인지, API가 404를 준 것인지, 로그인 권한이 없는 것인지 화면만 보고 판단할 수 없기 때문이다.
 
 ---
 
-## 2. 코드 로딩: 라우트 단위 코드 스플리팅
+## 원리: 코드 로딩과 데이터 로딩은 다르다
+
+React Router 자체가 모든 로딩을 해결해 주는 것은 아니다. 먼저 코드 로딩과 데이터 로딩을 나눈다.
+
+| 상태               | 원인                                     | 주로 쓰는 도구                               | UI 기준                              |
+| ------------------ | ---------------------------------------- | -------------------------------------------- | ------------------------------------ |
+| 코드 로딩          | `React.lazy()`로 분리한 번들이 아직 없음 | `Suspense`                                   | 화면 뼈대는 유지하고 본문만 fallback |
+| 데이터 로딩        | API 응답을 기다림                        | `useEffect`, React Query, Data Router loader | skeleton, 이전 데이터 유지, 재시도   |
+| 라우트 404         | URL과 매칭되는 route가 없음              | `path="*"`                                   | Not Found 페이지                     |
+| 리소스 404         | route는 맞지만 데이터가 없음             | 데이터 레이어                                | 해당 화면 안의 Not Found             |
+| 서버/네트워크 오류 | 요청 실패, 500, offline                  | 데이터 레이어 + retry                        | 에러 메시지와 복구 액션              |
+
+핵심은 "어디서 실패했는가"다. 라우트 매칭 실패는 라우터가 처리한다. 데이터 실패는 데이터를 읽는 경계에서 처리한다. 렌더링 중 컴포넌트 코드가 터지는 문제는 Error Boundary가 처리한다.
+
+---
+
+## 최소 예제: 라우트 코드 로딩
+
+페이지 컴포넌트가 커지면 모든 페이지 코드를 첫 진입에 내려받을 필요가 없다. `React.lazy()`로 페이지 단위 코드를 나누고, `Suspense`로 다운로드 중 UI를 보여준다.
 
 ```tsx
-import React, { Suspense } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Suspense, lazy } from "react";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 
-const HomePage = React.lazy(() => import("./pages/HomePage"));
-const DashboardPage = React.lazy(() => import("./pages/DashboardPage"));
+const HomePage = lazy(() => import("./pages/HomePage"));
+const PostListPage = lazy(() => import("./pages/PostListPage"));
+const PostDetailPage = lazy(() => import("./pages/PostDetailPage"));
 
 function PageFallback() {
-  return <div>loading...</div>;
+  return <main aria-busy="true">화면을 불러오는 중이다.</main>;
 }
 
 export default function App() {
   return (
-    <Suspense fallback={<PageFallback />}>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-      </Routes>
-    </Suspense>
+    <BrowserRouter>
+      <Suspense fallback={<PageFallback />}>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/posts" element={<PostListPage />} />
+          <Route path="/posts/:postId" element={<PostDetailPage />} />
+        </Routes>
+      </Suspense>
+    </BrowserRouter>
   );
 }
 ```
 
-### 실무 포인트: fallback은 “전체 화면”이 아닐 수도 있다
-
-레이아웃(헤더/사이드바)은 유지하고 본문만 로딩 상태로 전환하는 편이 읽기 경험이 안정된다.
-
-- 상위 레이아웃은 즉시 렌더링한다.
-- 본문 `Outlet` 영역만 `Suspense`로 감싼다.
+이 예제에서 fallback은 "코드 다운로드 대기"만 표현한다. `/posts/:postId`의 글 데이터를 기다리는 상태까지 이 fallback으로 처리하면 안 된다. 컴포넌트 코드는 준비됐지만 데이터가 없는 상태는 페이지 내부에서 따로 다룬다.
 
 ---
 
-## 3. 데이터 로딩: 화면 상태와 URL 상태를 분리한다
+## 레이아웃은 유지하고 본문만 로딩한다
 
-데이터 로딩은 라우터가 아니라 데이터 레이어의 책임인 경우가 많다. 실무에서는 React Query 같은 캐시 레이어를 두고 다음을 만든다.
+앱 전체를 하나의 `Suspense`로 감싸면 페이지 전환 때 헤더와 사이드바까지 fallback으로 바뀔 수 있다. 사용자 입장에서는 앱 전체가 깜빡이는 것처럼 보인다.
 
-- 이전 데이터 유지(keep previous data)
-- 낙관적 업데이트
-- 실패 시 재시도/복구
-
-라우터 관점에서는 “로딩 중 UI가 어디까지 유지돼야 하는가”가 핵심이다.
+중첩 라우트를 쓴다면 공통 레이아웃은 유지하고, `Outlet` 영역만 로딩 경계로 잡는 편이 안정적이다.
 
 ```tsx
-import { useParams } from "react-router-dom";
+import { Suspense, lazy } from "react";
+import { BrowserRouter, Link, Outlet, Route, Routes } from "react-router-dom";
 
-export default function UserProfile() {
-  const { userId } = useParams();
+const HomePage = lazy(() => import("./pages/HomePage"));
+const PostListPage = lazy(() => import("./pages/PostListPage"));
 
-  // userId 기반 fetch가 여기에 붙는다(React Query 등).
-  // 아래는 로딩/에러 UI를 어디에 두는지의 형태만 보여준다.
-  const loading = false;
-  const error: Error | null = null;
-  const user = { name: "kim", email: "kim@example.com" };
-
-  if (loading) return <div>loading...</div>;
-  if (error) return <div>error: {error.message}</div>;
+function Layout() {
   return (
-    <div>
-      <h1>{user.name}</h1>
-      <p>{user.email}</p>
-    </div>
+    <>
+      <header>
+        <Link to="/">홈</Link>
+        <Link to="/posts">글 목록</Link>
+      </header>
+      <Suspense
+        fallback={<main aria-busy="true">본문을 불러오는 중이다.</main>}
+      >
+        <Outlet />
+      </Suspense>
+    </>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route element={<Layout />}>
+          <Route index element={<HomePage />} />
+          <Route path="posts" element={<PostListPage />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 }
 ```
 
----
-
-## 4. 에러의 종류를 나누면 처리 전략이 선명해진다
-
-에러는 크게 세 가지로 나뉜다.
-
-- 렌더링 에러: 컴포넌트 코드 버그로 render 과정에서 터진다.
-- 이벤트 에러: 클릭/submit 같은 이벤트 핸들러에서 터진다.
-- 비동기 에러: `fetch`/promise 체인에서 터진다.
-
-Error Boundary는 “렌더링 에러”만 잡는다. `fetch`의 실패는 Error Boundary가 자동으로 잡지 않는다.
+이 구조에서는 네비게이션은 계속 보이고 본문만 바뀐다. 사용자는 앱이 멈춘 것이 아니라 현재 영역을 준비 중이라고 이해한다.
 
 ---
 
-## 5. Error Boundary를 라우트 경계에 둔다
+## 실무 예제: 데이터 로딩 상태 분리
 
-실무에서는 “앱 전체를 하나의 ErrorBoundary로 감싼다”보다 “라우트 영역마다 경계를 둔다”가 유리하다.
-
-- 특정 페이지에서만 터진 에러가 전체 앱을 죽이지 않는다.
-- 복구(재시도, 홈으로 이동)가 페이지 단위로 가능해진다.
+다음은 `postId`로 글을 읽는 페이지다. 예제를 단순하게 유지하기 위해 `useEffect`와 `fetch`를 직접 사용한다. 실제 서비스에서는 React Query나 Data Router의 loader로 옮기는 경우가 많다.
 
 ```tsx
-import React from "react";
+import { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
 
-export class ErrorBoundary extends React.Component<
-  { children: React.ReactNode; fallback?: React.ReactNode },
-  { hasError: boolean; error?: Error }
+interface Post {
+  id: string;
+  title: string;
+  body: string;
+}
+
+type LoadState =
+  | { status: "loading" }
+  | { status: "success"; post: Post }
+  | { status: "not-found" }
+  | { status: "error"; message: string };
+
+export function PostDetailPage() {
+  const { postId } = useParams();
+  const [state, setState] = useState<LoadState>({ status: "loading" });
+
+  useEffect(() => {
+    if (!postId) {
+      setState({ status: "not-found" });
+      return;
+    }
+
+    const controller = new AbortController();
+    setState({ status: "loading" });
+
+    async function loadPost() {
+      try {
+        const response = await fetch(`/api/posts/${postId}`, {
+          signal: controller.signal,
+        });
+
+        if (response.status === 404) {
+          setState({ status: "not-found" });
+          return;
+        }
+
+        if (!response.ok) {
+          setState({ status: "error", message: "글을 불러오지 못했다." });
+          return;
+        }
+
+        const post = (await response.json()) as Post;
+        setState({ status: "success", post });
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        setState({
+          status: "error",
+          message: "네트워크 연결을 확인해야 한다.",
+        });
+      }
+    }
+
+    void loadPost();
+
+    return () => controller.abort();
+  }, [postId]);
+
+  if (state.status === "loading") {
+    return <main aria-busy="true">글을 불러오는 중이다.</main>;
+  }
+
+  if (state.status === "not-found") {
+    return (
+      <main>
+        <h1>글을 찾을 수 없다</h1>
+        <Link to="/posts">목록으로 돌아간다</Link>
+      </main>
+    );
+  }
+
+  if (state.status === "error") {
+    return (
+      <main>
+        <h1>문제가 발생했다</h1>
+        <p>{state.message}</p>
+        <button type="button" onClick={() => window.location.reload()}>
+          다시 시도한다
+        </button>
+      </main>
+    );
+  }
+
+  return (
+    <main>
+      <h1>{state.post.title}</h1>
+      <p>{state.post.body}</p>
+    </main>
+  );
+}
+```
+
+여기서 중요한 부분은 `not-found`와 `error`를 나눈 점이다. `/posts/999`가 없는 글인 경우와 서버가 죽은 경우는 사용자가 취할 행동이 다르다.
+
+---
+
+## Error Boundary가 잡는 것과 못 잡는 것
+
+Error Boundary는 렌더링 중 발생한 컴포넌트 오류를 잡는다. 하지만 이벤트 핸들러 안의 오류나 `fetch` 실패를 자동으로 잡지는 않는다.
+
+```tsx
+import { Component, type ErrorInfo, type ReactNode } from "react";
+
+interface ErrorBoundaryState {
+  error: Error | null;
+}
+
+export class ErrorBoundary extends Component<
+  { children: ReactNode },
+  ErrorBoundaryState
 > {
-  state = { hasError: false, error: undefined as Error | undefined };
+  state: ErrorBoundaryState = { error: null };
 
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("route boundary error", error, errorInfo);
   }
 
   render() {
-    if (this.state.hasError) {
-      return this.props.fallback ?? <div>something went wrong</div>;
+    if (this.state.error) {
+      return (
+        <main>
+          <h1>화면을 렌더링하지 못했다</h1>
+          <p>{this.state.error.message}</p>
+          <button type="button" onClick={() => this.setState({ error: null })}>
+            다시 시도한다
+          </button>
+        </main>
+      );
     }
+
     return this.props.children;
   }
 }
 ```
 
+라우트마다 Error Boundary를 둘 수 있으면 특정 페이지의 렌더링 오류가 앱 전체를 죽이지 않는다. 단, 비동기 요청 실패는 위의 `LoadState`처럼 데이터 로딩 코드에서 상태로 바꿔 처리해야 한다.
+
 ---
 
-## 6. 404와 “존재하지 않는 리소스”는 분리한다
+## 404는 두 종류다
 
-- 404(Not Found): 라우트 자체가 없다. `path="*"`로 처리한다.
-- 리소스 없음: 라우트는 맞지만 `/users/999`가 없다. API 404를 화면에서 처리해야 한다.
+라우팅에서 가장 자주 섞이는 상태가 404다.
+
+- 라우트 404: `/wrong-url`처럼 매칭되는 route가 없다.
+- 리소스 404: `/posts/999`처럼 route는 맞지만 데이터가 없다.
+
+라우트 404는 마지막 `path="*"`로 처리한다.
 
 ```tsx
-import { Routes, Route, Link } from "react-router-dom";
+import { Link, Route, Routes } from "react-router-dom";
 
 function NotFoundPage() {
   return (
-    <div>
-      <h1>404</h1>
-      <Link to="/">home</Link>
-    </div>
+    <main>
+      <h1>페이지를 찾을 수 없다</h1>
+      <Link to="/">홈으로 이동한다</Link>
+    </main>
   );
 }
 
-<Routes>
-  <Route path="/" element={<div>home</div>} />
-  <Route path="*" element={<NotFoundPage />} />
-</Routes>;
+export function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/" element={<div>홈</div>} />
+      <Route path="/posts/:postId" element={<div>글 상세</div>} />
+      <Route path="*" element={<NotFoundPage />} />
+    </Routes>
+  );
+}
 ```
+
+리소스 404는 `PostDetailPage` 안에서 처리한다. 라우터 입장에서는 `/posts/:postId`가 정상 라우트이기 때문이다.
+
+---
+
+## 함정과 디버깅
+
+### 1. 모든 실패를 Error Boundary에 맡긴다
+
+Error Boundary는 렌더링 오류용이다. API 404, 401, 네트워크 실패는 요청 코드에서 상태로 바꿔야 한다.
+
+### 2. 로딩이 에러보다 우선한다
+
+`loading`과 `error`를 boolean으로 따로 두면 `loading: true`, `error: Error` 같은 모순 상태가 생긴다. `status`를 하나의 union으로 두면 동시에 두 상태가 될 수 없다.
+
+### 3. 이전 요청 결과가 늦게 도착한다
+
+`/posts/1` 요청 중 `/posts/2`로 이동하면 1번 응답이 늦게 와서 2번 화면을 덮을 수 있다. `AbortController`로 이전 요청을 취소하거나, React Query처럼 요청 키를 기준으로 관리하는 도구를 쓴다.
+
+### 4. fallback이 화면 전체를 가린다
+
+페이지 전환마다 헤더와 사이드바까지 사라지면 사용자는 앱이 새로 시작된다고 느낀다. 가능하면 공통 레이아웃은 유지하고 바뀌는 영역만 fallback을 둔다.
 
 ---
 
 ## Vue Router와 비교
 
-Vue는 `defineAsyncComponent`와 `<Suspense>` 조합이 자주 쓰이고, 에러는 전역 핸들러/컴포넌트 경계로 처리한다. React는 `React.lazy`/`Suspense`와 Error Boundary 조합이 기본이다.
+Vue Router에서도 같은 구분이 필요하다. 차이는 표현 방식이다.
 
-| 관심사 | Vue Router 생태계 | React Router 생태계 |
-| --- | --- | --- |
-| 코드 로딩 | async component + `<Suspense>` | `React.lazy` + `<Suspense>` |
-| 렌더 에러 | `errorCaptured`/전역 핸들러 | Error Boundary |
-| 데이터 로딩 | Pinia + 요청/캐시 라이브러리 | React Query 등 + 요청/캐시 라이브러리 |
+| 관심사      | Vue Router 생태계                         | React Router 생태계                                |
+| ----------- | ----------------------------------------- | -------------------------------------------------- |
+| 코드 로딩   | route component를 `() => import()`로 분리 | `React.lazy()`와 `Suspense`                        |
+| 데이터 로딩 | 컴포넌트, Pinia, Vue Query에서 처리       | 컴포넌트, React Query, Data Router loader에서 처리 |
+| 라우트 404  | catch-all route                           | `path="*"`                                         |
+| 리소스 404  | 컴포넌트나 데이터 레이어에서 처리         | 컴포넌트나 데이터 레이어에서 처리                  |
+| 렌더링 오류 | `errorCaptured`, 전역 error handler       | Error Boundary                                     |
+
+Vue를 먼저 썼다면 `defineAsyncComponent`와 route component lazy loading을 떠올리면 된다. React에서는 lazy component를 렌더링하는 위치에 `Suspense` 경계를 둔다.
 
 ---
+
+## 체크리스트
+
+- 코드 로딩과 데이터 로딩을 구분해 설명할 수 있다.
+- `Suspense fallback`이 언제 보이는지 설명할 수 있다.
+- 라우트 404와 리소스 404를 다른 UI로 처리할 수 있다.
+- Error Boundary가 렌더링 오류만 잡는다는 점을 설명할 수 있다.
+- 요청 전환 중 이전 응답이 늦게 도착하는 문제를 방지할 수 있다.
+- 로딩, 에러, 성공 상태를 하나의 `status`로 모델링할 수 있다.

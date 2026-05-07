@@ -1,0 +1,222 @@
+---
+title: "[Next.js 고급 5/12] Caching 2 - Revalidation"
+date: "2025-09-10"
+description: "revalidatePath, revalidateTag, updateTag의 목적과 선택 기준"
+tags: ["Next.js", "React", "중급", "프론트엔드"]
+series: "Next.js 고급"
+seriesOrder: 5
+---
+
+# Caching 2 - Revalidation
+
+캐시 재검증은 “다시 빌드한다”가 아니다. 어떤 데이터 사본을 stale로 만들지, 다음 방문자가 stale을 봐도 되는지, 작성자는 방금 쓴 값을 즉시 봐야 하는지를 정하는 문제다.
+
+Next.js 16 기준으로 `revalidateTag`는 두 번째 인자를 함께 생각해야 한다. 공개 콘텐츠에는 `revalidateTag(tag, "max")`가 기본 선택이고, Server Action 안에서 read-your-own-writes가 필요하면 `updateTag`가 더 정확하다.
+
+---
+
+## 왜 필요한가
+
+관리자가 새 게시글을 발행했다. 이때 세 화면이 영향을 받는다.
+
+- 관리자 목록: 방금 발행한 글이 즉시 보여야 한다.
+- 공개 게시글 목록: 몇 초 늦어도 괜찮지만 빠르게 응답해야 한다.
+- 게시글 상세: 새 글 URL로 이동했을 때는 실제 글이 보여야 한다.
+
+하나의 “캐시 삭제”로 처리하면 과하거나 부족하다. 화면마다 최신성 요구가 다르기 때문이다.
+
+---
+
+## time-based revalidation
+
+시간 기반 재검증은 데이터가 일정 주기로 바뀌는 경우에 맞다.
+
+```tsx
+async function getPosts() {
+  const response = await fetch("https://example.com/api/posts", {
+    next: { revalidate: 3600 },
+  });
+
+  if (!response.ok) {
+    throw new Error("게시글 목록을 불러오지 못했다.");
+  }
+
+  return response.json() as Promise<Array<{ id: string; title: string }>>;
+}
+```
+
+이 전략은 단순하지만 쓰기 이벤트를 모른다. “1시간마다 대충 새로워지면 된다”는 공개 페이지에는 좋고, 작성 직후 최신성이 필요한 관리자 화면에는 부족하다.
+
+---
+
+## path 기반 재검증
+
+`revalidatePath`는 특정 경로의 캐시된 UI를 다시 계산하게 만든다.
+
+```tsx
+// app/admin/posts/actions.ts
+"use server";
+
+import { revalidatePath } from "next/cache";
+
+export async function renamePost(postId: string, title: string) {
+  await db.post.update({
+    where: { id: postId },
+    data: { title },
+  });
+
+  revalidatePath("/admin/posts");
+}
+```
+
+경로가 명확하고 영향 범위가 작을 때 적합하다. 하지만 같은 데이터가 여러 경로에서 쓰이면 누락되기 쉽다.
+
+---
+
+## tag 기반 재검증
+
+데이터를 읽을 때 tag를 붙이면, 나중에 tag 단위로 재검증할 수 있다.
+
+```tsx
+async function getPublicPosts() {
+  const response = await fetch("https://example.com/api/posts", {
+    next: { tags: ["public-posts"] },
+  });
+
+  if (!response.ok) {
+    throw new Error("공개 게시글을 불러오지 못했다.");
+  }
+
+  return response.json() as Promise<Array<{ id: string; title: string }>>;
+}
+```
+
+쓰기 이후에는 tag를 stale로 만든다.
+
+```tsx
+"use server";
+
+import { revalidateTag } from "next/cache";
+
+export async function publishPost(postId: string) {
+  await db.post.update({
+    where: { id: postId },
+    data: { published: true },
+  });
+
+  revalidateTag("public-posts", "max");
+}
+```
+
+`"max"`는 stale-while-revalidate 의미에 가깝다. 다음 방문자는 stale 데이터를 받을 수 있고, fresh 데이터는 백그라운드에서 준비된다. 공개 콘텐츠처럼 약간의 지연이 허용되는 곳에 맞다.
+
+---
+
+## `updateTag`와 read-your-own-writes
+
+관리자 화면에서는 방금 쓴 값이 즉시 보여야 한다.
+
+```tsx
+"use server";
+
+import { updateTag } from "next/cache";
+import { redirect } from "next/navigation";
+
+export async function createPost(formData: FormData) {
+  const title = String(formData.get("title") ?? "").trim();
+
+  if (!title) {
+    return { ok: false, message: "제목을 입력해야 한다." };
+  }
+
+  const post = await db.post.create({
+    data: { title },
+  });
+
+  updateTag("admin-posts");
+  redirect(`/admin/posts/${post.id}`);
+}
+```
+
+`updateTag`는 Server Action 안에서만 쓴다. 다음 요청이 stale을 받지 않고 fresh 데이터를 기다리게 만드는 용도다. 작성자 자신이 방금 바꾼 값을 확인해야 하는 관리자 화면에 맞다.
+
+---
+
+## 선택 기준
+
+| 요구                                          | API                         | 이유                                       |
+| --------------------------------------------- | --------------------------- | ------------------------------------------ |
+| 특정 URL만 다시 계산                          | `revalidatePath`            | 영향 범위가 경로와 일치한다                |
+| 공개 데이터가 조금 늦게 새로워져도 됨         | `revalidateTag(tag, "max")` | stale-while-revalidate가 맞다              |
+| Server Action 직후 작성자가 최신 값을 봐야 함 | `updateTag`                 | read-your-own-writes가 필요하다            |
+| Route Handler에서 웹훅으로 무효화             | `revalidateTag(tag, "max")` | `updateTag`는 Route Handler에서 쓸 수 없다 |
+
+이 선택은 성능 문제가 아니라 제품 경험 문제다.
+
+---
+
+## 실무 예제: 게시글 발행
+
+```tsx
+// app/admin/posts/actions.ts
+"use server";
+
+import { revalidatePath, revalidateTag, updateTag } from "next/cache";
+import { redirect } from "next/navigation";
+
+export async function publishPost(postId: string) {
+  const post = await db.post.update({
+    where: { id: postId },
+    data: { published: true },
+    select: { slug: true },
+  });
+
+  updateTag("admin-posts");
+  revalidateTag("public-posts", "max");
+  revalidatePath(`/posts/${post.slug}`);
+
+  redirect(`/posts/${post.slug}`);
+}
+```
+
+관리자 목록은 즉시 최신화하고, 공개 목록은 stale을 허용하며, 상세 경로는 새로 계산하게 만든다. 세 요구를 하나의 API로 뭉개지 않는다.
+
+---
+
+## 함정과 디버깅
+
+첫 번째 함정은 tag를 붙이지 않고 `revalidateTag`만 호출하는 것이다. tag는 읽을 때 붙어 있어야 한다.
+
+```tsx
+await fetch("https://example.com/api/posts", {
+  next: { tags: ["public-posts"] },
+});
+```
+
+두 번째 함정은 `revalidateTag("posts")`처럼 두 번째 인자 없는 예전 형태를 계속 쓰는 것이다. Next.js 16 기준으로는 `revalidateTag("posts", "max")`를 기본으로 생각하고, 즉시성을 원하면 Server Action 안에서 `updateTag`를 쓴다.
+
+세 번째 함정은 static export다. GitHub Pages에 정적 파일로 배포하면 요청 시점 revalidation을 수행할 서버가 없다. 이 경우 콘텐츠 변경은 재빌드/재배포나 외부 API의 클라이언트 fetching으로 풀어야 한다.
+
+---
+
+## Nuxt와 비교
+
+Nuxt/Nitro에서도 캐시 무효화는 route rules, storage, server API cache 전략과 연결된다. Next.js는 읽기 쪽의 `fetch` tag와 쓰기 쪽의 revalidation API를 직접 연결한다.
+
+| 기준             | Nuxt/Nitro          | Next.js           |
+| ---------------- | ------------------- | ----------------- |
+| 시간 기반 갱신   | route rules/cache   | `next.revalidate` |
+| 경로 단위 갱신   | 배포/캐시 계층 설정 | `revalidatePath`  |
+| 데이터 단위 갱신 | storage/cache key   | `revalidateTag`   |
+| 작성 직후 최신성 | 직접 캐시 전략 설계 | `updateTag`       |
+
+---
+
+## 체크리스트
+
+- 재검증을 “다시 빌드”가 아니라 사본의 stale/fresh 정책으로 설명할 수 있다.
+- time-based revalidation과 on-demand revalidation을 구분할 수 있다.
+- `revalidatePath`가 경로 단위라는 점을 알고 있다.
+- `revalidateTag(tag, "max")`가 공개 콘텐츠의 stale-while-revalidate에 맞는 이유를 설명할 수 있다.
+- `updateTag`가 Server Action 전용이며 read-your-own-writes에 맞는다는 점을 설명할 수 있다.
+- static export에서는 요청 시점 revalidation이 제한된다는 점을 알고 있다.

@@ -1,213 +1,395 @@
 ---
 title: "[React Router 8/12] React Router - 고급 패턴"
 date: "2025-08-22"
-description: "코드 분할, 라우트 기반 코드 스플리팅, 최적화 전략"
-tags: ["React", "고급", "프론트엔드"]
+description: "라우트가 늘어날 때 구조를 분리하고 유지보수 가능한 규칙을 만드는 방법"
+tags: ["React", "중급", "프론트엔드"]
 series: "React Router"
 seriesOrder: 8
 ---
 
 # React Router 가이드 - 고급 패턴
 
-> React Router v6를 기반으로 한 라우팅 학습 자료  
-> 출처: [React Router Documentation](https://reactrouter.com/)
+React Router의 고급 패턴은 특별한 API를 많이 외우는 일이 아니다. 라우트가 늘어날 때 어디에 무엇을 둘지 정하는 일에 가깝다.
+
+처음에는 `App.tsx` 안에 `Routes`를 직접 적어도 충분하다. 하지만 화면이 늘어나면 라우팅 파일은 금방 다음 책임을 함께 떠안는다.
+
+- URL 구조
+- 레이아웃 중첩
+- 인증/권한 보호
+- 코드 스플리팅
+- breadcrumb
+- 404와 에러 경계
+- 모달처럼 URL을 가진 일시적 화면
+
+이 글은 "언제 구조를 분리해야 하는가"를 기준으로 route config, lazy loading, breadcrumb, modal route를 정리한다.
 
 ---
 
-## 고급 패턴
+## 왜 필요한가
 
-고급 패턴은 “API를 아는 수준”에서 “구조를 설계하는 수준”으로 넘어갈 때 필요한 패턴 모음이다.
+다음과 같은 `Routes`는 작은 앱에서는 문제가 없다.
 
-앞선 글에서 라우팅의 기본, 중첩, 파라미터/쿼리, 네비게이션, 가드, 로딩/에러 경계를 다뤘다. 이 글은 그것들을 조합해 “프로젝트 규모가 커졌을 때도 버티는 라우팅 구조”를 만든다.
+```tsx
+<Routes>
+  <Route path="/" element={<HomePage />} />
+  <Route path="/posts" element={<PostListPage />} />
+  <Route path="/posts/:postId" element={<PostDetailPage />} />
+  <Route path="/settings" element={<SettingsPage />} />
+</Routes>
+```
+
+하지만 화면이 20개를 넘고, 일부는 로그인 필요, 일부는 관리자만 접근 가능, 일부는 lazy loading이 필요해지면 JSX가 길어지고 리뷰하기 어려워진다.
+
+구조를 분리하는 목적은 멋진 아키텍처가 아니라 다음 세 가지다.
+
+1. URL 설계를 한눈에 본다.
+2. 라우트별 정책을 가까운 곳에 둔다.
+3. 레이아웃과 페이지의 책임을 분리한다.
 
 ---
 
-## 1. 라우트 기반 코드 스플리팅을 어디에 둘지 결정한다
+## 기준: JSX 라우트와 route config 중 무엇을 쓸까
 
-코드 스플리팅은 “페이지 단위”로 하는 편이 기본이다. 하지만 `Suspense`를 앱 최상단에 두면 전환 시 매번 전체 fallback이 떠서 UX가 흔들린다.
+React Router는 JSX로 라우트를 선언할 수도 있고, 객체 배열을 `useRoutes()`에 넘길 수도 있다.
 
-실무에서는 다음을 자주 쓴다.
+JSX 라우트는 단순하고 읽기 쉽다. 작은 앱, 학습용 프로젝트, 라우트 수가 적은 프로젝트에 좋다.
 
-- 최상단: 전역 프레임(헤더/사이드바)은 즉시 렌더링한다.
-- `Outlet` 영역: 라우트 전환이 일어나는 본문만 `Suspense`로 감싼다.
+객체 route config는 라우트 메타데이터를 함께 다루기 좋다. breadcrumb, 권한, 메뉴 표시 여부 같은 정책을 라우트 정의 근처에 둘 수 있다.
 
-### Suspense와 Lazy Loading
+| 기준        | JSX 라우트             | route config                           |
+| ----------- | ---------------------- | -------------------------------------- |
+| 장점        | 직관적이고 코드가 짧다 | 분리와 조합이 쉽다                     |
+| 적합한 경우 | 작은 앱, 단순 페이지   | 대시보드, 관리자, 복잡한 메뉴          |
+| 주의점      | 길어지면 파악이 어렵다 | 타입과 규칙을 정하지 않으면 느슨해진다 |
 
-```jsx
-import { Suspense, lazy } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-const Home = lazy(() => import("./pages/Home"));
-const About = lazy(() => import("./pages/About"));
-const Dashboard = lazy(() => import("./pages/Dashboard"));
+처음부터 route config로 시작할 필요는 없다. 라우트 정책이 화면 컴포넌트 안으로 새기 시작할 때 분리하면 된다.
+
+---
+
+## 최소 예제: `useRoutes()`로 라우트 분리
+
+`useRoutes()`는 route config 배열을 받아 현재 URL에 맞는 element를 반환한다.
+
+```tsx
+import { lazy, Suspense } from "react";
+import {
+  BrowserRouter,
+  Link,
+  Outlet,
+  type RouteObject,
+  useRoutes,
+} from "react-router-dom";
+
+const HomePage = lazy(() => import("./pages/HomePage"));
+const PostListPage = lazy(() => import("./pages/PostListPage"));
+const PostDetailPage = lazy(() => import("./pages/PostDetailPage"));
+const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
+
+function Layout() {
+  return (
+    <>
+      <header>
+        <Link to="/">홈</Link>
+        <Link to="/posts">글 목록</Link>
+      </header>
+      <Suspense fallback={<main>본문을 불러오는 중이다.</main>}>
+        <Outlet />
+      </Suspense>
+    </>
+  );
+}
+
+const routes: RouteObject[] = [
+  {
+    element: <Layout />,
+    children: [
+      { index: true, element: <HomePage /> },
+      { path: "posts", element: <PostListPage /> },
+      { path: "posts/:postId", element: <PostDetailPage /> },
+      { path: "*", element: <NotFoundPage /> },
+    ],
+  },
+];
+
+function AppRoutes() {
+  return useRoutes(routes);
+}
+
 export default function App() {
   return (
     <BrowserRouter>
-      <Suspense fallback={<LoadingSpinner />}>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-        </Routes>
-      </Suspense>
+      <AppRoutes />
     </BrowserRouter>
   );
 }
-function LoadingSpinner() {
-  return (
-    <div className="loading-spinner">
-      <div>Loading...</div>
-    </div>
-  );
-}
+```
+
+중요한 점은 `lazy()`의 결과를 `element`에 그대로 넣는 것이 아니라 JSX로 렌더링한다는 점이다.
+
+```tsx
+const PostListPage = lazy(() => import("./pages/PostListPage"));
+
+// 올바른 형태
+{ path: "posts", element: <PostListPage /> }
 ```
 
 ---
 
-## 2. 에러 바운더리는 “복구 경로”를 포함해야 한다
+## 실무 예제: 라우트 정책을 같이 둔다
 
-에러 바운더리는 “에러를 보여준다”로 끝나면 실무에서 쓸모가 줄어든다. 사용자는 다음 중 하나를 할 수 있어야 한다.
+실무에서는 route config에 앱 전용 메타데이터를 붙이는 경우가 많다. React Router가 모든 필드를 해석하는 것은 아니지만, 애플리케이션이 메뉴나 breadcrumb을 만들 때 사용할 수 있다.
 
-- 다시 시도한다(리트라이)
-- 안전한 화면으로 이동한다(홈/목록)
-- 상태를 초기화한다(로그아웃 등)
+```tsx
+import { lazy, type ReactNode } from "react";
+import { Navigate, type RouteObject } from "react-router-dom";
 
-### 에러 바운더리
+const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+const AdminUsersPage = lazy(() => import("./pages/AdminUsersPage"));
 
-```jsx
-import { Component } from "react";
-class ErrorBoundary extends Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error };
-  }
-  componentDidCatch(error, errorInfo) {
-    console.error("Error caught by boundary:", error, errorInfo);
-  }
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div>
-          <h1>Something went wrong</h1>
-          <p>{this.state.error?.message}</p>
-          <button onClick={() => window.location.reload()}>Reload</button>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
+interface AppRouteObject extends RouteObject {
+  handle?: {
+    label?: string;
+    requiresAuth?: boolean;
+    requiredRole?: "admin";
+  };
+  children?: AppRouteObject[];
 }
-// 사용
-<BrowserRouter>
-  <ErrorBoundary>
-    <Suspense fallback={<LoadingSpinner />}>
-      <Routes>
-        <Route path="/" element={<Home />} />
+
+function RequireAuth({
+  children,
+  requiredRole,
+}: {
+  children: ReactNode;
+  requiredRole?: "admin";
+}) {
+  const user = { role: "member" as "member" | "admin" };
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (requiredRole && user.role !== requiredRole) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+export const routes: AppRouteObject[] = [
+  {
+    path: "dashboard",
+    element: (
+      <RequireAuth>
+        <DashboardPage />
+      </RequireAuth>
+    ),
+    handle: { label: "대시보드", requiresAuth: true },
+  },
+  {
+    path: "admin/users",
+    element: (
+      <RequireAuth requiredRole="admin">
+        <AdminUsersPage />
+      </RequireAuth>
+    ),
+    handle: {
+      label: "사용자 관리",
+      requiresAuth: true,
+      requiredRole: "admin",
+    },
+  },
+];
+```
+
+이 예제는 실제 인증 구현을 단순화했다. 핵심은 라우트의 접근 정책이 페이지 컴포넌트 안쪽에 흩어지지 않게 만드는 것이다.
+
+---
+
+## Breadcrumb은 화면이 아니라 라우트 구조에서 만든다
+
+breadcrumb은 사용자의 현재 위치를 보여준다. `/admin/users/42` 같은 화면에서 "관리자 > 사용자 관리 > 사용자 상세"를 표시한다.
+
+단순한 앱에서는 URL 조각으로 직접 만들 수 있다. 하지만 실무에서는 라우트별 label을 config에 두고, 현재 pathname과 매칭해 breadcrumb을 만든다.
+
+```tsx
+import { Link, useLocation } from "react-router-dom";
+
+const breadcrumbItems = [
+  { path: "/", label: "홈" },
+  { path: "/posts", label: "글 목록" },
+  { path: "/settings", label: "설정" },
+];
+
+export function Breadcrumbs() {
+  const location = useLocation();
+
+  const items = breadcrumbItems.filter((item) => {
+    if (item.path === "/") return location.pathname === "/";
+    return (
+      location.pathname === item.path ||
+      location.pathname.startsWith(`${item.path}/`)
+    );
+  });
+
+  if (items.length === 0) return null;
+
+  return (
+    <nav aria-label="현재 위치">
+      {items.map((item, index) => (
+        <span key={item.path}>
+          {index > 0 && " / "}
+          <Link to={item.path}>{item.label}</Link>
+        </span>
+      ))}
+    </nav>
+  );
+}
+```
+
+Data Router를 쓰면 `handle`과 `useMatches()`로 더 정교하게 만들 수 있다. 이 글에서는 아직 10편의 Data Router로 넘어가기 전이므로, "breadcrumb은 페이지 안에서 하드코딩하지 않는다"는 기준만 잡으면 충분하다.
+
+---
+
+## Modal Route는 URL을 가진 모달이다
+
+모달은 보통 컴포넌트 상태로 열고 닫는다. 하지만 이미지 상세, 알림 상세, 빠른 보기처럼 공유 가능한 상태라면 URL이 있어야 한다.
+
+Modal Route는 다음 요구사항을 해결한다.
+
+- 목록 위에 상세 모달을 띄운다.
+- 뒤로가기를 누르면 모달만 닫힌다.
+- 모달 URL로 바로 진입하면 단독 상세 화면으로 보인다.
+
+```tsx
+import { Link, Route, Routes, useLocation } from "react-router-dom";
+
+const photos = [
+  { id: "1", title: "첫 번째 사진" },
+  { id: "2", title: "두 번째 사진" },
+];
+
+function GalleryPage() {
+  const location = useLocation();
+
+  return (
+    <main>
+      <h1>갤러리</h1>
+      {photos.map((photo) => (
+        <Link
+          key={photo.id}
+          to={`/photos/${photo.id}`}
+          state={{ backgroundLocation: location }}
+        >
+          {photo.title}
+        </Link>
+      ))}
+    </main>
+  );
+}
+
+function PhotoModal() {
+  return <div role="dialog">사진 상세 모달</div>;
+}
+
+function PhotoPage() {
+  return <main>사진 상세 페이지</main>;
+}
+
+export function AppRoutes() {
+  const location = useLocation();
+  const state = location.state as { backgroundLocation?: Location } | null;
+  const backgroundLocation = state?.backgroundLocation;
+
+  return (
+    <>
+      <Routes location={backgroundLocation ?? location}>
+        <Route path="/gallery" element={<GalleryPage />} />
+        <Route path="/photos/:photoId" element={<PhotoPage />} />
       </Routes>
-    </Suspense>
-  </ErrorBoundary>
-</BrowserRouter>;
-```
 
----
-
-## 3. 404와 리소스 없음(도메인 404)을 분리한다
-
-라우트 404는 `path="*"`로 끝난다. 하지만 실무에서 더 자주 만나는 것은 “라우트는 맞는데 리소스가 없다”는 케이스다.
-
-- `/users/999`는 라우트는 유효하지만 API가 404일 수 있다.
-- 이때는 라우터가 아니라 데이터 레이어에서 “not found UI”를 보여줘야 한다.
-
-### 404 Not Found
-
-```jsx
-<Routes>
-  <Route path="/" element={<Home />} />
-  <Route path="/about" element={<About />} />
-  <Route path="*" element={<NotFound />} />
-</Routes>;
-function NotFound() {
-  return (
-    <div>
-      <h1>404 - Page Not Found</h1>
-      <Link to="/">Go Home</Link>
-    </div>
+      {backgroundLocation && (
+        <Routes>
+          <Route path="/photos/:photoId" element={<PhotoModal />} />
+        </Routes>
+      )}
+    </>
   );
 }
 ```
 
+`backgroundLocation`이 있으면 뒤의 화면은 갤러리로 유지하고, 현재 URL에는 모달 라우트를 추가로 렌더링한다. `backgroundLocation`이 없으면 직접 진입한 것이므로 `/photos/:photoId`가 일반 상세 페이지로 렌더링된다.
+
 ---
 
-## 4. 데이터 로딩 패턴을 라우트 경계로 정리한다
+## 스크롤 복구는 무조건 top이 아니다
 
-데이터 로딩은 “페이지 단위”로 경계를 잡으면 단순해진다.
+페이지 이동 시 `window.scrollTo(0, 0)`을 넣는 예제를 자주 본다. 하지만 목록에서 상세로 들어갔다가 뒤로 가는 경우에는 이전 목록 위치가 유지되는 편이 더 좋다.
 
-- 목록 페이지: 필터/정렬/페이지네이션은 쿼리 스트링으로 고정한다.
-- 상세 페이지: 파라미터를 캐시 키에 포함한다.
-- 전환 UX: 이전 데이터를 유지할지, skeleton으로 비울지 결정한다.
+```tsx
+import { useEffect } from "react";
+import { useLocation, useNavigationType } from "react-router-dom";
 
-아래 코드는 “비동기 상태를 한 컴포넌트가 전부 책임지는 형태”다. 규모가 커지면 React Query로 옮기는 편이 낫다.
+export function ScrollToTopOnPush() {
+  const location = useLocation();
+  const navigationType = useNavigationType();
 
-### 데이터 로딩 패턴
-
-```jsx
-function UserProfile() {
-  const { userId } = useParams();
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   useEffect(() => {
-    setLoading(true);
-    fetch(`/api/users/${userId}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("User not found");
-        return res.json();
-      })
-      .then((data) => {
-        setUser(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err);
-        setLoading(false);
-      });
-  }, [userId]);
-  if (loading) return <LoadingSpinner />;
-  if (error) return <ErrorMessage error={error} />;
-  if (!user) return <NotFound />;
-  return (
-    <div>
-      <h1>{user.name}</h1>
-      <p>{user.email}</p>
-    </div>
-  );
+    if (navigationType === "PUSH") {
+      window.scrollTo({ top: 0 });
+    }
+  }, [location.pathname, navigationType]);
+
+  return null;
 }
 ```
 
+이 예제는 새 화면으로 push 이동할 때만 상단으로 올린다. 뒤로가기(`POP`)는 브라우저의 기본 스크롤 복구를 존중한다.
+
+프로젝트가 `window` 대신 `.app-wrapper` 같은 내부 스크롤 컨테이너를 쓰면 기준도 바뀐다. 이때는 해당 컨테이너의 `scrollTop`을 조정해야 한다.
+
 ---
 
-## 5. 404, 에러, 로딩의 우선순위를 규칙으로 만든다
+## 함정과 디버깅
 
-실무에서 가장 나쁜 상태는 “에러인데 로딩이 보인다” 같은 모순이다. 우선순위를 팀 규칙으로 고정한다.
+### 1. route config를 만들었지만 타입이 없다
 
-- 라우트 미스매치: 404
-- 데이터 404: not found UI
-- 네트워크/서버 오류: error UI + retry
-- 로딩: skeleton/fallback
+앱 전용 `handle`, `meta`, `requiredRole`을 붙이기 시작했다면 타입을 만든다. 타입 없이 문자열을 흩뿌리면 breadcrumb과 권한 정책이 쉽게 어긋난다.
+
+### 2. lazy component를 element에 그대로 넣는다
+
+`lazy()`는 컴포넌트 타입을 반환한다. `element`에는 React element가 들어가야 하므로 `<Page />`처럼 렌더링해야 한다.
+
+### 3. breadcrumb을 페이지마다 직접 적는다
+
+URL 구조가 바뀌면 페이지 내부 breadcrumb이 함께 깨진다. 가능한 한 route config나 중앙 규칙에서 만든다.
+
+### 4. modal route가 직접 진입을 고려하지 않는다
+
+모달 링크를 공유하거나 새로고침하면 `backgroundLocation`이 없다. 이때는 모달만 렌더링하지 말고 일반 상세 페이지로도 동작해야 한다.
 
 ---
 
 ## Vue Router와 비교
 
-Vue도 결국 같은 문제를 푼다. 차이는 “구성이 어디에 모이는가”다.
+Vue Router는 처음부터 route config 배열을 중심으로 사고한다. React Router는 JSX 라우트로 시작해도 되고, 필요하면 `useRoutes()`로 객체 구성을 선택할 수 있다.
 
-| 관심사 | Vue Router | React Router |
-| --- | --- | --- |
-| 코드 스플리팅 | 라우트에 `() => import()` | `React.lazy`/lazy route 구성 |
-| 에러 경계 | 전역 핸들러 + 컴포넌트 `errorCaptured` | Error Boundary |
-| 404 | 라우트 마지막에 catch-all | `path="*"` |
-| 데이터 로딩 | 컴포넌트/스토어에서 로딩 상태 | 컴포넌트/React Query에서 로딩 상태 |
+| 관심사           | Vue Router                     | React Router                                       |
+| ---------------- | ------------------------------ | -------------------------------------------------- |
+| 라우트 구조 분리 | `routes` 배열이 기본           | JSX `Routes` 또는 `useRoutes()`                    |
+| 메타데이터       | `meta` 필드                    | 앱 전용 `handle`/커스텀 필드                       |
+| lazy loading     | `component: () => import(...)` | `React.lazy()` + `Suspense`                        |
+| breadcrumb       | `route.matched`와 `meta` 조합  | route config, pathname, Data Router `useMatches()` |
+| 모달 URL         | named route/query/state 조합   | `backgroundLocation` 패턴                          |
+
+Vue Router 경험이 있다면 `meta.requiresAuth` 같은 감각을 React Router에서도 적용할 수 있다. 다만 React Router에서는 그 규칙을 직접 타입으로 잡고, 렌더링 구조와 함께 조립해야 한다.
 
 ---
+
+## 체크리스트
+
+- JSX 라우트와 route config를 선택하는 기준을 설명할 수 있다.
+- `useRoutes()`로 라우트 정의를 분리할 수 있다.
+- lazy component를 `element`에 올바르게 렌더링할 수 있다.
+- 라우트 접근 정책을 페이지 내부가 아니라 라우트 정의 근처에 둘 수 있다.
+- breadcrumb을 페이지마다 하드코딩하지 않는 기준을 설명할 수 있다.
+- modal route에서 직접 진입과 모달 진입을 모두 처리할 수 있다.

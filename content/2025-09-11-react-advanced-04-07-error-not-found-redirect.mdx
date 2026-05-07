@@ -1,0 +1,243 @@
+---
+title: "[Next.js 고급 7/12] Error, Not Found, Redirect"
+date: "2025-09-11"
+description: "App Router에서 오류, 404, 리다이렉트 경계를 route segment 단위로 설계한다"
+tags: ["Next.js", "React", "중급", "프론트엔드"]
+series: "Next.js 고급"
+seriesOrder: 7
+---
+
+# Error, Not Found, Redirect
+
+운영 가능한 App Router 앱은 성공 경로만 설계하지 않는다. 없는 리소스, 권한 없는 접근, 검증 실패, 서버 장애, 저장 후 이동을 서로 다른 흐름으로 다룬다.
+
+이 흐름을 하나의 `try/catch`와 조건부 렌더링으로 뭉치면 사용자 경험도 흐려지고 디버깅도 어려워진다. App Router는 route segment 단위로 실패 경계를 나눌 수 있다.
+
+---
+
+## 왜 필요한가
+
+게시글 상세 페이지에서 발생할 수 있는 상황은 최소 네 가지다.
+
+- `/posts/unknown`: 글이 없음
+- `/admin/posts/1`: 로그인하지 않음
+- 게시글 API 장애: 시스템 실패
+- 제목이 빈 상태로 저장: 검증 실패
+
+이 네 가지는 같은 실패가 아니다. 글 없음은 404, 미로그인은 로그인 페이지 이동, API 장애는 오류 경계, 검증 실패는 폼 메시지가 맞다.
+
+---
+
+## `notFound()`와 `not-found.tsx`
+
+리소스가 없으면 `notFound()`를 호출한다.
+
+```tsx
+// app/posts/[slug]/page.tsx
+import { notFound } from "next/navigation";
+
+type PageProps = {
+  params: Promise<{ slug: string }>;
+};
+
+export default async function PostPage({ params }: PageProps) {
+  const { slug } = await params;
+  const post = await getPost(slug);
+
+  if (!post) {
+    notFound();
+  }
+
+  return (
+    <article>
+      <h1>{post.title}</h1>
+      <div>{post.body}</div>
+    </article>
+  );
+}
+```
+
+같은 segment에 `not-found.tsx`를 두면 해당 404 UI가 렌더링된다.
+
+```tsx
+// app/posts/[slug]/not-found.tsx
+import Link from "next/link";
+
+export default function PostNotFound() {
+  return (
+    <main>
+      <h1>게시글을 찾을 수 없다</h1>
+      <p>삭제되었거나 주소가 변경된 글이다.</p>
+      <Link href="/posts">게시글 목록으로 이동</Link>
+    </main>
+  );
+}
+```
+
+404는 시스템 장애가 아니다. 로그 레벨, UI 문구, 복구 경로를 다르게 잡아야 한다.
+
+---
+
+## `error.tsx`는 시스템 실패 경계다
+
+데이터 소스가 실패하면 `throw`한다.
+
+```tsx
+async function getPost(slug: string) {
+  const response = await fetch(`https://example.com/api/posts/${slug}`);
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new Error("게시글 API 장애");
+  }
+
+  return response.json() as Promise<{ title: string; body: string }>;
+}
+```
+
+`error.tsx`는 Client Component여야 한다.
+
+```tsx
+// app/posts/[slug]/error.tsx
+"use client";
+
+export default function PostError({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  return (
+    <main>
+      <h1>게시글을 불러오지 못했다</h1>
+      <p>{error.message}</p>
+      <button type="button" onClick={reset}>
+        다시 시도
+      </button>
+    </main>
+  );
+}
+```
+
+`reset`은 같은 segment를 다시 렌더링한다. 네트워크 일시 장애처럼 재시도가 의미 있는 실패에 맞다.
+
+---
+
+## `redirect()`는 렌더링을 끝낸다
+
+권한이 없거나 저장 후 이동해야 하면 `redirect()`를 쓴다.
+
+```tsx
+// app/admin/page.tsx
+import { redirect } from "next/navigation";
+
+export default async function AdminPage() {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  if (user.role !== "admin") {
+    redirect("/");
+  }
+
+  return <main>관리자 홈</main>;
+}
+```
+
+`redirect()` 이후 코드는 실행되지 않는다고 이해해야 한다. Server Action에서도 저장 성공 후 이동에 쓴다.
+
+```tsx
+"use server";
+
+import { redirect } from "next/navigation";
+
+export async function createPost(formData: FormData) {
+  const post = await db.post.create({
+    data: { title: String(formData.get("title") ?? "") },
+  });
+
+  redirect(`/posts/${post.slug}`);
+}
+```
+
+---
+
+## 검증 실패와 시스템 실패 분리
+
+폼 검증 실패는 `error.tsx`로 보내면 안 된다. 사용자가 같은 화면에서 고칠 수 있어야 한다.
+
+```tsx
+"use server";
+
+type FormState = {
+  ok: boolean;
+  message: string;
+};
+
+export async function updateTitle(
+  _prevState: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const title = String(formData.get("title") ?? "").trim();
+
+  if (title.length < 2) {
+    return { ok: false, message: "제목은 2자 이상이어야 한다." };
+  }
+
+  await db.post.update({
+    where: { id: String(formData.get("id")) },
+    data: { title },
+  });
+
+  return { ok: true, message: "저장했다." };
+}
+```
+
+검증 실패는 action state로 반환한다. DB 장애는 `throw`한다. 리소스 없음은 `notFound()`다.
+
+---
+
+## route 404와 resource 404
+
+라우트 자체가 없어서 생기는 404와, 라우트는 있지만 데이터가 없는 404는 다르다.
+
+- `/missing-route`: App Router가 매칭할 route를 찾지 못함
+- `/posts/deleted-post`: route는 있지만 `getPost()` 결과가 없음
+
+후자는 개발자가 `notFound()`를 호출해야 한다. 이 구분이 있어야 삭제된 글, 비공개 글, 잘못된 slug의 UX를 의도대로 만들 수 있다.
+
+---
+
+## Static export에서의 주의
+
+static export에서도 `not-found.tsx`처럼 빌드 결과로 만들 수 있는 404 UI는 유효하다. 하지만 요청 시점의 인증 확인 후 `redirect()` 같은 동적 분기는 서버 없이 처리할 수 없다. GitHub Pages에서는 보호 페이지를 정적 HTML로 안전하게 숨길 수 없으므로, 인증이 필요한 기능은 클라이언트 인증 또는 별도 서버/API와 함께 설계해야 한다.
+
+---
+
+## Nuxt와 비교
+
+Nuxt는 `createError`, `showError`, route middleware, `navigateTo`로 비슷한 흐름을 만든다. Next.js App Router는 `not-found.tsx`, `error.tsx`, `redirect()`를 route segment의 파일 규칙과 함수 호출로 나눈다.
+
+| 상황              | Nuxt                               | Next.js                              |
+| ----------------- | ---------------------------------- | ------------------------------------ |
+| 리소스 없음       | `createError({ statusCode: 404 })` | `notFound()`                         |
+| 오류 UI           | `error.vue`                        | `error.tsx`                          |
+| 이동              | `navigateTo`                       | `redirect()`                         |
+| segment별 실패 UI | layout/page 구조                   | segment `error.tsx`, `not-found.tsx` |
+
+---
+
+## 체크리스트
+
+- 리소스 없음, 시스템 실패, 검증 실패, 리다이렉트를 구분할 수 있다.
+- `notFound()`와 `not-found.tsx`의 관계를 설명할 수 있다.
+- `error.tsx`가 Client Component여야 하는 이유를 알고 있다.
+- `redirect()`가 렌더링 흐름을 끝내는 함수라는 점을 알고 있다.
+- route 404와 resource 404를 구분할 수 있다.
+- static export에서 요청 시점 인증/리다이렉트 제약을 설명할 수 있다.

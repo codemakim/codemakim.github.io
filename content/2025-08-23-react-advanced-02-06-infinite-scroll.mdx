@@ -2,45 +2,68 @@
 title: "[React Query 6/8] React Query - 무한 스크롤"
 date: "2025-08-29"
 description: "useInfiniteQuery로 무한 스크롤 구현"
-tags: ["React", "고급", "프론트엔드"]
+tags: ["React", "중급", "프론트엔드"]
 series: "React Query"
 seriesOrder: 6
 ---
 
 # React Query 가이드 - 무한 스크롤
 
-> TanStack Query v5를 기반으로 한 데이터 페칭 학습 자료  
-> 출처: [TanStack Query Documentation](https://tanstack.com/query/)
+목록 데이터가 많아지면 한 번에 전부 가져올 수 없다. 2편에서 다룬 `useQuery`는 한 번의 응답을 캐시하는 데 적합하지만, 사용자가 계속 아래로 내려가며 다음 묶음을 붙이는 UI에는 별도 구조가 필요하다.
+
+React Query는 이 문제를 `useInfiniteQuery`로 다룬다. 이름은 무한 스크롤이지만 핵심은 "여러 페이지 응답을 하나의 캐시 항목 안에 순서대로 저장한다"는 점이다.
 
 ---
 
-## 무한 스크롤
+## 왜 필요한가
 
 무한 스크롤은 “페이지 단위로 데이터를 가져오되, 사용자는 하나의 리스트처럼 스크롤한다”는 UX다.
 
-실무에서 무한 스크롤은 다음을 동시에 해결해야 한다.
+처음에는 다음 버튼만 있어도 충분하다.
 
-- 다음 페이지를 언제 가져올지(트리거)
-- 중복 요청을 어떻게 막을지(경쟁 상태)
-- 캐시 키를 어떻게 설계할지(필터/정렬 변화)
-- 로딩 UI를 어디에 둘지(첫 로딩 vs 추가 로딩)
+```tsx
+<button onClick={() => setPage((page) => page + 1)}>next</button>
+```
 
-React Query는 `useInfiniteQuery`로 이 문제를 표준화한다.
+하지만 실제 목록에서는 금방 문제가 늘어난다.
 
----
+- 첫 페이지 로딩과 다음 페이지 로딩을 구분해야 한다.
+- 이미 가져온 페이지들을 하나의 리스트로 합쳐야 한다.
+- 다음 페이지가 없는 상태를 알아야 한다.
+- 필터나 정렬이 바뀌면 기존 페이지 묶음과 섞이면 안 된다.
+- 스크롤 끝에 도달했을 때 중복 요청이 나가지 않아야 한다.
 
-## 1. 페이지네이션 모델을 먼저 정한다
-
-무한 스크롤은 보통 두 모델 중 하나다.
-
-- page 기반: `?page=3&limit=20`
-- cursor 기반: `?cursor=abc123&limit=20`
-
-cursor 기반이 실무에서 더 안정적인 경우가 많다. 정렬이 바뀌거나 중간에 데이터가 추가/삭제돼도 “다음 페이지 기준점”이 유지되기 때문이다.
+`useInfiniteQuery`는 이 문제를 한 캐시 안의 `pages` 배열과 `pageParams` 배열로 정리한다.
 
 ---
 
-## 2. `useInfiniteQuery` 최소 예제(cursor 기반)
+## 기준: page 방식과 cursor 방식을 구분한다
+
+무한 목록 API는 보통 두 가지 방식 중 하나를 쓴다.
+
+| 방식        | 예시                      | 특징                                      |
+| ----------- | ------------------------- | ----------------------------------------- |
+| page 기반   | `?page=3&limit=20`        | 이해하기 쉽지만 중간 데이터 변경에 약하다 |
+| cursor 기반 | `?cursor=abc123&limit=20` | 다음 묶음의 기준점을 서버가 알려준다      |
+
+page 기반은 게시글이 거의 변하지 않는 목록에 충분할 수 있다. cursor 기반은 피드, 알림, 댓글처럼 중간에 데이터가 계속 추가되거나 삭제되는 목록에서 더 안정적이다.
+
+이 글의 예제는 cursor 기반으로 작성한다. 서버 응답은 다음 모양이라고 가정한다.
+
+```ts
+interface PostPage {
+  items: Post[];
+  nextCursor: string | null;
+}
+```
+
+`nextCursor`가 문자열이면 다음 페이지가 있고, `null`이면 끝이다.
+
+---
+
+## 최소 예제: 버튼으로 다음 페이지 가져오기
+
+자동 스크롤보다 먼저 버튼으로 다음 페이지를 가져오는 구조를 이해해야 한다.
 
 ```tsx
 import { useInfiniteQuery } from "@tanstack/react-query";
@@ -53,7 +76,7 @@ async function fetchPosts(cursor: string | null): Promise<Page> {
   if (cursor) url.searchParams.set("cursor", cursor);
   const res = await fetch(url.toString());
   if (!res.ok) throw new Error("failed");
-  return await res.json();
+  return (await res.json()) as Page;
 }
 
 export function Posts() {
@@ -81,37 +104,76 @@ export function Posts() {
         onClick={() => query.fetchNextPage()}
         disabled={!query.hasNextPage || query.isFetchingNextPage}
       >
-        {query.isFetchingNextPage ? "loading more..." : "load more"}
+        {query.isFetchingNextPage
+          ? "loading more..."
+          : query.hasNextPage
+            ? "load more"
+            : "no more posts"}
       </button>
     </div>
   );
 }
 ```
 
-여기서 중요한 점은 다음이다.
+여기서 봐야 할 값은 네 가지다.
 
-- `initialPageParam`과 `getNextPageParam`이 있어야 한다.
-- “추가 로딩”은 `isFetchingNextPage`로 분리해 UI를 만든다.
+- `initialPageParam`: 첫 요청에 들어갈 페이지 기준값이다.
+- `getNextPageParam`: 마지막 페이지 응답에서 다음 기준값을 꺼낸다.
+- `fetchNextPage`: 다음 페이지를 요청한다.
+- `isFetchingNextPage`: 첫 로딩이 아니라 추가 페이지 로딩 상태다.
+
+`query.data.pages`는 페이지 응답 배열이다. 화면에서는 보통 `flatMap`으로 `items`를 합쳐 하나의 리스트처럼 렌더링한다.
 
 ---
 
-## 3. 자동 로딩: IntersectionObserver로 트리거를 만든다
+## 실무 예제: 필터와 자동 로딩
 
-무한 스크롤은 보통 마지막에 센티널(sentinel) 요소를 두고, 화면에 들어오면 다음 페이지를 가져온다.
+실무 목록은 태그, 정렬, 검색어 같은 필터를 가진다. 필터가 바뀌면 다른 목록이므로 `queryKey`에 포함해야 한다.
+
+또한 무한 스크롤은 보통 리스트 끝에 센티널 요소를 두고, 화면에 들어오면 다음 페이지를 가져온다. 아래 예제는 `react-intersection-observer`의 `useInView`를 사용한다.
 
 ```tsx
 import { useEffect } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useInView } from "react-intersection-observer";
 
-export function PostsAuto() {
-  const { ref, inView } = useInView();
+type Sort = "latest" | "popular";
+
+interface PostFilters {
+  tag?: string;
+  sort: Sort;
+}
+
+async function fetchPostsWithFilter({
+  cursor,
+  filters,
+}: {
+  cursor: string | null;
+  filters: PostFilters;
+}): Promise<Page> {
+  const url = new URL("/api/posts", window.location.origin);
+  if (cursor) url.searchParams.set("cursor", cursor);
+  if (filters.tag) url.searchParams.set("tag", filters.tag);
+  url.searchParams.set("sort", filters.sort);
+
+  const res = await fetch(url.toString());
+  if (!res.ok) throw new Error("failed");
+  return (await res.json()) as Page;
+}
+
+export function PostsAuto({ filters }: { filters: PostFilters }) {
+  const { ref, inView } = useInView({ rootMargin: "200px" });
 
   const query = useInfiniteQuery({
-    queryKey: ["posts"],
-    queryFn: ({ pageParam }) => fetchPosts(pageParam ?? null),
+    queryKey: ["posts", "infinite", filters],
+    queryFn: ({ pageParam }) =>
+      fetchPostsWithFilter({
+        cursor: pageParam ?? null,
+        filters,
+      }),
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
+    staleTime: 1000 * 30,
   });
 
   useEffect(() => {
@@ -119,7 +181,12 @@ export function PostsAuto() {
     if (!query.hasNextPage) return;
     if (query.isFetchingNextPage) return;
     query.fetchNextPage();
-  }, [inView, query.hasNextPage, query.isFetchingNextPage, query.fetchNextPage]);
+  }, [
+    inView,
+    query.hasNextPage,
+    query.isFetchingNextPage,
+    query.fetchNextPage,
+  ]);
 
   if (query.isPending) return <div>loading...</div>;
   if (query.isError) return <div>error</div>;
@@ -131,61 +198,85 @@ export function PostsAuto() {
       {items.map((p) => (
         <div key={p.id}>{p.title}</div>
       ))}
-      <div ref={ref}>{query.isFetchingNextPage ? "loading more..." : null}</div>
+      <div ref={ref}>
+        {query.isFetchingNextPage
+          ? "loading more..."
+          : query.hasNextPage
+            ? "load trigger"
+            : "end"}
+      </div>
     </div>
   );
 }
 ```
 
----
+자동 로딩에서 중요한 가드는 세 가지다.
 
-## 4. queryKey는 필터/정렬을 포함해야 한다
+- `inView`가 true일 때만 요청한다.
+- `hasNextPage`가 false면 요청하지 않는다.
+- `isFetchingNextPage`가 true면 중복 요청하지 않는다.
 
-필터가 바뀌었는데 같은 queryKey를 쓰면 다른 조건의 페이지를 같은 캐시에 섞는다.
-
-```tsx
-useInfiniteQuery({
-  queryKey: ["posts", { tag, sort }],
-  queryFn: ({ pageParam }) => fetchPostsWithFilter({ tag, sort, cursor: pageParam ?? null }),
-  initialPageParam: null,
-  getNextPageParam: (lastPage) => lastPage.nextCursor,
-});
-```
+`rootMargin: "200px"`는 센티널이 화면에 완전히 들어오기 전에 미리 다음 페이지를 가져오게 한다. 사용자가 끝에 닿은 뒤 기다리는 느낌을 줄일 수 있다.
 
 ---
 
-## 5. 자주 터지는 함정
+## 로딩 상태를 두 개로 나눈다
 
-### 1) `fetchNextPage`가 여러 번 연속 호출된다
+무한 스크롤에서 로딩은 하나가 아니다.
 
-inView가 빠르게 토글되면 연속 호출이 발생한다. `isFetchingNextPage`로 가드를 두고, 버튼/센티널 둘 다 쓰는 경우 중복 트리거가 없는지 확인한다.
+| 상태                 | 의미                       | UI 위치                      |
+| -------------------- | -------------------------- | ---------------------------- |
+| `isPending`          | 첫 페이지가 아직 없음      | 목록 전체 영역               |
+| `isFetchingNextPage` | 기존 목록 아래에 추가 요청 | 리스트 하단 버튼/센티널 근처 |
+| `isFetching`         | 어떤 이유로든 가져오는 중  | 작은 동기화 표시 정도에 적합 |
 
-### 2) `getNextPageParam`이 잘못되어 무한 루프가 난다
+첫 페이지가 없을 때는 목록 전체에 loading을 보여준다. 이미 목록이 있는 상태에서 다음 페이지를 가져올 때는 기존 항목을 지우지 않고 아래쪽에 추가 로딩만 보여준다.
 
-`nextCursor`가 null인데도 값을 계속 반환하면 무한 요청이 된다. `hasNextPage`가 false가 되도록 설계해야 한다.
+---
 
-### 3) 리스트 합치기(flatten)에서 키가 깨진다
+## 함정과 디버깅
 
-페이지마다 같은 id가 섞이면 React key 충돌이 난다. 정렬/필터 변경 시 캐시가 분리되지 않은 신호일 수 있다.
+### 1. 필터/정렬을 `queryKey`에 넣지 않는다
+
+필터가 바뀌었는데 같은 queryKey를 쓰면 이전 필터의 페이지와 새 필터의 페이지가 같은 캐시에 섞인다. 서버 응답을 바꾸는 값은 모두 키에 넣는다.
+
+### 2. `getNextPageParam`이 항상 값을 반환한다
+
+마지막 페이지인데도 cursor를 계속 반환하면 끝없이 요청할 수 있다. 서버가 끝을 `null`이나 `undefined`로 표현하고, `hasNextPage`가 false가 되는지 확인한다.
+
+### 3. `fetchNextPage`가 여러 번 연속 호출된다
+
+센티널이 화면 안팎을 빠르게 오가면 effect가 여러 번 실행될 수 있다. `isFetchingNextPage` 가드를 두고 버튼과 센티널을 동시에 쓸 때 중복 트리거가 없는지 본다.
+
+### 4. 첫 로딩과 추가 로딩을 같은 UI로 처리한다
+
+다음 페이지를 가져올 때 목록 전체를 loading으로 바꾸면 사용자가 읽던 위치가 사라진다. 첫 로딩은 전체, 추가 로딩은 하단으로 분리한다.
+
+### 5. offset/page 기반 API에서 중복 항목이 생긴다
+
+사용자가 스크롤하는 동안 새 글이 앞에 추가되면 page 기반 목록은 항목이 중복되거나 빠질 수 있다. 자주 바뀌는 피드는 cursor 기반 API를 우선 검토한다.
 
 ---
 
 ## Vue와 비교
 
-Vue Query도 `useInfiniteQuery`를 제공한다. 기본 개념은 동일하고, 트리거를 `IntersectionObserver` 기반 컴포저블로 만드는 흐름도 같다.
+Vue Query도 `useInfiniteQuery`를 제공한다. 기본 모델은 동일하다. Vue에서는 센티널 감지를 `@vueuse/core`의 `useIntersectionObserver` 같은 컴포저블로 구성하는 경우가 많다.
 
-| 관심사 | Vue Query | React Query |
-| --- | --- | --- |
-| 무한 쿼리 | `useInfiniteQuery` | `useInfiniteQuery` |
-| 트리거 | `useIntersectionObserver` 류 | `react-intersection-observer` 류 |
-| 캐시 키 | queryKey에 필터 포함 | queryKey에 필터 포함 |
+| 관심사      | Vue Query                    | React Query                      |
+| ----------- | ---------------------------- | -------------------------------- |
+| 무한 쿼리   | `useInfiniteQuery`           | `useInfiniteQuery`               |
+| 페이지 저장 | `data.pages`                 | `data.pages`                     |
+| 다음 기준값 | `getNextPageParam`           | `getNextPageParam`               |
+| 센티널 감지 | `useIntersectionObserver` 류 | `react-intersection-observer` 류 |
+| 캐시 키     | queryKey에 필터 포함         | queryKey에 필터 포함             |
 
 ---
 
 ## 체크리스트
 
 - page 기반과 cursor 기반의 차이를 설명할 수 있다.
-- `useInfiniteQuery`에서 `getNextPageParam`과 `initialPageParam`의 역할을 설명할 수 있다.
-- 필터/정렬 변화가 queryKey에 포함돼야 하는 이유를 이해한다.
-
----
+- `useInfiniteQuery`가 여러 페이지를 `data.pages`에 저장한다는 점을 이해한다.
+- `initialPageParam`, `getNextPageParam`, `fetchNextPage`, `hasNextPage`의 역할을 설명할 수 있다.
+- 첫 페이지 로딩과 다음 페이지 로딩을 다른 UI로 처리할 수 있다.
+- 필터/정렬 변화가 `queryKey`에 포함돼야 하는 이유를 설명할 수 있다.
+- 센티널 기반 자동 로딩에서 중복 요청을 막는 가드를 둘 수 있다.

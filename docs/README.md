@@ -31,11 +31,6 @@
 
 > **참고**: 기존 `HABITS_*` 파일들은 `features/habits/`로 이동되었습니다.
 
-### 완료된 작업 (`archive/`)
-
-- `HABITS_ARCHIVE_PLAN.md`: 과거 습관 보기 기능 구현 계획 (완료)
-- `HABITS_REFACTORING_PLAN.md`: 습관 컴포넌트 리팩토링 계획 (완료)
-
 ### AI 지침 (`.cursor/rules/`)
 
 - `base-work-flow.mdc`: 개발 워크플로우, 스타일링 규칙
@@ -66,4 +61,4 @@
 - **작업 완료 시**: `ROADMAP.md` 상태 업데이트 필수
 - **스펙 변경 시**: 관련 설계 문서 업데이트
 - **아키텍처 변경 시**: `ARCHITECTURE.md` 업데이트
-- **완료된 계획 문서**: `archive/`로 이동 (참고용)
+- **완료된 임시 계획 문서**: 삭제하거나, 남겨야 할 결정만 `ARCHITECTURE.md`/기능별 문서에 반영
