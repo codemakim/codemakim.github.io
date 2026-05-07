@@ -342,8 +342,8 @@ function CartIcon() {
     setMounted(true)
   }, [])
 
-  if (!mounted) return <span>🛒</span>  // 서버 렌더링 결과와 일치하는 플레이스홀더
-  return <span>🛒 {items.length}</span>
+  if (!mounted) return <span>장바구니</span>  // 서버 렌더링 결과와 일치하는 플레이스홀더
+  return <span>장바구니 ({items.length})</span>
 }
 ```
 
@@ -524,10 +524,11 @@ function handleWebSocketMessage(message: { type: string; itemId: string }) {
 const currentTotal = useCartStore.getState().total();
 
 // 상태 변경 구독 (React 밖)
-const unsubscribe = useCartStore.subscribe(
-  (state) => state.items.length,
-  (count) => console.log("장바구니 아이템 수:", count),
-);
+const unsubscribe = useCartStore.subscribe((state, prev) => {
+  if (state.items.length !== prev.items.length) {
+    console.log("장바구니 아이템 수:", state.items.length);
+  }
+});
 ```
 
 Pinia는 Vue 컴포지션 API 안에서만 쓸 수 있기 때문에 이런 패턴은 불가능하다.
@@ -565,8 +566,7 @@ const useCartStore = create<CartStore & { _hydrated: boolean }>()(
     {
       name: "cart-storage",
       onRehydrateStorage: () => (state) => {
-        state?._hydrated && state;
-        // rehydration 완료 후 처리
+        if (state) state._hydrated = true;
       },
     },
   ),
@@ -620,4 +620,4 @@ const useAsyncStore = create<AsyncStore>((set) => ({
 
 ---
 
-다음 글에서는 Jotai를 다룬다. Zustand가 store 단위 관리라면, Jotai는 원자(atom) 단위로 상태를 쪼개는 방식이다.
+다음 글에서는 Redux Toolkit을 다룬다. 상태 변경 이력 추적과 복잡한 파생 계산이 필요한 팀 규모 상태를 다루는 방법이다.
