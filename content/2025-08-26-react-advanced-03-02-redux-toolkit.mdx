@@ -109,7 +109,7 @@ const cartSlice = createSlice({
 
 export const { addItem, applyCoupon, clearCart } = cartSlice.actions;
 
-const store = configureStore({ reducer: { cart: cartSlice.reducer } });
+export const store = configureStore({ reducer: { cart: cartSlice.reducer } });
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
 ```
@@ -151,28 +151,29 @@ interface CouponResponse {
   type: "percent" | "fixed";
 }
 
-export const validateCoupon = createAsyncThunk(
-  "cart/validateCoupon",
-  async (code: string, { rejectWithValue }) => {
-    try {
-      const res = await fetch(`/api/coupons/${code}`);
+export const validateCoupon = createAsyncThunk<
+  { discount: number; type: "percent" | "fixed" },
+  string,
+  { rejectValue: string }
+>("cart/validateCoupon", async (code, { rejectWithValue }) => {
+  try {
+    const res = await fetch(`/api/coupons/${code}`);
 
-      if (res.status === 404) {
-        return rejectWithValue("존재하지 않는 쿠폰 코드다");
-      }
-      if (res.status === 401) {
-        return rejectWithValue("쿠폰을 사용할 권한이 없다");
-      }
-      if (!res.ok) {
-        return rejectWithValue(`쿠폰 확인 중 오류가 발생했다 (${res.status})`);
-      }
-
-      return (await res.json()) as CouponResponse;
-    } catch {
-      return rejectWithValue("네트워크 오류로 쿠폰을 확인할 수 없다");
+    if (res.status === 404) {
+      return rejectWithValue("존재하지 않는 쿠폰 코드다");
     }
-  },
-);
+    if (res.status === 401) {
+      return rejectWithValue("쿠폰을 사용할 권한이 없다");
+    }
+    if (!res.ok) {
+      return rejectWithValue(`쿠폰 확인 중 오류가 발생했다 (${res.status})`);
+    }
+
+    return (await res.json()) as CouponResponse;
+  } catch {
+    return rejectWithValue("네트워크 오류로 쿠폰을 확인할 수 없다");
+  }
+});
 ```
 
 `throw new Error()`를 사용하면 `action.error.message`로 접근하지만, 타입이 `string | undefined`다. `rejectWithValue`를 사용하면 `action.payload`로 접근하며, 제네릭으로 타입을 고정할 수 있다.
@@ -241,7 +242,7 @@ const cartSlice = createSlice({
       .addCase(validateCoupon.rejected, (state, action) => {
         state.couponStatus = "rejected";
         // rejectWithValue로 반환한 값은 action.payload에 들어온다
-        state.couponError = (action.payload as string) ?? "알 수 없는 오류";
+        state.couponError = action.payload ?? "알 수 없는 오류";
         state.coupon = null;
       });
   },
@@ -288,7 +289,8 @@ export const selectFinalAmount = createSelector([selectTotal], (total) => {
 ```typescript
 import { useAppSelector, useAppDispatch } from "./hooks";
 import { selectTotal, selectFinalAmount } from "./cartSelectors";
-import { validateCoupon, addItem } from "./cartSlice";
+import { validateCoupon } from "./cartThunks";
+import { addItem, clearCart } from "./cartSlice";
 
 function CartSummary() {
   const dispatch = useAppDispatch();
@@ -443,7 +445,7 @@ export const useCartStore = defineStore("cart", {
   actions: {
     async applyCoupon(code: string) {
       // 어디서나 state를 직접 수정할 수 있다
-      // DevTools에 기록되지만 action 이름이 없다
+      // Vue DevTools에 메서드명으로 기록되지만 lifecycle 단계 분리는 없다
       const res = await fetch(`/api/coupons/${code}`);
       this.coupon = await res.json();
     },
@@ -475,6 +477,9 @@ Pinia에서 추적이 필요해지면 Pinia plugin으로 logger를 직접 구현
 
 ```typescript
 // RTK middleware 예시
+import { configureStore, type MiddlewareAPI } from "@reduxjs/toolkit";
+import type { Dispatch } from "redux";
+
 const loggerMiddleware =
   (store: MiddlewareAPI) => (next: Dispatch) => (action: unknown) => {
     if (typeof action === "object" && action !== null && "type" in action) {
