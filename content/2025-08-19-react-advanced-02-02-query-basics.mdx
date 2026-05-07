@@ -1,225 +1,362 @@
 ---
 title: "[React Query 2/8] React Query - 쿼리 기초"
 date: "2025-08-25"
-description: "useQuery, useQueries, 쿼리 상태 관리"
-tags: ["React", "고급", "프론트엔드"]
+description: "useQuery로 데이터를 읽는 기본 흐름, queryKey 설계, 상태 플래그, 검색과 페이지네이션의 시작점"
+tags: ["React", "중급", "프론트엔드"]
 series: "React Query"
 seriesOrder: 2
 ---
 
 # React Query 가이드 - 쿼리 기초
 
-> TanStack Query v5를 기반으로 한 데이터 페칭 학습 자료  
-> 출처: [TanStack Query Documentation](https://tanstack.com/query/)
+1편에서 `QueryClient`를 설치하고 최소 설정까지 마쳤다. 이제 데이터를 실제로 읽는 일이 남았다.
+
+읽기 작업은 단순해 보이지만, 실무에서는 다음 질문이 같이 따라온다.
+
+- 같은 데이터를 두 컴포넌트가 동시에 쓰면 요청이 한 번만 나가는가
+- 입력값(페이지, 필터, 검색어)이 바뀌면 캐시는 어떻게 분기되는가
+- 첫 로딩과 백그라운드 갱신을 화면에서 어떻게 구분해 보여주는가
+- 검색어가 빠르게 바뀔 때 늦게 도착한 응답이 화면을 덮지 않는가
+
+이 글은 `useQuery`를 중심으로 이 질문들을 차례로 풀어간다.
 
 ---
 
-## 쿼리 기초
+## 왜 필요한가
 
-쿼리는 “서버에서 데이터를 읽는 작업”을 표현한다. React Query에서 쿼리의 실무 목표는 다음이다.
+React Query에서 쿼리는 "서버에서 데이터를 읽는 작업"을 표현한다. 단순히 fetch 한 번을 감싸는 도구는 아니다. 쿼리에는 다음이 함께 묶인다.
 
-- 같은 데이터를 여러 곳에서 쓰더라도 요청을 중복하지 않는다.
-- 캐시를 재사용하되, 신선도 규칙으로 최신성을 유지한다.
-- 에러/재시도/취소를 표준화한다.
-- 페이지네이션/필터 같은 “입력값”을 queryKey로 모델링한다.
+- 캐시 식별자(`queryKey`)
+- 데이터 소스(`queryFn`)
+- 신선도/재시도 정책
+- 상태 플래그(첫 로딩, 백그라운드 페치, 에러)
 
-설치/QueryClient 설정은 1편에서 다룬다. 이 글은 `useQuery` 중심으로 “쿼리가 어떻게 동작하는지”를 잡는다.
+이 묶음을 하나로 다루기 때문에 컴포넌트는 `query.data`만 쓰면 되고, 같은 데이터를 여러 화면이 공유해도 요청은 한 번만 나간다.
 
 ---
 
-## 1. `useQuery`의 최소 형태
+## 최소 예제: useQuery의 두 가지 인자
 
-`useQuery`는 두 가지를 요구한다.
+`useQuery`는 두 인자만 있어도 동작한다.
 
-- `queryKey`: 캐시의 주소
+- `queryKey`: 캐시 항목의 식별자(배열)
 - `queryFn`: 데이터를 가져오는 함수(실패 시 throw)
 
 ```tsx
 import { useQuery } from "@tanstack/react-query";
 
-type User = { id: string; name: string };
+interface User {
+  id: string;
+  name: string;
+}
 
 async function fetchUsers(): Promise<User[]> {
   const res = await fetch("/api/users");
   if (!res.ok) throw new Error("failed");
-  return await res.json();
+  return (await res.json()) as User[];
 }
 
-export function Users() {
+export function UserList() {
   const query = useQuery({
     queryKey: ["users"],
     queryFn: fetchUsers,
   });
 
-  if (query.isPending) return <div>loading...</div>;
-  if (query.isError) return <div>error</div>;
+  if (query.isPending) return <p aria-busy="true">불러오는 중이다.</p>;
+  if (query.isError) return <p role="alert">사용자 목록을 가져오지 못했다.</p>;
+
   return (
     <ul>
-      {query.data.map((u) => (
-        <li key={u.id}>{u.name}</li>
+      {query.data.map((user) => (
+        <li key={user.id}>{user.name}</li>
       ))}
     </ul>
   );
 }
 ```
 
-여기서 `query.isPending`은 “초기 로딩(데이터 없음 + 로딩 중)”을 의미한다. `query.isFetching`은 “백그라운드 리페칭까지 포함한 네트워크 진행 상태”다.
+같은 페이지에서 `useQuery({ queryKey: ["users"], ... })`를 호출하는 컴포넌트가 두 개 있더라도 `fetchUsers`는 한 번만 실행된다. 두 컴포넌트는 같은 캐시 항목을 공유한다.
 
 ---
 
-## 2. queryKey 설계 규칙
+## 상태 플래그: isPending, isFetching, isError를 구분한다
 
-queryKey는 배열이며, 다음 원칙이 실무에서 중요하다.
+UI에서 가장 자주 헷갈리는 부분이 이 영역이다. v5 기준 주요 플래그는 다음과 같다.
 
-- 첫 원소는 리소스 종류(명사)로 둔다. 예: `"users"`, `"posts"`
-- 이후 원소는 “입력값”을 둔다. 예: `userId`, `{ page, sort }`
-- 입력값이 다르면 다른 쿼리다. 즉 다른 캐시를 써야 한다.
+| 플래그         | 의미                                                              | 흔한 UI                |
+| -------------- | ----------------------------------------------------------------- | ---------------------- |
+| `isPending`    | 캐시에 데이터가 아직 없고 첫 페치 중                              | skeleton, 전체 로딩    |
+| `isFetching`   | 현재 네트워크 요청이 진행 중(첫 로딩과 백그라운드 페치 모두 포함) | 작은 인디케이터        |
+| `isRefetching` | 캐시에 데이터가 있는 상태에서의 재페치                            | 작은 인디케이터        |
+| `isError`      | 가장 최근 요청이 실패함                                           | 에러 영역, 재시도 버튼 |
+| `isSuccess`    | 데이터가 성공적으로 도착함                                        | 본문 렌더              |
+
+실무 패턴은 보통 이렇다.
+
+- 화면을 처음 여는 순간 `isPending`이면 skeleton을 보여준다.
+- 이미 데이터가 있는 상태에서 백그라운드 페치가 일어나면 `isRefetching`을 작은 인디케이터로 표현하고 본문은 그대로 둔다.
+- 에러는 본문을 덮지 않고 한 줄짜리 알림으로 보여준 뒤 재시도 버튼을 둔다.
+
+`isLoading`이라는 v4 시절 이름도 동작하지만, v5에서는 `isPending`이 동일한 의미다. 새로 작성하는 코드에서는 `isPending`을 쓰는 편이 일관적이다.
+
+---
+
+## queryKey 설계: 캐시의 주소를 정한다
+
+`queryKey`는 단순한 라벨이 아니라 캐시 항목의 주소다. 키가 같으면 같은 캐시를 공유하고, 키가 다르면 다른 데이터로 간주된다.
 
 ```tsx
+useQuery({ queryKey: ["users"], queryFn: fetchUsers });
 useQuery({ queryKey: ["user", userId], queryFn: () => fetchUser(userId) });
-useQuery({ queryKey: ["posts", { page, tag }], queryFn: () => fetchPosts({ page, tag }) });
+useQuery({
+  queryKey: ["posts", { page, tag }],
+  queryFn: () => fetchPosts({ page, tag }),
+});
 ```
 
-### 실무 포인트: queryKey에 함수/클래스/비결정적 값은 넣지 않는다
+설계 규칙은 다음과 같다.
 
-queryKey는 직렬화 가능한 값으로 유지하는 편이 안전하다. 매 렌더마다 바뀌는 값이 들어가면 캐시가 무력화된다.
+1. 첫 원소는 리소스 종류(명사)로 둔다. 예: `"users"`, `"posts"`, `"comments"`.
+2. 이후 원소는 입력값을 둔다. ID, 페이지, 필터, 정렬.
+3. 입력값이 객체라면 키 순서가 결과에 영향을 주지 않게 일관되게 둔다. React Query는 객체 키를 정렬해 비교하므로 보통 신경 쓸 일은 없다.
+4. queryKey에는 직렬화 가능한 값만 둔다. 함수, 클래스 인스턴스, Date 객체는 매 렌더마다 새 참조가 되어 캐시가 무력화될 수 있다.
+
+### 키 팩토리로 한 곳에 모은다
+
+키가 늘어나면 같은 리소스의 키 모양이 페이지마다 달라진다. 키 팩토리를 한 곳에 두는 패턴이 흔하다.
+
+```ts
+export const userKeys = {
+  all: ["users"] as const,
+  list: (filters: { search?: string }) =>
+    [...userKeys.all, "list", filters] as const,
+  detail: (id: string) => [...userKeys.all, "detail", id] as const,
+};
+```
+
+이렇게 두면 무효화할 때도 일관된 범위로 호출할 수 있다(3편에서 자세히 다룬다).
 
 ---
 
-## 3. queryFn과 `signal`(취소 가능성)
+## 검색에서는 enabled와 signal을 함께 쓴다
 
-TanStack Query는 queryFn에 `AbortSignal`을 전달할 수 있다. 입력값이 바뀌는 검색 쿼리에서 특히 중요하다.
+검색 입력처럼 입력값이 빠르게 바뀌는 쿼리는 두 가지 처리가 필요하다.
+
+- 입력이 비었을 때는 쿼리를 실행하지 않는다 — `enabled`
+- 입력값이 바뀌어 새 요청이 시작되면 이전 요청은 취소한다 — `signal`
 
 ```tsx
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import type { QueryFunctionContext } from "@tanstack/react-query";
+import { useQuery, type QueryFunctionContext } from "@tanstack/react-query";
 
-async function searchQueryFn({ queryKey, signal }: QueryFunctionContext) {
-  const [, q] = queryKey as ["search", string];
-  const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`, { signal });
+interface SearchResult {
+  id: string;
+  title: string;
+}
+
+async function searchPosts({
+  queryKey,
+  signal,
+}: QueryFunctionContext<readonly ["search", string]>): Promise<SearchResult[]> {
+  const [, term] = queryKey;
+  const res = await fetch(`/api/search?q=${encodeURIComponent(term)}`, {
+    signal,
+  });
   if (!res.ok) throw new Error("failed");
-  return await res.json();
+  return (await res.json()) as SearchResult[];
 }
 
-function Search() {
-  const [q, setQ] = useState("");
+export function SearchBox() {
+  const [term, setTerm] = useState("");
 
   const query = useQuery({
-    queryKey: ["search", q],
-    queryFn: searchQueryFn,
-    enabled: q.length > 0,
+    queryKey: ["search", term] as const,
+    queryFn: searchPosts,
+    enabled: term.length >= 2,
   });
 
   return (
     <div>
-      <input value={q} onChange={(e) => setQ(e.target.value)} />
-      {query.isFetching && <div>searching...</div>}
-    </div>
-  );
-}
-```
-
-`enabled`는 “조건부 실행”이다. 입력값이 준비되기 전에는 쿼리를 실행하지 않는다.
-
----
-
-## 4. 상태 플래그를 실무적으로 해석한다
-
-React Query의 상태는 “UI에서 어떤 로딩을 보여줄지”를 결정하는 규칙이 된다.
-
-- `isPending`: 첫 로딩(아무 데이터도 없음)
-- `isFetching`: 네트워크 통신 중(백그라운드 포함)
-- `isRefetching`: 데이터가 있는 상태에서의 리페치
-
-실무 패턴은 보통 다음이다.
-
-- `isPending`이면 skeleton/전체 로딩
-- `isRefetching`이면 작은 인디케이터(기존 데이터는 유지)
-
----
-
-## 5. 페이지네이션 기본 패턴(이전 데이터 유지)
-
-페이지가 바뀌면 queryKey가 바뀌므로 새로운 쿼리가 된다. 이때 화면이 깜빡이지 않게 “이전 데이터”를 유지한다.
-
-TanStack Query v5에서는 `placeholderData`를 함수로 두고 `keepPreviousData` 헬퍼를 쓰는 패턴이 흔하다.
-
-```tsx
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
-
-function Posts({ page }: { page: number }) {
-  const query = useQuery({
-    queryKey: ["posts", { page }],
-    queryFn: () => fetch(`/api/posts?page=${page}`).then((r) => r.json()),
-    placeholderData: keepPreviousData,
-  });
-
-  if (query.isPending) return <div>loading...</div>;
-  return (
-    <div>
-      {query.isFetching && <div>refreshing...</div>}
-      <PostList posts={query.data.posts} />
-    </div>
-  );
-}
-```
-
-이 패턴은 “페이지가 바뀌는 순간 빈 화면이 뜨는 UX”를 막는다.
-
----
-
-## 6. 병렬 쿼리: `useQueries`
-
-ID 목록이 주어졌을 때 상세를 동시에 가져오는 케이스가 있다. 이때 `useQueries`가 필요해진다.
-
-```tsx
-import { useQueries } from "@tanstack/react-query";
-
-function UserCards({ userIds }: { userIds: string[] }) {
-  const queries = useQueries({
-    queries: userIds.map((id) => ({
-      queryKey: ["user", id],
-      queryFn: () => fetch(`/api/users/${id}`).then((r) => r.json()),
-    })),
-  });
-
-  const pending = queries.some((q) => q.isPending);
-  if (pending) return <div>loading...</div>;
-
-  return (
-    <div>
-      {queries.map((q, i) => (
-        <UserCard key={userIds[i]} user={q.data} />
+      <input
+        value={term}
+        onChange={(e) => setTerm(e.target.value)}
+        placeholder="검색어"
+      />
+      {query.isFetching && <p aria-busy="true">검색 중이다.</p>}
+      {query.data?.map((item) => (
+        <div key={item.id}>{item.title}</div>
       ))}
     </div>
   );
 }
 ```
 
-### 실무 포인트: 리스트 API가 있으면 병렬 상세 호출을 피한다
+여기서 두 가지를 짚는다.
 
-`useQueries`는 편하지만, N+1 요청이 되기 쉽다. 서버가 목록 API에서 필요한 필드를 충분히 내려주도록 설계하는 편이 더 낫다.
+- `enabled`로 짧은 입력에서는 요청 자체를 막는다. 한 글자만 입력해도 서버를 때리는 패턴은 비용이 크다.
+- `signal`을 `fetch`에 넘기면 React Query가 키 변경 시 자동으로 이전 요청을 abort한다. 늦게 도착한 응답이 새 화면을 덮는 사고를 방지한다.
+
+`enabled`로 막은 동안 `query.data`는 `undefined`이고 `query.isPending`은 `true`로 유지된다. 빈 입력일 때는 별도의 안내 UI(예: "검색어를 두 글자 이상 입력한다")를 두는 편이 안전하다.
 
 ---
 
-## Vue와 비교
+## 페이지네이션: placeholderData로 깜빡임을 막는다
 
-Vue Query도 동일한 모델을 가진다. 차이는 Vue에서 컴포저블로 queryKey 팩토리와 fetch 규칙을 어떻게 조직화하느냐로 나타난다.
+페이지가 바뀌면 `queryKey`가 바뀌므로 React Query는 새 캐시를 본다. 기본 동작에서는 새 캐시에 데이터가 없으니 `isPending`이 되어 화면이 잠깐 빈다.
 
-| 관심사 | Vue Query | React Query |
-| --- | --- | --- |
-| 기본 쿼리 | `useQuery({ queryKey, queryFn })` | `useQuery({ queryKey, queryFn })` |
-| 조건부 실행 | `enabled` | `enabled` |
-| 이전 데이터 유지 | placeholderData/옵션 | `placeholderData: keepPreviousData` |
+`placeholderData: keepPreviousData`를 주면 새 페이지가 도착할 때까지 이전 데이터를 그대로 유지한다.
+
+```tsx
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+
+interface PostsPage {
+  posts: Array<{ id: string; title: string }>;
+  total: number;
+}
+
+async function fetchPosts(page: number): Promise<PostsPage> {
+  const res = await fetch(`/api/posts?page=${page}`);
+  if (!res.ok) throw new Error("failed");
+  return (await res.json()) as PostsPage;
+}
+
+export function Posts({ page }: { page: number }) {
+  const query = useQuery({
+    queryKey: ["posts", { page }],
+    queryFn: () => fetchPosts(page),
+    placeholderData: keepPreviousData,
+  });
+
+  if (query.isPending) return <p aria-busy="true">목록을 불러온다.</p>;
+  if (query.isError) return <p role="alert">목록을 가져오지 못했다.</p>;
+
+  return (
+    <section>
+      {query.isFetching && <span aria-live="polite">새로 고치는 중이다.</span>}
+      <ul>
+        {query.data.posts.map((post) => (
+          <li key={post.id}>{post.title}</li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+```
+
+이 패턴에서 `isPending`은 첫 페이지를 처음 열 때만 true가 된다. 이후 페이지 전환에서는 `isFetching`만 true가 되며, 본문은 이전 페이지를 유지한다.
+
+---
+
+## 병렬 쿼리: useQueries
+
+ID 목록이 주어졌을 때 상세 정보를 함께 가져와야 하는 경우가 있다. `useQueries`는 동적인 길이의 쿼리 배열을 받는다.
+
+```tsx
+import { useQueries } from "@tanstack/react-query";
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+}
+
+async function fetchUser(id: string): Promise<User> {
+  const res = await fetch(`/api/users/${id}`);
+  if (!res.ok) throw new Error("failed");
+  return (await res.json()) as User;
+}
+
+export function UserCards({ userIds }: { userIds: string[] }) {
+  const queries = useQueries({
+    queries: userIds.map((id) => ({
+      queryKey: ["user", id] as const,
+      queryFn: () => fetchUser(id),
+    })),
+  });
+
+  if (queries.some((q) => q.isPending)) {
+    return <p aria-busy="true">불러오는 중이다.</p>;
+  }
+
+  return (
+    <div>
+      {queries.map((q, i) =>
+        q.isError ? (
+          <p key={userIds[i]} role="alert">
+            사용자 {userIds[i]}를 못 가져왔다.
+          </p>
+        ) : (
+          <article key={userIds[i]}>
+            <h3>{q.data?.name}</h3>
+            <p>{q.data?.email}</p>
+          </article>
+        ),
+      )}
+    </div>
+  );
+}
+```
+
+### 함정: useQueries로 N+1 요청을 만들지 않는다
+
+`useQueries`는 편하지만 쉽게 N+1 패턴을 만든다. 사용자 50명을 카드로 보여주려고 50개의 상세 요청을 동시에 보내는 식이다.
+
+가능하면 서버에서 목록 API가 카드에 필요한 필드를 한 번에 내려주도록 설계하는 편이 비용이 낮다. `useQueries`는 다음 같은 경우에만 적절하다.
+
+- 항목 수가 작고 일정하다.
+- 항목별로 캐시를 공유해야 한다(다른 화면에서 `["user", id]`를 이미 쓰고 있다).
+- 항목별로 권한이 달라 일부만 실패할 수 있다.
+
+---
+
+## 함정과 디버깅
+
+### 1. queryKey에 매번 새 객체를 만들어 넣는다
+
+```tsx
+useQuery({
+  queryKey: ["posts", { page, tag, sort }],
+  queryFn: () => fetchPosts({ page, tag, sort }),
+});
+```
+
+이 코드는 안전하다. React Query는 객체 안의 값들을 비교하기 때문에 매 렌더마다 새 객체 리터럴이 만들어져도 같은 키로 본다. 다만 객체 안에 함수나 클래스 인스턴스가 들어가면 비교에 실패한다. 직렬화 가능한 값만 넣는다.
+
+### 2. enabled로 막아둔 쿼리를 화면에 표시한다
+
+`enabled: false`인 쿼리는 절대 실행되지 않는다. `query.data`도 `undefined`다. 이 상태를 "데이터 없음"으로 표시하면 사용자는 빈 화면을 본다. 검색어가 비었을 때는 본문에 안내를 두고, 결과 영역은 비우지 않는 편이 좋다.
+
+### 3. 첫 로딩과 백그라운드 페치를 같은 UI로 처리한다
+
+`isFetching`을 그대로 본문 로딩으로 쓰면 백그라운드 페치 때마다 본문이 깜빡인다. 첫 로딩(`isPending`)과 백그라운드 페치(`isRefetching`)를 분리하면 사용자는 갱신을 자연스럽게 받아들인다.
+
+### 4. signal을 무시하고 fetch를 직접 짠다
+
+`queryFn`에 `signal`을 넘기지 않으면 키가 바뀌어도 이전 요청은 그대로 진행된다. 늦게 도착한 응답이 새 화면을 덮을 수 있다. `useQueries`나 검색에서 특히 자주 발생한다.
+
+---
+
+## Vue Query와 비교
+
+Vue Query에도 동일한 API가 있다. 어휘는 React Query와 거의 같다.
+
+| 관심사           | Vue Query                           | React Query                         |
+| ---------------- | ----------------------------------- | ----------------------------------- |
+| 기본 쿼리        | `useQuery({ queryKey, queryFn })`   | `useQuery({ queryKey, queryFn })`   |
+| 조건부 실행      | `enabled`                           | `enabled`                           |
+| 이전 데이터 유지 | `placeholderData: keepPreviousData` | `placeholderData: keepPreviousData` |
+| 병렬 쿼리        | `useQueries`                        | `useQueries`                        |
+| 요청 취소        | `signal`                            | `signal`                            |
+
+차이는 입력값을 reactive ref로 받느냐(Vue), prop이나 state 값으로 받느냐(React) 정도다. 캐시 모델 자체는 같다.
 
 ---
 
 ## 체크리스트
 
-- queryKey가 캐시의 주소라는 의미를 설명할 수 있다.
-- 입력값(페이지/필터)이 queryKey에 들어가야 하는 이유를 설명할 수 있다.
-- `isPending`과 `isFetching`의 차이를 UI 관점으로 설명할 수 있다.
-- 검색/페이지네이션에서 `signal`과 `enabled`가 필요한 이유를 이해한다.
-
----
+- `queryKey`가 캐시의 주소라는 의미를 설명할 수 있다.
+- 입력값이 `queryKey`에 들어가야 하는 이유를 한 문장으로 정리할 수 있다.
+- `isPending`과 `isFetching`을 UI 관점에서 다르게 처리할 수 있다.
+- 검색에서 `enabled`와 `signal`이 함께 필요한 이유를 설명할 수 있다.
+- 페이지네이션에서 `placeholderData: keepPreviousData`가 어떤 깜빡임을 막는지 설명할 수 있다.
+- `useQueries`가 N+1 요청이 되는 상황을 알아챌 수 있다.

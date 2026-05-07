@@ -1,206 +1,534 @@
 ---
-title: "[상태 관리 2/5] 상태 관리 - Redux Toolkit"
+title: "[상태 관리 3/6] Redux Toolkit — 규칙과 추적이 필요한 팀 상태"
 date: "2025-09-02"
-description: "Redux Toolkit의 단방향 데이터 흐름과 실무 설계 기준"
+description: "createSlice, createAsyncThunk, createSelector로 예측 가능한 상태 관리 — Zustand에서 확장이 필요한 시점"
 tags: ["React", "고급", "프론트엔드"]
 series: "상태 관리"
-seriesOrder: 2
+seriesOrder: 3
 ---
 
-# 상태 관리 - Redux Toolkit
+# Redux Toolkit — 규칙과 추적이 필요한 팀 상태
 
-Redux Toolkit(RTK)은 Redux를 실무에서 쓰기 위한 공식 권장 방식이다. 핵심은 “예측 가능한 상태 변경”과 “디버깅 가능성”이다.
+앞 글에서 Zustand로 장바구니를 구현했다. 처음에는 단순했다. 상품 추가, 수량 변경, 합계 계산이 전부였다. 그런데 쿠폰 코드가 붙고, 배송비 정책이 생기고, 특정 상품군에만 적용되는 할인 규칙이 추가됐다. 세 명의 개발자가 각자 다른 파일에서 store를 수정하기 시작했다. "언제 어디서 상태가 바뀐 거지?"를 추적하는 데 디버깅 시간의 절반을 쓰게 됐다.
 
-Zustand가 “가볍게 전역 상태를 공유한다”에 강하면, Redux Toolkit은 “규칙과 구조로 대규모 상태를 운영한다”에 강하다.
-
----
-
-## 1. Redux가 풀려는 문제
-
-상태가 커지면 다음 문제가 같이 커진다.
-
-- 누가 언제 상태를 바꿨는지 추적하기 어렵다.
-- 변경이 퍼져서 버그가 재현되지 않는다.
-- 비즈니스 로직이 UI 컴포넌트에 섞인다.
-- 리팩터링할수록 회귀가 늘어난다.
-
-Redux는 “상태 변경을 이벤트(action)로 기록하고, reducer로만 변경한다”는 규칙으로 이 문제를 푼다.
+이 시점에서 Redux Toolkit(RTK)이 해결하는 문제가 무엇인지 구체적으로 드러난다.
 
 ---
 
-## 2. 단방향 데이터 흐름(Flux)의 핵심
+## 1. 오늘 풀 문제
 
-Redux의 흐름은 다음이다.
+장바구니 상태 관리에서 다음 상황이 동시에 발생한다.
 
-1. UI가 action을 dispatch한다.
-2. reducer가 action과 이전 state로 다음 state를 만든다.
-3. store가 변경을 통지하고, selector를 사용하는 UI가 리렌더링된다.
+- 쿠폰 검증 API를 호출한다. 응답이 `percent` 할인인지 `fixed` 할인인지에 따라 합계 계산이 달라진다.
+- 배송비는 주문 금액 기준으로 분기된다. 이 로직이 컴포넌트 세 군데에 복사됐다.
+- 개발자 A가 `items`를 변경하고, 개발자 B가 `couponCode`를 초기화한다. 누가 언제 바꿨는지 기록이 없다.
+- 운영팀에서 "특정 사용자의 결제 흐름을 그대로 재현해달라"는 요청이 들어왔다.
 
-중요한 점은 “상태 변경의 출입구가 하나”라는 사실이다. 그래서 DevTools로 타임 트래블이 가능해진다.
+Zustand에서는 마지막 두 항목을 해결하기 어렵다. 상태 변경에 이름과 기록이 없기 때문이다.
+
+"Redux는 보일러플레이트가 많다"는 인식은 2018년 기준 Redux 코어 이야기다. RTK는 그 보일러플레이트를 대부분 제거했다.
 
 ---
 
-## 3. 최소 예제: slice 하나로 시작한다
+## 2. 정신 모델: 상태 변경에 이름을 붙이고 기록한다
 
-RTK의 기본 단위는 slice다.
+RTK의 핵심 규칙은 하나다. **모든 상태 변경은 action을 통해서만 일어난다.**
 
-```tsx
-import { configureStore, createSlice, PayloadAction } from "@reduxjs/toolkit";
+```
+UI 이벤트
+  → dispatch(action)
+  → reducer(currentState, action) → nextState
+  → store 변경 통지
+  → selector를 구독하는 컴포넌트 리렌더링
+```
 
-type CounterState = { value: number };
+이 흐름이 단방향이기 때문에 Redux DevTools는 "어떤 action이 어떤 순서로 dispatch됐는가"를 전부 기록한다. 특정 시점으로 돌아가거나(타임 트래블), action 시퀀스를 내보내서 재현할 수 있다.
 
-const counterSlice = createSlice({
-  name: "counter",
-  initialState: { value: 0 } as CounterState,
+Zustand의 set 함수는 이름이 없다. 어떤 의도로 상태를 바꿨는지 기록에 남지 않는다. 팀이 작고 상태가 단순하면 문제가 없다. 팀이 커지고 비즈니스 규칙이 복잡해지면 "무엇이 왜 바뀌었는가"를 추적하는 비용이 올라간다.
+
+### RTK Query는 별도 판단이 필요하다
+
+RTK는 서버 상태 캐시까지 처리하는 RTK Query를 포함한다. 그러나 이미 React Query를 사용하고 있다면 RTK Query를 추가하는 것은 진실의 근원을 둘로 만드는 것이다. 동일한 데이터에 대해 두 개의 캐시가 생기고, 무효화와 동기화를 두 군데서 관리해야 한다.
+
+RTK Query는 "React Query를 사용하지 않는 팀이 RTK 안에서 서버 상태까지 해결하고 싶을 때" 선택한다.
+
+### Zustand에서 RTK로 전환하는 기준
+
+다음 중 하나 이상이 해당되면 RTK 도입을 검토한다.
+
+- 상태 변경 이력이 디버깅에 필요해졌다
+- 미들웨어로 로깅이나 analytics를 연결해야 한다
+- 같은 상태를 수정하는 개발자가 세 명 이상이고, 규칙 없이 흩어져 있다
+- 복잡한 파생 상태를 여러 컴포넌트에서 독립적으로 계산하고 있다
+
+반대로, 다음 상황이면 Zustand를 유지한다.
+
+- 한 화면의 UI 상태(모달, 탭, 필터)가 전부다
+- 팀이 2인 이하이고 상태 변경 지점이 명확하다
+- 서버 상태는 React Query가 전담하고, 클라이언트 상태는 단순하다
+
+---
+
+## 3. 최소 코드: 장바구니 slice
+
+```typescript
+import { createSlice, configureStore, PayloadAction } from "@reduxjs/toolkit";
+
+interface CartItem {
+  id: string;
+  qty: number;
+  price: number;
+}
+
+interface CartState {
+  items: CartItem[];
+  couponCode: string | null;
+}
+
+const cartSlice = createSlice({
+  name: "cart",
+  initialState: { items: [], couponCode: null } as CartState,
   reducers: {
-    increment: (state) => {
-      state.value += 1;
+    addItem(state, action: PayloadAction<CartItem>) {
+      const existing = state.items.find((i) => i.id === action.payload.id);
+      if (existing) {
+        existing.qty += 1;
+      } else {
+        state.items.push(action.payload);
+      }
     },
-    decrement: (state) => {
-      state.value -= 1;
+    applyCoupon(state, action: PayloadAction<string>) {
+      state.couponCode = action.payload;
     },
-    addBy: (state, action: PayloadAction<number>) => {
-      state.value += action.payload;
+    clearCart(state) {
+      state.items = [];
+      state.couponCode = null;
     },
   },
 });
 
-export const { increment, decrement, addBy } = counterSlice.actions;
+export const { addItem, applyCoupon, clearCart } = cartSlice.actions;
 
-export const store = configureStore({
-  reducer: { counter: counterSlice.reducer },
-});
-```
-
-`state.value += 1` 같은 직접 수정이 가능한 이유는 Immer가 내부에서 불변성을 유지해주기 때문이다.
-
----
-
-## 4. React에서 연결: Provider + typed hooks
-
-```tsx
-import { Provider, useDispatch, useSelector } from "react-redux";
-import type { TypedUseSelectorHook } from "react-redux";
-
+export const store = configureStore({ reducer: { cart: cartSlice.reducer } });
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
+```
 
+`state.items.push(action.payload)` 같은 직접 변이가 가능한 이유는 Immer가 내부에서 불변성을 보장하기 때문이다. Immer는 Proxy로 변이를 감지하고, 새로운 불변 객체를 만들어 반환한다.
+
+### Provider와 typed hooks
+
+```typescript
+import { Provider, useDispatch, useSelector } from "react-redux";
+import type { TypedUseSelectorHook } from "react-redux";
+import { store } from "./store";
+import type { RootState, AppDispatch } from "./store";
+
+// 타입이 고정된 훅을 한 번만 정의하고 프로젝트 전체에서 사용한다
 export const useAppDispatch = () => useDispatch<AppDispatch>();
 export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
 
-export function App() {
-  return (
-    <Provider store={store}>
-      <Counter />
-    </Provider>
-  );
+// 최상위에서 Provider로 감싼다
+export function RootProvider({ children }: { children: React.ReactNode }) {
+  return <Provider store={store}>{children}</Provider>;
+}
+```
+
+`useDispatch`와 `useSelector`를 직접 사용하면 타입 추론이 `unknown`으로 떨어진다. `useAppDispatch`와 `useAppSelector`를 통일해서 사용하면 `dispatch`의 인자와 `selector`의 반환값이 자동으로 타입 추론된다.
+
+---
+
+## 4. 실무 코드: 쿠폰 검증과 파생 합계
+
+### createAsyncThunk — 에러 처리를 포함한 쿠폰 검증
+
+```typescript
+import { createAsyncThunk } from "@reduxjs/toolkit";
+import type { RootState } from "./store";
+
+interface CouponResponse {
+  discount: number;
+  type: "percent" | "fixed";
 }
 
-function Counter() {
-  const value = useAppSelector((s) => s.counter.value);
+export const validateCoupon = createAsyncThunk<
+  { discount: number; type: "percent" | "fixed" },
+  string,
+  { rejectValue: string }
+>("cart/validateCoupon", async (code, { rejectWithValue }) => {
+  try {
+    const res = await fetch(`/api/coupons/${code}`);
+
+    if (res.status === 404) {
+      return rejectWithValue("존재하지 않는 쿠폰 코드다");
+    }
+    if (res.status === 401) {
+      return rejectWithValue("쿠폰을 사용할 권한이 없다");
+    }
+    if (!res.ok) {
+      return rejectWithValue(`쿠폰 확인 중 오류가 발생했다 (${res.status})`);
+    }
+
+    return (await res.json()) as CouponResponse;
+  } catch {
+    return rejectWithValue("네트워크 오류로 쿠폰을 확인할 수 없다");
+  }
+});
+```
+
+`throw new Error()`를 사용하면 `action.error.message`로 접근하지만, 타입이 `string | undefined`다. `rejectWithValue`를 사용하면 `action.payload`로 접근하며, 제네릭으로 타입을 고정할 수 있다.
+
+### extraReducers — pending/fulfilled/rejected 처리
+
+```typescript
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { validateCoupon } from "./cartThunks";
+
+interface CouponInfo {
+  code: string;
+  discount: number;
+  type: "percent" | "fixed";
+}
+
+interface CartState {
+  items: Array<{ id: string; qty: number; price: number }>;
+  coupon: CouponInfo | null;
+  couponStatus: "idle" | "pending" | "fulfilled" | "rejected";
+  couponError: string | null;
+}
+
+const cartSlice = createSlice({
+  name: "cart",
+  initialState: {
+    items: [],
+    coupon: null,
+    couponStatus: "idle",
+    couponError: null,
+  } as CartState,
+  reducers: {
+    addItem(
+      state,
+      action: PayloadAction<{ id: string; qty: number; price: number }>,
+    ) {
+      const existing = state.items.find((i) => i.id === action.payload.id);
+      if (existing) {
+        existing.qty += 1;
+      } else {
+        state.items.push(action.payload);
+      }
+    },
+    clearCart(state) {
+      state.items = [];
+      state.coupon = null;
+      state.couponStatus = "idle";
+      state.couponError = null;
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(validateCoupon.pending, (state) => {
+        state.couponStatus = "pending";
+        state.couponError = null;
+      })
+      .addCase(validateCoupon.fulfilled, (state, action) => {
+        state.couponStatus = "fulfilled";
+        // action.meta.arg는 thunk에 넘긴 원래 인자(쿠폰 코드)다
+        state.coupon = {
+          code: action.meta.arg,
+          discount: action.payload.discount,
+          type: action.payload.type,
+        };
+      })
+      .addCase(validateCoupon.rejected, (state, action) => {
+        state.couponStatus = "rejected";
+        // rejectWithValue로 반환한 값은 action.payload에 들어온다
+        state.couponError = action.payload ?? "알 수 없는 오류";
+        state.coupon = null;
+      });
+  },
+});
+
+export const { addItem, clearCart } = cartSlice.actions;
+export default cartSlice.reducer;
+```
+
+### createSelector — 파생 합계 메모이제이션
+
+```typescript
+import { createSelector } from "@reduxjs/toolkit";
+import type { RootState } from "./store";
+
+// 입력 selector는 단순하게 유지한다
+const selectCartItems = (state: RootState) => state.cart.items;
+const selectCoupon = (state: RootState) => state.cart.coupon;
+
+// 파생 합계 계산: items나 coupon이 바뀔 때만 재계산된다
+export const selectTotal = createSelector(
+  [selectCartItems, selectCoupon],
+  (items, coupon) => {
+    const subtotal = items.reduce((sum, i) => sum + i.price * i.qty, 0);
+    if (!coupon) return subtotal;
+
+    if (coupon.type === "percent") {
+      return subtotal * (1 - coupon.discount / 100);
+    }
+    return Math.max(0, subtotal - coupon.discount);
+  },
+);
+
+// 배송비 포함 최종 금액
+export const selectFinalAmount = createSelector([selectTotal], (total) => {
+  const SHIPPING_THRESHOLD = 50000;
+  const SHIPPING_FEE = 3000;
+  return total >= SHIPPING_THRESHOLD ? total : total + SHIPPING_FEE;
+});
+```
+
+### 컴포넌트에서 사용
+
+```typescript
+import { useAppSelector, useAppDispatch } from "./hooks";
+import { selectTotal, selectFinalAmount } from "./cartSelectors";
+import { validateCoupon } from "./cartThunks";
+import { addItem, clearCart } from "./cartSlice";
+
+function CartSummary() {
   const dispatch = useAppDispatch();
+  const total = useAppSelector(selectTotal);
+  const finalAmount = useAppSelector(selectFinalAmount);
+  const couponStatus = useAppSelector((s) => s.cart.couponStatus);
+  const couponError = useAppSelector((s) => s.cart.couponError);
+
+  const [code, setCode] = React.useState("");
+
+  const handleApplyCoupon = () => {
+    if (!code.trim()) return;
+    dispatch(validateCoupon(code.trim()));
+  };
 
   return (
     <div>
-      <div>{value}</div>
-      <button onClick={() => dispatch(increment())}>+</button>
-      <button onClick={() => dispatch(decrement())}>-</button>
+      <div>소계: {total.toLocaleString()}원</div>
+      <div>최종 금액: {finalAmount.toLocaleString()}원</div>
+
+      <div>
+        <input
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          placeholder="쿠폰 코드"
+        />
+        <button
+          onClick={handleApplyCoupon}
+          disabled={couponStatus === "pending"}
+        >
+          {couponStatus === "pending" ? "확인 중..." : "적용"}
+        </button>
+      </div>
+
+      {couponStatus === "rejected" && couponError && (
+        <p role="alert">{couponError}</p>
+      )}
     </div>
   );
 }
 ```
 
-이 패턴은 타입이 커질수록 중요해진다. `dispatch`와 `selector`의 타입이 고정되면 실수 비용이 줄어든다.
-
 ---
 
-## 5. 실무에서 제일 중요한 것은 상태의 경계다
+## 5. 망하는 패턴
 
-Redux store에 무엇을 넣을지 먼저 결정해야 한다.
+### 단순 UI 상태를 Redux에 넣는다
 
-- Redux에 넣기 좋은 상태: UI 전역 흐름, 복잡한 비즈니스 상태, 오프라인/임시 편집 데이터, 여러 화면을 가로지르는 마법 같은 규칙
-- Redux에 넣기 나쁜 상태: 서버가 진실인 데이터(목록/상세/검색 결과). 이건 React Query가 더 적합하다.
-
-서버 상태를 Redux에 넣으면 “캐시 키, 무효화, 재시도, 경쟁 상태”를 Redux 레벨에서 구현해야 한다. 비용이 크다.
-
----
-
-## 6. 비동기: createAsyncThunk를 어디까지 쓸 것인가
-
-createAsyncThunk는 “서버 요청 → 상태 업데이트”를 Redux 안으로 가져오는 도구다.
-
-```tsx
-import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-
-export const fetchUsers = createAsyncThunk("users/fetch", async () => {
-  const res = await fetch("/api/users");
-  if (!res.ok) throw new Error("failed");
-  return (await res.json()) as Array<{ id: string; name: string }>;
-});
-
-const usersSlice = createSlice({
-  name: "users",
-  initialState: { list: [] as any[], loading: false, error: null as string | null },
-  reducers: {},
-  extraReducers: (builder) => {
-    builder
-      .addCase(fetchUsers.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(fetchUsers.fulfilled, (state, action) => {
-        state.loading = false;
-        state.list = action.payload;
-      })
-      .addCase(fetchUsers.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message ?? "failed";
-      });
+```typescript
+// 나쁜 예: 모달 열림/닫힘을 Redux slice로 관리한다
+const uiSlice = createSlice({
+  name: "ui",
+  initialState: { isModalOpen: false, activeTab: "all" },
+  reducers: {
+    openModal: (state) => {
+      state.isModalOpen = true;
+    },
+    closeModal: (state) => {
+      state.isModalOpen = false;
+    },
+    setTab: (state, action: PayloadAction<string>) => {
+      state.activeTab = action.payload;
+    },
   },
 });
 ```
 
-실무에서는 “서버 상태는 React Query” 기준을 잡았다면 thunk 사용 범위가 좁아진다. thunk는 보통 다음에 남는다.
+이 경우 Zustand면 10줄, 또는 `useState` 두 개로 끝난다. 모달 상태가 전역일 필요가 없다면 지역 상태를 사용한다. Redux DevTools에 `ui/openModal` 이벤트가 수십 개 찍혀도 디버깅에 도움이 되지 않는다.
 
-- 여러 API를 묶어 하나의 트랜잭션처럼 처리해야 한다.
-- 서버 응답을 단순 캐시가 아니라 “복잡한 도메인 상태 머신”으로 합성해야 한다.
+### 서버 상태를 RTK와 React Query로 이중 관리한다
+
+```typescript
+// 나쁜 예: 같은 /api/products를 두 군데서 캐시한다
+// RTK Query
+const { data: rtqProducts } = useGetProductsQuery();
+
+// React Query
+const { data: rqProducts } = useQuery({
+  queryKey: ["products"],
+  queryFn: () => fetch("/api/products").then((r) => r.json()),
+});
+```
+
+두 캐시가 같은 데이터를 바라본다. 무효화는 두 군데서 해야 한다. 서버가 업데이트됐을 때 하나만 갱신되면 UI가 다른 데이터를 보여준다. React Query를 이미 사용하고 있다면 RTK Query는 추가하지 않는다.
+
+### createSelector 없이 렌더마다 파생 값을 계산한다
+
+```typescript
+// 나쁜 예: 컴포넌트 안에서 직접 계산한다
+function CartTotal() {
+  const items = useAppSelector((s) => s.cart.items);
+  const coupon = useAppSelector((s) => s.cart.coupon);
+
+  // 컴포넌트가 리렌더링될 때마다 실행된다
+  const total = items.reduce((sum, i) => sum + i.price * i.qty, 0);
+  const finalTotal = coupon
+    ? coupon.type === "percent"
+      ? total * (1 - coupon.discount / 100)
+      : Math.max(0, total - coupon.discount)
+    : total;
+
+  return <div>{finalTotal.toLocaleString()}원</div>;
+}
+```
+
+`items`나 `coupon`이 바뀌지 않아도 부모 컴포넌트가 리렌더링되면 이 계산이 반복된다. `createSelector`로 추출하면 입력이 바뀔 때만 재계산된다. 계산이 단순하면 차이가 작지만, 계산이 복잡하거나 items 배열이 크면 눈에 띄는 차이가 난다.
+
+### PayloadAction 없이 action.payload를 any로 사용한다
+
+```typescript
+// 나쁜 예: PayloadAction 타입을 지정하지 않는다
+const badSlice = createSlice({
+  name: "bad",
+  initialState: { value: "" },
+  reducers: {
+    setValue(state, action) {
+      // action.payload가 any다. 런타임에 오류가 나기 전까지 알 수 없다.
+      state.value = action.payload;
+    },
+  },
+});
+
+// 좋은 예
+const goodSlice = createSlice({
+  name: "good",
+  initialState: { value: "" },
+  reducers: {
+    setValue(state, action: PayloadAction<string>) {
+      state.value = action.payload; // string으로 추론된다
+    },
+  },
+});
+```
+
+`PayloadAction<T>`는 RTK가 제공하는 헬퍼 타입이다. reducer 인자에 명시하면 `action.payload`의 타입이 고정되고, dispatch 시에도 잘못된 타입을 전달하면 컴파일 오류가 난다.
 
 ---
 
-## 7. 성능: selector와 정규화가 핵심이다
+## 6. Vue/Nuxt 비교
 
-Redux 성능의 핵심은 다음이다.
+Vue 생태계에서 Pinia는 현재 공식 권장 상태 관리 라이브러리다. Vuex는 레거시로 본다.
 
-- selector가 잘못되면 리렌더링이 폭발한다.
-- 배열/객체를 그대로 돌려주는 selector는 메모이제이션이 필요하다.
-- 리스트가 크면 정규화(normalization)와 `createEntityAdapter`가 도움이 된다.
+```typescript
+// Pinia: action이 자유롭다 — 추적이 어렵다
+import { defineStore } from "pinia";
 
-```tsx
-import { createSelector } from "@reduxjs/toolkit";
+export const useCartStore = defineStore("cart", {
+  state: () => ({
+    items: [] as CartItem[],
+    coupon: null as CouponInfo | null,
+  }),
+  actions: {
+    async applyCoupon(code: string) {
+      // 어디서나 state를 직접 수정할 수 있다
+      // Vue DevTools에 메서드명으로 기록되지만 lifecycle 단계 분리는 없다
+      const res = await fetch(`/api/coupons/${code}`);
+      this.coupon = await res.json();
+    },
+  },
+});
+```
 
-const selectCartItems = (s: RootState) => s.cart.items;
-export const selectCartTotal = createSelector([selectCartItems], (items) =>
-  items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+```typescript
+// RTK: action에 이름이 있다 — 추적이 가능하다
+export const validateCoupon = createAsyncThunk(
+  "cart/validateCoupon", // DevTools에 이 이름으로 기록된다
+  async (code: string, { rejectWithValue }) => {
+    const res = await fetch(`/api/coupons/${code}`);
+    if (!res.ok) return rejectWithValue("유효하지 않은 쿠폰");
+    return await res.json();
+  },
 );
+```
+
+| 관점           | Pinia                            | Redux Toolkit               |
+| -------------- | -------------------------------- | --------------------------- |
+| action 이름    | 없음(메서드명만)                 | 명시적 (`slice/actionName`) |
+| 디버깅         | DevTools 기본 지원               | 타임 트래블 + action 재현   |
+| 구조 강제      | 낮음 — 팀이 규칙을 만들어야 한다 | 높음 — 프레임이 강제한다    |
+| 비동기 처리    | action 안에서 자유               | thunk 패턴으로 통일         |
+| 보일러플레이트 | 적음                             | RTK 이전 대비 크게 줄었다   |
+
+Pinia에서 추적이 필요해지면 Pinia plugin으로 logger를 직접 구현해야 한다. RTK는 middleware 연결만으로 로깅, analytics, 에러 리포팅을 붙일 수 있다.
+
+```typescript
+// RTK middleware 예시
+import { configureStore, type MiddlewareAPI } from "@reduxjs/toolkit";
+import type { Dispatch } from "redux";
+
+const loggerMiddleware =
+  (store: MiddlewareAPI) => (next: Dispatch) => (action: unknown) => {
+    if (typeof action === "object" && action !== null && "type" in action) {
+      console.log("dispatching", (action as { type: string }).type);
+      analytics.track((action as { type: string }).type);
+    }
+    return next(action as Action);
+  };
+
+const store = configureStore({
+  reducer: rootReducer,
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware().concat(loggerMiddleware),
+});
 ```
 
 ---
 
-## Vue와 비교
+## 7. 마스터 체크
 
-Vue에서는 Pinia가 기본 선택지에 가깝고, Vuex는 레거시로 보는 팀이 많다. Redux Toolkit의 핵심은 “action 로그 기반 디버깅”과 “규칙 기반 구조”다.
+**createAsyncThunk에서 rejected 상태를 컴포넌트에서 어떻게 처리하는가?**
 
-| 관점 | Pinia | Redux Toolkit |
-| --- | --- | --- |
-| 변경 모델 | store 메서드 | action + reducer |
-| 디버깅 | DevTools 기반 | DevTools + 타임 트래블이 강함 |
-| 구조 강제 | 낮음 | 높음 |
-| 대규모 팀 | 규칙을 팀이 만든다 | 프레임이 기본 제공된다 |
+두 가지 경로가 있다. 첫째, store에서 `couponError` 같은 필드를 관리하고 selector로 읽는다. 둘째, `dispatch(validateCoupon(code)).unwrap()`으로 Promise를 직접 처리한다. `unwrap()`은 fulfilled이면 payload를 반환하고, rejected이면 reject 이유로 throw한다.
+
+```typescript
+// unwrap 패턴
+const handleApply = async () => {
+  try {
+    const result = await dispatch(validateCoupon(code)).unwrap();
+    // result는 fulfilled payload
+  } catch (err) {
+    // rejectWithValue로 반환한 값 또는 Error
+    console.error(err);
+  }
+};
+```
+
+**createSelector가 없으면 어떤 문제가 생기는가?**
+
+`useAppSelector` 안에서 파생 값을 계산하면 매 렌더마다 새 참조가 만들어진다. Redux는 `===` 비교로 변경 여부를 판단하는데, 계산 결과가 이전과 같은 값이어도 참조가 다르면 리렌더링이 발생한다. `createSelector`는 입력 selector의 반환값이 변경됐을 때만 재계산하고, 결과를 메모이제이션한다.
+
+**React Query와 RTK Query를 같이 쓰는 게 나쁜 이유는 무엇인가?**
+
+같은 API 엔드포인트에 대한 캐시가 두 군데 존재하게 된다. 데이터 무효화, 재시도, 동기화를 두 라이브러리에서 각각 설정해야 한다. 서버가 업데이트됐을 때 하나의 캐시만 갱신되면 UI가 오래된 데이터를 보여줄 수 있다. 이미 React Query를 사용하고 있다면 RTK Query는 추가하지 않는다.
+
+**Zustand에서 RTK로 마이그레이션해야 하는 신호는 무엇인가?**
+
+다음 중 하나가 나타났을 때다. 첫째, "이 상태가 언제 바뀌었는가"를 추적할 수 없어서 디버깅 시간이 길어졌다. 둘째, 상태를 수정하는 지점이 세 곳 이상이고, 팀이 각자 다르게 수정한다. 셋째, 미들웨어로 로깅이나 analytics를 붙여야 하는데 Zustand로는 깔끔하게 해결되지 않는다. 넷째, 비즈니스 규칙이 복잡해져서 "어떤 action이 이 상태를 만들었는가"를 코드 리뷰나 버그 추적에서 빠르게 알아야 한다.
 
 ---
 
-## 체크리스트
-
-- action과 reducer가 왜 필요한지 설명할 수 있다.
-- Redux에 넣을 상태와 React Query에 둘 상태를 구분할 수 있다.
-- selector가 성능의 중심이라는 점을 이해한다.
+다음 글에서는 Jotai를 다룬다. 파생 상태 그래프와 비동기 atom이 필요한 화면을 다루는 방법이다.

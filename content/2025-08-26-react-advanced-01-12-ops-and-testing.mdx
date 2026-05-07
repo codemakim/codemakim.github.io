@@ -1,180 +1,363 @@
 ---
 title: "[React Router 12/12] React Router - 운영/배포/테스트"
 date: "2025-08-26"
-description: "정적 호스팅 새로고침 404, basename, 그리고 MemoryRouter/createMemoryRouter 기반 테스트 전략"
-tags: ["React", "고급", "프론트엔드"]
+description: "정적 호스팅 새로고침 404, basename, HashRouter, MemoryRouter 테스트 전략"
+tags: ["React", "중급", "프론트엔드", "Testing"]
 series: "React Router"
 seriesOrder: 12
 ---
 
 # React Router 가이드 - 운영/배포/테스트
 
-> React Router v6 기준으로 정리한다. Data Router 테스트는 v6.4+를 전제로 한다.  
-> 출처: [React Router Documentation](https://reactrouter.com/)
+라우팅은 로컬 개발 서버에서는 잘 돌아가도 배포 후 바로 깨질 수 있다. 특히 SPA는 브라우저 안에서 URL을 바꾸기 때문에 서버가 그 URL을 어떻게 처리하는지까지 맞아야 한다.
+
+또 라우팅은 리팩터링 때 회귀가 잦다.
+
+- `/posts/:postId`를 `/blog/:postId`로 바꾸다가 링크가 깨진다.
+- 로그인 가드가 빠져 보호 페이지가 노출된다.
+- loader 404 처리가 바뀌어 잘못된 에러 화면이 뜬다.
+- GitHub Pages 하위 경로 배포에서 링크가 루트로 튄다.
+
+React Router 시리즈 마지막 글에서는 운영에서 자주 터지는 문제와 테스트 기준을 정리한다.
 
 ---
 
-## 이 글이 필요한 이유
+## 왜 필요한가
 
-라우팅은 로컬에서 잘 돌아가도 운영에서 바로 깨질 수 있다.
+SPA 라우팅은 두 세계가 함께 움직인다.
 
-- 정적 호스팅에서 새로고침하면 404가 뜬다.
-- GitHub Pages 같은 하위 경로 배포에서 경로가 꼬인다.
-- 라우팅 로직은 UI 테스트로 검증하지 않으면 리팩터링 때 회귀가 잦다.
+1. 브라우저 안의 클라이언트 라우터
+2. 실제 HTTP 요청을 받는 서버/호스팅
 
-이 글은 “운영에서 안 깨지게 만들고, 테스트로 회귀를 막는다”를 목표로 한다.
+사용자가 앱 안에서 `<Link to="/posts/1">`를 누르면 React Router가 브라우저 히스토리를 바꾸고 화면을 렌더링한다. 이때는 서버 요청이 새로 가지 않는다.
 
----
+하지만 사용자가 `/posts/1`에서 새로고침하거나 주소창에 직접 입력하면 서버가 `/posts/1` 요청을 받는다. 서버가 이 경로를 모르면 404가 된다.
 
-## 1. 정적 호스팅 새로고침 404 문제
-
-SPA 라우팅은 브라우저 주소창에 `/posts/42`가 찍혀 있어도, 실제로는 서버가 `/posts/42`라는 파일을 갖고 있지 않다.
-
-- 클라이언트 네비게이션: JS가 URL만 바꾸고 앱이 렌더링한다.
-- 새로고침/직접 진입: 서버가 `/posts/42` 경로를 처리해야 한다.
-
-정적 호스팅은 보통 “파일이 없으면 404”로 끝난다. 그래서 새로고침이 깨진다.
-
-### 해결책 A: 서버/호스팅에 SPA fallback을 설정한다
-
-가장 정석이다.
-
-- 존재하지 않는 경로는 모두 `index.html`로 리라이트한다.
-- 앱이 로드된 뒤 React Router가 URL을 보고 화면을 결정한다.
-
-호스팅마다 설정 방법이 다르다. 이 프로젝트가 GitHub Pages를 쓴다면, Pages에서 “404를 index로 보내기” 류의 우회(예: `404.html` 전략)를 고려하게 된다.
-
-### 해결책 B: Hash Router를 쓴다
-
-정적 호스팅에서 서버 설정을 건드릴 수 없다면 `HashRouter`가 우회책이다.
-
-- `/posts/42`가 아니라 `/#/posts/42` 형태가 된다.
-- `#` 뒤는 서버로 전송되지 않으므로 새로고침 404가 줄어든다.
-
-대신 URL 품질이 떨어지고, 일부 시스템에서 해시 기반 라우팅이 제약이 될 수 있다.
+라우터를 배포할 때는 "클라이언트에서 이동하는 URL"과 "서버가 받아낼 수 있는 URL"을 함께 설계해야 한다.
 
 ---
 
-## 2. 하위 경로 배포와 `basename`
+## 정적 호스팅 새로고침 404
 
-앱이 루트(`/`)가 아니라 `/my-app/` 같은 하위 경로에 배포되면, 라우터는 기본적으로 루트 기준으로 링크를 만든다.
+정적 호스팅은 파일을 기준으로 응답한다. `/posts/1` 요청이 오면 `/posts/1/index.html` 같은 파일을 찾는다. SPA는 보통 그런 파일이 없다. 하나의 `index.html`이 JS를 로드하고, JS 안의 라우터가 `/posts/1` 화면을 그릴 뿐이다.
 
-이때 `basename`을 맞추지 않으면 다음이 된다.
+그래서 정적 호스팅에서 새로고침 404가 생긴다.
 
-- 링크가 `/my-app/posts`가 아니라 `/posts`로 생성된다.
-- 새로고침 시 서버 경로와 앱 경로가 어긋난다.
+| 상황                           | 결과                                |
+| ------------------------------ | ----------------------------------- |
+| 앱 안에서 `/posts/1` 링크 클릭 | React Router가 화면 전환            |
+| `/posts/1`에서 새로고침        | 서버가 `/posts/1` 파일을 찾다가 404 |
+| `/posts/1` 직접 진입           | 서버 fallback이 없으면 404          |
 
-Data Router에서는 라우터 생성 시 `basename`을 지정한다.
+해결책은 서버/호스팅이 "모르는 경로를 `index.html`로 보내는 것"이다. 그러면 앱이 로드된 뒤 React Router가 현재 URL에 맞는 화면을 렌더링한다.
+
+---
+
+## 해결책 1: SPA fallback을 설정한다
+
+가장 좋은 방법은 호스팅 설정에서 fallback rewrite를 두는 것이다.
+
+```txt
+요청: /posts/1
+서버: 해당 파일 없음
+fallback: /index.html 반환
+브라우저: JS 로드
+React Router: /posts/1 route 렌더링
+```
+
+Netlify, Vercel, nginx, Cloudflare Pages 등은 각자 방식으로 SPA fallback을 설정할 수 있다.
+
+주의할 점은 API나 정적 자산까지 모두 `index.html`로 보내면 안 된다는 것이다. `/assets/app.js`, `/images/logo.png`, `/api/posts` 같은 경로는 원래 목적대로 처리되어야 한다.
+
+이 프로젝트처럼 GitHub Pages 정적 배포를 쓰는 경우에는 호스팅 제약이 더 크다. SPA fallback을 완전히 제어하기 어렵다면 `404.html`을 이용한 우회나, Next.js 정적 export처럼 실제 HTML 경로를 생성하는 방식을 함께 고려한다.
+
+---
+
+## 해결책 2: `HashRouter`를 쓴다
+
+서버 fallback을 설정할 수 없다면 `HashRouter`가 우회책이 된다.
 
 ```tsx
-import { createBrowserRouter } from "react-router-dom";
+import { HashRouter, Link, Route, Routes } from "react-router-dom";
 
-export const router = createBrowserRouter(
+export default function App() {
+  return (
+    <HashRouter>
+      <nav>
+        <Link to="/posts/1">글 상세</Link>
+      </nav>
+      <Routes>
+        <Route path="/posts/:postId" element={<div>글 상세</div>} />
+      </Routes>
+    </HashRouter>
+  );
+}
+```
+
+URL은 다음처럼 된다.
+
+```txt
+https://example.com/#/posts/1
+```
+
+`#` 뒤의 값은 서버로 전송되지 않는다. 서버는 항상 `/`만 받고, 브라우저 안에서 해시를 읽어 라우팅한다. 그래서 정적 호스팅 새로고침 404를 피할 수 있다.
+
+다만 공식 문서도 Hash Router는 서버 제어가 어려울 때의 선택지로 본다. URL 품질, SEO, 서버 로그, 공유 링크 정책을 고려하면 가능한 한 Browser Router와 fallback 설정이 더 좋다.
+
+---
+
+## 하위 경로 배포와 `basename`
+
+앱이 도메인 루트가 아니라 하위 경로에 배포되는 경우가 있다.
+
+```txt
+https://example.com/my-app/
+```
+
+이때 라우터가 `/posts` 링크를 만들면 실제로는 다음 위치로 이동한다.
+
+```txt
+https://example.com/posts
+```
+
+원하는 경로는 이것이다.
+
+```txt
+https://example.com/my-app/posts
+```
+
+이 차이를 맞추는 옵션이 `basename`이다.
+
+```tsx
+import { RouterProvider, createBrowserRouter } from "react-router-dom";
+
+const router = createBrowserRouter(
   [
     {
       path: "/",
-      element: <div>home</div>,
+      element: <div>홈</div>,
+      children: [{ path: "posts", element: <div>글 목록</div> }],
     },
   ],
-  { basename: "/my-app" }
+  {
+    basename: "/my-app",
+  },
 );
+
+export default function App() {
+  return <RouterProvider router={router} />;
+}
 ```
 
-실무에서는 환경 변수로 배포 베이스 경로를 주고, 빌드/배포 파이프라인에서 주입하는 방식이 많이 쓰인다.
+GitHub Pages의 project site처럼 `/repository-name/` 아래에 배포한다면 build 설정의 base path와 React Router의 `basename`이 같은 기준을 가져야 한다.
 
 ---
 
-## 3. 라우터 테스트가 필요한 이유
+## 테스트 기준: 라우팅 계약을 고정한다
 
-라우팅은 다음 변경에 매우 취약하다.
+라우팅 테스트는 모든 클릭을 브라우저처럼 재현하려는 것이 아니다. 중요한 계약을 고정하는 일이다.
 
-- 경로 리팩터링(`/posts/:id` → `/blog/:id`)
-- 가드/리다이렉트 정책 변경
-- loader/action의 실패 처리 변경
+- 이 경로에 들어가면 어떤 화면이 나오는가
+- 잘못된 경로는 Not Found로 가는가
+- 인증이 없으면 로그인으로 보내는가
+- loader 404는 어떤 에러 화면을 보여주는가
+- action 제출 중 상태와 성공 후 이동이 맞는가
 
-테스트는 “경로가 변했을 때 어디로 이동해야 하는가”를 고정한다.
+테스트는 라우터를 실제 브라우저 히스토리에 붙이지 않고 메모리 안에서 실행한다.
 
 ---
 
-## 4. 컴포넌트 라우터 테스트: `MemoryRouter`
+## 컴포넌트 라우터 테스트: `MemoryRouter`
 
-컴포넌트 라우터(`Routes`) 기반은 `MemoryRouter`로 테스트하는 패턴이 단순하다.
+`BrowserRouter` + `Routes` 기반 컴포넌트 라우터는 `MemoryRouter`로 테스트하기 쉽다.
 
 ```tsx
-import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { render, screen } from "@testing-library/react";
+import { MemoryRouter, Route, Routes, useParams } from "react-router-dom";
 
-test("renders post detail", () => {
+function PostDetailPage() {
+  const { postId } = useParams();
+  return <h1>글 {postId}</h1>;
+}
+
+test("post detail route renders post id", () => {
   render(
     <MemoryRouter initialEntries={["/posts/42"]}>
       <Routes>
-        <Route path="/posts/:postId" element={<div>detail</div>} />
+        <Route path="/posts/:postId" element={<PostDetailPage />} />
       </Routes>
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 
-  expect(screen.getByText("detail")).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "글 42" })).toBeInTheDocument();
 });
 ```
 
-`initialEntries`는 “현재 주소창이 무엇인지”를 테스트에 주입하는 역할을 한다.
+`initialEntries`는 테스트에서 주소창 역할을 한다. 지금 사용자가 `/posts/42`에 들어와 있다고 라우터에 알려주는 값이다.
 
 ---
 
-## 5. Data Router 테스트: `createMemoryRouter` + `RouterProvider`
+## Data Router 테스트: `createMemoryRouter`
 
-Data Router는 라우터 객체 자체가 실행 단위다. 그래서 `createMemoryRouter`로 라우터를 만들고 `RouterProvider`로 렌더링한다.
+Data Router는 `loader`, `action`, `errorElement`까지 라우트 객체에 들어간다. 테스트에서도 같은 구조를 만든다.
 
 ```tsx
-import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { render, screen } from "@testing-library/react";
+import {
+  RouterProvider,
+  createMemoryRouter,
+  useLoaderData,
+} from "react-router-dom";
+
+interface Post {
+  title: string;
+}
+
+function PostPage() {
+  const post = useLoaderData() as Post;
+  return <h1>{post.title}</h1>;
+}
 
 test("loader data is rendered", async () => {
   const router = createMemoryRouter(
     [
       {
         path: "/posts/:postId",
-        loader: async () => ({ title: "hello" }),
-        element: <Post />,
+        element: <PostPage />,
+        loader: async () => ({ title: "Data Router 테스트" }),
       },
     ],
-    { initialEntries: ["/posts/42"] }
+    {
+      initialEntries: ["/posts/42"],
+    },
   );
 
   render(<RouterProvider router={router} />);
 
-  expect(await screen.findByText("hello")).toBeInTheDocument();
+  expect(
+    await screen.findByRole("heading", { name: "Data Router 테스트" }),
+  ).toBeInTheDocument();
 });
-
-function Post() {
-  // 실제 코드는 useLoaderData()를 쓴다.
-  return <div>hello</div>;
-}
 ```
 
-여기서 핵심은 “라우트 단위로 loader/action을 테스트에서 주입할 수 있다”는 점이다. 네트워크 의존성을 줄이고 실패 케이스를 빠르게 재현할 수 있다.
+loader는 비동기일 수 있으므로 `findBy...`를 사용한다.
 
 ---
 
-## 6. 테스트에서 자주 터지는 함정
+## 에러 경계 테스트
 
-### 1) 비동기 렌더링을 동기 expect로 검사한다
+Data Router의 장점은 실패 케이스도 라우트 단위로 고정할 수 있다는 점이다.
 
-loader/action은 비동기다. `findBy...` 또는 `await` 패턴을 쓴다.
+```tsx
+import { render, screen } from "@testing-library/react";
+import {
+  RouterProvider,
+  createMemoryRouter,
+  isRouteErrorResponse,
+  useRouteError,
+} from "react-router-dom";
 
-### 2) 라우트 경계를 테스트에 넣지 않는다
+function RouteErrorPage() {
+  const error = useRouteError();
 
-실무에서는 `errorElement`가 정책이다. 실패 케이스 테스트에서는 `errorElement`까지 포함해 “어떤 UI가 뜨는가”를 고정하는 편이 좋다.
+  if (isRouteErrorResponse(error) && error.status === 404) {
+    return <h1>글을 찾을 수 없다</h1>;
+  }
+
+  return <h1>문제가 발생했다</h1>;
+}
+
+test("resource 404 renders route error page", async () => {
+  const router = createMemoryRouter(
+    [
+      {
+        path: "/posts/:postId",
+        element: <div>글 상세</div>,
+        loader: async () => {
+          throw new Response("Not Found", { status: 404 });
+        },
+        errorElement: <RouteErrorPage />,
+      },
+    ],
+    {
+      initialEntries: ["/posts/999"],
+    },
+  );
+
+  render(<RouterProvider router={router} />);
+
+  expect(
+    await screen.findByRole("heading", { name: "글을 찾을 수 없다" }),
+  ).toBeInTheDocument();
+});
+```
+
+이 테스트는 `/posts/999`가 라우트 404가 아니라 리소스 404라는 계약을 고정한다.
+
+---
+
+## 테스트에서 자주 터지는 함정
+
+### 1. `BrowserRouter`를 테스트에 그대로 쓴다
+
+브라우저 히스토리에 의존하면 테스트가 느슨해지고 초기 경로를 주입하기 어렵다. 테스트에서는 `MemoryRouter`나 `createMemoryRouter`를 쓴다.
+
+### 2. loader 결과를 동기적으로 검증한다
+
+loader는 비동기일 수 있다. `getBy...`로 바로 찾지 말고 `findBy...`나 `waitFor`를 쓴다.
+
+### 3. `errorElement` 없이 성공 케이스만 테스트한다
+
+라우팅에서 중요한 회귀는 실패 경계에서 자주 난다. 404, 401, 500 같은 케이스를 최소 하나씩 고정한다.
+
+### 4. `basename`을 배포 경로와 따로 관리한다
+
+빌드 도구의 base path와 라우터의 `basename`이 다르면 로컬에서는 맞고 운영에서 깨진다. 배포 경로는 한 곳에서 관리한다.
+
+---
+
+## React Router 시리즈 복습 체크리스트
+
+React Router 1~12편을 마쳤다면 다음을 설명하고 구현할 수 있어야 한다.
+
+- URL을 화면 상태로 보고 route를 설계할 수 있다.
+- `BrowserRouter`, `Routes`, `Route`, `Link`, `NavLink`의 역할을 구분할 수 있다.
+- 중첩 라우트와 `<Outlet />`으로 공통 레이아웃을 구성할 수 있다.
+- params와 query string의 역할을 나눌 수 있다.
+- `useNavigate()`를 작업 성공, 복귀, replace 이동에 맞게 사용할 수 있다.
+- router hooks로 현재 URL 상태를 읽을 수 있다.
+- protected route가 UX 경계이고, 실제 보안은 서버에서 강제된다는 점을 설명할 수 있다.
+- 코드 로딩과 데이터 로딩을 분리해 fallback과 skeleton을 설계할 수 있다.
+- route config가 필요한 시점과 `useRoutes()`의 역할을 설명할 수 있다.
+- Data Router의 `loader`, `action`, `errorElement`를 사용할 수 있다.
+- 정적 호스팅 새로고침 404와 `basename` 문제를 설명할 수 있다.
+- `MemoryRouter`와 `createMemoryRouter`로 라우팅 테스트를 작성할 수 있다.
 
 ---
 
 ## Vue Router와 비교
 
-Vue Router도 메모리 히스토리로 테스트한다. React Router는 `MemoryRouter` 또는 `createMemoryRouter`를 써서 “현재 경로를 주입하고 결과 UI를 검증”하는 방식이 기본이다.
+운영과 테스트 문제는 Vue Router에서도 거의 같다.
 
-| 관심사 | Vue Router | React Router |
-| --- | --- | --- |
-| 테스트용 라우터 | `createMemoryHistory` | `MemoryRouter` / `createMemoryRouter` |
-| 초기 경로 주입 | history 초기값 | `initialEntries` |
-| Data 로딩 테스트 | 컴포넌트/스토어 mocking | loader/action을 라우트 정의에 주입 |
+| 관심사               | Vue Router               | React Router                          |
+| -------------------- | ------------------------ | ------------------------------------- |
+| 정적 호스팅 fallback | history mode에서 필요    | Browser Router에서 필요               |
+| 해시 라우팅          | `createWebHashHistory()` | `HashRouter`                          |
+| 하위 경로 배포       | history base             | `basename`                            |
+| 테스트용 라우터      | memory history           | `MemoryRouter` / `createMemoryRouter` |
+| 라우트 데이터 테스트 | store/query mocking      | loader/action 주입                    |
 
+Vue Router의 history mode를 써봤다면 새로고침 404 문제는 낯설지 않다. React Router도 같은 이유로 서버 fallback 또는 해시 라우팅 선택이 필요하다.
+
+---
+
+## 체크리스트
+
+- SPA 정적 호스팅에서 새로고침 404가 나는 이유를 설명할 수 있다.
+- SPA fallback rewrite의 역할을 설명할 수 있다.
+- `HashRouter`가 어떤 상황에서 우회책이 되는지 설명할 수 있다.
+- 하위 경로 배포에서 `basename`을 설정할 수 있다.
+- `MemoryRouter`로 컴포넌트 라우터 테스트를 작성할 수 있다.
+- `createMemoryRouter`로 Data Router 테스트를 작성할 수 있다.
+- loader 에러와 `errorElement`를 테스트할 수 있다.
+- React Router 1~12편의 핵심 개념을 작은 앱 구조로 연결할 수 있다.

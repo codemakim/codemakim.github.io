@@ -1,0 +1,274 @@
+---
+title: "[Next.js 고급 3/12] Server Actions와 Forms"
+date: "2025-09-09"
+description: "Server Actions를 앱 내부 mutation과 폼 제출 경계로 설계한다"
+tags: ["Next.js", "React", "중급", "프론트엔드"]
+series: "Next.js 고급"
+seriesOrder: 3
+---
+
+# Server Actions와 Forms
+
+폼 제출 하나 때문에 API 엔드포인트, 클라이언트 fetch, 로딩 상태, 에러 응답 타입을 따로 만들다 보면 실제 비즈니스 로직보다 배관 코드가 더 커진다. Server Action은 이 문제를 줄이기 위한 도구다.
+
+다만 Server Action은 외부 API의 대체재가 아니다. 앱 내부에서 폼을 제출하고 데이터를 변경하는 경계에 가장 잘 맞는다. 외부 클라이언트, 웹훅, CORS, 공개 HTTP API가 필요하면 Route Handler가 더 자연스럽다.
+
+---
+
+## 왜 필요한가
+
+게시글 작성 폼은 다음 흐름을 가진다.
+
+1. 사용자가 제목과 본문을 입력한다.
+2. 서버에서 값을 검증한다.
+3. DB에 저장한다.
+4. 목록 캐시를 무효화한다.
+5. 성공하면 상세 페이지로 이동한다.
+6. 검증 실패는 같은 화면에 표시한다.
+
+전통적인 방식에서는 `/api/posts`를 만들고, 클라이언트에서 `fetch`를 호출하고, 응답 타입을 맞춘다. Server Action은 이 흐름을 `<form action={action}>`에 직접 연결한다.
+
+---
+
+## 최소 예제
+
+```tsx
+// app/posts/actions.ts
+"use server";
+
+import { redirect } from "next/navigation";
+
+export async function createPost(formData: FormData) {
+  const title = String(formData.get("title") ?? "").trim();
+
+  if (!title) {
+    return;
+  }
+
+  const post = await db.post.create({
+    data: { title },
+  });
+
+  redirect(`/posts/${post.slug}`);
+}
+```
+
+```tsx
+// app/posts/new/page.tsx
+import { createPost } from "../actions";
+
+export default function NewPostPage() {
+  return (
+    <form action={createPost}>
+      <label htmlFor="title">제목</label>
+      <input id="title" name="title" required />
+      <button type="submit">저장</button>
+    </form>
+  );
+}
+```
+
+`"use server"`는 이 파일의 export가 서버에서 실행된다는 경계를 만든다. 폼이 제출되면 Next.js는 내부적으로 `POST` 요청을 보내 Server Action을 호출한다.
+
+---
+
+## 검증 실패는 return, 시스템 실패는 throw
+
+폼에서 발생하는 실패는 성격이 다르다.
+
+- 제목이 비어 있음: 사용자가 고칠 수 있는 검증 실패
+- DB 연결 실패: 사용자가 고칠 수 없는 시스템 실패
+- 저장 성공 후 이동: `redirect`
+
+이 세 가지를 섞으면 UI가 불안정해진다.
+
+```tsx
+// app/posts/actions.ts
+"use server";
+
+import { revalidateTag, updateTag } from "next/cache";
+import { redirect } from "next/navigation";
+
+type CreatePostState = {
+  ok: boolean;
+  message: string;
+};
+
+export async function createPost(
+  _prevState: CreatePostState,
+  formData: FormData,
+): Promise<CreatePostState> {
+  const title = String(formData.get("title") ?? "").trim();
+  const content = String(formData.get("content") ?? "").trim();
+
+  if (title.length < 2) {
+    return { ok: false, message: "제목은 2자 이상이어야 한다." };
+  }
+
+  if (!content) {
+    return { ok: false, message: "본문을 입력해야 한다." };
+  }
+
+  const post = await db.post.create({
+    data: { title, content },
+  });
+
+  updateTag("posts");
+  revalidateTag(`post-${post.slug}`, "max");
+  redirect(`/posts/${post.slug}`);
+}
+```
+
+`return`은 같은 폼에서 보여줄 수 있는 검증 결과에 쓴다. `throw`는 `error.tsx`가 처리할 시스템 실패에 쓴다. `redirect`는 성공 후 탐색에 쓴다.
+
+---
+
+## `useActionState`로 폼 상태 연결
+
+검증 메시지를 화면에 보여주려면 Client Component에서 `useActionState`를 쓴다.
+
+```tsx
+// app/posts/new/PostForm.tsx
+"use client";
+
+import { useActionState } from "react";
+import { createPost } from "../actions";
+import { SubmitButton } from "./SubmitButton";
+
+const initialState = {
+  ok: true,
+  message: "",
+};
+
+export function PostForm() {
+  const [state, formAction] = useActionState(createPost, initialState);
+
+  return (
+    <form action={formAction}>
+      <label htmlFor="title">제목</label>
+      <input id="title" name="title" minLength={2} required />
+
+      <label htmlFor="content">본문</label>
+      <textarea id="content" name="content" required />
+
+      {!state.ok ? <p role="alert">{state.message}</p> : null}
+
+      <SubmitButton />
+    </form>
+  );
+}
+```
+
+`useActionState`는 이전 상태와 form action을 연결한다. 서버 검증 결과를 클라이언트 상태처럼 다룰 수 있지만, 실제 검증은 서버에서 수행된다.
+
+---
+
+## `useFormStatus`로 중복 제출 막기
+
+제출 버튼은 별도 컴포넌트로 분리해야 `useFormStatus`가 현재 form의 상태를 읽을 수 있다.
+
+```tsx
+// app/posts/new/SubmitButton.tsx
+"use client";
+
+import { useFormStatus } from "react-dom";
+
+export function SubmitButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <button type="submit" disabled={pending}>
+      {pending ? "저장 중" : "저장"}
+    </button>
+  );
+}
+```
+
+중복 제출 방지는 UX 문제가 아니라 데이터 정합성 문제다. 버튼 비활성화는 최소 방어선이고, 서버에서는 필요하면 idempotency key나 고유 제약으로 한 번 더 막아야 한다.
+
+---
+
+## 캐시 무효화의 첫 기준
+
+Server Action은 변경 이후 캐시를 갱신하는 지점이기도 하다.
+
+```tsx
+"use server";
+
+import { revalidatePath, revalidateTag, updateTag } from "next/cache";
+
+export async function publishPost(postId: string) {
+  await db.post.update({
+    where: { id: postId },
+    data: { published: true },
+  });
+
+  updateTag("admin-posts");
+  revalidateTag("public-posts", "max");
+  revalidatePath("/posts");
+}
+```
+
+선택 기준은 다음과 같다.
+
+- `updateTag`: Server Action 안에서 read-your-own-writes가 필요할 때
+- `revalidateTag(tag, "max")`: 공개 콘텐츠처럼 stale-while-revalidate가 괜찮을 때
+- `revalidatePath`: 특정 경로의 UI를 다시 계산해야 할 때
+
+자세한 캐시 전략은 4편과 5편에서 분리해 다룬다.
+
+---
+
+## Route Handler와 역할 비교
+
+Server Action은 앱 내부 mutation에 강하다. 반면 Route Handler는 HTTP 경계를 직접 설계해야 할 때 쓴다.
+
+| 상황                          | 더 적합한 도구 |
+| ----------------------------- | -------------- |
+| 내부 관리자 폼 제출           | Server Action  |
+| 버튼 클릭으로 게시글 발행     | Server Action  |
+| 외부 CMS 웹훅 수신            | Route Handler  |
+| 모바일 앱에서 호출할 공개 API | Route Handler  |
+| CORS 헤더 제어                | Route Handler  |
+| Stripe/GitHub 웹훅 서명 검증  | Route Handler  |
+
+Server Action을 공개 API처럼 사용하려고 하면 인증, 버전 관리, CORS, HTTP 상태 코드 설계가 어색해진다.
+
+---
+
+## Static export 제약
+
+GitHub Pages 같은 static export 배포에는 요청 시점의 서버가 없다. 따라서 Server Action은 그대로 동작하지 않는다. 이 프로젝트처럼 `output: "export"`를 쓰는 블로그에서 서버 변경 작업이 필요하면 다음 중 하나를 선택해야 한다.
+
+- Supabase 같은 외부 백엔드를 클라이언트에서 호출한다.
+- 별도 API 서버를 둔다.
+- 서버 기능이 필요한 경로는 Vercel/Node 서버 배포로 옮긴다.
+- 정적 사이트는 읽기 전용으로 유지하고 변경은 빌드 파이프라인에서 처리한다.
+
+Server Action은 좋은 추상화지만 배포 타깃과 분리해 생각할 수 없다.
+
+---
+
+## Nuxt와 비교
+
+Nuxt에서는 서버 API와 form handling을 Nitro server routes, server actions 성격의 유틸, composable 조합으로 구성한다. Next.js Server Action은 React form과 직접 연결된다는 점이 다르다.
+
+| 기준            | Nuxt                      | Next.js                                        |
+| --------------- | ------------------------- | ---------------------------------------------- |
+| 내부 mutation   | server route + composable | Server Action                                  |
+| 폼 pending 상태 | Vue 상태/composable       | `useFormStatus`                                |
+| 검증 결과       | 응답 객체 설계            | action state 반환                              |
+| 성공 후 이동    | `navigateTo`              | `redirect`                                     |
+| 캐시 무효화     | Nitro/데이터 계층 전략    | `revalidatePath`, `revalidateTag`, `updateTag` |
+
+---
+
+## 체크리스트
+
+- Server Action을 외부 API가 아니라 앱 내부 mutation 경계로 설명할 수 있다.
+- `"use server"` 파일과 `<form action={action}>` 흐름을 구성할 수 있다.
+- 검증 실패는 `return`, 시스템 실패는 `throw`, 성공 후 이동은 `redirect`로 나눌 수 있다.
+- `useActionState`와 `useFormStatus`의 역할을 구분할 수 있다.
+- 중복 제출 방지를 클라이언트 UX와 서버 정합성 양쪽에서 생각할 수 있다.
+- `updateTag`, `revalidateTag(tag, "max")`, `revalidatePath`의 첫 선택 기준을 설명할 수 있다.
+- static export에서 Server Action이 제한된다는 점을 배포 설계에 반영할 수 있다.

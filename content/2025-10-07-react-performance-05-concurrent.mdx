@@ -1,0 +1,370 @@
+---
+title: "[React 성능 5/5] Concurrent React — 중요한 업데이트를 먼저 보여준다"
+date: "2025-10-07"
+description: "useTransition, useDeferredValue, Suspense로 UI 우선순위를 제어하는 방법"
+tags: ["React", "성능", "고급", "프론트엔드"]
+series: "React 성능"
+seriesOrder: 5
+---
+
+# Concurrent React — 중요한 업데이트를 먼저 보여준다
+
+성능 최적화는 모든 작업을 빠르게 만드는 것만이 아니다. 어떤 업데이트가 먼저 보여야 하는지 정하는 것도 성능 설계다. 사용자가 타이핑하는 입력은 즉시 반응해야 하고, 검색 결과 목록은 한 박자 늦게 따라와도 된다.
+
+Concurrent React의 핵심은 이 우선순위 차이를 UI에 표현하는 것이다. `useTransition`과 `useDeferredValue`는 느린 일을 없애지 않는다. 중요한 업데이트를 먼저 보여주고, 덜 급한 업데이트를 interruptible하게 만든다.
+
+---
+
+## 오늘 풀 문제
+
+검색 화면을 생각해보자.
+
+- 입력창에는 사용자가 누른 글자가 즉시 보여야 한다.
+- 검색 결과 목록은 필터링과 렌더링이 비싸다.
+- 새 결과를 가져오는 동안 이전 결과를 갑자기 loading fallback으로 바꾸면 화면이 튄다.
+
+나쁜 구조는 입력 state와 결과 렌더를 같은 우선순위로 묶는 것이다. 사용자는 글자를 입력했을 뿐인데, React는 큰 목록 렌더까지 같이 처리하려고 한다.
+
+Concurrent React는 이 둘을 나눈다.
+
+- urgent update: 입력, 클릭, 포커스처럼 즉시 반응해야 하는 업데이트
+- transition update: 탭 전환, 검색 결과, 큰 목록 렌더처럼 잠시 늦어도 되는 업데이트
+
+---
+
+## 정신 모델: 빠르게가 아니라 먼저
+
+`startTransition`은 코드를 더 빠르게 실행하지 않는다. transition으로 표시된 업데이트를 urgent update보다 낮은 우선순위로 둔다.
+
+```txt
+사용자 입력
+  → input value 업데이트: urgent
+  → 검색 결과 업데이트: transition 또는 deferred
+
+urgent가 오면 transition 작업은 중단/재시작될 수 있다.
+```
+
+이 모델에서 목표는 “모든 렌더를 즉시 끝낸다”가 아니다. 사용자가 직접 조작 중인 UI가 먼저 반응하고, 무거운 결과는 뒤따라오는 것이다.
+
+---
+
+## `useTransition`: 업데이트를 transition으로 표시한다
+
+탭 버튼은 즉시 반응해야 하지만 탭 콘텐츠 렌더는 무거울 수 있다.
+
+```tsx
+"use client";
+
+import { useState, useTransition } from "react";
+
+type Tab = "profile" | "orders" | "settings";
+
+function TabContent({ tab }: { tab: Tab }) {
+  if (tab === "orders") {
+    return <OrderHistory />;
+  }
+
+  if (tab === "settings") {
+    return <SettingsPanel />;
+  }
+
+  return <ProfileSummary />;
+}
+
+export function AccountTabs() {
+  const [tab, setTab] = useState<Tab>("profile");
+  const [isPending, startTransition] = useTransition();
+
+  function selectTab(nextTab: Tab) {
+    startTransition(() => {
+      setTab(nextTab);
+    });
+  }
+
+  return (
+    <section>
+      <nav>
+        <button type="button" onClick={() => selectTab("profile")}>
+          프로필
+        </button>
+        <button type="button" onClick={() => selectTab("orders")}>
+          주문
+        </button>
+        <button type="button" onClick={() => selectTab("settings")}>
+          설정
+        </button>
+      </nav>
+      {isPending ? <p>화면을 준비하는 중</p> : null}
+      <TabContent tab={tab} />
+    </section>
+  );
+}
+```
+
+`isPending`은 transition 작업이 진행 중임을 알려준다. 사용자는 버튼 클릭 반응을 먼저 보고, 무거운 콘텐츠는 준비되는 대로 본다.
+
+---
+
+## 입력 state를 transition 안에 넣지 않는다
+
+다음 코드는 좋지 않다.
+
+```tsx
+function BadSearchInput() {
+  const [query, setQuery] = useState("");
+  const [, startTransition] = useTransition();
+
+  return (
+    <input
+      value={query}
+      onChange={(event) => {
+        startTransition(() => {
+          setQuery(event.target.value);
+        });
+      }}
+    />
+  );
+}
+```
+
+controlled input의 `value`는 urgent update여야 한다. 사용자가 입력한 글자는 즉시 반영되어야 한다. transition은 입력값 자체가 아니라 입력값으로 인해 발생하는 무거운 결과 업데이트에 사용한다.
+
+---
+
+## `useDeferredValue`: 값의 사용을 늦춘다
+
+`useDeferredValue`는 어떤 값을 받아 “조금 늦게 따라오는 값”을 만든다.
+
+```tsx
+"use client";
+
+import { Suspense, useDeferredValue, useState } from "react";
+
+function SearchResults({ query }: { query: string }) {
+  return <ProductResults query={query} />;
+}
+
+export function ProductSearch() {
+  const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
+  const isStale = query !== deferredQuery;
+
+  return (
+    <section>
+      <input
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        placeholder="상품 검색"
+      />
+      <div style={{ opacity: isStale ? 0.5 : 1 }}>
+        <Suspense fallback={<p>검색 결과를 불러오는 중</p>}>
+          <SearchResults query={deferredQuery} />
+        </Suspense>
+      </div>
+    </section>
+  );
+}
+```
+
+`query`는 즉시 바뀐다. `deferredQuery`는 React가 background render를 완료할 수 있을 때 따라온다. 새 결과가 준비되는 동안 이전 결과를 유지할 수 있어 fallback 깜빡임이 줄어든다.
+
+중요한 제한이 있다. `useDeferredValue`는 네트워크 요청 자체를 줄이지 않는다. 입력마다 데이터 요청을 만들고 있다면 debounce, cache, request cancellation 같은 데이터 계층 전략이 별도로 필요하다.
+
+---
+
+## `useTransition`과 `useDeferredValue`의 차이
+
+| 기준         | `useTransition`             | `useDeferredValue`               |
+| ------------ | --------------------------- | -------------------------------- |
+| 제어 대상    | 특정 state update           | 값의 소비 시점                   |
+| 필요한 것    | setState를 호출하는 위치    | 이미 받은 value                  |
+| 대표 상황    | 탭 전환, route-like UI 전환 | 검색어로 큰 결과 렌더            |
+| pending 표시 | `isPending` 제공            | `value !== deferredValue`로 판단 |
+
+직접 state update를 감쌀 수 있으면 `useTransition`이 맞다. 부모나 외부 훅에서 내려온 값의 사용을 늦추고 싶으면 `useDeferredValue`가 맞다.
+
+---
+
+## Suspense와 함께 쓸 때
+
+Concurrent 기능은 Suspense와 같이 쓸 때 화면 전환 품질에 큰 영향을 준다.
+
+```tsx
+"use client";
+
+import { Suspense, useState, useTransition } from "react";
+
+export function ReportTabs() {
+  const [reportId, setReportId] = useState("daily");
+  const [isPending, startTransition] = useTransition();
+
+  function selectReport(nextReportId: string) {
+    startTransition(() => {
+      setReportId(nextReportId);
+    });
+  }
+
+  return (
+    <section>
+      <button type="button" onClick={() => selectReport("daily")}>
+        일간
+      </button>
+      <button type="button" onClick={() => selectReport("monthly")}>
+        월간
+      </button>
+      {isPending ? <p>새 리포트를 준비하는 중</p> : null}
+      <Suspense fallback={<p>리포트를 불러오는 중</p>}>
+        <Report id={reportId} />
+      </Suspense>
+    </section>
+  );
+}
+```
+
+transition 안에서 발생한 업데이트가 suspend되면 React는 기존 UI를 급하게 fallback으로 바꾸지 않고, 준비된 화면을 유지하려고 한다. 사용자는 갑작스러운 화면 사라짐 대신 pending 표시를 볼 수 있다.
+
+---
+
+## async 작업 후 state update 주의
+
+`startTransition` 안에서 `await` 이후에 실행되는 state update는 별도 처리가 필요할 수 있다. 안전한 형태는 await 이후 setState도 다시 transition으로 감싸는 것이다.
+
+```tsx
+import { useState, useTransition } from "react";
+
+export function SaveAndRefreshButton() {
+  const [result, setResult] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  async function handleClick() {
+    startTransition(async () => {
+      const response = await fetch("/api/report");
+      const data = (await response.json()) as { message: string };
+
+      startTransition(() => {
+        setResult(data.message);
+      });
+    });
+  }
+
+  return (
+    <button type="button" onClick={handleClick} disabled={isPending}>
+      {result ?? "리포트 갱신"}
+    </button>
+  );
+}
+```
+
+비동기 action과 transition의 세부 동작은 React 버전에 따라 개선되고 있다. 핵심은 “await 이후의 업데이트가 어떤 우선순위로 처리되는지”를 명시적으로 확인하는 것이다.
+
+---
+
+## 실무 예제: 검색 화면의 책임 분리
+
+검색 화면은 보통 세 계층을 가진다.
+
+- 입력값: urgent state
+- 데이터 요청: React Query/SWR/프레임워크 데이터 계층
+- 결과 렌더: deferred 또는 transition 대상
+
+```tsx
+"use client";
+
+import { useDeferredValue, useMemo, useState } from "react";
+
+type Product = {
+  id: string;
+  name: string;
+};
+
+export function LocalProductSearch({ products }: { products: Product[] }) {
+  const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
+
+  const filteredProducts = useMemo(() => {
+    const normalizedQuery = deferredQuery.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return products;
+    }
+
+    return products.filter((product) =>
+      product.name.toLowerCase().includes(normalizedQuery),
+    );
+  }, [deferredQuery, products]);
+
+  const isStale = query !== deferredQuery;
+
+  return (
+    <section>
+      <input value={query} onChange={(event) => setQuery(event.target.value)} />
+      <div aria-busy={isStale} style={{ opacity: isStale ? 0.6 : 1 }}>
+        {filteredProducts.map((product) => (
+          <div key={product.id}>{product.name}</div>
+        ))}
+      </div>
+    </section>
+  );
+}
+```
+
+입력은 즉시 반영된다. 큰 필터링과 목록 렌더는 deferred query를 따라간다. 사용자는 입력 반응성을 유지하면서 결과가 따라오는 것을 본다.
+
+---
+
+## 망하는 패턴
+
+### 모든 setState를 transition으로 감싼다
+
+입력, 체크박스, 포커스처럼 즉시 반응해야 하는 state를 transition으로 만들면 사용자 조작이 늦게 반영될 수 있다.
+
+### transition을 성능 향상 함수로 오해한다
+
+transition은 작업량을 줄이지 않는다. 큰 리스트 5000개를 렌더하는 비용은 여전히 존재한다. 필요하면 4편의 가상화와 함께 써야 한다.
+
+### `useDeferredValue`를 debounce로 오해한다
+
+고정 지연 시간이 있는 debounce가 아니다. React가 urgent update를 먼저 처리하고 background render를 시도하는 모델이다. 네트워크 요청 수를 줄이지도 않는다.
+
+### pending 표시가 너무 공격적이다
+
+짧은 transition마다 큰 spinner를 보여주면 화면이 더 불안정해 보인다. 기존 화면을 유지하고 작은 pending 표시만 보여주는 편이 낫다.
+
+---
+
+## Vue와 비교
+
+Vue에는 React Concurrent와 직접 대응하는 업데이트 우선순위 API가 없다. Vue는 반응성 추적과 scheduler를 내부적으로 사용하지만, 개발자가 `useTransition`처럼 특정 업데이트를 transition으로 표시하는 모델은 React 쪽이 더 명시적이다.
+
+| 목표                   | Vue                            | React                               |
+| ---------------------- | ------------------------------ | ----------------------------------- |
+| 입력과 결과 렌더 분리  | debounce, watch, computed 구조 | `useDeferredValue`, `useTransition` |
+| 큰 리스트 처리         | 가상화 라이브러리              | 가상화 라이브러리                   |
+| pending 표시           | 직접 상태 관리                 | `isPending`                         |
+| Suspense fallback 제어 | Suspense/async component       | Suspense + transition               |
+
+프레임워크 차이보다 중요한 것은 urgent update와 non-urgent update를 구분하는 사고다.
+
+---
+
+## 마스터 체크
+
+**Q1. `useTransition`과 `useDeferredValue`의 역할 차이는 무엇인가?**
+
+`useTransition`은 특정 state update를 transition으로 표시한다. `useDeferredValue`는 값의 소비를 늦춘 deferred value를 만든다. setState 위치를 제어할 수 있으면 transition, 값만 내려받으면 deferred value가 맞다.
+
+**Q2. `startTransition` 안에서 사용자 입력 state를 업데이트하면 왜 문제가 되는가?**
+
+controlled input의 `value`는 urgent update여야 한다. transition으로 늦추면 사용자가 입력한 글자가 즉시 보이지 않을 수 있다.
+
+**Q3. `isPending`을 언제 UI에 표시해야 하는가?**
+
+transition이 사용자가 인지할 만큼 길어질 때 표시한다. 기존 화면을 유지하면서 작은 상태 표시를 주는 것이 보통 안정적이다.
+
+**Q4. `useDeferredValue`를 써도 네트워크 요청이 줄지 않는 이유는 무엇인가?**
+
+`useDeferredValue`는 렌더링 우선순위와 값 소비 시점을 다룬다. 데이터 요청 생성 자체는 데이터 계층의 문제이므로 debounce, cache, cancellation을 별도로 설계해야 한다.
+
+**Q5. Concurrent React를 가상화와 함께 써야 하는 경우는 언제인가?**
+
+목록 자체가 크면 transition만으로 작업량이 줄지 않는다. 가상화로 DOM/렌더 노드 수를 줄이고, transition/deferred value로 입력 반응성을 지키는 조합이 필요하다.

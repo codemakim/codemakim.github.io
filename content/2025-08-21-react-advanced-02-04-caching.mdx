@@ -2,150 +2,264 @@
 title: "[React Query 4/8] React Query - 캐싱 전략"
 date: "2025-08-27"
 description: "Stale Time, Cache Time, Query Invalidation"
-tags: ["React", "고급", "프론트엔드"]
+tags: ["React", "중급", "프론트엔드"]
 series: "React Query"
 seriesOrder: 4
 ---
 
 # React Query 가이드 - 캐싱 전략
 
-> TanStack Query v5를 기반으로 한 데이터 페칭 학습 자료  
-> 출처: [TanStack Query Documentation](https://tanstack.com/query/)
+1~3편에서는 React Query를 설정하고, `useQuery`로 읽고, `useMutation`으로 쓰는 흐름을 다뤘다. 이제부터는 "가져온 데이터를 얼마나 믿고, 언제 다시 가져올 것인가"를 정해야 한다.
+
+캐싱은 데이터를 오래 들고 있는 기술이 아니다. 사용자가 같은 화면을 다시 열었을 때 빠르게 보여주면서도, 서버의 최신 상태와 너무 멀어지지 않게 조절하는 기준이다.
 
 ---
 
-## 캐싱 전략
+## 왜 필요한가
 
-캐싱 전략은 단순히 staleTime 값을 정하는 문제가 아니다. 실무에서는 다음을 결정해야 한다.
+`useQuery`를 쓰면 같은 `queryKey`의 요청은 캐시에 저장된다. 그래서 목록에서 상세로 갔다가 뒤로 돌아올 때 이전 목록이 즉시 보이고, 같은 데이터를 여러 컴포넌트가 요청해도 중복 요청이 줄어든다.
 
-- 어떤 데이터를 캐시할지
-- 캐시 키(queryKey)를 어떻게 설계할지
-- 언제 리페치할지(신선도 정책)
-- 변경 이후 어떤 범위를 최신화할지(무효화/직접 업데이트)
+하지만 캐시는 항상 두 가지 질문을 만든다.
+
+- 지금 화면의 데이터는 아직 믿을 수 있는가
+- 서버에서 값이 바뀌었을 때 어떤 캐시를 다시 맞춰야 하는가
+
+예를 들어 게시글 목록은 30초 정도 낡아도 큰 문제가 없을 수 있다. 반대로 결제 상태나 재고 수량은 탭을 다시 열 때마다 최신화하는 편이 안전하다. 같은 React Query를 쓰더라도 도메인에 따라 캐시 정책이 달라져야 한다.
+
+캐싱 전략은 `staleTime` 하나를 고르는 문제가 아니다. 다음 네 가지를 함께 정하는 작업이다.
+
+- `queryKey`로 캐시 주소를 어떻게 나눌 것인가
+- 데이터가 fresh에서 stale로 바뀌는 시간을 어떻게 둘 것인가
+- 화면을 떠난 캐시를 메모리에 얼마나 남길 것인가
+- mutation 이후 어떤 범위를 무효화하거나 직접 수정할 것인가
 
 ---
 
-## 1. 캐시의 상태 모델: fresh / stale / inactive
+## 원리: fresh, stale, inactive를 구분한다
 
-- fresh: `staleTime` 안에 있는 데이터다. 자동 리페치가 억제되는 구간이 된다.
-- stale: `staleTime`이 지난 데이터다. 여전히 캐시로 즉시 렌더링할 수 있지만, 정책에 따라 리페치가 일어난다.
-- inactive: 현재 이 쿼리를 구독하는 컴포넌트가 0개인 상태다. v5에서는 `gcTime` 이후에 제거 대상이 된다.
+React Query 캐시는 크게 세 상태로 이해하면 된다.
 
-이 모델을 이해하면 “왜 지금 리페치가 일어났는가”를 설명할 수 있다.
+| 상태     | 의미                         | 화면 영향                                              |
+| -------- | ---------------------------- | ------------------------------------------------------ |
+| fresh    | `staleTime` 안에 있는 데이터 | 같은 키를 다시 써도 보통 새 요청을 보내지 않는다       |
+| stale    | 신선도 시간이 지난 데이터    | 캐시를 보여줄 수 있지만 조건에 따라 다시 가져온다      |
+| inactive | 구독 중인 컴포넌트가 없음    | 바로 삭제되지 않고 `gcTime` 동안 메모리에 남을 수 있다 |
+
+여기서 중요한 점은 stale이 "사용하면 안 되는 데이터"가 아니라는 것이다. stale 데이터도 화면에 즉시 렌더링할 수 있다. 다만 React Query는 이 데이터를 오래된 사본으로 보고, 마운트나 포커스 복귀 같은 트리거에서 백그라운드 리페치를 시도할 수 있다.
 
 ---
 
-## 2. staleTime과 gcTime(v5)을 분리한다
+## 기준: staleTime과 gcTime은 다른 질문이다
 
-TanStack Query v5 기준으로 정리한다.
+`staleTime`과 `gcTime`은 이름이 비슷해도 완전히 다른 축이다.
 
-| 옵션 | 의미 | 실무 영향 |
-| --- | --- | --- |
-| `staleTime` | 신선도 | 리페치 빈도, UX(깜빡임/백그라운드 갱신) |
-| `gcTime` | 메모리 유지 | 화면 재진입 시 캐시 재사용 여부, 메모리 사용량 |
+| 옵션        | 묻는 질문                                | 값이 길 때의 효과                             |
+| ----------- | ---------------------------------------- | --------------------------------------------- |
+| `staleTime` | 이 데이터를 얼마나 fresh로 볼 것인가     | 리페치가 줄지만 최신성은 늦게 맞춰질 수 있다  |
+| `gcTime`    | 아무도 안 보는 캐시를 얼마나 남길 것인가 | 재방문이 빠르지만 메모리 사용 시간이 길어진다 |
 
 ```tsx
 useQuery({
   queryKey: ["user", userId],
   queryFn: () => fetchUser(userId),
-  staleTime: 1000 * 60, // 1분
-  gcTime: 1000 * 60 * 10, // 10분
+  staleTime: 1000 * 60,
+  gcTime: 1000 * 60 * 10,
 });
 ```
 
----
-
-## 3. 리페치 트리거를 정책으로 고정한다
-
-리페치는 자동으로도 일어난다. 실무에서는 기본 정책을 통일하지 않으면 화면마다 UX가 달라진다.
-
-- `refetchOnWindowFocus`: 탭 복귀 시 최신화
-- `refetchOnReconnect`: 네트워크 복구 시 최신화
-- `refetchOnMount`: 마운트 시 리페치 여부
-
-데이터 최신성이 강하게 요구되는 화면(예: 알림, 결제 상태)은 트리거를 켜고, 그렇지 않은 화면은 끄는 식으로 나눈다.
+이 설정은 "사용자 상세는 1분 동안 fresh로 보고, 화면에서 사라져도 10분 동안 캐시를 메모리에 남긴다"는 뜻이다. 1분이 지나 stale이 되어도 10분 동안 메모리에 남아 있을 수 있다. 신선도와 보관 시간은 분리해서 생각해야 한다.
 
 ---
 
-## 4. 무효화(invalidate)는 “리페치 예약”이다
+## 최소 예제: 목록 캐시 정책을 명시한다
 
-무효화는 캐시를 삭제하는 행위가 아니다. 보통은 해당 쿼리를 stale로 만들고, 관찰자가 있다면 리페치를 트리거한다.
+게시글 목록은 자주 바뀌지만, 사용자가 몇 초 사이에 같은 목록을 여러 번 오갈 때마다 요청할 필요는 없다. 이 경우 짧은 `staleTime`과 적당한 `gcTime`을 줄 수 있다.
+
+```tsx
+import { useQuery } from "@tanstack/react-query";
+
+interface Post {
+  id: string;
+  title: string;
+}
+
+async function fetchPosts(): Promise<Post[]> {
+  const res = await fetch("/api/posts");
+  if (!res.ok) throw new Error("failed");
+  return (await res.json()) as Post[];
+}
+
+export function PostList() {
+  const query = useQuery({
+    queryKey: ["posts"],
+    queryFn: fetchPosts,
+    staleTime: 1000 * 30,
+    gcTime: 1000 * 60 * 5,
+  });
+
+  if (query.isPending) return <div>loading...</div>;
+  if (query.isError) return <div>error</div>;
+
+  return (
+    <ul>
+      {query.data.map((post) => (
+        <li key={post.id}>{post.title}</li>
+      ))}
+    </ul>
+  );
+}
+```
+
+이 코드는 다음 기준을 가진다.
+
+- 30초 안에 같은 목록을 다시 열면 fresh 데이터로 본다.
+- 목록 화면을 떠나도 5분 동안 캐시를 남긴다.
+- 30초가 지나 stale이 된 뒤 다시 마운트되면 백그라운드 리페치 대상이 될 수 있다.
+
+처음에는 이 정도로 충분하다. 모든 화면에 복잡한 정책을 넣기보다, 데이터 성격에 따라 기본값을 조금씩 조정한다.
+
+---
+
+## 실무 예제: 필터가 있는 목록의 캐시 주소
+
+캐시는 `queryKey`로 나뉜다. 그래서 같은 게시글 목록이라도 태그나 정렬이 다르면 다른 캐시 주소를 써야 한다.
+
+```tsx
+import { useQuery } from "@tanstack/react-query";
+
+interface Post {
+  id: string;
+  title: string;
+}
+
+interface PostFilters {
+  tag?: string;
+  sort: "latest" | "popular";
+}
+
+async function fetchPosts(filters: PostFilters): Promise<Post[]> {
+  const url = new URL("/api/posts", window.location.origin);
+  if (filters.tag) url.searchParams.set("tag", filters.tag);
+  url.searchParams.set("sort", filters.sort);
+
+  const res = await fetch(url.toString());
+  if (!res.ok) throw new Error("failed");
+  return (await res.json()) as Post[];
+}
+
+export function FilteredPostList({ filters }: { filters: PostFilters }) {
+  const query = useQuery({
+    queryKey: ["posts", "list", filters],
+    queryFn: () => fetchPosts(filters),
+    staleTime: 1000 * 30,
+  });
+
+  if (query.isPending) return <div>loading...</div>;
+  if (query.isError) return <div>error</div>;
+
+  return (
+    <ul>
+      {query.data.map((post) => (
+        <li key={post.id}>{post.title}</li>
+      ))}
+    </ul>
+  );
+}
+```
+
+`["posts", "list", { tag: "React", sort: "latest" }]`와 `["posts", "list", { tag: "React", sort: "popular" }]`는 다른 캐시다. 필터를 키에 넣지 않으면 서로 다른 목록이 같은 캐시에 섞인다.
+
+프로젝트가 커지면 query key 팩토리로 키 규칙을 고정한다.
+
+```tsx
+export const postKeys = {
+  all: ["posts"] as const,
+  lists: () => [...postKeys.all, "list"] as const,
+  list: (filters: { tag?: string; sort: "latest" | "popular" }) =>
+    [...postKeys.lists(), filters] as const,
+  details: () => [...postKeys.all, "detail"] as const,
+  detail: (postId: string) => [...postKeys.details(), postId] as const,
+};
+```
+
+이렇게 만들면 무효화 범위도 읽기 쉬워진다.
 
 ```tsx
 import { useQueryClient } from "@tanstack/react-query";
 
 const queryClient = useQueryClient();
-queryClient.invalidateQueries({ queryKey: ["users"] });
+
+queryClient.invalidateQueries({ queryKey: postKeys.all });
+queryClient.invalidateQueries({ queryKey: postKeys.detail(postId) });
 ```
 
-### 실무 포인트: 무효화 범위를 좁힌다
-
-`invalidateQueries()`를 남발하면 모든 쿼리가 리페치되어 성능이 무너진다. queryKey 설계를 먼저 잡고, 접두사/정확 일치/필터를 사용한다.
-
-```tsx
-queryClient.invalidateQueries({ queryKey: ["users"], exact: true });
-queryClient.invalidateQueries({ queryKey: ["user", userId] });
-```
+첫 번째는 게시글 관련 캐시 전체를 stale로 만들 수 있다. 두 번째는 특정 상세 캐시만 대상으로 삼는다. mutation 이후 어디까지 다시 맞출지 판단하려면 query key 구조가 먼저 정리되어 있어야 한다.
 
 ---
 
-## 5. 캐시 직접 업데이트는 “정합성 비용”과 교환한다
+## 무효화는 삭제가 아니라 다시 맞추기다
 
-목록에 새 항목을 추가하거나, 상세의 특정 필드를 바꾸는 경우 직접 업데이트가 UX를 크게 개선한다.
+`invalidateQueries`는 보통 캐시를 바로 삭제하는 API로 이해하기 쉽다. 실제로는 해당 쿼리를 stale로 표시하고, 활성 관찰자가 있으면 리페치를 트리거하는 쪽에 가깝다.
 
 ```tsx
-queryClient.setQueryData(["user", userId], (old: any) => {
-  if (!old) return old;
-  return { ...old, nickname: "kim" };
-});
+queryClient.invalidateQueries({ queryKey: ["posts"] });
 ```
 
-하지만 캐시를 직접 업데이트하는 순간, “어떤 쿼리들이 같은 도메인 데이터를 공유하는가”를 추적해야 한다. 그래서 실무에서는 다음 규칙이 필요하다.
+mutation 이후에는 서버와 캐시를 다시 맞춰야 한다. 이때 선택지는 크게 두 가지다.
 
-- 단일 쿼리만 영향을 받는 경우에만 setQueryData를 우선한다.
-- 다수의 목록/필터 조합이 영향을 받는 경우에는 invalidate가 더 안전하다.
+| 방식                | 적합한 상황                            | 주의점                                       |
+| ------------------- | -------------------------------------- | -------------------------------------------- |
+| `invalidateQueries` | 여러 목록과 상세가 함께 영향을 받을 때 | 네트워크 요청이 다시 발생한다                |
+| `setQueryData`      | 단일 캐시의 작은 필드만 확실히 바뀔 때 | 관련 캐시를 빠뜨리면 화면 간 불일치가 생긴다 |
+
+처음에는 `invalidateQueries`가 더 안전하다. 서버를 다시 읽어서 맞추기 때문이다. `setQueryData`는 사용자 경험을 크게 개선할 수 있지만, 어떤 캐시를 직접 고쳐야 하는지 명확할 때만 사용한다.
 
 ---
 
-## 6. Query Key 팩토리로 캐시 설계를 고정한다
+## 함정과 디버깅
 
-queryKey는 프로젝트 규모가 커질수록 흩어진다. 키를 한 곳에 모으면 무효화 범위가 명확해진다.
+### 1. `staleTime`을 캐시 삭제 시간으로 착각한다
 
-```tsx
-export const userKeys = {
-  all: ["users"] as const,
-  lists: () => [...userKeys.all, "list"] as const,
-  list: (filters: { page: number; role?: string }) => [...userKeys.lists(), filters] as const,
-  details: () => [...userKeys.all, "detail"] as const,
-  detail: (id: string) => [...userKeys.details(), id] as const,
-};
-```
+`staleTime`이 지나도 캐시가 바로 사라지지는 않는다. 단지 fresh에서 stale로 바뀐다. 캐시가 메모리에서 언제 사라지는지는 `gcTime`이 담당한다.
 
-이 구조는 “무효화 규칙”을 코드로 만든다.
+### 2. 필터 값을 queryKey에 넣지 않는다
 
-```tsx
-queryClient.invalidateQueries({ queryKey: userKeys.all });
-queryClient.invalidateQueries({ queryKey: userKeys.detail(userId) });
-```
+검색어, 태그, 정렬, 페이지 번호 같은 값이 서버 응답을 바꾸면 `queryKey`에도 들어가야 한다. 응답을 바꾸는 입력값이 키에 빠지면 캐시 오염이 생긴다.
+
+### 3. 모든 mutation 뒤에 전체 캐시를 무효화한다
+
+`queryClient.invalidateQueries()`처럼 범위 없는 무효화를 남발하면 화면 전체가 불필요하게 다시 가져와질 수 있다. query key 팩토리를 두고 도메인 단위, 목록 단위, 상세 단위로 범위를 좁힌다.
+
+### 4. `setQueryData`로 일부 캐시만 고친다
+
+상세 캐시는 바꿨는데 목록 캐시는 그대로면 같은 게시글의 제목이 화면마다 다르게 보인다. 직접 업데이트는 빠르지만 정합성 책임을 개발자가 가져간다.
+
+### 5. 리페치 트리거를 화면마다 다르게 둔다
+
+`refetchOnWindowFocus`, `refetchOnReconnect`, `refetchOnMount` 같은 옵션은 화면마다 제각각이면 사용자가 느끼는 동작이 달라진다. 전역 기본값을 정하고, 최신성이 중요한 화면에서만 예외를 둔다.
 
 ---
 
 ## Vue와 비교
 
-Vue에서도 Vue Query를 쓰면 캐시 모델은 동일하다. Pinia 중심으로 서버 상태를 관리하면 “staleTime/gcTime에 해당하는 정책”을 팀이 직접 구현하게 된다.
+Vue Query도 같은 캐시 모델을 쓴다. 차이는 React 컴포넌트에서 `useQuery`를 부르느냐, Vue 컴포저블에서 `useQuery`를 부르느냐다.
 
-| 관심사 | Vue Query | React Query |
-| --- | --- | --- |
-| 신선도/메모리 정책 | `staleTime`, `gcTime` | `staleTime`, `gcTime` |
-| 무효화 | `invalidateQueries` | `invalidateQueries` |
-| 키 팩토리 | composable/모듈 | 모듈 |
+| 관심사      | Vue Query           | React Query         |
+| ----------- | ------------------- | ------------------- |
+| 캐시 주소   | `queryKey`          | `queryKey`          |
+| 신선도      | `staleTime`         | `staleTime`         |
+| 메모리 유지 | `gcTime`            | `gcTime`            |
+| 무효화      | `invalidateQueries` | `invalidateQueries` |
+| 키 규칙     | composable/모듈     | 모듈                |
+
+Pinia에 서버 데이터를 직접 넣으면 `staleTime`, `gcTime`, 무효화 범위 같은 정책을 직접 만들어야 한다. Vue Query나 React Query를 쓰면 이 정책을 같은 어휘로 다룰 수 있다.
 
 ---
 
 ## 체크리스트
 
-- `staleTime`과 `gcTime`의 역할을 분리해서 설명할 수 있다.
-- 무효화가 “삭제”가 아니라 “stale 처리 + 리페치 트리거”라는 점을 이해한다.
-- queryKey 팩토리로 무효화 범위를 안정적으로 설계할 수 있다.
-
----
+- `staleTime`은 신선도, `gcTime`은 메모리 유지 시간이라는 차이를 설명할 수 있다.
+- stale 데이터가 화면에 즉시 렌더링될 수 있다는 점을 이해한다.
+- 서버 응답을 바꾸는 입력값을 `queryKey`에 포함해야 하는 이유를 설명할 수 있다.
+- mutation 이후 `invalidateQueries`와 `setQueryData` 중 무엇을 쓸지 판단할 수 있다.
+- query key 팩토리로 무효화 범위를 좁히는 기준을 설명할 수 있다.

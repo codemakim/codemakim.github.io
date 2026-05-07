@@ -1,223 +1,623 @@
 ---
-title: "[상태 관리 1/5] 상태 관리 - Zustand"
+title: "[상태 관리 2/6] Zustand — Provider 없이 전역 상태 공유하기"
 date: "2025-09-01"
-description: "Zustand의 구독 패턴과 사용법"
+description: "selector 구독 패턴, immer 미들웨어, persist로 영속 상태를 다루는 Zustand 실전 가이드"
 tags: ["React", "고급", "프론트엔드"]
 series: "상태 관리"
-seriesOrder: 1
+seriesOrder: 2
 ---
 
-# 상태 관리 - Zustand
-
-Zustand는 전역 상태를 최소한의 코드로 다루기 위한 라이브러리이다. 핵심은 구독(subscription) 모델과 selector 기반 리렌더링 제어다.
-
-이 시리즈에서 가장 중요한 전제는 “서버 상태”와 “클라이언트 상태”를 분리하는 것이다.
-
-- 서버 상태: 서버가 진실의 근원이다. React Query가 담당한다.
-- 클라이언트 상태: UI 흐름과 사용자 입력이 진실의 근원이다. 상태 관리 라이브러리가 담당한다.
-
-서버 상태까지 전역 store에 넣으면 캐시/리페치/경쟁 상태 비용을 직접 떠안게 된다.
+앞 글에서 상태를 네 가지(서버 / URL / 로컬 / 전역 클라이언트)로 분류했다. 이번 글은 그중 **전역 클라이언트 상태**를 Zustand로 다루는 방법을 다룬다.
 
 ---
 
-## 1. Zustand가 필요한 순간
+## 1. 오늘 풀 문제
 
-Zustand는 다음 요구가 강할 때 적합하다.
+다음 상황을 가정한다.
 
-- 여러 컴포넌트/페이지가 같은 UI 상태를 공유한다(모달, 토스트, 사이드바, 선택된 탭).
-- 상태 변경이 자주 일어난다(드래그, 필터 UI, 폼 편집 중 임시 저장).
-- Provider 트리를 늘리고 싶지 않다.
-- 전역 상태의 구조가 Redux까지는 필요 없을 정도로 단순하다.
+```
+AppShell
+├── Header          ← "장바구니 열기" 버튼
+└── CartDrawer      ← isOpen이 true일 때 노출
+```
 
-반대로 “데이터를 서버에서 가져온다”가 중심이면 Zustand가 아니라 React Query가 중심이 된다.
+`isOpen` 상태를 어디에 둘 것인가? 선택지는 세 가지다.
 
----
-
-## 2. 동작 원리: selector 기반 선택적 구독
-
-Zustand store는 React 컴포넌트 외부에 존재한다. 컴포넌트는 `useStore(selector)`로 필요한 조각만 구독한다.
-
-- `selector`가 뽑아낸 값이 바뀌면 리렌더링된다.
-- `selector`가 뽑아낸 값이 안 바뀌면 리렌더링되지 않는다.
-
-이 구조가 Context API의 “Provider value가 바뀌면 Consumer 전체가 리렌더링되는 문제”를 피하는 핵심이다.
-
----
-
-## 3. 최소 예제: 카운터 스토어
+**선택 1: AppShell에 useState, props drilling**
 
 ```tsx
+// AppShell.tsx
+const [isOpen, setIsOpen] = useState(false);
+
+return (
+  <>
+    <Header onOpen={() => setIsOpen(true)} />
+    <CartDrawer isOpen={isOpen} onClose={() => setIsOpen(false)} />
+  </>
+);
+```
+
+트리가 얕으면 무난하다. `Header` 아래에 `NavBar > UserMenu > CartButton`이 있다면 drilling이 3단계를 넘는다.
+
+**선택 2: Context API**
+
+```tsx
+const CartContext = createContext<{
+  isOpen: boolean;
+  open: () => void;
+  close: () => void;
+} | null>(null);
+```
+
+Provider를 추가하면 drilling은 없어진다. 그러나 `isOpen`이 바뀔 때마다 `CartContext.Provider` 아래의 **모든 Consumer가 리렌더된다**. `Header`와 `CartDrawer`가 같은 Context를 구독하면, 장바구니 열릴 때 `Header`도 리렌더된다.
+
+**Zustand의 약속: 전역인데 Provider 없이, 구독한 컴포넌트만 리렌더**
+
+store는 React 트리 바깥에 존재한다. 컴포넌트는 selector로 필요한 조각만 구독한다. selector가 뽑은 값이 바뀔 때만 리렌더가 발생한다.
+
+---
+
+## 2. 정신 모델: React 트리 바깥의 공유 메모리
+
+```
+┌──────────────────────────────────────┐
+│ Zustand Store (React 트리 밖)         │
+│  { isOpen: false, open, close }      │
+└──────┬───────────────────────────────┘
+       │ selector 구독
+   ┌───┴───────────────────────────────┐
+   │        React 트리                  │
+   │                                   │
+   │  Header          CartDrawer       │
+   │  open 만 구독     isOpen, close 구독 │
+   └───────────────────────────────────┘
+```
+
+핵심 규칙은 세 가지다.
+
+1. store 전체를 구독하면 **store 안의 어떤 값이 바뀌어도** 리렌더된다.
+2. selector로 특정 조각만 구독하면 **그 조각이 바뀔 때만** 리렌더된다.
+3. 액션(set 호출)은 어디서나 가능하다 — React 컴포넌트 안, 이벤트 핸들러, 비동기 함수.
+
+---
+
+## 3. 최소 코드
+
+Zustand v4/v5 기준이다. 미들웨어 없이 단순 store를 만들 때는 `create<T>()`를 사용한다.
+
+```typescript
+import { create } from 'zustand'
+
+interface ModalStore {
+  isOpen: boolean
+  open: () => void
+  close: () => void
+}
+
+const useModalStore = create<ModalStore>((set) => ({
+  isOpen: false,
+  open: () => set({ isOpen: true }),
+  close: () => set({ isOpen: false }),
+}))
+
+// Header: open만 구독 → isOpen이 바뀌어도 리렌더되지 않는다
+function Header() {
+  const open = useModalStore((s) => s.open)
+  return <button onClick={open}>열기</button>
+}
+
+// Modal: isOpen, close만 구독
+function Modal() {
+  const isOpen = useModalStore((s) => s.isOpen)
+  const close = useModalStore((s) => s.close)
+  if (!isOpen) return null
+  return <dialog open onClose={close}>...</dialog>
+}
+```
+
+`open` 함수는 레퍼런스가 바뀌지 않기 때문에 `Header`는 장바구니가 열리고 닫혀도 리렌더되지 않는다. Context 방식과 결정적으로 다른 점이다.
+
+### 객체 selector와 shallow 비교
+
+여러 값을 한 번에 꺼낼 때 객체를 반환하면, 매 렌더마다 새 객체가 만들어져 리렌더가 발생한다.
+
+```typescript
+import { useShallow } from "zustand/react/shallow";
+
+// 잘못된 패턴: 매번 새 객체 → 항상 리렌더
+function Modal() {
+  const { isOpen, close } = useModalStore((s) => ({
+    isOpen: s.isOpen,
+    close: s.close,
+  }));
+  // ...
+}
+
+// 올바른 패턴: useShallow로 shallow 비교
+function Modal() {
+  const { isOpen, close } = useModalStore(
+    useShallow((s) => ({ isOpen: s.isOpen, close: s.close })),
+  );
+  // ...
+}
+```
+
+`useShallow`는 Zustand v4.4+에서 제공된다. v4 이전 버전은 `import { shallow } from 'zustand/shallow'`를 두 번째 인자로 넘긴다.
+
+---
+
+## 4. 실무 코드: immer + persist
+
+복잡한 상태 변이를 다룰 때 `immer` 미들웨어를 쓰면 불변성 코드를 줄인다. 미들웨어를 조합할 때는 `create<T>()()` 커리 형태가 필요하다.
+
+```typescript
+import { create } from "zustand";
+import { immer } from "zustand/middleware/immer";
+import { persist } from "zustand/middleware";
+
+interface CartItem {
+  id: string;
+  qty: number;
+  price: number;
+}
+
+interface CartStore {
+  items: CartItem[];
+  addItem: (item: { id: string; price: number }) => void;
+  removeItem: (id: string) => void;
+  clear: () => void;
+  total: () => number;
+}
+
+const useCartStore = create<CartStore>()(
+  persist(
+    immer((set, get) => ({
+      items: [],
+
+      addItem: (item) =>
+        set((state) => {
+          const existing = state.items.find((i) => i.id === item.id);
+          if (existing) {
+            existing.qty += 1;
+          } else {
+            state.items.push({ ...item, qty: 1 });
+          }
+        }),
+
+      removeItem: (id) =>
+        set((state) => {
+          state.items = state.items.filter((i) => i.id !== id);
+        }),
+
+      clear: () => set({ items: [] }),
+
+      // get()으로 현재 상태에 접근
+      total: () =>
+        get().items.reduce((sum, item) => sum + item.price * item.qty, 0),
+    })),
+    { name: "cart-storage" },
+  ),
+);
+```
+
+### devtools 미들웨어
+
+Redux DevTools 브라우저 확장과 연결된다. 미들웨어 적용 순서: `devtools(persist(immer(...)))`.
+
+```typescript
+import { create } from "zustand";
+import { devtools, persist } from "zustand/middleware";
+import { immer } from "zustand/middleware/immer";
+
+const useCartStore = create<CartStore>()(
+  devtools(
+    persist(
+      immer((set, get) => ({
+        items: [],
+        addItem: (item) =>
+          set(
+            (state) => {
+              const existing = state.items.find((i) => i.id === item.id);
+              if (existing) {
+                existing.qty += 1;
+              } else {
+                state.items.push({ ...item, qty: 1 });
+              }
+            },
+            false, // replace 여부 (false = merge)
+            "cart/addItem", // DevTools에 표시될 액션 이름
+          ),
+        removeItem: (id) =>
+          set(
+            (state) => {
+              state.items = state.items.filter((i) => i.id !== id);
+            },
+            false,
+            "cart/removeItem",
+          ),
+        clear: () => set({ items: [] }, false, "cart/clear"),
+        total: () =>
+          get().items.reduce((sum, item) => sum + item.price * item.qty, 0),
+      })),
+      { name: "cart-storage" },
+    ),
+    { name: "CartStore" },
+  ),
+);
+```
+
+### 비동기 액션 패턴
+
+Zustand는 비동기를 특별히 처리하지 않는다. 액션 함수 안에서 직접 `async/await`를 쓴다. 단, 로딩/에러 상태를 store에 함께 관리해야 한다.
+
+```typescript
 import { create } from "zustand";
 
-type CounterState = {
-  count: number;
-  increment: () => void;
-  decrement: () => void;
-  reset: () => void;
-};
+interface ProductStore {
+  products: { id: string; name: string; price: number }[];
+  loading: boolean;
+  error: string | null;
+  fetchProducts: (categoryId: string) => Promise<void>;
+}
 
-export const useCounterStore = create<CounterState>((set) => ({
-  count: 0,
-  increment: () => set((s) => ({ count: s.count + 1 })),
-  decrement: () => set((s) => ({ count: s.count - 1 })),
-  reset: () => set({ count: 0 }),
+const useProductStore = create<ProductStore>((set) => ({
+  products: [],
+  loading: false,
+  error: null,
+
+  fetchProducts: async (categoryId) => {
+    set({ loading: true, error: null });
+    try {
+      const res = await fetch(`/api/products?category=${categoryId}`);
+      if (!res.ok) {
+        throw new Error(`상품 조회 실패: ${res.status}`);
+      }
+      const data = await res.json();
+      set({ products: data, loading: false });
+    } catch (err) {
+      set({
+        loading: false,
+        error: err instanceof Error ? err.message : "알 수 없는 오류",
+      });
+    }
+  },
 }));
 ```
 
-컴포넌트에서는 selector로 필요한 것만 가져온다.
+단, **서버에서 받은 상품 목록 자체는 서버 상태다**. 위 패턴은 "React Query를 쓸 수 없는 환경"에서의 차선책이다. React Query를 쓸 수 있다면 `fetchProducts` 같은 액션은 Zustand에 두지 않는다.
 
-```tsx
-import { useCounterStore } from "./useCounterStore";
+### persist + SSR 주의점
 
-export function Counter() {
-  const count = useCounterStore((s) => s.count);
-  const inc = useCounterStore((s) => s.increment);
-  const dec = useCounterStore((s) => s.decrement);
-  const reset = useCounterStore((s) => s.reset);
+`persist` 미들웨어는 기본으로 `localStorage`를 사용한다. Next.js처럼 서버에서 렌더링이 일어나는 환경에서는 두 가지 문제가 생긴다.
 
-  return (
-    <div>
-      <div>{count}</div>
-      <button onClick={inc}>+</button>
-      <button onClick={dec}>-</button>
-      <button onClick={reset}>reset</button>
-    </div>
-  );
+**문제 1: `window is not defined`**
+
+서버에는 `localStorage`가 없다. `persist`는 `storage` 옵션으로 커스텀 스토리지를 주입할 수 있다.
+
+```typescript
+import { createJSONStorage } from "zustand/middleware";
+
+const useCartStore = create<CartStore>()(
+  persist(
+    immer((set, get) => ({
+      // ...
+    })),
+    {
+      name: "cart-storage",
+      // SSR 환경에서 localStorage가 없을 때 안전하게 처리
+      storage: createJSONStorage(() => {
+        if (typeof window === "undefined") return sessionStorage;
+        return localStorage;
+      }),
+    },
+  ),
+);
+```
+
+실제로는 `typeof window === 'undefined'` 분기에서 `sessionStorage`를 반환해도 서버에 없어서 오류가 생길 수 있다. 가장 안전한 방법은 SSR에서 persist를 아예 건너뛰는 것이다.
+
+```typescript
+storage: createJSONStorage(() =>
+  typeof window !== 'undefined' ? localStorage : ({} as Storage)
+),
+```
+
+**문제 2: hydration 불일치**
+
+서버는 초기값(빈 배열)으로 HTML을 만들고, 클라이언트는 `localStorage`에서 복원한 값으로 리렌더한다. 두 트리가 달라지면 React hydration 경고가 발생한다.
+
+Next.js App Router에서는 store를 구독하는 컴포넌트에 `suppressHydrationWarning`을 붙이거나, hydration이 완료된 뒤에만 렌더하는 래퍼를 사용한다.
+
+```typescript
+// 클라이언트에서만 렌더링이 필요한 컴포넌트 보호
+'use client'
+
+import { useEffect, useState } from 'react'
+
+function CartIcon() {
+  const [mounted, setMounted] = useState(false)
+  const items = useCartStore((s) => s.items)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) return <span>장바구니</span>  // 서버 렌더링 결과와 일치하는 플레이스홀더
+  return <span>장바구니 ({items.length})</span>
 }
 ```
 
 ---
 
-## 4. 실무 예제: 인증 상태는 어디까지 저장하는가
+## 5. 망하는 패턴
 
-인증은 보통 “서버 상태”처럼 보이지만, UI 관점에서 필요한 것은 다음 두 가지로 쪼개진다.
+### 패턴 1: store 전체 구독
 
-- 클라이언트 상태: access token, 로그인 여부, 로그아웃 처리, 리다이렉트 목적지
-- 서버 상태: 현재 사용자 프로필(이름/권한 등). React Query로 가져온다.
+```typescript
+// 나쁜 패턴
+function Header() {
+  const store = useCartStore()  // store 전체 구독
+  return <span>{store.items.length}</span>
+}
+```
 
-즉 “토큰은 Zustand, 프로필은 React Query”가 기본이다.
+`items`가 바뀌지 않아도 `total()` 호출, `loading` 변경 등 store 안의 어떤 것이 바뀌면 리렌더된다. Zustand를 쓰는 이유가 없어진다.
 
-```tsx
+```typescript
+// 올바른 패턴
+function Header() {
+  const count = useCartStore((s) => s.items.length)
+  return <span>{count}</span>
+}
+```
+
+### 패턴 2: 서버 상태를 store에 저장
+
+```typescript
+// 나쁜 패턴
+const useProductStore = create<ProductStore>((set) => ({
+  products: [], // 서버에서 오는 데이터
+  fetchProducts: async () => {
+    const data = await fetch("/api/products").then((r) => r.json());
+    set({ products: data });
+  },
+}));
+```
+
+이 패턴으로 캐싱, 리페치, stale 판단, 낙관적 업데이트를 직접 구현하면 React Query가 제공하는 것을 재구현하는 셈이다. 리스트 데이터처럼 서버가 진실의 근원인 상태는 React Query에 맡긴다.
+
+### 패턴 3: set 내부에서 에러 처리 없이 fetch
+
+```typescript
+// 나쁜 패턴
+const useStore = create<Store>((set) => ({
+  submit: async (data: FormData) => {
+    const res = await fetch("/api/submit", { method: "POST", body: data });
+    set({ result: await res.json() });
+    // res.ok 확인 없음, 에러 상태 없음, 로딩 상태 없음
+  },
+}));
+```
+
+`res.ok`가 false여도 `json()`을 파싱하려 하고, 파싱 실패 시 uncaught error가 된다. 비동기 액션에는 반드시 try/catch와 loading/error 상태를 함께 둔다.
+
+### 패턴 4: persist + SSR에서 hydration error
+
+```typescript
+// 나쁜 패턴: storage 옵션 없이 persist 사용
+const useCartStore = create<CartStore>()(
+  persist(
+    (set) => ({ items: [] }),
+    { name: "cart" }, // localStorage를 기본으로 사용 → SSR에서 window is not defined
+  ),
+);
+```
+
+위에서 설명한 대로 `storage` 옵션과 hydration 보호 로직을 추가해야 한다.
+
+---
+
+## 6. Pinia와 비교
+
+Vue 생태계의 Pinia와 결이 비슷하다. 핵심 차이는 "반응성 기반인지, selector 기반 구독인지"다.
+
+### store 정의 비교
+
+```typescript
+// Zustand (TypeScript)
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 
-type AuthState = {
-  accessToken: string | null;
-  setToken: (token: string) => void;
-  clearToken: () => void;
-};
+interface CartStore {
+  items: { id: string; qty: number }[];
+  addItem: (id: string) => void;
+  clear: () => void;
+}
 
-export const useAuthStore = create<AuthState>()(
+const useCartStore = create<CartStore>((set) => ({
+  items: [],
+  addItem: (id) =>
+    set((state) => {
+      const existing = state.items.find((i) => i.id === id);
+      if (existing) {
+        return {
+          items: state.items.map((i) =>
+            i.id === id ? { ...i, qty: i.qty + 1 } : i,
+          ),
+        };
+      }
+      return { items: [...state.items, { id, qty: 1 }] };
+    }),
+  clear: () => set({ items: [] }),
+}));
+```
+
+```typescript
+// Pinia (TypeScript)
+import { defineStore } from "pinia";
+import { ref } from "vue";
+
+export const useCartStore = defineStore("cart", () => {
+  const items = ref<{ id: string; qty: number }[]>([]);
+
+  function addItem(id: string) {
+    const existing = items.value.find((i) => i.id === id);
+    if (existing) {
+      existing.qty += 1;
+    } else {
+      items.value.push({ id, qty: 1 });
+    }
+  }
+
+  function clear() {
+    items.value = [];
+  }
+
+  return { items, addItem, clear };
+});
+```
+
+### 반응성 추출 비교
+
+Pinia는 구조분해하면 반응성이 사라진다. `storeToRefs`로 ref를 추출해야 한다.
+
+```typescript
+// Pinia
+import { storeToRefs } from "pinia";
+
+const cartStore = useCartStore();
+const { items } = storeToRefs(cartStore); // storeToRefs: 반응성 유지
+const { addItem } = cartStore; // 액션은 직접 구조분해
+```
+
+Zustand는 selector가 그 역할을 한다.
+
+```typescript
+// Zustand
+const items = useCartStore((s) => s.items); // selector: 필요한 조각만 구독
+const addItem = useCartStore((s) => s.addItem);
+```
+
+### 주요 차이점 비교
+
+| 관점               | Pinia                       | Zustand                           |
+| ------------------ | --------------------------- | --------------------------------- |
+| 반응성 모델        | Vue 반응성 시스템           | selector 기반 구독                |
+| DevTools 연동      | Vue DevTools 기본 내장      | Redux DevTools 미들웨어 추가 필요 |
+| 영속화             | pinia-plugin-persistedstate | persist 미들웨어                  |
+| React 트리 밖 접근 | 불가 (컴포지션 API 전용)    | `useCartStore.getState()` 가능    |
+| 상태 변이          | 직접 변이 (Vue 반응성)      | set 함수 호출 / immer 미들웨어    |
+| SSR 지원           | Nuxt와 통합 내장            | Next.js에서 수동 처리 필요        |
+
+### React 트리 밖 접근
+
+Zustand의 store 인스턴스에는 React 훅 없이도 접근할 수 있다.
+
+```typescript
+// 이벤트 리스너, 웹소켓 핸들러, 외부 라이브러리에서 직접 접근
+function handleWebSocketMessage(message: { type: string; itemId: string }) {
+  if (message.type === "ITEM_SOLD_OUT") {
+    useCartStore.getState().removeItem(message.itemId);
+  }
+}
+
+// 현재 상태 읽기
+const currentTotal = useCartStore.getState().total();
+
+// 상태 변경 구독 (React 밖)
+const unsubscribe = useCartStore.subscribe((state, prev) => {
+  if (state.items.length !== prev.items.length) {
+    console.log("장바구니 아이템 수:", state.items.length);
+  }
+});
+```
+
+Pinia는 Vue 컴포지션 API 안에서만 쓸 수 있기 때문에 이런 패턴은 불가능하다.
+
+---
+
+## 7. 마스터 체크
+
+**Q1. selector 없이 store 전체를 구독하면 어떤 문제가 생기는가?**
+
+store 안의 어떤 값이 바뀌어도 해당 컴포넌트가 리렌더된다. `useCartStore()`처럼 쓰면 `items`와 무관한 `loading` 변경에도 리렌더가 발생한다. Zustand를 쓰는 이유인 "구독한 조각이 바뀔 때만 리렌더"가 사라진다.
+
+**Q2. immer 미들웨어를 쓰는 이유는 무엇인가?**
+
+중첩 객체나 배열의 불변성 코드를 줄인다. `state.items.find(...)` 후 `existing.qty += 1`처럼 직접 변이하는 코드를 쓸 수 있다. immer가 내부에서 구조적 공유(structural sharing)로 새 객체를 만들기 때문에 Zustand의 참조 비교 리렌더 로직은 그대로 동작한다.
+
+단, immer 없이 쓸 때보다 번들 크기가 늘어나고, proxy 기반 변이가 디버거에서 복잡하게 보일 수 있다. 상태 구조가 단순하면 immer 없이 spread 패턴이 더 읽기 쉽다.
+
+**Q3. persist 미들웨어를 쓸 때 localStorage가 없는 SSR 환경에서 어떻게 처리하는가?**
+
+두 단계가 필요하다.
+
+1. `storage` 옵션에서 `typeof window !== 'undefined'` 분기로 서버에서 빈 스토리지 객체를 반환한다.
+2. 클라이언트에서 hydration 불일치를 막기 위해 `mounted` 상태 또는 Zustand의 `onRehydrateStorage` 콜백으로 hydration 완료 시점을 감지한다.
+
+```typescript
+// persist에서 rehydration 완료 감지
+const useCartStore = create<CartStore & { _hydrated: boolean }>()(
   persist(
     (set) => ({
-      accessToken: null,
-      setToken: (accessToken) => set({ accessToken }),
-      clearToken: () => set({ accessToken: null }),
+      items: [],
+      _hydrated: false,
+      // ...
     }),
-    { name: "auth" }
-  )
+    {
+      name: "cart-storage",
+      onRehydrateStorage: () => (state) => {
+        if (state) state._hydrated = true;
+      },
+    },
+  ),
 );
 ```
 
-이 store는 “사용자 정보”를 들고 있지 않는다. 사용자 정보는 서버에서 가져오는 데이터이므로 React Query 캐시로 관리하는 편이 낫다.
+**Q4. 비동기 작업(API 호출)을 Zustand에서 어떻게 처리하는가?**
 
----
+액션 함수를 `async` 함수로 선언하고 내부에서 `set`을 여러 번 호출한다. 반드시 loading과 error 상태를 함께 관리한다.
 
-## 5. 가장 많이 터지는 함정: 전체 store 구독
+```typescript
+import { create } from "zustand";
 
-```tsx
-// 나쁜 패턴: store 전체를 구독한다.
-const store = useCounterStore();
-```
-
-이 형태는 어떤 state가 바뀌어도 리렌더링된다. Zustand의 이점이 사라진다.
-
-```tsx
-// 좋은 패턴: 필요한 조각만 구독한다.
-const count = useCounterStore((s) => s.count);
-```
-
----
-
-## 6. 객체 selector는 shallow 비교가 필요할 때가 있다
-
-selector가 객체를 반환하면, 매번 새 객체가 만들어져 리렌더링이 발생할 수 있다.
-
-```tsx
-import { shallow } from "zustand/shallow";
-
-function Example() {
-  const { count, increment } = useCounterStore(
-    (s) => ({ count: s.count, increment: s.increment }),
-    shallow
-  );
-  return <button onClick={increment}>{count}</button>;
+interface AsyncStore {
+  data: string | null;
+  loading: boolean;
+  error: string | null;
+  fetch: (id: string) => Promise<void>;
 }
+
+const useAsyncStore = create<AsyncStore>((set) => ({
+  data: null,
+  loading: false,
+  error: null,
+
+  fetch: async (id) => {
+    set({ loading: true, error: null });
+    try {
+      const res = await fetch(`/api/resource/${id}`);
+      if (!res.ok) {
+        // 경계 조건: 404, 401, 500 등 HTTP 에러
+        const message =
+          res.status === 404
+            ? "리소스를 찾을 수 없다"
+            : `서버 오류 (${res.status})`;
+        throw new Error(message);
+      }
+      const data = await res.json();
+      set({ data, loading: false });
+    } catch (err) {
+      set({
+        loading: false,
+        error: err instanceof Error ? err.message : "알 수 없는 오류",
+      });
+    }
+  },
+}));
 ```
 
-이 패턴은 “객체로 묶어서 가져오고 싶은데 리렌더링은 최소화하고 싶다”에 대응한다.
+단, 앞서 강조했듯이 서버 상태(서버가 진실의 근원)라면 React Query로 옮기는 것이 우선이다. Zustand의 비동기 액션은 "순수 클라이언트 로직"에 쓰는 것이 적합하다.
 
 ---
 
-## 7. 미들웨어: devtools / persist / immer
-
-Zustand는 미들웨어로 팀 규칙을 붙이기 좋다.
-
-### devtools
-
-```tsx
-import { create } from "zustand";
-import { devtools } from "zustand/middleware";
-
-export const useStore = create(
-  devtools((set) => ({
-    count: 0,
-    inc: () => set((s: any) => ({ count: s.count + 1 }), false, "counter/inc"),
-  }))
-);
-```
-
-### immer
-
-```tsx
-import { create } from "zustand";
-import { immer } from "zustand/middleware/immer";
-
-type Todo = { id: string; text: string; done: boolean };
-
-export const useTodoStore = create(
-  immer((set) => ({
-    todos: [] as Todo[],
-    add: (text: string) =>
-      set((s: any) => {
-        // id 생성 방식은 팀 규칙에 따라 다르다.
-        // 여기서는 예제를 단순화하기 위해 시간 기반 id를 사용한다.
-        s.todos.push({ id: String(Date.now()), text, done: false });
-      }),
-  }))
-);
-```
-
-immer는 “불변성 코드를 줄인다”는 장점이 있지만, 상태 구조가 복잡해질수록 디버깅 기준을 팀이 가져야 한다.
-
----
-
-## Pinia와 비교
-
-Zustand는 Pinia와 결이 비슷하다. 핵심 차이는 “반응성 기반인지, selector 기반 구독인지”다.
-
-| 관점 | Pinia | Zustand |
-| --- | --- | --- |
-| 상태 모델 | 반응성 상태 | store + selector 구독 |
-| 구독 단위 | 참조된 값 기반 | selector 결과 기반 |
-| 사용 형태 | store 객체 메서드 | hook 호출 |
-| 영속화 | 플러그인/직접 | `persist` 미들웨어 |
-
----
-
-## 체크리스트
-
-- 서버 상태(React Query)와 클라이언트 상태(Zustand)를 분리할 수 있다.
-- selector 기반 구독이 리렌더링을 줄이는 원리를 설명할 수 있다.
-- store 전체 구독이 왜 위험한지 설명할 수 있다.
-- 인증에서 “토큰 vs 프로필”을 분리하는 이유를 설명할 수 있다.
+다음 글에서는 Redux Toolkit을 다룬다. 상태 변경 이력 추적과 복잡한 파생 계산이 필요한 팀 규모 상태를 다루는 방법이다.

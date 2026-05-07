@@ -1,0 +1,221 @@
+---
+title: "[Next.js 고급 4/12] Caching 1 - Static, Dynamic, Fetch Cache"
+date: "2025-09-03"
+description: "Next.js 캐시를 정적 렌더링, 동적 렌더링, fetch cache로 분해해 이해한다"
+tags: ["Next.js", "React", "중급", "프론트엔드"]
+series: "Next.js 고급"
+seriesOrder: 4
+---
+
+# Caching 1 - Static, Dynamic, Fetch Cache
+
+Next.js 캐시를 “ISR을 켤까 말까” 정도로 이해하면 운영에서 문제가 생긴다. 어떤 페이지는 빌드 시점에 고정되고, 어떤 fetch는 캐시되며, 어떤 요청 정보는 렌더링 전체를 동적으로 만든다. 이 층위를 섞어 말하면 원인을 찾기 어렵다.
+
+캐시 전략의 첫 단계는 하나의 질문이 아니다. “이 화면은 언제 만들어지는가”, “이 데이터는 언제 다시 읽히는가”, “이 배포 환경에서 서버가 있는가”를 분리해야 한다.
+
+---
+
+## 왜 필요한가
+
+블로그 메인 페이지에는 최신 글 목록이 있다. 운영자는 글을 하루에 몇 번 올리고, 독자는 빠른 첫 화면을 기대한다. 관리자 대시보드는 다르다. 방금 수정한 글 상태가 즉시 보여야 한다.
+
+두 화면에 같은 캐시 전략을 적용하면 둘 중 하나가 깨진다.
+
+- 공개 블로그: 조금 늦게 갱신되어도 빠른 응답이 중요하다.
+- 관리자 화면: 느려도 방금 쓴 값이 보여야 한다.
+- GitHub Pages static export: 요청 시점 서버 캐시 자체가 없다.
+
+---
+
+## 정적 렌더링과 동적 렌더링
+
+정적 렌더링은 빌드 시점에 HTML을 만든다. 동적 렌더링은 요청 시점에 서버에서 렌더링한다.
+
+```tsx
+// app/posts/page.tsx
+export default async function PostsPage() {
+  const posts = await fetch("https://example.com/api/posts").then((response) =>
+    response.json(),
+  );
+
+  return (
+    <main>
+      <h1>게시글</h1>
+      <ul>
+        {posts.map((post: { id: string; title: string }) => (
+          <li key={post.id}>{post.title}</li>
+        ))}
+      </ul>
+    </main>
+  );
+}
+```
+
+이 코드만 보고 정적/동적을 단정하면 안 된다. fetch cache 설정, dynamic API 사용 여부, route segment 설정, 배포 환경이 함께 작동한다.
+
+---
+
+## fetch cache 옵션
+
+서버 컴포넌트 안의 `fetch`는 캐시 전략을 명시할 수 있다.
+
+```tsx
+async function getMarketingPosts() {
+  const response = await fetch("https://example.com/api/posts", {
+    cache: "force-cache",
+  });
+
+  if (!response.ok) {
+    throw new Error("게시글을 불러오지 못했다.");
+  }
+
+  return response.json() as Promise<Array<{ id: string; title: string }>>;
+}
+```
+
+자주 바뀌는 데이터는 캐시하지 않을 수 있다.
+
+```tsx
+async function getDashboardSummary() {
+  const response = await fetch("https://example.com/api/admin/summary", {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error("관리자 요약을 불러오지 못했다.");
+  }
+
+  return response.json() as Promise<{ draftCount: number }>;
+}
+```
+
+시간 기반 재검증도 설정할 수 있다.
+
+```tsx
+async function getProductList() {
+  const response = await fetch("https://example.com/api/products", {
+    next: { revalidate: 3600 },
+  });
+
+  if (!response.ok) {
+    throw new Error("상품 목록을 불러오지 못했다.");
+  }
+
+  return response.json() as Promise<Array<{ id: string; name: string }>>;
+}
+```
+
+`force-cache`, `no-store`, `next.revalidate`는 데이터 성격을 드러내는 문서 역할도 한다.
+
+---
+
+## dynamic API가 정적화를 깨는 경우
+
+요청마다 달라지는 정보를 읽으면 정적 렌더링만으로는 처리할 수 없다.
+
+```tsx
+// app/account/page.tsx
+import { cookies } from "next/headers";
+
+export default async function AccountPage() {
+  const cookieStore = await cookies();
+  const session = cookieStore.get("session");
+
+  return <main>{session ? "로그인됨" : "로그인 필요"}</main>;
+}
+```
+
+쿠키, 헤더, 요청 URL처럼 요청 시점 정보에 의존하면 페이지는 사용자마다 달라진다. 이 경우 서버가 필요하다. static export에서는 이런 요청 시점 분기를 빌드 결과 HTML에 담을 수 없다.
+
+---
+
+## route segment 설정은 마지막에 쓴다
+
+segment 단위로 렌더링 성격을 선언할 수 있다.
+
+```tsx
+// app/admin/page.tsx
+export const dynamic = "force-dynamic";
+
+export default async function AdminPage() {
+  const summary = await getDashboardSummary();
+
+  return <main>초안 {summary.draftCount}개</main>;
+}
+```
+
+하지만 이 설정은 원인을 감추기도 한다. 먼저 데이터 성격과 dynamic API 사용 여부를 분리하고, segment 설정은 의도를 명확히 고정해야 할 때 쓴다.
+
+---
+
+## static export에서 가능한 것과 불가능한 것
+
+`output: "export"`는 빌드 시점에 정적 파일을 만든다. 따라서 가능한 기능은 빌드 시 계산 가능한 기능이다.
+
+가능한 것:
+
+- 정적 라우트 HTML 생성
+- `generateStaticParams`로 알려진 동적 경로 생성
+- 클라이언트 사이드 데이터 fetching
+- `next/link` prefetch
+- React Server Components의 정적 결과물 생성
+
+제한되는 것:
+
+- 요청 시점의 쿠키/헤더 기반 동적 렌더링
+- ISR
+- Server Actions
+- Route Handlers
+- Proxy
+- 기본 `next/image` 최적화 서버
+
+정적 블로그는 이 제약과 잘 맞는다. 관리자 기능까지 같은 배포물에 넣으려면 별도 백엔드나 서버 배포를 고려해야 한다.
+
+---
+
+## 실무 기준
+
+| 화면                | 추천 전략                        | 이유                                       |
+| ------------------- | -------------------------------- | ------------------------------------------ |
+| 문서/블로그 글      | 정적 렌더링                      | 내용 변경 주기가 낮고 빠른 응답이 중요하다 |
+| 상품 목록           | `next.revalidate` 또는 tag cache | 최신성과 성능의 균형이 필요하다            |
+| 관리자 목록         | `no-store` 또는 `updateTag`      | 방금 쓴 값이 보여야 한다                   |
+| 계정 페이지         | 동적 렌더링                      | 쿠키/세션에 의존한다                       |
+| GitHub Pages 블로그 | static export                    | 서버 없이 정적 파일로 배포한다             |
+
+---
+
+## 함정과 디버깅
+
+캐시가 기대와 다를 때는 다음 순서로 본다.
+
+1. 이 route가 요청 시점 정보를 읽는가.
+2. 각 `fetch`가 `force-cache`, `no-store`, `next.revalidate`, tag 중 무엇을 쓰는가.
+3. mutation 이후 `revalidatePath`, `revalidateTag`, `updateTag`가 호출되는가.
+4. 배포 타깃이 동적 서버 기능을 지원하는가.
+5. 개발 모드와 프로덕션 빌드의 캐시 동작 차이를 혼동하지 않았는가.
+
+“캐시가 안 된다”보다 “어느 층의 사본이 갱신되지 않는다”로 질문해야 해결이 빨라진다.
+
+---
+
+## Nuxt와 비교
+
+Nuxt/Nitro도 prerender, route rules, server API cache를 통해 비슷한 문제를 푼다. Next.js는 `fetch`와 route segment 설정, Server Action/Route Handler의 revalidation API가 더 직접적으로 연결된다.
+
+| 기준             | Nuxt                     | Next.js                          |
+| ---------------- | ------------------------ | -------------------------------- |
+| 정적 생성        | prerender                | static rendering / static export |
+| 요청 시점 렌더링 | Nitro SSR                | dynamic rendering                |
+| 데이터 캐시      | Nitro cache, route rules | fetch cache, tags                |
+| 정적 배포 제약   | prerender 범위에 의존    | `output: "export"` 제약 명시     |
+
+---
+
+## 체크리스트
+
+- 정적 렌더링, 동적 렌더링, fetch cache를 분리해서 설명할 수 있다.
+- `force-cache`, `no-store`, `next.revalidate`의 선택 기준을 말할 수 있다.
+- 쿠키/헤더 같은 dynamic API가 정적화를 깨는 이유를 설명할 수 있다.
+- static export에서 가능한 기능과 제한되는 기능을 구분할 수 있다.
+- 캐시 문제를 “어느 층의 사본인가”로 디버깅할 수 있다.

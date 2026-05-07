@@ -1,0 +1,307 @@
+---
+title: "[Next.js 고급 12/12] 실전 - 운영 가능한 블로그/관리자"
+date: "2025-09-07"
+description: "페이지, 데이터, 캐시, mutation, 보안, 배포 제약을 함께 설계하는 캡스톤"
+tags: ["Next.js", "React", "고급", "프론트엔드"]
+series: "Next.js 고급"
+seriesOrder: 12
+---
+
+# 실전 - 운영 가능한 블로그/관리자
+
+이제 App Router의 주요 기능을 하나의 설계로 묶는다. 목표는 기능을 많이 쓰는 것이 아니다. 공개 블로그, 관리자 작성, 외부 웹훅, 인증, 이미지, 배포 타깃을 함께 보고 필요한 기능만 선택하는 것이다.
+
+운영 가능한 Next 앱은 “페이지가 렌더링된다”에서 끝나지 않는다. 데이터 최신성, 실패 경계, 보안 경계, 배포 제약까지 설명할 수 있어야 한다.
+
+---
+
+## 요구사항
+
+블로그와 관리자 기능을 가진 앱을 설계한다.
+
+- 공개 게시글 목록은 빠르고 안정적으로 제공한다.
+- 게시글 상세는 404와 오류를 구분한다.
+- 관리자는 글을 작성하고 발행한다.
+- 작성 직후 관리자 화면은 최신 데이터를 보여준다.
+- 공개 목록은 stale-while-revalidate를 허용한다.
+- 외부 CMS 웹훅이 공개 목록 캐시를 무효화한다.
+- 관리자 경로는 요청 앞단에서 로그인 여부를 확인한다.
+- 이미지는 LCP/CLS 기준으로 최적화한다.
+- GitHub Pages static export에서는 어떤 기능이 빠지는지 설명한다.
+
+---
+
+## 공개 게시글 목록
+
+공개 목록은 빠른 응답이 중요하고 약간의 갱신 지연은 허용된다.
+
+```tsx
+// app/posts/page.tsx
+import Link from "next/link";
+
+async function getPublicPosts() {
+  const response = await fetch("https://example.com/api/posts", {
+    next: { tags: ["public-posts"], revalidate: 3600 },
+  });
+
+  if (!response.ok) {
+    throw new Error("게시글 목록을 불러오지 못했다.");
+  }
+
+  return response.json() as Promise<Array<{ slug: string; title: string }>>;
+}
+
+export default async function PostsPage() {
+  const posts = await getPublicPosts();
+
+  return (
+    <main>
+      <h1>게시글</h1>
+      <ul>
+        {posts.map((post) => (
+          <li key={post.slug}>
+            <Link href={`/posts/${post.slug}`}>{post.title}</Link>
+          </li>
+        ))}
+      </ul>
+    </main>
+  );
+}
+```
+
+읽을 때 tag를 붙여야 나중에 tag 기반으로 재검증할 수 있다.
+
+---
+
+## 게시글 상세의 404와 오류
+
+```tsx
+// app/posts/[slug]/page.tsx
+import { notFound } from "next/navigation";
+
+type PageProps = {
+  params: Promise<{ slug: string }>;
+};
+
+async function getPost(slug: string) {
+  const response = await fetch(`https://example.com/api/posts/${slug}`, {
+    next: { tags: [`post-${slug}`] },
+  });
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new Error("게시글 상세를 불러오지 못했다.");
+  }
+
+  return response.json() as Promise<{ title: string; body: string }>;
+}
+
+export default async function PostPage({ params }: PageProps) {
+  const { slug } = await params;
+  const post = await getPost(slug);
+
+  if (!post) {
+    notFound();
+  }
+
+  return (
+    <article>
+      <h1>{post.title}</h1>
+      <div>{post.body}</div>
+    </article>
+  );
+}
+```
+
+없는 글은 `notFound()`, API 장애는 `throw`로 나눈다.
+
+---
+
+## 관리자 작성: Server Action
+
+관리자 폼은 앱 내부 mutation이므로 Server Action이 잘 맞다.
+
+```tsx
+// app/admin/posts/actions.ts
+"use server";
+
+import { revalidateTag, updateTag } from "next/cache";
+import { redirect } from "next/navigation";
+
+type CreatePostState = {
+  ok: boolean;
+  message: string;
+};
+
+export async function createPost(
+  _prevState: CreatePostState,
+  formData: FormData,
+): Promise<CreatePostState> {
+  const title = String(formData.get("title") ?? "").trim();
+  const content = String(formData.get("content") ?? "").trim();
+
+  if (title.length < 2) {
+    return { ok: false, message: "제목은 2자 이상이어야 한다." };
+  }
+
+  const post = await db.post.create({
+    data: { title, content },
+  });
+
+  updateTag("admin-posts");
+  revalidateTag("public-posts", "max");
+  redirect(`/admin/posts/${post.id}`);
+}
+```
+
+관리자 목록은 즉시 최신화해야 하므로 `updateTag`를 쓰고, 공개 목록은 stale을 허용하므로 `revalidateTag("public-posts", "max")`를 쓴다.
+
+---
+
+## 외부 웹훅: Route Handler
+
+외부 CMS나 GitHub Actions가 호출하는 경계는 Route Handler다.
+
+```ts
+// app/api/webhooks/content/route.ts
+import { revalidateTag } from "next/cache";
+import type { NextRequest } from "next/server";
+import { verifySignature } from "@/app/lib/webhooks";
+
+export async function POST(request: NextRequest) {
+  const signature = request.headers.get("x-content-signature");
+  const rawBody = await request.text();
+
+  if (!signature || !verifySignature(rawBody, signature)) {
+    return Response.json({ message: "invalid signature" }, { status: 401 });
+  }
+
+  revalidateTag("public-posts", "max");
+
+  return Response.json({ revalidated: true });
+}
+```
+
+Route Handler에서는 HTTP 상태 코드, 헤더, 서명 검증을 직접 다룬다.
+
+---
+
+## 관리자 보호: Proxy
+
+```ts
+// proxy.ts
+import { NextResponse, type NextRequest } from "next/server";
+
+function safeNextPath(pathname: string) {
+  if (!pathname.startsWith("/") || pathname.startsWith("//")) {
+    return "/";
+  }
+
+  return pathname;
+}
+
+export function proxy(request: NextRequest) {
+  const session = request.cookies.get("session")?.value;
+
+  if (session) {
+    return NextResponse.next();
+  }
+
+  const loginUrl = new URL("/login", request.url);
+  loginUrl.searchParams.set("next", safeNextPath(request.nextUrl.pathname));
+
+  return NextResponse.redirect(loginUrl);
+}
+
+export const config = {
+  matcher: ["/admin/:path*"],
+};
+```
+
+Proxy는 로그인 여부 같은 가벼운 판단만 맡는다. 세부 권한은 Server Component와 Server Action에서 다시 검사한다.
+
+---
+
+## 이미지와 폰트
+
+```tsx
+import Image from "next/image";
+
+export function PostHero() {
+  return (
+    <Image
+      src="/images/posts/app-router.png"
+      alt="App Router 구조"
+      width={1600}
+      height={900}
+      sizes="100vw"
+      priority
+    />
+  );
+}
+```
+
+첫 화면의 큰 이미지만 `priority` 후보가 된다. 카드 썸네일은 `fill`과 `sizes`, 안정적인 `aspect-ratio`를 함께 설계한다. 폰트는 필요한 family와 weight만 로드한다.
+
+---
+
+## 배포 타깃별 설계
+
+| 요구사항           | GitHub Pages static export | Node/Vercel 서버 |
+| ------------------ | -------------------------- | ---------------- |
+| 공개 MDX 블로그    | 적합                       | 적합             |
+| Server Action 작성 | 불가                       | 가능             |
+| Route Handler 웹훅 | 불가                       | 가능             |
+| Proxy 인증         | 불가                       | 가능             |
+| ISR/revalidation   | 불가                       | 가능             |
+| 기본 이미지 최적화 | 불가                       | 가능             |
+
+이 프로젝트처럼 GitHub Pages를 쓰면 공개 블로그와 정적 게임 페이지는 잘 맞는다. 관리자 mutation, 웹훅, 요청 시점 인증은 Supabase, 별도 API 서버, 서버리스 함수, Vercel 배포 중 하나로 분리해야 한다.
+
+---
+
+## 운영 체크리스트
+
+설계가 끝났다면 다음 질문에 답해야 한다.
+
+- 공개 페이지의 데이터는 stale을 허용하는가.
+- 작성자 자신은 방금 쓴 값을 즉시 봐야 하는가.
+- 404와 시스템 오류를 다른 UI로 보여주는가.
+- 외부 요청은 서명 검증을 하는가.
+- 관리자 보호를 Proxy에만 의존하지 않는가.
+- 이미지 LCP 후보와 CLS 원인을 확인했는가.
+- 배포 타깃에서 사용하는 서버 기능이 실제로 지원되는가.
+
+---
+
+## Nuxt와 최종 비교
+
+Nuxt와 Next.js는 같은 운영 문제를 다른 기본 도구로 푼다.
+
+| 요구사항       | Nuxt                    | Next.js                            |
+| -------------- | ----------------------- | ---------------------------------- |
+| 공개 페이지    | prerender, SSR          | static rendering, Server Component |
+| 내부 mutation  | server route/composable | Server Action                      |
+| 외부 API       | Nitro server route      | Route Handler                      |
+| 요청 앞단 처리 | route/server middleware | Proxy                              |
+| 캐시           | Nitro cache/route rules | fetch cache + revalidation API     |
+| 이미지         | Nuxt Image              | `next/image`                       |
+| 정적 배포      | prerender/static preset | `output: "export"`                 |
+
+핵심은 프레임워크 이름이 아니다. 페이지, 데이터, 캐시, mutation, 보안, 배포 제약을 한 설계 안에서 설명할 수 있는지가 운영 가능성을 결정한다.
+
+---
+
+## 학습 체크리스트
+
+- App Router의 route segment를 화면/오류/로딩 경계로 설계할 수 있다.
+- Server Component와 Client Component의 경계를 leaf 중심으로 나눌 수 있다.
+- Server Action과 Route Handler의 역할을 구분할 수 있다.
+- `revalidateTag(tag, "max")`와 `updateTag`의 목적을 구분할 수 있다.
+- `notFound()`, `error.tsx`, `redirect()`를 실패 성격별로 사용할 수 있다.
+- Proxy를 얇은 요청 앞단 훅으로 제한할 수 있다.
+- 이미지와 폰트를 LCP/CLS 기준으로 검토할 수 있다.
+- static export와 서버 배포의 기능 차이를 기준으로 아키텍처를 선택할 수 있다.

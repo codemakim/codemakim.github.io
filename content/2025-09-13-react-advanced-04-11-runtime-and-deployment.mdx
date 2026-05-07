@@ -1,0 +1,196 @@
+---
+title: "[Next.js 고급 11/12] Runtime, Deployment, Environment"
+date: "2025-09-13"
+description: "Next.js 기능을 Node runtime, Edge runtime, static export, 환경 변수 경계와 함께 선택한다"
+tags: ["Next.js", "React", "중급", "프론트엔드"]
+series: "Next.js 고급"
+seriesOrder: 11
+---
+
+# Runtime, Deployment, Environment
+
+Next.js 기능은 코드만 보고 고를 수 없다. 배포 타깃을 고르는 순간 가능한 기능과 불가능한 기능이 갈린다. Server Action, Route Handler, Proxy, ISR, 이미지 최적화는 런타임이 있어야 의미가 있다.
+
+운영 가능한 Next 앱은 “어떤 API를 쓸까”보다 “어디에서 실행될까”를 먼저 묻는다.
+
+---
+
+## 왜 필요한가
+
+같은 App Router 코드라도 배포 타깃에 따라 동작 범위가 다르다.
+
+- GitHub Pages: 정적 HTML/CSS/JS만 제공한다.
+- Vercel/Node 서버: 요청 시점 서버 로직을 실행할 수 있다.
+- Edge runtime: 요청 앞단에서 빠르게 실행되지만 Node API 제약이 있다.
+- 별도 API 서버: Next는 프론트/정적 UI를 맡고 서버 기능은 분리한다.
+
+기능 선택은 배포 선택의 결과다.
+
+---
+
+## Node runtime
+
+Node runtime은 일반적인 서버 기능에 적합하다.
+
+```ts
+// app/api/reports/route.ts
+export const runtime = "nodejs";
+
+export async function POST(request: Request) {
+  const body = (await request.json()) as { reportId: string };
+  const report = await generateReport(body.reportId);
+
+  return Response.json(report);
+}
+```
+
+DB 드라이버, 파일 처리, 무거운 서버 SDK가 필요하면 Node runtime이 자연스럽다. 대신 요청 지연, 서버 비용, cold start, 배포 플랫폼 제약을 고려해야 한다.
+
+---
+
+## Edge runtime
+
+Edge runtime은 사용자 가까운 위치에서 빠르게 실행되는 요청 처리에 맞다.
+
+```ts
+// app/api/geo/route.ts
+export const runtime = "edge";
+
+export async function GET(request: Request) {
+  const country = request.headers.get("x-vercel-ip-country") ?? "unknown";
+
+  return Response.json({ country });
+}
+```
+
+Edge는 빠른 대신 Node.js API를 모두 쓸 수 없다. 큰 패키지, DB 직접 연결, 파일 시스템 의존 로직은 맞지 않는 경우가 많다.
+
+---
+
+## static export
+
+static export는 서버를 없애는 선택이다.
+
+```js
+// next.config.js
+const nextConfig = {
+  output: "export",
+  trailingSlash: true,
+};
+
+module.exports = nextConfig;
+```
+
+이 선택은 배포를 단순하게 만든다. GitHub Pages, S3, CDN처럼 정적 파일을 서빙하는 곳에 올릴 수 있다. 하지만 요청 시점 로직은 없다.
+
+제한되는 기능:
+
+- Server Actions
+- Route Handlers
+- Proxy
+- ISR
+- 요청 시점 쿠키/헤더 기반 렌더링
+- 기본 `next/image` 최적화
+
+가능한 패턴:
+
+- MDX/정적 콘텐츠 블로그
+- 빌드 시점 데이터 로딩
+- 클라이언트에서 Supabase/API 직접 호출
+- 정적 HTML + 외부 백엔드 조합
+
+---
+
+## 환경 변수 경계
+
+환경 변수는 서버/클라이언트 경계를 드러낸다.
+
+```ts
+// 서버 전용
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+// 클라이언트 노출 가능
+const publicUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+```
+
+`NEXT_PUBLIC_` 접두사가 붙은 값은 브라우저 번들에 들어갈 수 있다. 비밀 키에는 절대 붙이면 안 된다.
+
+Server Component, Server Action, Route Handler에서는 서버 전용 환경 변수를 읽을 수 있다. Client Component에서는 공개 환경 변수만 사용해야 한다.
+
+---
+
+## 배포 타깃별 기능 선택
+
+| 기능                       | GitHub Pages static export | Node/Vercel 서버 | Edge               |
+| -------------------------- | -------------------------- | ---------------- | ------------------ |
+| Server Component 정적 결과 | 가능                       | 가능             | 가능               |
+| Server Actions             | 불가                       | 가능             | 플랫폼 지원 확인   |
+| Route Handlers             | 런타임 API로 불가          | 가능             | 가능하나 제약 있음 |
+| Proxy                      | 불가                       | 가능             | 주 실행 모델       |
+| ISR/Revalidation           | 불가                       | 가능             | 플랫폼 지원 확인   |
+| 기본 Image Optimization    | 불가                       | 가능             | 플랫폼 지원 확인   |
+
+이 표는 기능 우열이 아니라 실행 위치의 차이다.
+
+---
+
+## 실무 예제: 정적 블로그 + 외부 백엔드
+
+이 블로그처럼 GitHub Pages에 배포하는 프로젝트는 다음 구성이 현실적이다.
+
+```txt
+Next.js static export
+  - 공개 블로그
+  - MDX 콘텐츠
+  - 정적 게임 페이지
+
+Supabase
+  - 인증
+  - 습관 데이터
+  - 클라이언트 SDK 또는 별도 서버 함수
+
+GitHub Actions
+  - contentlayer build
+  - next build
+  - GitHub Pages 배포
+```
+
+서버 기능이 필요하면 정적 사이트에 억지로 넣지 말고 실행 환경을 분리한다.
+
+---
+
+## 함정과 디버깅
+
+런타임 문제가 생기면 다음 질문부터 한다.
+
+1. 이 코드가 빌드 시점, 요청 시점, 브라우저 중 어디서 실행되는가.
+2. 사용하는 API가 Node runtime을 요구하는가.
+3. Edge에서 사용할 수 없는 패키지를 import했는가.
+4. static export에서 서버 기능을 기대하고 있는가.
+5. 비밀 환경 변수가 클라이언트 번들로 노출될 수 있는가.
+
+Next.js 오류 메시지는 종종 “기능을 잘못 썼다”보다 “실행 위치가 틀렸다”를 말한다.
+
+---
+
+## Nuxt와 비교
+
+Nuxt/Nitro도 Node, Edge, static hosting 사이에서 preset과 deployment target을 고른다. Next.js도 마찬가지로 배포 타깃이 프레임워크 기능의 실제 범위를 결정한다.
+
+| 기준      | Nuxt/Nitro        | Next.js              |
+| --------- | ----------------- | -------------------- |
+| Node 서버 | Nitro Node preset | Node runtime         |
+| Edge      | Nitro edge preset | Edge runtime, Proxy  |
+| 정적 배포 | prerender/static  | `output: "export"`   |
+| 환경 변수 | runtime config    | env + `NEXT_PUBLIC_` |
+
+---
+
+## 체크리스트
+
+- Next.js 기능을 배포 타깃과 함께 선택해야 하는 이유를 설명할 수 있다.
+- Node runtime과 Edge runtime의 차이를 설명할 수 있다.
+- static export가 서버를 없애는 선택이라는 점을 알고 있다.
+- GitHub Pages에서 Server Actions, Route Handlers, Proxy, ISR이 제한되는 이유를 설명할 수 있다.
+- `NEXT_PUBLIC_` 환경 변수의 노출 범위를 설명할 수 있다.
+- 실행 위치 문제를 빌드 시점/요청 시점/브라우저로 나눠 디버깅할 수 있다.

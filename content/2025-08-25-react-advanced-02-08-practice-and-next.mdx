@@ -1,148 +1,217 @@
 ---
 title: "[React Query 8/8] React Query - 실전 예제 & 다음 단계"
 date: "2025-08-31"
-description: "블로그 애플리케이션 구현 및 학습 체크리스트"
-tags: ["React", "고급", "프론트엔드"]
+description: "1~7편 조각을 작은 게시글/댓글 앱으로 통합하고, React Router action과의 선택 기준을 정리한다"
+tags: ["React", "중급", "프론트엔드"]
 series: "React Query"
 seriesOrder: 8
 ---
 
 # React Query 가이드 - 실전 예제 & 다음 단계
 
-> TanStack Query v5를 기반으로 한 데이터 페칭 학습 자료  
-> 출처: [TanStack Query Documentation](https://tanstack.com/query/)
+1~7편에서 React Query의 조각을 따로 배웠다.
+
+- 서버 상태와 클라이언트 상태 분리(1편)
+- `useQuery`와 키 설계(2편)
+- `useMutation`과 캐시 동기화(3편)
+- 캐싱 모델, fresh/stale, 무효화 범위(4편)
+- 낙관적 업데이트와 롤백(5편)
+- `useInfiniteQuery`로 페이지 묶음(6편)
+- API 클라이언트, key factory, queryOptions, prefetch, Suspense 같은 구조 패턴(7편)
+
+이 글은 이 조각을 작은 게시글/댓글 앱으로 묶는다. 화려한 기능보다 "이 정도면 실무 첫 버전으로 가져갈 수 있다"는 기준을 잡는 것이 목표다.
 
 ---
 
-## 실전 예제 & 다음 단계
+## 왜 필요한가
 
-이 글은 1~7편의 내용을 합쳐 “실무에서 실제로 굴러가는 형태”를 만든다. 목표는 다음이다.
+API와 옵션을 따로 배우면 흩어진 채로 끝난다. 통합 예제가 있어야 다음을 한 번에 답할 수 있다.
 
-- API 호출 규칙을 고정한다(에러 처리 포함).
-- queryKey 설계를 모듈로 고정한다.
-- 목록/상세/작성 흐름에서 캐시 동기화 규칙을 만든다.
-- URL 상태(페이지/필터)와 queryKey를 일치시킨다.
+- 페이지/필터를 URL과 `queryKey`에 어떻게 동시에 묶는가
+- 상세 진입 시 깜빡임을 줄이려면 prefetch와 `initialData` 중 무엇을 선택하는가
+- 좋아요 버튼은 낙관적 업데이트를 쓰고, 글 작성은 일반 invalidate를 쓰는 기준이 무엇인가
+- 댓글 무한 스크롤이 게시글 상세 캐시와 어떻게 분리되는가
+- React Router의 `action`과 React Query의 `useMutation`을 언제 어떻게 나눠 쓰는가
 
 ---
 
-## 1. 실무 기준: 공통 fetch 규칙을 먼저 만든다
+## 앱 요구사항
 
-React Query는 queryFn이 throw했을 때 실패로 인식한다. `fetch`는 4xx/5xx에서 throw하지 않으므로, 프로젝트 공통 규칙이 필요하다.
+이 글이 다루는 앱은 다음 화면을 가진다.
 
-```tsx
-export type ApiError = Error & { status?: number };
+- `/posts` — 게시글 목록(페이지/태그 필터, URL 동기화)
+- `/posts/:postId` — 게시글 상세(본문 + 좋아요 + 댓글 무한 스크롤)
+- `/posts/new` — 게시글 작성
+- `/posts/:postId/edit` — 게시글 수정
+- `*` — Not Found
 
-export async function fetchJson<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
-  const res = await fetch(input, init);
-  if (!res.ok) {
-    const err: ApiError = new Error("request failed");
-    err.status = res.status;
-    throw err;
-  }
-  return (await res.json()) as T;
-}
+API는 다음으로 가정한다.
+
+```
+GET    /api/posts?page=&tag=
+GET    /api/posts/:id
+POST   /api/posts
+PATCH  /api/posts/:id
+DELETE /api/posts/:id
+POST   /api/posts/:id/likes
+DELETE /api/posts/:id/likes
+GET    /api/posts/:id/comments?cursor=
 ```
 
-이 규칙이 없으면 404/500이 와도 성공으로 처리되는 문제가 생긴다.
-
 ---
 
-## 2. queryKey를 팩토리로 고정한다
+## 폴더 구조
 
-queryKey는 캐시 설계의 핵심이다. 프로젝트가 커지면 키가 흩어지므로 모듈로 고정한다.
+7편의 패턴을 그대로 쓴다.
 
-```tsx
+```
+src/
+  api/
+    client.ts           # fetchJson 공통 래퍼
+    posts.ts            # getPosts, getPost, createPost, ...
+    comments.ts         # getComments
+  queries/
+    postKeys.ts
+    postQueries.ts      # postsQuery, postQuery
+    commentKeys.ts
+    commentQueries.ts   # commentsInfiniteQuery
+  pages/
+    PostListPage.tsx
+    PostDetailPage.tsx
+    PostFormPage.tsx
+  shared/
+    ErrorBoundary.tsx
+```
+
+API 클라이언트와 key factory, queryOptions 헬퍼는 7편에서 다룬 형태를 그대로 사용한다.
+
+```ts
+// src/queries/postKeys.ts
 export const postKeys = {
   all: ["posts"] as const,
   lists: () => [...postKeys.all, "list"] as const,
-  list: (filters: { page: number; tag?: string }) => [...postKeys.lists(), filters] as const,
+  list: (params: { page: number; tag?: string }) =>
+    [...postKeys.lists(), params] as const,
   details: () => [...postKeys.all, "detail"] as const,
   detail: (id: string) => [...postKeys.details(), id] as const,
 };
 ```
 
-이 형태는 무효화 범위를 안정적으로 만든다.
+```ts
+// src/queries/commentKeys.ts
+export const commentKeys = {
+  all: ["comments"] as const,
+  byPost: (postId: string) => [...commentKeys.all, "post", postId] as const,
+};
+```
 
 ---
 
-## 3. 목록 페이지: URL 상태와 queryKey를 일치시킨다
+## 1. 목록 페이지: URL 상태와 queryKey를 일치시킨다
 
-실무에서 페이지네이션/필터는 URL로 노출하는 편이 좋다. 공유/새로고침/뒤로가기가 자연스럽게 동작한다.
+페이지/태그 필터는 URL에 둔다. 공유 가능하고, 새로고침과 뒤로가기가 자연스럽게 동작한다.
 
 ```tsx
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
+// src/pages/PostListPage.tsx
+import {
+  keepPreviousData,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { Link, useSearchParams } from "react-router-dom";
+import { postsQuery, postQuery } from "../queries/postQueries";
 
-type Post = { id: string; title: string };
-type PostListResponse = { posts: Post[]; totalPages: number };
-
-async function fetchPosts({ page, tag }: { page: number; tag?: string }): Promise<PostListResponse> {
-  const url = new URL("/api/posts", window.location.origin);
-  url.searchParams.set("page", String(page));
-  if (tag) url.searchParams.set("tag", tag);
-  return fetchJson(url.toString());
-}
-
-export function PostList() {
+export function PostListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Number(searchParams.get("page") ?? "1");
   const tag = searchParams.get("tag") ?? undefined;
+  const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: postKeys.list({ page, tag }),
-    queryFn: () => fetchPosts({ page, tag }),
+    ...postsQuery({ page, tag }),
     placeholderData: keepPreviousData,
   });
 
-  if (query.isPending) return <div>loading...</div>;
-  if (query.isError) return <div>error</div>;
+  if (query.isPending) return <p aria-busy="true">목록을 불러온다.</p>;
+  if (query.isError) return <p role="alert">목록을 가져오지 못했다.</p>;
 
   return (
-    <div>
-      {query.isFetching && <div>refreshing...</div>}
-      {query.data.posts.map((post) => (
-        <div key={post.id}>{post.title}</div>
-      ))}
-
-      <button onClick={() => setSearchParams({ page: String(page + 1), ...(tag ? { tag } : {}) })}>
-        next
+    <section>
+      {query.isFetching && <span aria-live="polite">새로 고치는 중이다.</span>}
+      <ul>
+        {query.data.posts.map((post) => (
+          <li key={post.id}>
+            <Link
+              to={`/posts/${post.id}`}
+              onMouseEnter={() => queryClient.prefetchQuery(postQuery(post.id))}
+              onFocus={() => queryClient.prefetchQuery(postQuery(post.id))}
+            >
+              {post.title}
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <button
+        type="button"
+        onClick={() =>
+          setSearchParams({
+            page: String(page + 1),
+            ...(tag ? { tag } : {}),
+          })
+        }
+      >
+        다음 페이지
       </button>
-    </div>
+    </section>
   );
 }
 ```
 
-여기서 핵심은 “page/tag가 queryKey에 포함된다”는 점이다. 포함되지 않으면 다른 조건의 목록이 같은 캐시에 섞인다.
+세 가지가 함께 일어난다.
+
+- `page`, `tag`가 URL과 `queryKey`에 모두 들어간다. 같은 화면을 다시 열어도 같은 캐시를 본다.
+- `placeholderData: keepPreviousData`로 페이지 전환 깜빡임을 줄인다.
+- 목록 항목에 prefetch를 걸어 상세 진입 시 데이터를 미리 데운다.
 
 ---
 
-## 4. 상세 페이지: detail 캐시와 목록 캐시를 분리한다
+## 2. 상세 페이지: 본문, 좋아요, 댓글을 분리해 묶는다
+
+상세 페이지는 세 가지 독립된 데이터를 갖는다.
+
+- 본문(`postQuery`)
+- 좋아요 상태(본문 응답에 포함된다고 가정)
+- 댓글(`commentsInfiniteQuery`)
+
+각각 다른 `queryKey`로 분리하면 한쪽 변경이 다른 쪽 캐시를 건드리지 않는다.
 
 ```tsx
+// src/pages/PostDetailPage.tsx
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
-
-type PostDetail = { id: string; title: string; content: string };
-
-async function fetchPost(id: string): Promise<PostDetail> {
-  return fetchJson(`/api/posts/${id}`);
-}
+import { postQuery } from "../queries/postQueries";
+import { CommentList } from "./CommentList";
+import { LikeButton } from "./LikeButton";
 
 export function PostDetailPage() {
   const { postId } = useParams();
-  if (!postId) return <div>bad request</div>;
+  if (!postId) return <p>잘못된 경로다.</p>;
 
-  const query = useQuery({
-    queryKey: postKeys.detail(postId),
-    queryFn: () => fetchPost(postId),
-  });
+  const query = useQuery(postQuery(postId));
 
-  if (query.isPending) return <div>loading...</div>;
-  if (query.isError) return <div>error</div>;
+  if (query.isPending) return <p aria-busy="true">글을 불러온다.</p>;
+  if (query.isError) return <p role="alert">글을 가져오지 못했다.</p>;
+
   return (
     <article>
       <h1>{query.data.title}</h1>
-      <div>{query.data.content}</div>
+      <p>{query.data.body}</p>
+      <LikeButton
+        postId={postId}
+        liked={query.data.liked}
+        likeCount={query.data.likeCount}
+      />
+      <CommentList postId={postId} />
     </article>
   );
 }
@@ -150,70 +219,266 @@ export function PostDetailPage() {
 
 ---
 
-## 5. 작성/수정/삭제: invalidate 기준을 팀 규칙으로 만든다
+## 3. 좋아요 버튼: 낙관적 업데이트로 즉시 반응한다
 
-쓰기 이후에 어떤 캐시를 최신화할지 결정해야 한다. 보통은 다음이 기본이다.
-
-- 생성: 목록 쿼리 무효화
-- 수정: 상세 쿼리 무효화 + 목록 무효화(제목/요약이 목록에 보이면)
-- 삭제: 목록 무효화 + 상세 캐시 제거
+좋아요는 결과를 되돌릴 수 있고, 사용자 입장에서 빠른 피드백이 중요하다. 낙관적 업데이트가 적합한 전형적 케이스다(5편 참고).
 
 ```tsx
+// src/pages/LikeButton.tsx
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchJson } from "../api/client";
+import { postKeys } from "../queries/postKeys";
 
-async function createPost(input: { title: string; content: string }) {
-  return fetchJson("/api/posts", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
-  });
+interface PostDetail {
+  id: string;
+  title: string;
+  body: string;
+  liked: boolean;
+  likeCount: number;
 }
 
-export function CreatePost() {
+interface Props {
+  postId: string;
+  liked: boolean;
+  likeCount: number;
+}
+
+export function LikeButton({ postId, liked, likeCount }: Props) {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: createPost,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: postKeys.lists() });
+    mutationFn: (next: boolean) =>
+      fetchJson(`/api/posts/${postId}/likes`, {
+        method: next ? "POST" : "DELETE",
+      }),
+    onMutate: async (next) => {
+      await queryClient.cancelQueries({ queryKey: postKeys.detail(postId) });
+      const previous = queryClient.getQueryData<PostDetail>(
+        postKeys.detail(postId),
+      );
+      if (previous) {
+        queryClient.setQueryData<PostDetail>(postKeys.detail(postId), {
+          ...previous,
+          liked: next,
+          likeCount: previous.likeCount + (next ? 1 : -1),
+        });
+      }
+      return { previous };
+    },
+    onError: (_err, _next, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(postKeys.detail(postId), context.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: postKeys.detail(postId) });
     },
   });
 
   return (
-    <button onClick={() => mutation.mutate({ title: "t", content: "c" })} disabled={mutation.isPending}>
-      {mutation.isPending ? "saving..." : "create"}
+    <button
+      type="button"
+      onClick={() => mutation.mutate(!liked)}
+      disabled={mutation.isPending}
+      aria-pressed={liked}
+    >
+      {liked ? "좋아요 취소" : "좋아요"} ({likeCount})
     </button>
   );
 }
 ```
 
+`onMutate`에서 스냅샷을 잡고 즉시 캐시를 바꾼다. 실패하면 스냅샷으로 복원하고, 성공/실패 상관없이 `onSettled`에서 서버 진실로 다시 맞춘다.
+
+---
+
+## 4. 댓글 무한 스크롤: 상세 캐시와 분리한다
+
+댓글은 페이지가 길어 무한 스크롤이 적합하다. 본문과 다른 `queryKey`로 분리해 한쪽 변경이 다른 쪽을 건드리지 않게 한다.
+
+```ts
+// src/queries/commentQueries.ts
+import { infiniteQueryOptions } from "@tanstack/react-query";
+import { fetchJson } from "../api/client";
+import { commentKeys } from "./commentKeys";
+
+export interface Comment {
+  id: string;
+  body: string;
+  createdAt: string;
+}
+
+interface CommentPage {
+  comments: Comment[];
+  nextCursor: string | null;
+}
+
+export function commentsInfiniteQuery(postId: string) {
+  return infiniteQueryOptions({
+    queryKey: commentKeys.byPost(postId),
+    queryFn: ({ pageParam, signal }) =>
+      fetchJson<CommentPage>(
+        `/api/posts/${postId}/comments?cursor=${pageParam ?? ""}`,
+        { signal },
+      ),
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+  });
+}
+```
+
+```tsx
+// src/pages/CommentList.tsx
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { commentsInfiniteQuery } from "../queries/commentQueries";
+
+export function CommentList({ postId }: { postId: string }) {
+  const query = useInfiniteQuery(commentsInfiniteQuery(postId));
+
+  if (query.isPending) return <p aria-busy="true">댓글을 불러온다.</p>;
+  if (query.isError) return <p role="alert">댓글을 가져오지 못했다.</p>;
+
+  return (
+    <section>
+      {query.data.pages.flatMap((page) =>
+        page.comments.map((c) => <p key={c.id}>{c.body}</p>),
+      )}
+      {query.hasNextPage && (
+        <button
+          type="button"
+          onClick={() => query.fetchNextPage()}
+          disabled={query.isFetchingNextPage}
+        >
+          {query.isFetchingNextPage ? "불러오는 중..." : "더 보기"}
+        </button>
+      )}
+    </section>
+  );
+}
+```
+
+좋아요 mutation의 `invalidateQueries`는 상세 키(`postKeys.detail(postId)`)만 건드리므로 댓글 묶음이 다시 페치되지 않는다. 키 분리가 만든 안전 장치다.
+
+---
+
+## 5. 작성/수정/삭제: invalidate 기준을 명문화한다
+
+작성/수정/삭제는 영향을 주는 캐시가 다르다. 팀 규칙을 다음 기본값으로 정한다.
+
+| 작업 | 무효화 대상                               | 추가 작업                                                        |
+| ---- | ----------------------------------------- | ---------------------------------------------------------------- |
+| 생성 | `postKeys.lists()`                        | 작성 후 `/posts`로 이동                                          |
+| 수정 | `postKeys.detail(id)`, `postKeys.lists()` | 머문 자리에서 캐시 갱신                                          |
+| 삭제 | `postKeys.lists()`                        | `removeQueries(postKeys.detail(id))` + `/posts`로 `replace` 이동 |
+
+작성 예제는 다음과 같다.
+
+```tsx
+// src/pages/PostFormPage.tsx
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import { fetchJson } from "../api/client";
+import { postKeys } from "../queries/postKeys";
+
+interface CreatePostInput {
+  title: string;
+  body: string;
+}
+
+export function PostFormPage() {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
+  const mutation = useMutation({
+    mutationFn: (input: CreatePostInput) =>
+      fetchJson<{ id: string }>("/api/posts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      }),
+    onSuccess: (created) => {
+      queryClient.invalidateQueries({ queryKey: postKeys.lists() });
+      navigate(`/posts/${created.id}`);
+    },
+  });
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (mutation.isPending) return;
+    const form = new FormData(event.currentTarget);
+    mutation.mutate({
+      title: String(form.get("title") ?? ""),
+      body: String(form.get("body") ?? ""),
+    });
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input name="title" required />
+      <textarea name="body" required />
+      <button type="submit" disabled={mutation.isPending}>
+        {mutation.isPending ? "저장 중..." : "작성"}
+      </button>
+      {mutation.isError && <p role="alert">저장에 실패했다.</p>}
+    </form>
+  );
+}
+```
+
+이 흐름을 7편의 `queryOptions`로 묶은 뒤 라우터의 `loader`에서 prefetch까지 추가하면, 상세 페이지로 이동했을 때 데이터가 거의 즉시 보인다. 단, prefetch는 항상 켜는 것이 아니라 도메인에 맞춰 켠다(7편 참고).
+
+---
+
+## React Router action vs React Query mutation
+
+`react-router-dom` Data Router의 `action`(라우터 시리즈 11편)도 쓰기 작업을 담는다. 그래서 같은 폼 제출을 어디에 둘지 헷갈린다. 다음 기준이 첫 분류로 충분하다.
+
+| 기준                                                      | 권장                     |
+| --------------------------------------------------------- | ------------------------ |
+| 제출 후 다른 라우트로 이동하고, 라우터의 폼 상태가 필요함 | `action`                 |
+| 같은 화면에 머물고, 캐시 일부만 즉시 반영해야 함          | `useMutation`            |
+| 낙관적 업데이트가 필요한 토글성 작업                      | `useMutation`            |
+| 무한 스크롤이나 페이지네이션 안의 부분 갱신               | `useMutation`            |
+| 라우트 전환 자체가 작업 결과를 반영하는 흐름              | `action` + loader 재검증 |
+| 서버 상태 캐시 정합성을 라이브러리가 책임지길 원함        | `useMutation`            |
+
+두 도구를 함께 쓸 수도 있다. `action`이 성공한 뒤 `queryClient.invalidateQueries`를 호출해 React Query 캐시까지 맞추는 패턴이 일반적이다. 핵심은 한 작업의 책임을 한 곳에 두는 것이다. 같은 mutation을 두 위치에서 다르게 다루지 않는다.
+
 ---
 
 ## 다음 단계
 
-React Query를 실무 레벨로 가져가려면 다음을 추가로 다룰 필요가 있다.
+이 시리즈는 컴포넌트 경계의 React Query에서 멈춘다. 실무에 가까워질수록 다음 주제가 따라온다.
 
-- 서버 상태와 클라이언트 상태의 경계(상태 관리 시리즈와 연결)
-- Next.js에서의 프리패치/SSR/스트리밍과의 결합
-- 팀 단위 queryKey 규칙, 에러 표준화, observability(로그/트레이싱)
+- SSR/SSG에서 데이터 페치 — Next.js의 server component, hydration, `dehydrate`/`hydrate`로 클라이언트 캐시 채우기
+- 인증과 전역 에러 처리 — 401/403을 한 곳에서 처리하고 갱신 토큰을 어떻게 흘릴지 결정
+- 백오프와 retry 정책 — 도메인별로 어떤 상태 코드를 재시도하고 어떤 코드를 즉시 실패로 둘지
+- observability — devtools 외에 prod에서 캐시 상태를 추적하기 위한 로그/트레이싱
+- 폼 라이브러리(React Hook Form 등)와 mutation 결합 — 검증, 진행 상태, 서버 에러 표면화의 책임 분리
+
+이 주제들은 React Query 자체가 아니라 React Query를 쓰는 환경의 문제다. 시리즈에서 다룬 키 설계, 캐시 모델, 무효화 범위를 그대로 가져갈 수 있다.
 
 ---
 
-## Vue와 비교
+## Vue 비교
 
-Vue Query를 쓰면 React Query와 모델이 같다. Pinia 중심으로 서버 상태를 관리하면 “fetch 규칙, 캐시 키, 무효화”를 팀이 직접 규정해야 한다.
+| 관심사          | Vue 생태계                           | React 생태계                     |
+| --------------- | ------------------------------------ | -------------------------------- |
+| 라우터 폼 제출  | Vue Router(navigation guard) + Pinia | React Router `action`            |
+| 서버 상태 캐시  | `@tanstack/vue-query`                | `@tanstack/react-query`          |
+| URL 상태 결합   | `vue-router` query                   | `react-router-dom` search params |
+| 무한 스크롤     | `useInfiniteQuery`                   | `useInfiniteQuery`               |
+| 낙관적 업데이트 | `onMutate` + 롤백                    | `onMutate` + 롤백                |
 
-| 관심사 | Vue Query | React Query |
-| --- | --- | --- |
-| 공통 fetch 규칙 | composable/플러그인 | 모듈 함수 |
-| queryKey 설계 | 상수/컴포저블 | 상수/모듈 |
-| URL 상태 결합 | vue-router query | react-router search params |
-| invalidate | invalidateQueries | invalidateQueries |
+Pinia를 쓰던 팀이 Vue Query로 옮길 때는 store를 한 번에 비우지 않고 단계적으로 나눈다. 서버 데이터 캐시는 Vue Query로, 모달/탭/입력 임시값 같은 클라이언트 상태는 Pinia에 남긴다. React 쪽도 같은 분리가 적용된다.
 
 ---
 
 ## 체크리스트
 
-- URL 상태(페이지/필터)와 queryKey가 왜 일치해야 하는지 설명할 수 있다.
-- 생성/수정/삭제 이후 어떤 캐시를 무효화/제거할지 기준을 만들 수 있다.
-- 공통 fetch 규칙이 없을 때 React Query가 실패를 감지하지 못하는 케이스를 설명할 수 있다.
+- 페이지/필터/검색 같은 상태를 URL과 `queryKey`에 같이 둘 때의 이점을 설명할 수 있다.
+- 상세 화면 깜빡임을 줄이는 옵션 두 가지(prefetch, `placeholderData`)를 비교할 수 있다.
+- 좋아요와 글 작성에서 다른 mutation 전략(낙관적 vs invalidate)을 쓰는 이유를 설명할 수 있다.
+- 작성/수정/삭제별 무효화 범위 기본값을 한 표로 적을 수 있다.
+- React Router `action`과 React Query `useMutation`을 나누는 첫 기준을 댈 수 있다.
+- 서버 상태와 클라이언트 상태의 경계를 다른 사람에게 설명할 수 있다.

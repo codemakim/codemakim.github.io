@@ -1,216 +1,358 @@
 ---
 title: "[React Query 3/8] React Query - 뮤테이션"
 date: "2025-08-26"
-description: "useMutation, 낙관적 업데이트, 에러 처리"
-tags: ["React", "고급", "프론트엔드"]
+description: "useMutation으로 쓰기 요청을 다루는 기준, 성공 후 캐시 동기화, invalidate vs setQueryData"
+tags: ["React", "중급", "프론트엔드"]
 series: "React Query"
 seriesOrder: 3
 ---
 
 # React Query 가이드 - 뮤테이션
 
-> TanStack Query v5를 기반으로 한 데이터 페칭 학습 자료  
-> 출처: [TanStack Query Documentation](https://tanstack.com/query/)
+2편까지는 데이터를 읽는 일을 다뤘다. 이번 글은 쓰기다.
+
+쓰기 요청은 읽기와 모양은 비슷해 보이지만 책임이 다르다. 같은 요청을 두 번 보내면 안 되고, 성공한 뒤 다른 화면이 새 데이터를 알아차려야 하고, 실패하면 사용자가 무엇을 해야 할지 안내해야 한다. 그래서 React Query는 읽기와 쓰기를 다른 훅으로 나눠 둔다.
+
+이 글은 `useMutation`을 중심으로, 쓰기에 필요한 최소 흐름을 잡는다. 낙관적 업데이트는 5편에서 본격적으로 다룬다.
 
 ---
 
-## 뮤테이션
+## 왜 필요한가
 
-뮤테이션은 “서버 데이터를 변경하는 작업”을 표현한다. 실무에서 뮤테이션은 다음 문제를 함께 푼다.
+쓰기 요청을 단순한 `fetch` 호출로 처리하면 다음 문제가 따라온다.
 
-- 중복 제출 방지(두 번 클릭)
-- 성공/실패 UI 처리
-- 성공 후 캐시 동기화(목록/상세 최신화)
-- 실패 시 롤백(낙관적 업데이트)
+- 사용자가 저장 버튼을 두 번 눌러 같은 요청이 두 번 나간다.
+- 요청 중 화면이 멈춰 보이지 않아, 사용자가 진행 여부를 모른다.
+- 성공했는데 목록 화면이 갱신되지 않아 "저장이 안 됐다"는 오해를 부른다.
+- 실패했는데 어떤 종류의 실패인지(검증 오류인지 서버 장애인지) 구분이 없다.
 
-쿼리가 “읽기”라면 뮤테이션은 “쓰기”다. 그래서 캐시 정책과 흐름이 다르다.
+`useMutation`은 이 문제들을 라이브러리 단계에서 표준화한다.
+
+- `isPending`으로 진행 상태를 노출한다.
+- `mutate`는 같은 인스턴스에서 진행 중이면 중복을 방지하는 가드를 만들기 쉽다.
+- `onSuccess`/`onError`에서 캐시 동기화 규칙을 한 곳에 둔다.
 
 ---
 
-## 1. `useMutation`의 최소 형태
+## 원리: 읽기와 쓰기는 캐시 정책이 다르다
+
+| 측면         | 쿼리(읽기)                 | 뮤테이션(쓰기)                         |
+| ------------ | -------------------------- | -------------------------------------- |
+| 호출 시점    | 컴포넌트가 마운트되면 자동 | 사용자가 행동했을 때 명시적            |
+| 캐시 식별자  | `queryKey`로 자동 캐시     | 별도 캐시 없음(필요하면 `mutationKey`) |
+| 재시도       | 기본적으로 안전            | 멱등성이 보장될 때만 허용              |
+| 성공 후 처리 | 캐시가 자동 fresh          | 다른 캐시를 수동으로 동기화해야 함     |
+| 실패 처리    | 컴포넌트가 에러 표시       | 사용자가 다시 시도할 수 있도록 안내    |
+
+가장 중요한 차이는 마지막 두 줄이다. 쓰기 요청 자체가 끝났다고 끝나는 것이 아니라, "이 변경이 다른 화면의 캐시에 어떻게 반영되어야 하는가"가 함께 묶여야 한다.
+
+---
+
+## 최소 예제: useMutation
 
 ```tsx
 import { useMutation } from "@tanstack/react-query";
 
-type CreateUserInput = { name: string; email: string };
+interface CreateUserInput {
+  name: string;
+  email: string;
+}
 
-async function createUser(input: CreateUserInput) {
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: string;
+}
+
+async function createUser(input: CreateUserInput): Promise<User> {
   const res = await fetch("/api/users", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
   });
   if (!res.ok) throw new Error("failed");
-  return await res.json();
+  return (await res.json()) as User;
 }
 
 export function CreateUserForm() {
   const mutation = useMutation({ mutationFn: createUser });
 
-  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (mutation.isPending) return;
+
+    const formData = new FormData(event.currentTarget);
     mutation.mutate({
-      name: String(fd.get("name") ?? ""),
-      email: String(fd.get("email") ?? ""),
+      name: String(formData.get("name") ?? ""),
+      email: String(formData.get("email") ?? ""),
     });
   }
 
   return (
-    <form onSubmit={onSubmit}>
-      <input name="name" />
-      <input name="email" />
+    <form onSubmit={handleSubmit}>
+      <input name="name" required />
+      <input name="email" type="email" required />
       <button type="submit" disabled={mutation.isPending}>
-        {mutation.isPending ? "saving..." : "create"}
+        {mutation.isPending ? "저장 중..." : "만들기"}
       </button>
-      {mutation.isError && <div>error</div>}
-      {mutation.isSuccess && <div>done</div>}
+      {mutation.isError && (
+        <p role="alert">저장에 실패했다. 잠시 후 다시 시도한다.</p>
+      )}
+      {mutation.isSuccess && <p>저장이 완료됐다.</p>}
     </form>
   );
 }
 ```
 
-`mutationFn`은 “변경 요청”을 수행한다. 성공하면 데이터를 반환하고, 실패하면 throw한다.
+`mutate(input)`은 fire-and-forget이다. 결과를 `await`해야 한다면 `mutateAsync`를 쓴다. 다만 `mutateAsync`는 에러를 그대로 throw하므로 `try/catch`로 감싸야 한다.
+
+`mutation.isPending` 동안 버튼을 비활성화하면 중복 제출이 자연스럽게 막힌다. 앞부분의 `if (mutation.isPending) return` 가드는 키보드 이벤트 같은 우회 경로까지 한 번 더 차단한다.
 
 ---
 
-## 2. 성공 후 캐시 동기화: invalidate vs 직접 업데이트
+## 성공 후 캐시 동기화: invalidate와 setQueryData
 
-뮤테이션이 성공하면 화면은 보통 두 가지 중 하나를 해야 한다.
+뮤테이션이 성공하면 보통 두 가지 중 하나를 한다.
 
-- 목록을 다시 가져온다(invalidate)
-- 캐시를 직접 수정한다(setQueryData)
+- 관련 쿼리를 무효화해 다시 가져오게 한다 — `invalidateQueries`
+- 캐시 항목을 직접 수정한다 — `setQueryData`
 
-둘의 선택 기준은 다음이다.
-
-- invalidate: 단순하고 안전하지만 네트워크 요청이 늘 수 있다.
-- setQueryData: 빠르고 UX가 좋지만 캐시 정합성 책임이 커진다.
+| 방법         | 장점                      | 단점                           | 적합한 상황                      |
+| ------------ | ------------------------- | ------------------------------ | -------------------------------- |
+| invalidate   | 안전하고 단순함           | 추가 네트워크 요청이 발생함    | 정렬/필터/페이지가 영향받는 경우 |
+| setQueryData | 즉시 반영, 추가 요청 없음 | 캐시 정합성을 직접 책임져야 함 | 단순 추가, 단일 항목 갱신        |
 
 ### invalidateQueries
 
 ```tsx
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-const queryKeyUsers = ["users"];
-
-function CreateUser() {
+export function CreateUserButton() {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
     mutationFn: createUser,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeyUsers });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
     },
   });
 
-  return <button onClick={() => mutation.mutate({ name: "a", email: "a@a.com" })}>create</button>;
+  return (
+    <button onClick={() => mutation.mutate({ name: "a", email: "a@a.com" })}>
+      만들기
+    </button>
+  );
 }
 ```
 
-### setQueryData(캐시 직접 업데이트)
+`invalidateQueries`는 해당 키 prefix에 매칭되는 모든 쿼리를 stale로 표시하고, 화면에 마운트된 쿼리는 즉시 백그라운드에서 다시 가져온다. 키 설계가 일관되면 한 줄로 끝난다.
+
+### setQueryData
 
 ```tsx
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-function CreateUser() {
+export function CreateUserButton() {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
     mutationFn: createUser,
     onSuccess: (newUser) => {
-      queryClient.setQueryData(["users"], (old: any[] | undefined) => {
-        const prev = old ?? [];
-        return [...prev, newUser];
+      queryClient.setQueryData<User[]>(["users"], (old) => {
+        const previous = old ?? [];
+        return [...previous, newUser];
       });
     },
   });
 
-  return <button onClick={() => mutation.mutate({ name: "a", email: "a@a.com" })}>create</button>;
+  return (
+    <button onClick={() => mutation.mutate({ name: "a", email: "a@a.com" })}>
+      만들기
+    </button>
+  );
 }
 ```
 
-실무에서는 “서버가 반환한 최종 결과”를 기준으로 캐시를 업데이트해야 한다. 입력값을 그대로 넣으면 서버에서 보정된 값(id, createdAt 등)이 누락된다.
+`setQueryData`로 직접 수정할 때는 반드시 서버가 반환한 객체(`newUser`)를 기준으로 한다. 입력값(`{ name, email }`)을 그대로 추가하면 서버가 채워주는 `id`, `createdAt` 같은 필드가 누락된다.
+
+### 어떤 쪽을 기본으로 둘지
+
+망설여진다면 `invalidateQueries`를 기본으로 쓴다. 정렬/필터/페이지 같은 조건이 결과에 영향을 주는 목록은 직접 캐시를 수정하기가 어렵기 때문이다. 직접 수정은 다음 조건이 모두 맞을 때만 쓴다.
+
+- 캐시 구조가 단순하다(예: 평탄한 배열 한 개).
+- 서버가 반환한 정확한 값을 합치면 정합성이 깨지지 않는다.
+- 추가 요청 비용이 충분히 크다.
 
 ---
 
-## 3. 에러 처리 전략: 어디에 무엇을 보여줄지 결정한다
+## 에러 처리: 검증 오류와 시스템 오류를 분리한다
 
-뮤테이션 에러는 크게 두 종류로 나뉜다.
+뮤테이션 실패는 사용자 입장에서 의미가 다르다.
 
-- 사용자 입력 오류(검증): 폼 필드 근처에서 보여준다.
-- 시스템 오류(네트워크/서버): 토스트/에러 영역 등 전역 UX로 처리한다.
+- 검증 오류(예: 이메일 형식 오류, 이미 존재하는 이름) — 사용자가 입력을 고쳐서 다시 시도한다.
+- 시스템 오류(네트워크 실패, 5xx) — 사용자가 즉시 할 수 있는 일이 없다. 잠시 후 재시도하거나 새로고침한다.
 
-이를 구분하지 않으면 사용자는 “내가 뭘 잘못했는지”를 알 수 없다.
+이 둘을 같은 메시지로 처리하면 사용자는 무엇을 해야 할지 모른다.
+
+```tsx
+class ValidationError extends Error {
+  constructor(public readonly fields: Record<string, string>) {
+    super("validation");
+  }
+}
+
+class ServerError extends Error {
+  constructor(public readonly status: number) {
+    super(`server error ${status}`);
+  }
+}
+
+async function createUser(input: CreateUserInput): Promise<User> {
+  const res = await fetch("/api/users", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+
+  if (res.status === 422) {
+    const body = (await res.json()) as { fields: Record<string, string> };
+    throw new ValidationError(body.fields);
+  }
+  if (!res.ok) {
+    throw new ServerError(res.status);
+  }
+  return (await res.json()) as User;
+}
+```
+
+컴포넌트에서는 에러 종류로 분기한다.
+
+```tsx
+{
+  mutation.isError && mutation.error instanceof ValidationError && (
+    <ul role="alert">
+      {Object.entries(mutation.error.fields).map(([field, message]) => (
+        <li key={field}>
+          {field}: {message}
+        </li>
+      ))}
+    </ul>
+  );
+}
+{
+  mutation.isError && mutation.error instanceof ServerError && (
+    <p role="alert">서버에 문제가 있다. 잠시 후 다시 시도한다.</p>
+  );
+}
+```
+
+검증 오류는 폼 필드 근처에서 보여주고, 시스템 오류는 토스트나 상단 알림으로 보여주는 식으로 위치까지 분리하면 더 명확해진다.
 
 ---
 
-## 4. 실무 패턴: 삭제 후 목록/상세 동기화
+## 실무 예제: 삭제 후 목록과 상세 캐시를 함께 정리한다
 
-삭제는 “목록에서도 사라져야 하고 상세도 접근 불가”가 된다.
+삭제는 두 가지 캐시에 영향을 준다.
+
+- 목록(`["posts"]`)에서 항목이 사라져야 한다.
+- 상세(`["post", id]`)는 더 이상 의미가 없으므로 캐시에서 제거한다.
 
 ```tsx
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 
-async function deletePost(id: string) {
+async function deletePost(id: string): Promise<void> {
   const res = await fetch(`/api/posts/${id}`, { method: "DELETE" });
   if (!res.ok) throw new Error("failed");
 }
 
 export function DeletePostButton({ postId }: { postId: string }) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const mutation = useMutation({
     mutationFn: deletePost,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       queryClient.removeQueries({ queryKey: ["post", postId] });
+      navigate("/posts", { replace: true });
     },
   });
 
+  function handleClick() {
+    if (mutation.isPending) return;
+    if (!window.confirm("이 글을 삭제한다.")) return;
+    mutation.mutate(postId);
+  }
+
   return (
-    <button onClick={() => mutation.mutate(postId)} disabled={mutation.isPending}>
-      {mutation.isPending ? "deleting..." : "delete"}
+    <button onClick={handleClick} disabled={mutation.isPending}>
+      {mutation.isPending ? "삭제 중..." : "삭제"}
     </button>
   );
 }
 ```
 
-`removeQueries`는 “이 캐시는 이제 무의미하다”를 명시한다. 상세 페이지에서 뒤로가기를 할 때 오래된 캐시가 깜빡이며 보이는 문제를 줄일 수 있다.
+세 가지가 함께 일어난다.
+
+- `invalidateQueries({ queryKey: ["posts"] })`로 목록 화면이 자동 갱신된다.
+- `removeQueries({ queryKey: ["post", postId] })`로 상세 캐시를 제거한다. 사용자가 뒤로가기로 다시 들어와도 오래된 상세 데이터가 깜빡이지 않는다.
+- 삭제 후 목록으로 이동한다. `replace: true`로 두면 뒤로가기를 눌렀을 때 방금 삭제한 상세로 돌아가지 않는다.
 
 ---
 
-## 5. 자주 터지는 함정
+## 함정과 디버깅
 
-### 1) 성공 시 invalidate를 안 한다
+### 1. 성공 시 invalidate를 잊는다
 
-서버는 바뀌었는데 화면은 바뀌지 않는다. 이때 사용자는 “저장이 안 됐다”로 인지한다.
+서버는 바뀌었는데 화면은 그대로다. 사용자는 "저장이 안 됐다"고 본다. `onSuccess`에서 무엇을 동기화할지 결정하는 단계를 항상 짚는다.
 
-### 2) 무효화 범위를 과하게 잡는다
+### 2. 무효화 범위를 너무 넓게 잡는다
 
-`invalidateQueries()`를 무조건 호출하면 모든 쿼리가 리페치되어 성능이 무너진다. queryKey 설계를 먼저 잡고, 필요한 범위만 무효화한다.
+`queryClient.invalidateQueries()`를 인자 없이 호출하면 모든 쿼리가 stale가 된다. 마운트된 쿼리가 많으면 페치 폭증이 일어난다. `queryKey`를 항상 명시한다.
 
-### 3) 뮤테이션을 재시도(retry)한다
+### 3. 뮤테이션을 retry한다
 
-쓰기 요청은 “중복 생성” 같은 부작용이 있다. 재시도는 멱등성이 보장되는 경우에만 팀 규칙으로 허용한다.
+기본 설정에서 뮤테이션은 재시도하지 않는다. 그대로 둔다. 멱등성이 보장된 PUT/DELETE라면 팀 규칙으로 `retry: 1` 정도를 허용할 수 있지만, POST 생성 같은 비멱등 요청은 절대 재시도하지 않는다.
+
+### 4. mutateAsync 에러를 throw한 채로 둔다
+
+`await mutation.mutateAsync(input)`이 throw한 에러를 `try/catch`로 감싸지 않으면 unhandled rejection이 된다. `mutate`는 에러를 콜백으로 전달하므로 try/catch가 필요 없다.
+
+### 5. 폼 안에서 input value 상태로 비활성화 처리만 한다
+
+`disabled={mutation.isPending}`만 두면 빠르게 두 번 클릭하는 경우는 막히지만, 키보드 단축키나 외부 트리거는 통과한다. 핸들러 첫 줄에 `if (mutation.isPending) return` 가드를 두는 편이 안전하다.
 
 ---
 
-## Vue와 비교
+## Vue Query와 비교
 
-Vue에서도 `@tanstack/vue-query`의 `useMutation`으로 동일한 모델을 쓴다. Pinia action으로 뮤테이션을 처리할 수도 있지만, 성공 후 캐시/동기화를 직접 설계해야 한다.
+Vue Query에도 동일한 모델이 있다. 어휘는 그대로 사용한다.
 
-| 관심사 | Vue Query | React Query |
-| --- | --- | --- |
-| 쓰기 요청 | `useMutation` | `useMutation` |
-| 성공 후 동기화 | `invalidateQueries`/cache update | `invalidateQueries`/cache update |
-| 낙관적 업데이트 | `onMutate` + rollback | `onMutate` + rollback |
+| 관심사          | Vue Query                       | React Query                     |
+| --------------- | ------------------------------- | ------------------------------- |
+| 쓰기 요청       | `useMutation`                   | `useMutation`                   |
+| 캐시 무효화     | `queryClient.invalidateQueries` | `queryClient.invalidateQueries` |
+| 캐시 직접 수정  | `queryClient.setQueryData`      | `queryClient.setQueryData`      |
+| 캐시 제거       | `queryClient.removeQueries`     | `queryClient.removeQueries`     |
+| 낙관적 업데이트 | `onMutate` + `onError` 롤백     | `onMutate` + `onError` 롤백     |
+
+Pinia store에 직접 데이터를 넣어 관리하던 팀은 뮤테이션 후 store를 수동으로 갱신했을 가능성이 높다. Vue Query로 옮길 때는 그 책임을 캐시 무효화로 옮기고, store는 클라이언트 상태에만 집중하게 둔다.
+
+---
+
+## 다음 단계
+
+낙관적 업데이트(`onMutate` + 롤백)는 5편에서 본격적으로 다룬다. 4편에서는 캐시의 신선도와 메모리 모델, 그리고 무효화의 정확한 동작을 정리한다. 이 글에서 다룬 `invalidateQueries`와 `setQueryData`는 4편의 모델 위에서 다시 한 번 짚어진다.
 
 ---
 
 ## 체크리스트
 
-- 뮤테이션 성공 후 화면이 최신화되어야 하는 이유를 설명할 수 있다.
-- invalidate와 setQueryData의 선택 기준을 설명할 수 있다.
-- 뮤테이션 에러를 검증 오류와 시스템 오류로 분리해 UX를 설계할 수 있다.
-
----
+- 뮤테이션 성공 후 화면이 자동으로 갱신되어야 하는 이유를 설명할 수 있다.
+- `invalidateQueries`와 `setQueryData`의 선택 기준을 한 문장씩 정리할 수 있다.
+- 검증 오류와 시스템 오류를 다른 위치, 다른 메시지로 처리할 수 있다.
+- 삭제 시 목록과 상세 캐시를 함께 정리하는 패턴을 코드로 쓸 수 있다.
+- 뮤테이션이 기본적으로 retry하지 않는 이유를 설명할 수 있다.
+- `mutate`와 `mutateAsync`의 에러 처리 차이를 알고 있다.

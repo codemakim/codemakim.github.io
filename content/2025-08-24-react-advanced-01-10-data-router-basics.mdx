@@ -1,45 +1,80 @@
 ---
 title: "[React Router 10/12] React Router - Data Router 기초"
 date: "2025-08-24"
-description: "createBrowserRouter, RouterProvider, loader/action, redirect, errorElement 개념과 최소 예제"
-tags: ["React", "고급", "프론트엔드"]
+description: "loader, redirect, errorElement로 데이터와 에러를 라우트 경계에서 다루는 방법"
+tags: ["React", "중급", "프론트엔드"]
 series: "React Router"
 seriesOrder: 10
 ---
 
 # React Router 가이드 - Data Router 기초
 
-> React Router v6.4+의 Data Router를 기준으로 정리한다.  
-> 출처: [React Router Documentation](https://reactrouter.com/)
+1~9편에서는 컴포넌트 라우터 관점으로 SPA 라우팅을 다뤘다. `BrowserRouter`, `Routes`, `Route`, `useParams`, `useSearchParams`, `useNavigate`만으로도 많은 화면을 만들 수 있다.
+
+하지만 데이터가 붙기 시작하면 페이지 컴포넌트 안쪽에 비슷한 코드가 반복된다.
+
+- URL에서 params와 query string을 읽는다.
+- 데이터를 가져온다.
+- 로딩, 404, 에러를 나눈다.
+- 로그인하지 않았다면 다른 화면으로 보낸다.
+- 실패했을 때 어떤 에러 화면을 보여줄지 정한다.
+
+Data Router는 이 책임 일부를 라우트 정의로 올린다. 핵심은 "데이터를 라우터에 붙이는 고급 기능"이 아니라 **화면에 들어가기 전 필요한 읽기, 리다이렉트, 에러 경계를 라우트 단위로 정리하는 도구**라는 점이다.
 
 ---
 
-## Data Router는 무엇을 해결하는가
+## 왜 필요한가
 
-컴포넌트 라우터(`BrowserRouter` + `Routes`)는 “URL → 컴포넌트 매칭”을 잘 해결한다. 하지만 실무에서는 다음이 항상 붙는다.
-
-- 화면 진입 전에 데이터를 가져와야 한다.
-- 폼 제출(POST/PUT/DELETE)을 라우팅 흐름과 함께 다뤄야 한다.
-- 실패했을 때 어떤 화면을 보여줄지 라우트 단위로 결정해야 한다.
-
-Data Router는 라우트 정의에 `loader`(데이터 읽기)와 `action`(데이터 쓰기)을 붙이고, 그 결과를 라우터가 일관된 방식으로 전달하는 모델이다.
-
----
-
-## 1. `createBrowserRouter`와 `RouterProvider`
-
-Data Router는 `BrowserRouter` 대신 `RouterProvider`를 쓴다.
+7편에서 상세 페이지의 데이터 로딩을 컴포넌트 안에서 처리했다.
 
 ```tsx
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import RootLayout from "./layouts/RootLayout";
-import HomePage from "./pages/HomePage";
+function PostDetailPage() {
+  const { postId } = useParams();
+  const [state, setState] = useState({ status: "loading" });
+
+  useEffect(() => {
+    // postId로 fetch
+    // loading, not-found, error 상태 관리
+  }, [postId]);
+
+  // 상태별 UI 분기
+}
+```
+
+이 방식은 원리를 이해하기 좋지만, 페이지가 많아지면 다음 문제가 생긴다.
+
+- 페이지마다 로딩/에러 상태 모델이 조금씩 달라진다.
+- 인증 리다이렉트가 컴포넌트 렌더 이후에 일어난다.
+- 데이터가 필요한 라우트와 데이터 로딩 코드가 떨어져 보인다.
+- "이 URL에 들어가기 전에 무엇을 준비해야 하는가"가 라우트 정의에서 보이지 않는다.
+
+Data Router는 라우트에 `loader`, `action`, `errorElement`를 붙여 이 흐름을 명시한다.
+
+---
+
+## 원리: Data Router는 라우트 객체가 실행 단위다
+
+컴포넌트 라우터는 JSX로 라우트를 선언했다.
+
+```tsx
+<BrowserRouter>
+  <Routes>
+    <Route path="/posts/:postId" element={<PostDetailPage />} />
+  </Routes>
+</BrowserRouter>
+```
+
+Data Router는 라우트 객체 배열을 만들고 `RouterProvider`에 넘긴다.
+
+```tsx
+import { RouterProvider, createBrowserRouter } from "react-router-dom";
 
 const router = createBrowserRouter([
   {
-    path: "/",
-    element: <RootLayout />,
-    children: [{ index: true, element: <HomePage /> }],
+    path: "/posts/:postId",
+    element: <PostDetailPage />,
+    loader: postLoader,
+    errorElement: <RouteErrorPage />,
   },
 ]);
 
@@ -48,162 +83,244 @@ export default function App() {
 }
 ```
 
-이 구조의 핵심은 “라우트가 객체로 정의된다”는 점이다. 이 객체에 `loader`, `action`, `errorElement`, `handle` 같은 정책을 함께 넣는다.
+이 라우트 객체는 단순한 매칭 정보가 아니다. 해당 URL에 들어갈 때 실행할 데이터 읽기(`loader`), 쓰기(`action`), 에러 화면(`errorElement`)을 함께 가진다.
 
 ---
 
-## 2. `loader`: 화면 진입 시 데이터 준비
+## 최소 예제: `loader`와 `useLoaderData`
 
-`loader`는 해당 라우트가 활성화될 때 실행된다. `useLoaderData()`는 그 결과를 컴포넌트에서 읽는다.
-
-예를 들어 `/posts`에서 목록을 가져온다.
+`loader`는 라우트가 렌더링되기 전에 필요한 데이터를 준비한다. 컴포넌트는 `useLoaderData()`로 그 결과를 읽는다.
 
 ```tsx
-import { createBrowserRouter } from "react-router-dom";
-import PostsPage, { postsLoader } from "./pages/PostsPage";
+import {
+  RouterProvider,
+  createBrowserRouter,
+  useLoaderData,
+  type LoaderFunctionArgs,
+} from "react-router-dom";
 
-export const router = createBrowserRouter([
-  {
-    path: "/posts",
-    element: <PostsPage />,
-    loader: postsLoader,
-  },
-]);
-```
-
-```tsx
-import { useLoaderData } from "react-router-dom";
-
-type Post = { id: string; title: string };
-
-export async function postsLoader(): Promise<Post[]> {
-  const res = await fetch("/api/posts");
-  if (!res.ok) throw new Response("failed to load posts", { status: res.status });
-  return await res.json();
+interface Post {
+  id: string;
+  title: string;
+  body: string;
 }
 
-export default function PostsPage() {
-  const posts = useLoaderData() as Post[];
+const posts: Post[] = [
+  { id: "1", title: "React Router 시작", body: "라우팅 기본을 배운다." },
+  { id: "2", title: "Data Router", body: "loader로 데이터를 준비한다." },
+];
+
+async function postLoader({ params }: LoaderFunctionArgs) {
+  const post = posts.find((item) => item.id === params.postId);
+
+  if (!post) {
+    throw new Response("Post not found", { status: 404 });
+  }
+
+  return post;
+}
+
+function PostDetailPage() {
+  const post = useLoaderData() as Post;
+
   return (
-    <ul>
-      {posts.map((p) => (
-        <li key={p.id}>{p.title}</li>
-      ))}
-    </ul>
+    <main>
+      <h1>{post.title}</h1>
+      <p>{post.body}</p>
+    </main>
   );
 }
-```
 
-### 실무 포인트: `loader`는 URL을 입력으로 삼는다
+const router = createBrowserRouter([
+  {
+    path: "/posts/:postId",
+    element: <PostDetailPage />,
+    loader: postLoader,
+  },
+]);
 
-필터/정렬/페이지네이션은 쿼리 스트링을 입력으로 삼고 `loader({ request })`에서 읽는다.
-
-```tsx
-import type { LoaderFunctionArgs } from "react-router-dom";
-
-export async function postsLoader({ request }: LoaderFunctionArgs) {
-  const url = new URL(request.url);
-  const page = url.searchParams.get("page") ?? "1";
-  const res = await fetch(`/api/posts?page=${encodeURIComponent(page)}`);
-  if (!res.ok) throw new Response("failed", { status: res.status });
-  return await res.json();
+export default function App() {
+  return <RouterProvider router={router} />;
 }
 ```
 
-이 방식은 “URL이 곧 상태”라는 규칙과 잘 맞는다.
+컴포넌트 안에서 `useParams()`로 id를 읽고 `useEffect()`로 fetch하는 코드가 사라졌다. 이 화면에 들어가기 전에 필요한 데이터는 route의 `loader`에 모인다.
 
 ---
 
-## 3. `redirect`: 화면이 아니라 흐름을 바꾼다
+## URL은 `request`와 `params`로 읽는다
 
-로그인 전에는 대시보드로 못 들어가게 해야 한다. Data Router에서는 `loader`에서 `redirect`로 흐름을 바꾼다.
+`loader`는 현재 요청 정보를 받는다. path param은 `params`, query string은 `request.url`에서 읽는다.
 
 ```tsx
-import { redirect } from "react-router-dom";
 import type { LoaderFunctionArgs } from "react-router-dom";
+
+export async function postListLoader({ request }: LoaderFunctionArgs) {
+  const url = new URL(request.url);
+  const tag = url.searchParams.get("tag") ?? "all";
+  const page = Number(url.searchParams.get("page") ?? "1");
+
+  const response = await fetch(
+    `/api/posts?tag=${encodeURIComponent(tag)}&page=${page}`,
+  );
+
+  if (!response.ok) {
+    throw new Response("Failed to load posts", { status: response.status });
+  }
+
+  return response.json();
+}
+```
+
+이 구조는 앞에서 배운 "URL이 화면 상태의 단일 진실 소스"라는 규칙과 잘 맞는다. 목록 필터나 페이지 번호가 바뀌면 URL이 바뀌고, 라우터는 새 URL 기준으로 loader를 다시 실행한다.
+
+---
+
+## `redirect`: 컴포넌트 렌더 전에 흐름을 바꾼다
+
+보호 라우트를 컴포넌트로 만들면 인증 상태를 확인한 뒤 `<Navigate />`를 렌더링한다. Data Router에서는 loader에서 `redirect()`를 반환하거나 던져 라우트 진입 전에 흐름을 바꿀 수 있다.
+
+```tsx
+import { redirect, type LoaderFunctionArgs } from "react-router-dom";
+
+async function requireUser() {
+  return null as { id: string } | null;
+}
 
 export async function dashboardLoader({ request }: LoaderFunctionArgs) {
-  const isAuthenticated = false; // 인증 확인 가정
-  if (!isAuthenticated) {
+  const user = await requireUser();
+
+  if (!user) {
     const url = new URL(request.url);
-    const from = url.pathname + url.search + url.hash;
+    const from = `${url.pathname}${url.search}`;
+
     throw redirect(`/login?from=${encodeURIComponent(from)}`);
   }
-  return null;
+
+  return { user };
 }
 ```
 
-컴포넌트에서 조건 분기해 `navigate`를 호출하는 방식보다 “라우트 진입 정책”이 선명해진다.
+이 방식의 장점은 "대시보드에 들어가기 전에 인증이 필요하다"는 정책이 라우트의 loader에 보인다는 점이다. 컴포넌트가 잠깐 렌더링된 뒤 이동하는 깜빡임도 줄어든다.
 
 ---
 
-## 4. `errorElement`: 라우트 단위 에러 경계
+## `errorElement`: 라우트 단위 에러 화면
 
-Data Router는 `loader`/`action`에서 던진 에러를 라우트 단위로 처리할 수 있다.
+loader에서 404를 던지거나 서버 오류를 던지면 해당 라우트의 `errorElement`가 렌더링된다.
 
 ```tsx
-import { isRouteErrorResponse, useRouteError, Link } from "react-router-dom";
+import { Link, isRouteErrorResponse, useRouteError } from "react-router-dom";
 
-export default function RouteErrorPage() {
+function RouteErrorPage() {
   const error = useRouteError();
 
   if (isRouteErrorResponse(error)) {
     if (error.status === 404) {
       return (
-        <div>
-          <h1>not found</h1>
-          <Link to="/posts">back</Link>
-        </div>
+        <main>
+          <h1>글을 찾을 수 없다</h1>
+          <Link to="/posts">목록으로 돌아간다</Link>
+        </main>
       );
     }
-    return <div>error: {error.status}</div>;
+
+    return (
+      <main>
+        <h1>요청을 처리하지 못했다</h1>
+        <p>상태 코드: {error.status}</p>
+      </main>
+    );
   }
 
   if (error instanceof Error) {
-    return <div>error: {error.message}</div>;
+    return (
+      <main>
+        <h1>화면을 렌더링하지 못했다</h1>
+        <p>{error.message}</p>
+      </main>
+    );
   }
 
-  return <div>unknown error</div>;
+  return <main>알 수 없는 문제가 발생했다.</main>;
 }
 ```
 
-라우트 설정에서는 다음처럼 붙인다.
+라우트 설정에는 이렇게 붙인다.
 
 ```tsx
-{
-  path: "/posts",
-  element: <PostsPage />,
-  loader: postsLoader,
-  errorElement: <RouteErrorPage />,
-}
+const router = createBrowserRouter([
+  {
+    path: "/posts/:postId",
+    element: <PostDetailPage />,
+    loader: postLoader,
+    errorElement: <RouteErrorPage />,
+  },
+]);
 ```
 
-### 실무 포인트: “라우트 404”와 “리소스 404”는 다르다
-
-라우트 404는 `path="*"`로 해결된다. 리소스 404는 `loader`가 404를 받고 던진 것을 `errorElement`에서 처리해야 한다.
+리소스 404가 `PostDetailPage` 내부 분기에서 `errorElement`로 이동한 셈이다. "이 라우트에서 데이터 준비가 실패하면 어떤 화면을 보여줄지"가 라우트 정의에 모인다.
 
 ---
 
-## 5. 컴포넌트 라우터에서 Data Router로 이동할 때 기준
+## 컴포넌트 라우터에서 Data Router로 옮기는 기준
 
-모든 앱이 Data Router로 갈 필요는 없다. 하지만 다음이 강하면 Data Router가 이득이다.
+모든 앱을 무조건 Data Router로 시작할 필요는 없다. 하지만 다음 조건이 늘어나면 이득이 커진다.
 
-- 폼 제출 흐름이 많다.
-- redirect 정책이 많다(로그인/권한/온보딩).
-- 로딩/에러 경계를 라우트 단위로 강하게 잡고 싶다.
+- 페이지 진입 전에 데이터가 필요하다.
+- 로그인/권한/온보딩 리다이렉트가 많다.
+- 라우트별 에러 화면을 분리하고 싶다.
+- 폼 제출과 성공 후 이동을 라우터 흐름에 묶고 싶다.
+- 같은 URL 상태에서 loader 재실행과 캐시 동기화를 일관되게 다루고 싶다.
 
-반대로 단순한 페이지 전환과 클라이언트 상태 중심 앱이라면 기존 방식도 충분하다.
+반대로 화면 전환이 단순하고 데이터는 React Query 같은 별도 서버 상태 도구로 충분히 관리된다면 컴포넌트 라우터도 괜찮다. 중요한 것은 "데이터 책임을 어디에 둘 것인가"를 팀이 명확히 정하는 것이다.
+
+---
+
+## 함정과 디버깅
+
+### 1. `loader`를 컴포넌트 안에서 호출하려 한다
+
+loader는 라우터가 실행한다. 컴포넌트에서는 `useLoaderData()`로 결과를 읽는다.
+
+### 2. query string을 React state에 복사한다
+
+`loader({ request })`에서 query string을 읽는다면 URL이 입력이다. 같은 값을 컴포넌트 state로 또 저장하면 동기화 문제가 생긴다.
+
+### 3. 검증 실패와 서버 실패를 모두 `errorElement`로 보낸다
+
+10편에서는 읽기 중심 loader를 다룬다. 11편의 action에서는 필드 검증 실패처럼 같은 화면에서 보여줄 상태와 서버 실패처럼 errorElement로 보낼 상태를 나눠야 한다.
+
+### 4. route 404와 resource 404를 섞는다
+
+`path="*"`는 매칭되는 라우트가 없을 때다. `/posts/999`처럼 route는 맞지만 데이터가 없으면 loader가 404 `Response`를 던지고 해당 라우트의 `errorElement`가 처리한다.
 
 ---
 
 ## Vue Router와 비교
 
-Vue Router는 라우팅과 데이터 로딩을 분리해 두는 경우가 많고, 네비게이션 가드나 컴포넌트 생명주기에서 데이터를 불러오는 패턴이 흔하다. Data Router는 “라우트 정의에 데이터/에러/리다이렉트를 붙인다”는 점이 특징이다.
+Vue Router는 보통 route config와 navigation guard를 중심으로 라우팅 정책을 둔다. 데이터 로딩은 컴포넌트, Pinia, Vue Query 쪽에서 처리하는 경우가 많다.
 
-| 관심사 | Vue Router | React Router(Data Router) |
-| --- | --- | --- |
-| 라우터 생성 | `createRouter` | `createBrowserRouter` |
-| 데이터 로딩 | 컴포넌트/스토어에서 처리 | `loader` + `useLoaderData` |
-| 리다이렉트 | guard에서 `next(...)` | `redirect(...)` |
-| 라우트 에러 | 전역/컴포넌트 경계 | `errorElement` + `useRouteError` |
+React Router의 Data Router는 라우트 정의에 데이터 읽기와 에러 경계를 더 강하게 붙인다.
 
+| 관심사        | Vue Router            | React Router Data Router           |
+| ------------- | --------------------- | ---------------------------------- |
+| 라우터 생성   | `createRouter`        | `createBrowserRouter`              |
+| 렌더링 진입점 | `<RouterView />`      | `<RouterProvider />`               |
+| 데이터 읽기   | 컴포넌트/스토어/Query | `loader` + `useLoaderData()`       |
+| 리다이렉트    | guard 또는 컴포넌트   | `redirect()`                       |
+| 라우트 에러   | 전역/컴포넌트 경계    | `errorElement` + `useRouteError()` |
+
+Vue Router의 guard에서 "이 화면에 들어갈 수 있는가"를 판단했다면, Data Router에서는 loader가 비슷한 위치에서 데이터와 진입 정책을 함께 다룬다고 이해하면 된다.
+
+---
+
+## 체크리스트
+
+- Data Router가 해결하는 문제가 무엇인지 설명할 수 있다.
+- `createBrowserRouter`와 `RouterProvider`로 라우터를 구성할 수 있다.
+- `loader`에서 params와 query string을 읽을 수 있다.
+- `useLoaderData()`로 loader 결과를 화면에서 사용할 수 있다.
+- loader에서 `redirect()`로 진입 흐름을 바꿀 수 있다.
+- `errorElement`와 `useRouteError()`로 라우트 단위 에러를 처리할 수 있다.
+- 컴포넌트 라우터와 Data Router를 선택하는 기준을 설명할 수 있다.

@@ -1,0 +1,326 @@
+---
+title: "[Next.js 고급 2/12] Server Components"
+date: "2025-09-08"
+description: "Server Component와 Client Component의 경계를 실무 기준으로 나눈다"
+tags: ["Next.js", "React", "중급", "프론트엔드"]
+series: "Next.js 고급"
+seriesOrder: 2
+---
+
+# Server Components
+
+React 앱이 느려지는 흔한 이유는 모든 것을 브라우저로 보내기 때문이다. 데이터 조회 코드, 화면 조립 코드, 상호작용 코드가 같은 번들에 섞이면 사용자는 필요 없는 JavaScript까지 내려받는다.
+
+Next.js App Router의 Server Component는 이 문제를 정면으로 다룬다. 브라우저에서 실행할 필요가 없는 컴포넌트를 서버에서 실행하고, 클라이언트에는 렌더링 결과와 필요한 최소한의 상호작용 코드만 보낸다.
+
+---
+
+## 왜 필요한가
+
+게시글 목록 페이지에는 다음 코드가 필요하다.
+
+- DB에서 게시글 목록을 읽는다.
+- 공개되지 않은 글은 제외한다.
+- 제목, 설명, 태그를 렌더링한다.
+- 필터 버튼은 클릭에 반응한다.
+
+이 모든 코드를 Client Component에 넣으면 DB 접근은 API로 우회해야 하고, 목록 렌더링 코드도 번들에 포함된다. Server Component로 시작하면 읽기와 렌더링은 서버에서 끝내고, 클릭이 필요한 필터만 클라이언트로 보낼 수 있다.
+
+---
+
+## 서버에서 실행되는 코드
+
+App Router에서 `"use client"`가 없는 컴포넌트는 Server Component다.
+
+```tsx
+// app/posts/page.tsx
+import Link from "next/link";
+import { db } from "@/app/lib/db";
+
+export default async function PostsPage() {
+  const posts = await db.post.findMany({
+    where: { published: true },
+    orderBy: { createdAt: "desc" },
+    select: {
+      slug: true,
+      title: true,
+      description: true,
+    },
+  });
+
+  return (
+    <main>
+      <h1>게시글</h1>
+      <ul>
+        {posts.map((post) => (
+          <li key={post.slug}>
+            <Link href={`/posts/${post.slug}`}>{post.title}</Link>
+            <p>{post.description}</p>
+          </li>
+        ))}
+      </ul>
+    </main>
+  );
+}
+```
+
+이 컴포넌트 코드는 브라우저 번들에 들어가지 않는다. `db`도 브라우저로 가지 않는다. 서버에서 데이터와 UI를 조립한 뒤 결과만 전송한다.
+
+---
+
+## 클라이언트로 내려야 하는 코드
+
+브라우저 상호작용은 Client Component가 맡는다.
+
+```tsx
+// app/posts/PostFilter.tsx
+"use client";
+
+import { useMemo, useState } from "react";
+
+type Post = {
+  slug: string;
+  title: string;
+  tag: string;
+};
+
+type PostFilterProps = {
+  posts: Post[];
+};
+
+export function PostFilter({ posts }: PostFilterProps) {
+  const [selectedTag, setSelectedTag] = useState("all");
+
+  const filteredPosts = useMemo(() => {
+    if (selectedTag === "all") {
+      return posts;
+    }
+
+    return posts.filter((post) => post.tag === selectedTag);
+  }, [posts, selectedTag]);
+
+  return (
+    <section>
+      <button type="button" onClick={() => setSelectedTag("all")}>
+        전체
+      </button>
+      <button type="button" onClick={() => setSelectedTag("Next.js")}>
+        Next.js
+      </button>
+      <ul>
+        {filteredPosts.map((post) => (
+          <li key={post.slug}>{post.title}</li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+```
+
+이 컴포넌트는 상태와 이벤트 핸들러를 사용하므로 클라이언트로 내려가야 한다. 문제는 경계의 위치다. 전체 페이지를 Client Component로 만들 필요는 없다. 필터만 leaf로 분리하면 된다.
+
+---
+
+## 직렬화 경계
+
+Server Component에서 Client Component로 props를 넘길 수 있지만, 값은 직렬화 가능해야 한다.
+
+```tsx
+// app/posts/page.tsx
+import { PostFilter } from "./PostFilter";
+
+export default async function PostsPage() {
+  const posts = await getPosts();
+
+  return (
+    <main>
+      <h1>게시글</h1>
+      <PostFilter
+        posts={posts.map((post) => ({
+          slug: post.slug,
+          title: post.title,
+          tag: post.tag,
+        }))}
+      />
+    </main>
+  );
+}
+```
+
+넘기면 곤란한 값은 다음과 같다.
+
+- 함수
+- DB 클라이언트
+- 클래스 인스턴스
+- `Date` 객체를 그대로 둔 값
+- `Map`, `Set`처럼 JSON 형태로 의도가 잘 드러나지 않는 값
+
+날짜는 문자열로 바꾸고, 서버 전용 객체는 서버에서 사용을 끝낸다.
+
+---
+
+## 이벤트 핸들러를 서버 컴포넌트에 둘 수 없는 이유
+
+다음 코드는 App Router의 기본 정신 모델과 맞지 않는다.
+
+```tsx
+export default function BadButton() {
+  function handleClick() {
+    console.log("clicked");
+  }
+
+  return (
+    <button type="button" onClick={handleClick}>
+      저장
+    </button>
+  );
+}
+```
+
+Server Component는 브라우저에 컴포넌트 함수 자체를 보내지 않는다. 따라서 브라우저에서 실행되어야 하는 `onClick` 핸들러를 붙일 수 없다. 이벤트가 필요하면 해당 부분을 Client Component로 분리한다.
+
+```tsx
+// app/posts/SaveButton.tsx
+"use client";
+
+type SaveButtonProps = {
+  postId: string;
+};
+
+export function SaveButton({ postId }: SaveButtonProps) {
+  return (
+    <button type="button" onClick={() => console.log(`${postId} saved`)}>
+      저장
+    </button>
+  );
+}
+```
+
+---
+
+## 실무 예제: 서버 목록과 클라이언트 정렬
+
+서버는 권한과 데이터 범위를 확정하고, 클라이언트는 이미 받은 데이터 안에서 정렬만 담당한다.
+
+```tsx
+// app/admin/posts/page.tsx
+import { SortablePostTable } from "./SortablePostTable";
+import { requireAdmin } from "@/app/lib/auth";
+import { db } from "@/app/lib/db";
+
+export default async function AdminPostsPage() {
+  await requireAdmin();
+
+  const posts = await db.post.findMany({
+    orderBy: { updatedAt: "desc" },
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      updatedAt: true,
+    },
+  });
+
+  return (
+    <main>
+      <h1>게시글 관리</h1>
+      <SortablePostTable
+        posts={posts.map((post) => ({
+          id: post.id,
+          title: post.title,
+          status: post.status,
+          updatedAt: post.updatedAt.toISOString(),
+        }))}
+      />
+    </main>
+  );
+}
+```
+
+```tsx
+// app/admin/posts/SortablePostTable.tsx
+"use client";
+
+import { useMemo, useState } from "react";
+
+type PostRow = {
+  id: string;
+  title: string;
+  status: string;
+  updatedAt: string;
+};
+
+export function SortablePostTable({ posts }: { posts: PostRow[] }) {
+  const [direction, setDirection] = useState<"asc" | "desc">("desc");
+
+  const sortedPosts = useMemo(() => {
+    return [...posts].sort((a, b) => {
+      const result = a.updatedAt.localeCompare(b.updatedAt);
+      return direction === "asc" ? result : -result;
+    });
+  }, [direction, posts]);
+
+  return (
+    <section>
+      <button
+        type="button"
+        onClick={() =>
+          setDirection((value) => (value === "asc" ? "desc" : "asc"))
+        }
+      >
+        정렬 변경
+      </button>
+      <table>
+        <tbody>
+          {sortedPosts.map((post) => (
+            <tr key={post.id}>
+              <td>{post.title}</td>
+              <td>{post.status}</td>
+              <td>{post.updatedAt}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+  );
+}
+```
+
+관리자 권한 검사는 서버에 남고, 테이블 정렬만 클라이언트에서 동작한다.
+
+---
+
+## 함정과 디버깅
+
+가장 흔한 실수는 상단 컴포넌트에 `"use client"`를 붙이는 것이다. 한 번 붙이면 그 파일이 import하는 하위 컴포넌트도 클라이언트 번들 경계 안으로 들어간다. 화면이 동작하더라도 서버에 남겨도 되는 코드가 브라우저로 내려갈 수 있다.
+
+다음 순서로 확인한다.
+
+1. 이벤트 핸들러나 브라우저 API가 실제로 필요한 컴포넌트를 찾는다.
+2. 그 컴포넌트만 별도 파일로 분리한다.
+3. 서버 데이터는 직렬화 가능한 props로 줄여서 넘긴다.
+4. DB 접근, 비밀 키, 파일 시스템 접근이 Client Component import 체인에 들어오지 않는지 확인한다.
+
+---
+
+## Nuxt와 비교
+
+Nuxt에서는 서버 렌더링과 클라이언트 hydration이 자연스럽게 이어지고, `server/` 디렉토리와 `useAsyncData`로 서버 데이터 흐름을 만든다. Next.js App Router는 Server Component와 Client Component 경계를 파일 단위로 더 명시한다.
+
+| 기준                | Nuxt                   | Next.js                                        |
+| ------------------- | ---------------------- | ---------------------------------------------- |
+| 서버 데이터         | `useAsyncData`, Nitro  | async Server Component                         |
+| 클라이언트 상호작용 | Vue 컴포넌트 hydration | `"use client"` 컴포넌트                        |
+| 서버 전용 코드      | `server/`              | Server Component, Server Action, Route Handler |
+| 경계 표현           | 디렉토리와 composable  | 파일 최상단 directive                          |
+
+---
+
+## 체크리스트
+
+- Server Component가 브라우저 번들에 포함되지 않는다는 점을 설명할 수 있다.
+- DB/파일/비밀 키 접근을 서버에서 끝낼 수 있다.
+- 이벤트 핸들러가 필요한 부분만 Client Component로 분리할 수 있다.
+- Client Component props의 직렬화 제약을 알고 있다.
+- 날짜와 클래스 인스턴스를 클라이언트 props로 넘길 때 명시적으로 변환할 수 있다.
+- 상위 컴포넌트에 `"use client"`를 붙였을 때 번들 경계가 커지는 문제를 설명할 수 있다.
