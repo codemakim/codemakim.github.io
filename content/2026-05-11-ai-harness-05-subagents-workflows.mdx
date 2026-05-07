@@ -1,0 +1,370 @@
+---
+title: "[AI 하네스 엔지니어링 5/6] Subagents와 Workflows: 일을 나누되 책임은 흐리지 않는다"
+date: "2026-05-11"
+description: "AI subagent를 컨텍스트 격리 도구로 보고, 기능 개발, 버그 수정, 코드 리뷰, 릴리스 workflow에 안전하게 배치하는 법을 정리한다."
+tags: ["AI", "Codex", "Claude Code", "초급"]
+series: "AI 하네스 엔지니어링"
+seriesOrder: 5
+---
+
+# Subagents와 Workflows: 일을 나누되 책임은 흐리지 않는다
+
+Subagent는 일을 많이 나누기 위한 기능이 아니다. 컨텍스트를 격리하기 위한 기능이다.
+
+큰 작업을 하나의 AI 컨텍스트에 모두 넣으면 다음 문제가 생긴다.
+
+- 조사 내용이 구현 내용과 섞인다.
+- 리뷰와 수정 책임이 흐려진다.
+- 긴 로그가 핵심 요구사항을 밀어낸다.
+- 여러 파일을 동시에 고치다 충돌한다.
+- 이전 단계의 가정이 검증 없이 다음 단계로 넘어간다.
+
+Subagent는 이 문제를 줄일 수 있다. 하지만 잘못 쓰면 오히려 더 복잡해진다.
+
+---
+
+## Subagent를 써도 되는 경우
+
+Subagent를 쓰기 좋은 작업은 독립적이고, 범위가 좁고, 결과가 명확한 작업이다.
+
+```txt
+좋은 후보
+
+- 코드 리뷰
+- 테스트 실패 로그 분석
+- 보안 위험 점검
+- 문서 톤 점검
+- 여러 파일 읽기 조사
+- 접근성 체크
+- 성능 원인 후보 정리
+```
+
+예를 들어 이런 지시는 좋다.
+
+```txt
+src/app/lib/posts.ts, contentlayer.config.ts, src/app/posts/[slug]/page.tsx만 읽고
+블로그 포스트가 목록에 나타나는 흐름을 요약해줘.
+파일은 수정하지 마.
+원인 후보와 확인 명령만 보고해줘.
+```
+
+읽기 전용 조사다. 본작업과 충돌하지 않는다.
+
+---
+
+## Subagent를 피해야 하는 경우
+
+다음 경우에는 subagent를 쓰지 않는 편이 낫다.
+
+- 바로 다음 구현이 subagent 결과에 막혀 있다.
+- 요구사항이 아직 모호하다.
+- 같은 파일을 여러 agent가 수정할 가능성이 있다.
+- 작업이 너무 작아서 위임 비용이 더 크다.
+- 사용자가 아직 계획을 승인하지 않았다.
+
+나쁜 위임은 이렇게 생겼다.
+
+```txt
+이 프로젝트 전체를 보고 개선해줘.
+```
+
+범위가 없고, 완료 조건도 없다.
+
+좋은 위임은 이렇게 바뀐다.
+
+```txt
+Explorer:
+`src/app/components/HomeContent.tsx`와 `src/app/lib/posts.ts`만 읽어라.
+검색/필터링에서 URL query가 어떻게 반영되는지 요약해라.
+파일은 수정하지 마라.
+```
+
+Subagent에게는 역할, 읽을 파일, 수정 권한, 출력 형식을 명확히 줘야 한다.
+
+---
+
+## Claude Code에서는
+
+Claude Code에서는 `.claude/agents/`에 agent 정의를 둘 수 있다.
+
+```txt
+.claude/
+  agents/
+    code-reviewer.md
+    test-failure-analyst.md
+    docs-editor.md
+```
+
+코드 리뷰 agent 예시는 다음이다.
+
+```md
+---
+name: code-reviewer
+description: Use after code changes to review correctness, regressions, security risks, and missing tests.
+tools: Read, Grep, Glob, Bash
+model: inherit
+---
+
+You are a code reviewer.
+
+Review only. Do not edit files.
+
+Prioritize findings in this order:
+
+1. correctness bugs
+2. behavioral regressions
+3. security risks
+4. missing tests
+5. maintainability concerns
+
+For every finding, include:
+
+- file path
+- line reference
+- severity
+- why it matters
+- suggested fix
+```
+
+여기서 가장 중요한 문장은 `Review only. Do not edit files.`다. 리뷰와 수정이 섞이면 책임이 흐려진다.
+
+---
+
+## Codex에서는
+
+Codex에서도 subagent를 사용할 수 있지만, 무조건 많이 쓰는 것이 좋은 전략은 아니다.
+
+Codex에서 subagent를 맡길 때는 먼저 작업을 나눈다.
+
+```txt
+Main agent
+  현재 턴의 핵심 구현
+
+Explorer
+  독립적인 파일 조사
+
+Reviewer
+  변경 후 위험 점검
+
+Worker
+  파일 소유권이 분리된 구현
+```
+
+좋은 worker 지시는 파일 소유권을 포함한다.
+
+```txt
+Worker:
+
+너는 `content/2026-05-11-ai-harness-05-subagents-workflows.mdx`만 담당한다.
+다른 파일은 수정하지 마.
+기존 `content/AGENTS.md` 규칙을 따라 작성한다.
+마지막에 수정한 파일과 검증 필요 명령을 보고한다.
+```
+
+여러 worker가 같은 파일을 만지면 충돌이 난다. Codex에서는 특히 write scope를 좁히는 것이 중요하다.
+
+---
+
+## Workflow 1: Feature Development
+
+기능 개발 workflow는 요구사항을 코드 변경으로 바꾸는 흐름이다.
+
+```md
+# Feature Development Workflow
+
+## Intake
+
+- 요구사항을 한 문단으로 요약한다.
+- 수정 범위를 정한다.
+- 건드리지 말아야 할 파일을 정한다.
+
+## Planning
+
+- 관련 문서를 읽는다.
+- 파일 구조를 확인한다.
+- 데이터 흐름을 정리한다.
+- 검증 명령을 정한다.
+
+## Execution
+
+- 작은 단위로 수정한다.
+- 관련 없는 리팩터링은 하지 않는다.
+- 필요하면 explorer를 병렬로 사용한다.
+
+## Verification
+
+- typecheck
+- test
+- build
+- diff check
+
+## Done
+
+- 변경 요약
+- 검증 결과
+- 남은 리스크
+```
+
+Subagent는 `Planning`과 `Verification`에 잘 맞는다. 핵심 구현은 main agent가 맡는 편이 안전한 경우가 많다.
+
+---
+
+## Workflow 2: Bugfix
+
+버그 수정의 핵심 규칙은 하나다.
+
+```txt
+재현 전 수정 금지
+```
+
+workflow는 이렇게 둔다.
+
+```md
+# Bugfix Workflow
+
+## Rule
+
+Do not fix before reproducing.
+
+## Steps
+
+1. 증상을 재현한다.
+2. 기대 동작을 적는다.
+3. 관련 코드 경로를 찾는다.
+4. 하나의 가설을 세운다.
+5. 최소 수정한다.
+6. 원래 실패하던 검증을 다시 실행한다.
+```
+
+Subagent는 로그 분석에 좋다.
+
+```txt
+Test Failure Analyst:
+
+이 테스트 로그만 보고 첫 번째 실패 원인을 찾아줘.
+코드는 수정하지 마.
+실패 메시지가 의미하는 계약과 원인 후보를 구분해서 보고해줘.
+```
+
+main agent는 그 결과를 바탕으로 최소 수정한다.
+
+---
+
+## Workflow 3: Code Review
+
+코드 리뷰는 취향이 아니라 위험을 찾는 작업이다.
+
+```md
+# Code Review Workflow
+
+## Priority
+
+1. correctness
+2. regression
+3. security
+4. missing tests
+5. maintainability
+
+## Output
+
+- file
+- line
+- severity
+- issue
+- suggested fix
+```
+
+reviewer subagent는 변경 후에 쓰는 것이 좋다.
+
+```txt
+Reviewer:
+
+현재 diff만 리뷰해줘.
+파일은 수정하지 마.
+버그, 회귀, 누락 테스트만 findings로 보고해줘.
+스타일 취향은 제외해줘.
+```
+
+리뷰 결과는 main agent가 판단해서 반영한다. 모든 리뷰 코멘트를 기계적으로 반영하면 오히려 설계가 흔들릴 수 있다.
+
+---
+
+## Workflow 4: Release
+
+릴리스 workflow는 외부 write가 많다. 그래서 subagent보다 approval 정책이 더 중요할 때가 많다.
+
+```md
+# Release Workflow
+
+## Checklist
+
+- working tree 확인
+- typecheck
+- tests
+- build
+- changelog 또는 release note
+- deploy target 확인
+- commit
+- push
+- deployment 확인
+```
+
+릴리스에서 좋은 subagent 역할은 release note 초안 작성, 변경 범위 요약, CI 로그 분석이다.
+
+```txt
+Release Notes Agent:
+
+현재 git diff와 최근 커밋 메시지를 읽고 release note 초안을 작성해줘.
+commit, tag, push는 하지 마.
+breaking change 여부를 따로 표시해줘.
+```
+
+외부 상태를 바꾸는 작업은 main agent가 사용자 승인 후 실행한다.
+
+---
+
+## Subagent 출력 형식
+
+Subagent 결과는 짧고 구조적이어야 한다.
+
+좋은 출력 형식은 다음이다.
+
+```txt
+Scope:
+  읽은 파일 또는 로그
+
+Findings:
+  1. 문제
+  2. 근거
+  3. 영향
+
+Recommended next step:
+  main agent가 해야 할 일
+
+Risk:
+  확인하지 못한 범위
+```
+
+나쁜 출력은 장황한 요약이다. main agent가 바로 행동할 수 있는 형태여야 한다.
+
+---
+
+## 체크리스트
+
+- subagent를 쓰는 목적이 컨텍스트 격리인지 확인했는가?
+- 읽기 전용 agent와 수정 agent를 구분했는가?
+- worker에게 파일 소유권을 명확히 줬는가?
+- 같은 파일을 여러 agent가 수정하지 않게 했는가?
+- 리뷰 agent가 직접 수정하지 않게 했는가?
+- feature, bugfix, review, release workflow가 분리되어 있는가?
+- subagent 결과가 main agent의 다음 행동으로 연결되는가?
+
+---
+
+## 참고 자료
+
+- [Claude Code Subagents](https://docs.claude.com/en/docs/claude-code/subagents)
+- [OpenAI Codex Docs](https://developers.openai.com/codex)
+- [GitHub Actions Workflow Runs](https://docs.github.com/en/rest/actions/workflow-runs)
+
+다음 글에서는 MCP와 Plugins를 다룬다. GitHub, DB, 브라우저, Gmail 같은 외부 도구를 어떻게 최소 권한으로 연결하고 팀에 배포할지 정리한다.

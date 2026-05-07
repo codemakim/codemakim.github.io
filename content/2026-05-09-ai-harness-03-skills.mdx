@@ -1,0 +1,377 @@
+---
+title: "[AI 하네스 엔지니어링 3/6] Skills 설계: 반복 작업을 절차로 고정한다"
+date: "2026-05-09"
+description: "버그 조사, 코드 리뷰, 블로그 작성처럼 반복되는 AI 작업을 Skill로 만들고 Codex와 Claude Code에서 재사용하는 법을 정리한다."
+tags: ["AI", "Codex", "Claude Code", "초급"]
+series: "AI 하네스 엔지니어링"
+seriesOrder: 3
+---
+
+# Skills 설계: 반복 작업을 절차로 고정한다
+
+Memory는 항상 적용되는 규칙이다. Skills는 필요할 때만 불러오는 절차다.
+
+모든 규칙을 Memory에 넣으면 컨텍스트가 무거워진다. 반대로 매번 프롬프트로 긴 절차를 쓰면 실수가 늘어난다. Skill은 이 중간 지점이다.
+
+```txt
+Memory
+  항상 필요한 짧은 규칙
+
+Skill
+  특정 작업에서만 필요한 반복 절차
+
+Docs
+  필요할 때 참고하는 긴 배경 자료
+```
+
+좋은 하네스는 이 셋을 분리한다.
+
+---
+
+## Skill로 만들기 좋은 작업
+
+Skill은 반복성과 절차성이 있는 작업에 적합하다.
+
+- 버그 조사
+- 코드 리뷰
+- 성능 분석
+- 문서 재작성
+- 릴리스 체크
+- PR 코멘트 반영
+- 프론트엔드 QA
+- MDX 포스트 작성
+- 테스트 실패 로그 분석
+
+반대로 한 번만 하는 일회성 기획, 요구사항이 아직 흐릿한 작업, 사람의 판단이 대부분인 제품 방향 논의는 Skill로 만들기 어렵다.
+
+Skill 후보를 고를 때는 이렇게 묻는다.
+
+```txt
+이 작업은 매번 비슷한 순서로 진행되는가?
+실수하면 위험한 순서가 있는가?
+완료 조건을 명령이나 산출물로 확인할 수 있는가?
+다른 프로젝트에서도 재사용할 가능성이 있는가?
+```
+
+셋 이상이 맞으면 Skill 후보로 좋다.
+
+---
+
+## 좋은 Skill의 구조
+
+좋은 Skill에는 최소 다섯 가지가 들어간다.
+
+```txt
+1. 언제 쓰는지
+2. 먼저 확인할 것
+3. 단계별 절차
+4. 하지 말아야 할 행동
+5. 완료 조건
+```
+
+예를 들어 버그 조사 Skill은 이렇게 생겼다.
+
+```md
+---
+name: bug-investigation
+description: Use when a bug, failing test, or unexpected behavior appears.
+---
+
+# Bug Investigation
+
+## Goal
+
+Find the cause before changing code.
+
+## Steps
+
+1. Reproduce the symptom.
+2. Write down expected behavior.
+3. Locate the smallest related code path.
+4. Form one hypothesis.
+5. Check the hypothesis with evidence.
+6. Make the smallest fix.
+7. Re-run the failing check.
+8. Report evidence.
+
+## Do Not
+
+- Do not rewrite unrelated code.
+- Do not guess without reproduction.
+- Do not claim fixed without running the failing check.
+
+## Completion
+
+The bug is fixed only when the original failing command passes.
+```
+
+이 Skill의 핵심은 "잘 고쳐라"가 아니다. "재현 전 수정 금지"다.
+
+---
+
+## Claude Code에서는
+
+Claude Code에서는 보통 `.claude/skills/<skill-name>/SKILL.md` 형태로 Skill을 둔다.
+
+```txt
+.claude/
+  skills/
+    bug-investigation/
+      SKILL.md
+    mdx-post-writing/
+      SKILL.md
+    release-check/
+      SKILL.md
+```
+
+Skill 설명은 중요하다. 설명이 좋아야 AI가 언제 이 Skill을 써야 하는지 알 수 있다.
+
+```md
+---
+name: mdx-post-writing
+description: Use when creating or rewriting a publishable MDX blog post.
+---
+```
+
+본문은 절차 중심으로 쓴다.
+
+```md
+# MDX Post Writing
+
+## Steps
+
+1. Read `content/AGENTS.md`.
+2. Check existing tags in `src/app/lib/tags.ts` or existing content.
+3. Create exactly one `content/*.mdx` file unless a series is requested.
+4. Add required frontmatter: `title`, `date`.
+5. Use Korean `~한다` tone.
+6. Run `npm run format`.
+7. Run `npx contentlayer2 build`.
+8. Confirm the generated slug.
+
+## Do Not
+
+- Do not put publishable posts under `docs/`.
+- Do not create a one-off tag.
+- Do not omit verification results.
+```
+
+Skill은 AI에게 "이 작업의 표준 운영 절차"를 주는 파일이다.
+
+---
+
+## Codex에서는
+
+Codex에서도 Skill은 `SKILL.md` 중심으로 생각하면 된다. Codex의 좋은 Skill은 더 실행 지향적이어야 한다.
+
+Codex용 Skill을 작성할 때는 다음을 지킨다.
+
+- 파일 경로를 명확히 쓴다.
+- 실행 명령을 정확히 쓴다.
+- 네트워크나 외부 write가 필요한 단계는 approval 조건을 쓴다.
+- 완료 조건을 "통과한 명령"으로 적는다.
+- 긴 참고 자료는 직접 붙이지 않고 경로로 연결한다.
+
+예를 들어 PR 코멘트 반영 Skill은 이렇게 만들 수 있다.
+
+```md
+---
+name: gh-address-comments
+description: Use when addressing actionable GitHub PR review comments.
+---
+
+# Address GitHub Review Comments
+
+## Steps
+
+1. Fetch unresolved review comments.
+2. Classify comments as actionable or non-actionable.
+3. For each actionable comment, identify the owning file.
+4. Make the smallest change.
+5. Run targeted checks.
+6. Summarize which comments were addressed.
+
+## Approval
+
+- Do not post GitHub comments without user approval.
+- Do not push commits unless explicitly requested.
+
+## Completion
+
+Report changed files, checks run, and remaining comments.
+```
+
+Codex에서는 Skill이 "자동 실행 프로그램"이 아니라 "작업 중 적용되는 절차 문서"에 가깝다. 그래서 단계와 금지사항이 명확해야 한다.
+
+---
+
+## 예시 1: 블로그 포스트 작성 Skill
+
+이 프로젝트에 가장 먼저 필요한 Skill은 블로그 포스트 작성 Skill이다.
+
+```md
+---
+name: mdx-post-writing
+description: Use when writing publishable blog content for this site.
+---
+
+# MDX Post Writing
+
+## Context
+
+- Published posts are under `content/*.mdx`.
+- Internal docs are under `docs/*.md`.
+- Contentlayer only picks up top-level `content/*.mdx` as posts.
+
+## Steps
+
+1. Read `content/AGENTS.md`.
+2. Decide whether the user wants one post or a series.
+3. Choose tags from existing tags first.
+4. If creating a new tag, use it in at least three planned posts.
+5. Create the MDX file under `content/`.
+6. Add `title`, `date`, `description`, `tags`.
+7. Use `~한다` tone.
+8. Run `npm run format`.
+9. Run `npx contentlayer2 build`.
+10. Run `npm run build` when publishing behavior changed.
+
+## Do Not
+
+- Do not place publishable content in `docs/`.
+- Do not use emojis in titles.
+- Do not skip frontmatter.
+
+## Completion
+
+The post is complete when Contentlayer generates it and static build succeeds.
+```
+
+이 Skill은 이번 문제를 직접 막는다.
+
+---
+
+## 예시 2: 버그 조사 Skill
+
+버그 조사 Skill은 모든 코드 프로젝트에 유용하다.
+
+```md
+---
+name: bug-investigation
+description: Use when behavior is broken, a test fails, or production output is wrong.
+---
+
+# Bug Investigation
+
+## Rule
+
+Do not edit code before reproducing or locating the smallest failing path.
+
+## Steps
+
+1. Restate the symptom.
+2. Identify expected behavior.
+3. Find the shortest reproduction.
+4. Search related files with `rg`.
+5. Read only the smallest relevant files.
+6. Form one hypothesis.
+7. Test the hypothesis.
+8. Patch the smallest code path.
+9. Re-run the failing check.
+
+## Report
+
+- symptom
+- root cause
+- changed files
+- verification command
+- remaining risk
+```
+
+이 Skill의 핵심은 "조사"와 "수정"을 분리하는 것이다.
+
+---
+
+## 예시 3: 프론트엔드 QA Skill
+
+프론트엔드 작업은 눈으로 봐야 하는 문제가 많다. 스타일 깨짐, 모바일 overflow, 클릭 영역, 텍스트 겹침은 타입 체크로 잡히지 않는다.
+
+```md
+---
+name: frontend-qa
+description: Use after UI changes, style changes, or new interactive screens.
+---
+
+# Frontend QA
+
+## Steps
+
+1. Start the local dev server.
+2. Open desktop viewport.
+3. Open mobile viewport.
+4. Check text overflow and overlapping elements.
+5. Check loading and empty states.
+6. Check keyboard and pointer interactions.
+7. Capture screenshots when possible.
+
+## Do Not
+
+- Do not rely only on TypeScript for UI validation.
+- Do not ignore mobile layout.
+- Do not add decorative UI that conflicts with the design system.
+
+## Completion
+
+Report viewport sizes checked and visible issues found or not found.
+```
+
+Codex에서 이 Skill을 쓰면 Playwright나 브라우저 도구를 함께 연결할 때 효과가 크다.
+
+---
+
+## Skill을 너무 많이 만들면 생기는 문제
+
+Skill도 많아지면 관리 비용이 생긴다.
+
+나쁜 패턴은 다음이다.
+
+- 거의 같은 Skill이 여러 개 있다.
+- Skill이 너무 길어서 Memory처럼 무겁다.
+- 완료 조건이 없다.
+- 실제 프로젝트 명령과 맞지 않는다.
+- 오래된 파일 경로를 계속 가리킨다.
+
+Skill은 문서가 아니라 운영 도구다. 실제로 쓰지 않는 Skill은 삭제하거나 합쳐야 한다.
+
+정리 기준은 간단하다.
+
+```txt
+최근 한 달 동안 사용했는가?
+다른 Skill과 중복되지 않는가?
+완료 조건이 검증 가능한가?
+현재 프로젝트 명령과 맞는가?
+```
+
+하나라도 아니면 고친다.
+
+---
+
+## 체크리스트
+
+- Memory에 넣기에는 길지만 반복되는 작업을 Skill로 뺐는가?
+- Skill마다 `when to use`가 분명한가?
+- 단계가 실제 작업 순서대로 되어 있는가?
+- 금지 행동이 명확한가?
+- 완료 조건이 명령이나 산출물로 검증 가능한가?
+- Codex에서 approval이 필요한 단계가 Skill 안에 적혀 있는가?
+- 오래된 Skill을 주기적으로 정리하는가?
+
+---
+
+## 참고 자료
+
+- [Claude Code Slash Commands](https://docs.claude.com/en/docs/claude-code/slash-commands)
+- [Claude Code Plugins](https://docs.claude.com/en/docs/claude-code/plugins)
+- [OpenAI Codex Docs](https://developers.openai.com/codex)
+
+다음 글에서는 Hooks와 Permissions를 다룬다. AI에게 "하지 마"라고 말하는 수준을 넘어, 위험한 명령과 외부 write를 어떻게 구조적으로 막는지 정리한다.

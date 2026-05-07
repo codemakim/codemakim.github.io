@@ -1,0 +1,312 @@
+---
+title: "[AI 하네스 엔지니어링 2/6] Memory 설계: CLAUDE.md와 AGENTS.md를 어떻게 써야 하는가"
+date: "2026-05-08"
+description: "AI 코딩 도구가 매번 읽는 프로젝트 규칙을 작고 강하게 설계하는 법을 Claude Code와 Codex 기준으로 정리한다."
+tags: ["AI", "Codex", "Claude Code", "초급"]
+series: "AI 하네스 엔지니어링"
+seriesOrder: 2
+---
+
+# Memory 설계: CLAUDE.md와 AGENTS.md를 어떻게 써야 하는가
+
+Memory는 AI가 작업을 시작할 때 항상 읽는 기본 규칙이다. Claude Code에서는 `CLAUDE.md`가 대표적이고, Codex에서는 `AGENTS.md`가 같은 역할을 한다.
+
+Memory를 잘못 쓰면 두 가지 문제가 생긴다.
+
+- 너무 짧아서 프로젝트 맥락을 못 잡는다.
+- 너무 길어서 매 요청마다 불필요한 컨텍스트를 태운다.
+
+좋은 Memory는 백과사전이 아니다. 항상 필요한 운영 규칙이다.
+
+---
+
+## Memory에 들어갈 것
+
+Memory에는 매 작업마다 반드시 적용해야 하는 것만 넣는다.
+
+```txt
+1. 프로젝트 정체성
+  스택, 런타임, 배포 방식
+
+2. 탐색 순서
+  어떤 문서를 먼저 읽고 어떤 파일을 찾아야 하는가
+
+3. 핵심 아키텍처 규칙
+  우회하면 안 되는 데이터 흐름
+
+4. 금지 행동
+  destructive command, 사용자 변경 되돌리기, 직접 DB 호출
+
+5. 검증 명령
+  typecheck, test, build, format
+
+6. 답변/문서 스타일
+  언어, 문체, frontmatter 규칙
+```
+
+이 프로젝트라면 다음이 Memory에 들어갈 만하다.
+
+```md
+## Project Overview
+
+- Stack: Next.js 16 + Contentlayer2 + MDX + Tailwind CSS 4
+- Deployment: GitHub Pages static export
+- Published posts live under `content/*.mdx`
+- Internal docs live under `docs/*.md`
+
+## Search Order
+
+1. Read `docs/ARCHITECTURE.md`.
+2. Read feature docs under `docs/features/*`.
+3. Use `rg` to locate code.
+
+## Blog Rules
+
+- Every MDX post needs `title` and `date`.
+- Reuse existing tags first.
+- Use Korean `~한다` tone for posts.
+- Run format and build checks before completion.
+```
+
+중요한 점은 "이 프로젝트는 중요하다" 같은 문장이 아니라, AI가 실제 행동을 바꿀 수 있는 문장을 넣는 것이다.
+
+---
+
+## Memory에서 빼야 할 것
+
+Memory에 넣지 말아야 할 것도 명확하다.
+
+- 긴 API 문서 전문
+- 모든 파일 목록
+- 오래된 회의 기록
+- 특정 작업에서만 쓰는 계획
+- 자주 쓰지 않는 라이브러리 설명
+- 이미 코드에서 쉽게 알 수 있는 구현 세부사항
+
+예를 들어 Supabase schema 전체나 게임 밸런스 표 전체를 Memory에 넣으면 매번 비용만 늘어난다. 그런 문서는 `docs/features/...`에 두고, Memory에는 "필요할 때 이 문서를 읽어라"만 적는다.
+
+```md
+## Reference Docs
+
+- Habit DB schema: `docs/features/habits/DATABASE.md`
+- Game design: `docs/features/games/DESIGN.md`
+- Spire effects: `docs/features/games/SPIRE_EFFECTS_PLAN.md`
+```
+
+이렇게 하면 기본 컨텍스트는 가볍고, 필요한 작업에서만 깊게 들어갈 수 있다.
+
+---
+
+## Claude Code에서는
+
+Claude Code 공식 문서 기준으로 memory는 프로젝트와 사용자 범위로 나눠 생각할 수 있다. 실무에서는 프로젝트 루트의 `CLAUDE.md` 또는 `.claude/CLAUDE.md`가 팀 공유 규칙 역할을 한다.
+
+간단한 구조는 이렇다.
+
+```txt
+my-project/
+  CLAUDE.md
+  .claude/
+    settings.json
+    skills/
+    agents/
+```
+
+`CLAUDE.md`는 다음처럼 쓴다.
+
+```md
+# Project Instructions
+
+## Before Editing
+
+1. Read `docs/ARCHITECTURE.md`.
+2. Identify the smallest target files.
+3. Present a short plan before editing.
+4. Do not edit unrelated files.
+
+## Commands
+
+- Type check: `npx tsc --noEmit`
+- Build: `npm run build`
+- Format posts: `npm run format`
+
+## Safety
+
+- Never run `git reset --hard`.
+- Never overwrite user changes.
+- Never claim completion without verification.
+```
+
+긴 문서를 import하는 방식도 유용하다.
+
+```md
+# Claude Code Entry
+
+@AGENTS.md
+```
+
+이렇게 하면 Claude Code와 Codex가 같은 프로젝트 규칙을 공유할 수 있다.
+
+---
+
+## Codex에서는
+
+Codex에서는 `AGENTS.md`가 핵심이다. OpenAI Codex 문서도 프로젝트 지침을 `AGENTS.md`로 두는 패턴을 설명한다. 중요한 점은 파일 하나를 규칙 창고처럼 쓰지 않는 것이다.
+
+Codex용 `AGENTS.md`는 다음처럼 계층화하면 좋다.
+
+```txt
+repo/
+  AGENTS.md
+  content/
+    AGENTS.md
+  src/app/components/games/spire/
+    AGENTS.md
+```
+
+루트 `AGENTS.md`는 전체 규칙을 둔다.
+
+```md
+# Project Instructions
+
+## Must Read First
+
+- `docs/ARCHITECTURE.md`
+
+## Do Not
+
+- Do not revert user changes.
+- Do not bypass `HabitsProvider` for habit data.
+- Do not compare dates with `Date` objects.
+- Do not add `dark:` classes outside allowed game areas.
+
+## Verification
+
+- TypeScript changes: `npx tsc --noEmit`
+- Runtime changes: `npm run build`
+- MDX changes: `npm run format`
+```
+
+`content/AGENTS.md`는 블로그 글 작성 규칙을 둔다.
+
+```md
+# Blog Writing Rules
+
+- Write in Korean.
+- Use `~한다` tone.
+- Frontmatter requires `title` and `date`.
+- Prefer existing tags.
+- Put publishable posts under `content/*.mdx`.
+```
+
+이렇게 나누면 Codex가 작업 위치에 맞는 규칙을 더 잘 적용한다.
+
+---
+
+## 나쁜 Memory와 좋은 Memory
+
+나쁜 예시는 추상적이다.
+
+```md
+항상 좋은 코드를 작성한다.
+최대한 꼼꼼하게 한다.
+보안에 신경 쓴다.
+테스트를 잘 한다.
+```
+
+이 문장은 틀리지 않지만 행동을 바꾸지 못한다.
+
+좋은 예시는 구체적이다.
+
+```md
+## Completion Criteria
+
+Before saying complete:
+
+1. Run `npx tsc --noEmit` if any TypeScript file changed.
+2. Run `npm run build` if route, contentlayer, or runtime code changed.
+3. If a command fails, report the exact failing command and the first relevant error.
+4. Do not mark the task complete if verification was skipped.
+```
+
+AI에게 필요한 것은 태도가 아니라 조건이다.
+
+---
+
+## 예시: 이 블로그 프로젝트용 Memory 개선
+
+이번 문제를 막으려면 다음 규칙이 필요하다.
+
+```md
+## Content Publishing
+
+- `docs/*.md` files are internal documentation.
+- Published blog posts must be `content/*.mdx`.
+- A post is visible only when Contentlayer picks it up.
+- After adding a post, confirm that `.contentlayer/generated` includes it.
+- Static export should create `out/posts/<slug>/index.html`.
+```
+
+이 규칙은 단순하지만 효과가 크다.
+
+```txt
+사용자 요청: 하네스 관련 포스트 써줘
+
+Memory 적용 전:
+  docs/AI_HARNESS_LEARNING_PLAN.md 생성
+  사이트에는 안 보임
+
+Memory 적용 후:
+  content/2026-05-07-ai-harness-01-overview.mdx 생성
+  Contentlayer build 확인
+  out/posts/.../index.html 확인
+```
+
+Memory는 실수를 없애는 장치가 아니라, 같은 실수를 반복하지 않게 만드는 장치다.
+
+---
+
+## Memory 작성 원칙
+
+실무에서는 다음 기준으로 정리한다.
+
+```txt
+1. "항상" 필요한가?
+  아니면 Skill이나 docs로 뺀다.
+
+2. 행동을 바꾸는가?
+  아니면 삭제한다.
+
+3. 검증 가능한가?
+  아니면 더 구체화한다.
+
+4. 파일 경로나 명령이 있는가?
+  있으면 AI가 따르기 쉽다.
+
+5. 오래 유지될 규칙인가?
+  일회성 계획이면 Memory에 넣지 않는다.
+```
+
+Memory는 짧을수록 좋다. 하지만 짧기만 하면 안 된다. 작업의 방향을 바꿀 만큼 구체적이어야 한다.
+
+---
+
+## 체크리스트
+
+- `CLAUDE.md`와 `AGENTS.md`의 역할을 구분할 수 있는가?
+- 항상 필요한 규칙과 필요할 때만 필요한 절차를 분리했는가?
+- Memory에 실제 파일 경로와 명령이 들어 있는가?
+- "좋은 코드 작성" 같은 추상 문장을 줄였는가?
+- 긴 문서는 Memory가 아니라 docs나 Skill로 뺐는가?
+- 게시용 문서와 내부 문서의 경로가 명확한가?
+- 완료 전 검증 기준이 명령으로 적혀 있는가?
+
+---
+
+## 참고 자료
+
+- [Claude Code Memory](https://docs.claude.com/en/docs/claude-code/memory)
+- [Codex AGENTS.md](https://developers.openai.com/codex/guides/agents-md)
+- [AGENTS.md Standard](https://agents.md/)
+
+다음 글에서는 Skills를 다룬다. Memory에 넣기에는 길지만, 매번 반복되는 작업 절차를 어떻게 `SKILL.md`로 분리하는지 정리한다.
