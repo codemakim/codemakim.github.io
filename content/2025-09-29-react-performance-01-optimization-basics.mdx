@@ -1,240 +1,233 @@
 ---
-title: "[React 성능 1/3] 최적화 기초 - 렌더링과 측정"
+title: "[React 성능 1/5] 측정부터 시작한다"
 date: "2025-09-29"
-description: "측정으로 병목을 분류하고, React 렌더링 비용을 줄이는 기본 원리를 정리한다"
+description: "Lab/Field 지표 분류, Chrome DevTools와 React Profiler로 병목을 찾는 방법"
 tags: ["React", "성능", "중급", "프론트엔드"]
 series: "React 성능"
 seriesOrder: 1
 ---
 
-# 성능 최적화는 측정부터 시작한다
+# 측정부터 시작한다
 
-React 성능 최적화의 핵심은 기술 목록이 아니라 “어디가 느린가”를 분류하는 능력이다.
-측정 없이 최적화를 시작하면, 대부분은 비용만 늘고 결과는 불확실해진다.
+성능 최적화에서 가장 흔한 실패는 느리다는 말만 듣고 `memo`, `useMemo`, `useCallback`을 붙이는 것이다. 이 방식은 원인을 확인하지 않고 처방부터 고르는 일이다. 실제 병목이 이미지, 네트워크 워터폴, 레이아웃 shift, 긴 JavaScript 작업 중 어디에 있는지 모르면 개선 여부도 말할 수 없다.
 
-이 글은 다음 순서로 정리한다.
+React 성능 시리즈의 첫 글은 최적화 기법을 다루지 않는다. 측정으로 문제를 분류하는 법만 다룬다. 렌더링 비용을 줄이는 도구는 2편에서 다룬다.
 
-- 측정 모델: Lab과 Field, 지표의 의미
-- 원인 분류: CPU/네트워크/레이아웃/입력 지연
-- React 관점: 렌더 비용을 줄이는 기본 도구와 함정
+---
+
+## 오늘 풀 문제
+
+운영 중인 상품 목록 페이지에 “검색할 때 버벅인다”는 신고가 들어왔다.
+
+개발자가 바로 할 수 있는 실수는 다음과 같다.
+
+- 모든 카드 컴포넌트에 `React.memo`를 붙인다.
+- 필터 계산을 전부 `useMemo`로 감싼다.
+- 리스트를 무작정 가상화한다.
+- 번들 분석 없이 코드 분할을 추가한다.
+
+이 중 일부는 맞을 수 있다. 하지만 측정 없이 고르면 대부분은 비용만 추가한다. `memo`는 props 비교 비용이 있고, `useMemo`는 캐시 관리 비용이 있으며, 코드 분할은 네트워크 요청을 늘릴 수 있다.
+
+먼저 해야 할 일은 “어떤 상호작용에서, 어떤 자원이, 어느 단계에서 느린가”를 확인하는 것이다.
+
+---
+
+## 정신 모델: 병목 4분류
+
+프런트엔드 성능 문제는 먼저 네 가지로 나눈다.
+
+| 병목 종류 | 사용자 증상           | DevTools에서 볼 신호            | 대표 처방                  |
+| --------- | --------------------- | ------------------------------- | -------------------------- |
+| CPU       | 클릭 후 화면이 멈춘다 | long task, scripting 비중 큼    | 렌더 범위 축소, 계산 분할  |
+| 네트워크  | 첫 화면이 늦게 뜬다   | waterfall, 큰 JS/이미지         | 코드 분할, 캐시, preload   |
+| 레이아웃  | 화면이 흔들린다       | layout shift, style/layout 비용 | 크기 예약, DOM 구조 안정화 |
+| 입력 지연 | 타이핑/드래그가 늦다  | INP, event 후 긴 작업           | 작업 쪼개기, 우선순위 분리 |
+
+React 최적화는 주로 CPU와 입력 지연에 직접 연결된다. LCP가 느린데 원인이 hero 이미지라면 `React.memo`는 해결책이 아니다. CLS가 나쁜데 원인이 이미지 크기 미지정이라면 `useCallback`은 아무 의미가 없다.
+
+---
 
 ## Lab과 Field를 구분한다
 
-성능은 두 종류의 데이터로 본다.
+성능 데이터는 두 종류다.
 
-| 구분 | 의미 | 예시 | 장단점 |
-| --- | --- | --- | --- |
-| Lab(실험실) | 재현 가능한 측정 | Chrome DevTools, Lighthouse, React Profiler | 원인 분석에 강하다. 실제 사용자 분포는 놓친다 |
-| Field(현장) | 실제 사용자 측정(RUM) | Web Vitals 수집, 로그 기반 지표 | 현실을 반영한다. 원인 분해가 어렵다 |
+| 구분  | 의미                 | 예시                                        | 장점             | 한계                      |
+| ----- | -------------------- | ------------------------------------------- | ---------------- | ------------------------- |
+| Lab   | 통제된 환경에서 재현 | Chrome DevTools, Lighthouse, React Profiler | 원인 분석이 쉽다 | 실제 사용자 분포를 놓친다 |
+| Field | 실제 사용자 환경     | Web Vitals RUM, CrUX, 로그                  | 현실을 반영한다  | 원인 분해가 어렵다        |
 
-최적화 작업의 기본 루프는 다음이다.
+실무 루프는 다음 순서가 안정적이다.
 
-1. Field에서 문제가 있다는 신호를 잡는다
-2. Lab에서 재현하고 원인을 분해한다
-3. 변경 후 Lab에서 회귀 여부를 확인한다
-4. Field에서 실제 개선이 일어났는지 확인한다
+1. Field에서 문제가 있는 페이지와 지표를 찾는다.
+2. Lab에서 느린 상호작용을 재현한다.
+3. Performance 패널과 React Profiler로 병목을 분류한다.
+4. 하나의 가설만 바꾼다.
+5. Lab에서 회귀 여부를 확인한다.
+6. Field에서 실제 사용자 지표가 움직였는지 본다.
 
-## 지표의 의미를 먼저 고정한다
+측정과 재측정 사이에 변경을 여러 개 섞으면 어떤 처방이 효과였는지 알 수 없다.
 
-프런트엔드 성능 문제는 대개 다음 축으로 분해된다.
+---
 
-- **LCP**: 주요 콘텐츠가 보이기까지 걸린 시간이다. 이미지, 폰트, 큰 렌더 비용이 흔한 원인이다.
-- **CLS**: 레이아웃이 얼마나 흔들렸는지다. 이미지 크기 미지정, 동적 삽입이 흔한 원인이다.
-- **INP**: 입력(클릭, 타이핑)에 대한 반응 지연이다. 긴 작업(long task), 과도한 렌더링이 흔한 원인이다.
-- **네트워크 워터폴**: 데이터/코드/이미지 로딩 순서가 직렬화되어 전체 시간을 늘린다.
+## Core Web Vitals를 점수가 아니라 원인 후보로 읽는다
 
-React 최적화는 보통 INP와 CPU 비용(스크립팅/렌더)을 줄이는 데 직접 연결된다. LCP/CLS는 자산과 레이아웃 설계가 더 큰 축이다.
+현재 Core Web Vitals는 LCP, INP, CLS다.
 
-## React 렌더링의 비용 구조
+| 지표 | 의미                           | 좋은 기준  | 흔한 원인                                |
+| ---- | ------------------------------ | ---------- | ---------------------------------------- |
+| LCP  | 주요 콘텐츠가 보이는 시간      | 2.5초 이하 | 큰 이미지, 느린 서버 응답, 렌더 지연     |
+| INP  | 입력부터 다음 paint까지 반응성 | 200ms 이하 | long task, 무거운 렌더, 동기 계산        |
+| CLS  | 예기치 않은 레이아웃 이동      | 0.1 이하   | 이미지 크기 미지정, 폰트 교체, 광고 슬롯 |
 
-React에서 “느림”은 다음 중 하나로 나타난다.
+이 기준은 75번째 percentile 기준으로 본다. 평균이 아니라 대부분의 사용자가 겪는 경험을 보려는 것이다.
 
-- **렌더가 자주 일어난다**: 리렌더링 빈도가 높다
-- **렌더 1회가 비싸다**: 리스트, 큰 계산, 비싼 컴포넌트가 있다
-- **커밋 이후가 비싸다**: 레이아웃 계산, 페인트가 크다
+중요한 점은 지표가 처방을 직접 말하지 않는다는 것이다.
 
-React의 렌더링은 대략 다음 단계로 이해하면 된다.
+- LCP가 나쁘다 → 이미지인가, 서버 응답인가, JS 실행인가를 다시 나눈다.
+- INP가 나쁘다 → event handler인가, React render인가, layout인가를 다시 나눈다.
+- CLS가 나쁘다 → 어떤 요소가 언제 밀렸는지 확인한다.
 
-```text
-1) render: 컴포넌트 함수 실행, 다음 UI 트리 계산
-2) commit: 변경 사항을 DOM에 반영
-3) paint: 브라우저가 화면을 그린다
-```
+---
 
-## 리렌더링이 발생하는 조건
+## Chrome DevTools 측정 순서
 
-리렌더링은 다음 조건에서 발생한다.
+느린 상호작용을 재현할 수 있다면 Performance 패널부터 연다.
 
-1. **state 변경**
-2. **props 변경**
-3. **부모 리렌더링**
+1. Performance 패널에서 recording을 시작한다.
+2. 실제 사용자 동작을 수행한다. 예: 검색어 입력, 필터 변경, 탭 전환.
+3. recording을 멈춘다.
+4. Main thread에서 50ms 이상 long task를 찾는다.
+5. scripting, rendering, painting 중 어디가 큰지 본다.
+6. Network waterfall에서 LCP 후보 리소스가 늦게 도착하는지 확인한다.
 
-여기서 “부모 리렌더링”이 실무 병목의 대부분이다. 상태가 상위에 있으면 영향 범위가 커진다.
+long task가 입력 직후에 반복되면 INP 문제일 가능성이 높다. 반대로 첫 화면 LCP 리소스가 늦게 내려오면 네트워크나 서버 응답부터 봐야 한다.
 
-## 측정: React Profiler로 리렌더 원인을 본다
+---
 
-React DevTools Profiler는 “어떤 컴포넌트가 얼마나 자주, 얼마나 오래 렌더링되는가”를 보여준다.
-이 데이터로 다음 질문에 답해야 한다.
+## React Profiler로 렌더 비용을 본다
 
-- 어떤 상호작용에서 느려지는가
-- 어떤 컴포넌트가 렌더 시간을 소비하는가
-- 왜 다시 렌더되는가(props, state, context)
+Chrome Performance 패널은 브라우저 전체를 보여준다. React Profiler는 React 트리 안에서 어떤 컴포넌트가 렌더 비용을 쓰는지 보여준다.
 
-코드 레벨로는 `Profiler` 컴포넌트도 쓸 수 있다.
+확인할 질문은 세 가지다.
+
+- 어떤 interaction에서 렌더가 발생했는가.
+- 어떤 컴포넌트가 오래 걸렸는가.
+- 왜 렌더됐는가. props 변경인가, state 변경인가, 부모 렌더인가.
+
+React Profiler에서 “렌더가 오래 걸린 컴포넌트”가 바로 원인은 아닐 수 있다. 부모가 불필요하게 리렌더되어 자식이 따라 렌더된 것일 수 있다. 원인은 렌더 비용을 만든 상태 위치나 props 경계에 있을 수 있다.
+
+---
+
+## 실무 코드: Profiler API로 느린 렌더 기록
+
+React의 `<Profiler>`는 특정 트리의 렌더 시간을 코드로 기록할 수 있다.
 
 ```tsx
-import React, { Profiler } from "react";
+import { Profiler, type ProfilerOnRenderCallback, type ReactNode } from "react";
 
-function onRender(
-  id: string,
-  phase: "mount" | "update",
-  actualDuration: number,
-) {
-  console.log({ id, phase, actualDuration });
-}
+const onRender: ProfilerOnRenderCallback = (
+  id,
+  phase,
+  actualDuration,
+  baseDuration,
+  startTime,
+  commitTime,
+) => {
+  if (actualDuration <= 16) {
+    return;
+  }
 
-export function AppProfiler({ children }: { children: React.ReactNode }) {
+  console.warn("[Perf]", {
+    id,
+    phase,
+    actualDuration: Number(actualDuration.toFixed(1)),
+    baseDuration: Number(baseDuration.toFixed(1)),
+    startTime: Number(startTime.toFixed(1)),
+    commitTime: Number(commitTime.toFixed(1)),
+  });
+};
+
+export function ProductListProfiler({ children }: { children: ReactNode }) {
   return (
-    <Profiler id="App" onRender={onRender}>
+    <Profiler id="ProductList" onRender={onRender}>
       {children}
     </Profiler>
   );
 }
 ```
 
-이 값은 “대략적인 비용”이다. 최종 판단은 브라우저 Performance 패널과 함께 해야 한다.
+`actualDuration`은 이번 렌더에 실제로 걸린 시간이다. `baseDuration`은 메모이제이션이 없다고 가정했을 때 하위 트리 전체를 렌더하는 비용 추정치다. `actualDuration`이 낮고 `baseDuration`이 높으면 memoization이 효과를 내고 있을 가능성이 있다. 둘 다 높으면 렌더 자체를 줄이거나 쪼개야 한다.
 
-## 처방 0순위: 상태 위치를 내려서 영향 범위를 줄인다
+운영 환경에서 모든 렌더를 기록하면 로그 비용이 커진다. 특정 실험 빌드나 문제가 있는 화면에만 제한해야 한다.
 
-`React.memo`나 `useMemo`는 CPU 비용을 줄이는 도구다. 그 이전에 “영향 범위”를 줄이는 설계가 먼저다.
+---
 
-```tsx
-import React from "react";
+## 측정에서 처방으로 연결하기
 
-function Page() {
-  // 나쁜 예: Page의 state 하나가 전체를 리렌더링한다
-  const [open, setOpen] = React.useState(false);
+측정 결과를 처방으로 옮길 때는 다음처럼 연결한다.
 
-  return (
-    <div>
-      <button onClick={() => setOpen((v) => !v)}>toggle</button>
-      <ExpensiveList />
-      <Modal open={open} />
-    </div>
-  );
-}
-```
+| 관측                                         | 가능한 원인                               | 다음 글에서 다룰 처방        |
+| -------------------------------------------- | ----------------------------------------- | ---------------------------- |
+| 부모 state 변경마다 큰 자식이 렌더된다       | 상태 위치가 높거나 props가 매번 새 참조다 | 2편 memo/useMemo/useCallback |
+| 초기 JS가 크고 파싱 시간이 길다              | 초기 경로에 불필요한 코드가 섞였다        | 3편 코드 분할                |
+| 1000개 리스트 렌더가 길다                    | DOM/React 노드 수가 너무 많다             | 4편 가상화                   |
+| 입력은 즉시 보여야 하는데 결과 렌더가 막는다 | urgent와 non-urgent 업데이트가 섞였다     | 5편 Concurrent React         |
 
-`open`이 리스트와 무관하면, state를 Modal 근처로 옮기는 편이 영향 범위를 줄인다.
+이렇게 분류하면 “React 성능 최적화”라는 막연한 작업이 작은 처방으로 나뉜다.
 
-## React.memo: 리렌더링을 “허용된 경우”로 제한한다
+---
 
-`React.memo`는 props가 동일하면 이전 렌더 결과를 재사용한다. 기본 비교는 얕은 비교다.
+## 망하는 패턴
 
-```tsx
-import React from "react";
+### 측정 없이 memo부터 붙인다
 
-const Child = React.memo(function Child({ name }: { name: string }) {
-  return <div>{name}</div>;
-});
+`memo`는 무료가 아니다. React는 props가 같은지 비교해야 하고, props가 매번 새 객체라면 비교 결과도 매번 달라진다. 렌더 비용이 작으면 비교 비용이 더 클 수 있다.
 
-export function Parent() {
-  const [count, setCount] = React.useState(0);
-  return (
-    <div>
-      <button onClick={() => setCount((c) => c + 1)}>{count}</button>
-      <Child name="John" />
-    </div>
-  );
-}
-```
+### Lighthouse 점수만 본다
 
-커스텀 비교 함수는 최후 수단이다. 비교 로직 자체가 비용이 될 수 있고, 버그를 만들기 쉽다.
+Lighthouse는 Lab 도구다. 재현에는 좋지만 실제 사용자의 기기, 네트워크, 상호작용 분포를 대표하지 않는다. 특히 INP는 실제 사용자 입력 기반 Field 지표가 중요하다.
 
-## useMemo: 비싼 계산을 캐시한다
+### 평균만 본다
 
-`useMemo`는 “계산 결과”를 캐시한다. 가장 흔한 사용처는 정렬, 필터링, 매핑 비용이 큰 리스트다.
+평균은 느린 사용자를 숨긴다. Web Vitals는 75번째 percentile 기준으로 보는 것이 기본이다. 모바일과 데스크톱을 섞어 평균 내면 원인이 흐려진다.
 
-```tsx
-import React from "react";
+### 한 번에 여러 처방을 적용한다
 
-type Item = { id: string; price: number };
+코드 분할, memo, 이미지 최적화를 한 커밋에 넣으면 무엇이 개선을 만들었는지 모른다. 가설 하나에 변경 하나가 추적 가능하다.
 
-export function SortedList({ items }: { items: Item[] }) {
-  const sorted = React.useMemo(() => {
-    return [...items].sort((a, b) => a.price - b.price);
-  }, [items]);
-
-  return (
-    <ul>
-      {sorted.map((item) => (
-        <li key={item.id}>{item.price}</li>
-      ))}
-    </ul>
-  );
-}
-```
-
-## useCallback: 함수 참조를 안정화한다
-
-`useCallback`은 함수 자체가 빨라지는 것이 아니라, 함수 참조가 바뀌지 않게 만든다.
-`React.memo`와 함께 쓸 때 의미가 커진다.
-
-```tsx
-import React from "react";
-
-const Button = React.memo(function Button({
-  onClick,
-}: {
-  onClick: () => void;
-}) {
-  return <button onClick={onClick}>click</button>;
-});
-
-export function Page() {
-  const [count, setCount] = React.useState(0);
-
-  const onClick = React.useCallback(() => {
-    setCount((c) => c + 1);
-  }, []);
-
-  return (
-    <div>
-      <div>{count}</div>
-      <Button onClick={onClick} />
-    </div>
-  );
-}
-```
-
-## 흔한 함정
-
-### 1) useMemo/useCallback 남용
-
-메모이제이션에도 비용이 있다. “느리다”는 신호가 없으면 적용하지 않는다.
-
-### 2) 참조 동일성 깨짐
-
-부모가 매번 새 객체/새 배열을 props로 만들면 `React.memo`가 의미를 잃는다.
-
-### 3) key 설계 오류
-
-리스트에서 index를 key로 쓰면, 재정렬/삽입에서 DOM 재사용이 깨져 비용이 커질 수 있다.
+---
 
 ## Vue와 비교
 
-Vue의 반응성은 “어떤 데이터가 바뀌면 어떤 컴포넌트가 갱신되는가”를 추적하는 편이다.
-React는 “상태가 바뀌면 해당 컴포넌트를 다시 실행해서 다음 UI를 계산한다”에 가깝다.
+Vue도 성능 문제를 측정하는 기준은 같다. LCP, INP, CLS는 프레임워크와 무관한 사용자 지표다. 차이는 React 렌더링 모델과 Vue 반응성 모델이 병목을 만드는 위치다.
 
-실무 관점에서는 다음 차이가 남는다.
+| 관점           | Vue                          | React                              |
+| -------------- | ---------------------------- | ---------------------------------- |
+| 업데이트 추적  | 반응형 의존성 추적           | state 변경 후 컴포넌트 함수 재실행 |
+| 렌더 원인 확인 | Vue Devtools timeline        | React Profiler                     |
+| 렌더 범위 제어 | computed, shallowRef, v-memo | memo, useMemo, useCallback         |
+| 공통 측정      | Chrome DevTools, Web Vitals  | Chrome DevTools, Web Vitals        |
 
-- React: 상태 위치와 props 경계가 리렌더 비용을 크게 좌우한다
-- Vue: 반응성 추적이 갱신 범위를 줄이기도 하지만, 컴포지션 구조에 따라 추적 비용이 증가할 수 있다
+Vue는 의존성 추적이 세밀한 편이지만, 큰 computed나 watchEffect가 long task를 만들 수 있다. React는 상태 위치와 props 경계가 렌더 범위를 크게 좌우한다. 어느 쪽이든 측정 없이 처방을 고르면 실패한다.
 
-## 체크리스트
+---
 
-- [ ] Field와 Lab 측정의 차이를 설명할 수 있다
-- [ ] LCP/CLS/INP가 무엇을 의미하는지 설명할 수 있다
-- [ ] React Profiler로 “무엇이, 왜” 렌더링되는지 추적할 수 있다
-- [ ] 상태 위치를 내려 영향 범위를 줄일 수 있다
-- [ ] `React.memo`, `useMemo`, `useCallback`을 측정 결과 기반으로 적용할 수 있다
+## 마스터 체크
+
+다음 질문에 답할 수 있으면 2편으로 넘어간다.
+
+**Q1. React Profiler에서 `actualDuration`과 `baseDuration`은 무엇이 다른가?**
+
+`actualDuration`은 이번 렌더에 실제로 걸린 시간이다. `baseDuration`은 하위 트리를 전부 렌더한다고 가정한 비용 추정치다. 둘의 차이를 보면 memoization이 렌더 비용을 줄였는지 추정할 수 있다.
+
+**Q2. LCP가 느릴 때 CPU 병목과 네트워크 병목을 어떻게 구분하는가?**
+
+Performance 패널에서 LCP 리소스가 늦게 도착하면 네트워크/서버/이미지 후보를 본다. 리소스는 빨리 왔는데 main thread가 긴 scripting/rendering으로 막혀 있으면 CPU 병목을 본다.
+
+**Q3. memo를 추가했는데 왜 오히려 느려질 수 있는가?**
+
+props 비교 비용이 생기고, props가 매번 새 객체/함수면 캐시 hit가 나지 않는다. 렌더 비용보다 비교와 캐시 관리 비용이 크면 느려진다.
+
+**Q4. 최적화 작업의 최소 완료 조건은 무엇인가?**
+
+변경 전 측정값, 변경 내용, 변경 후 측정값이 있어야 한다. “느낌상 빨라졌다”는 완료 조건이 아니다.

@@ -1,205 +1,309 @@
 ---
-title: "[React 성능 2/3] 코드 분할 - LCP/INP와 연결한다"
+title: "[React 성능 3/5] 코드 분할과 네트워크"
 date: "2025-10-05"
-description: "코드 분할을 번들 크기 수치가 아니라 사용자 지표(LCP/INP)와 연결해 해석한다"
+description: "코드 분할을 번들 크기 수치가 아니라 LCP, INP, 네트워크 워터폴과 연결해 판단한다"
 tags: ["React", "성능", "중급", "프론트엔드"]
 series: "React 성능"
-seriesOrder: 2
+seriesOrder: 3
 ---
 
-# 코드 분할은 지표를 바꾸기 위한 설계다
+# 코드 분할과 네트워크
 
-코드 분할은 번들을 쪼개는 기술이 아니라 “초기 경로에서 필요한 코드만 다운로드한다”는 제품 설계다.
-따라서 목표는 번들 크기 숫자 자체가 아니라, 사용자 지표가 어떻게 바뀌는지로 잡아야 한다.
+렌더링 비용을 줄여도 첫 화면이 늦게 뜰 수 있다. 사용자가 아직 방문하지 않은 관리자 페이지, 차트 라이브러리, 에디터, 결제 SDK까지 초기 번들에 들어 있으면 브라우저는 필요 없는 JavaScript를 다운로드하고 파싱하고 실행한다.
 
-이 글은 다음 질문에 답한다.
+코드 분할은 번들을 작게 만드는 기술이 아니라 초기 경로에서 필요하지 않은 일을 뒤로 미루는 설계다. 목표는 번들 크기 숫자 자체가 아니라 LCP와 INP 같은 사용자 지표를 개선하는 것이다.
 
-- 코드 분할이 LCP/INP에 어떤 경로로 영향을 주는가
-- 어디를 쪼개야 하고, 어디는 쪼개면 안 되는가
-- Suspense 경계를 어떻게 잡아야 실패와 UX 비용이 줄어드는가
+---
 
-## 코드 분할이 영향을 주는 경로
+## 오늘 풀 문제
 
-코드 분할이 주로 바꾸는 것은 “JS 로딩과 실행 시간”이다.
+대시보드 첫 화면이 느리다. Performance 패널을 보니 첫 화면에 필요한 HTML은 빨리 왔지만, 큰 JavaScript 번들을 다운로드하고 실행하느라 main thread가 오래 바쁘다.
 
-- 초기 번들이 크면 다운로드 시간이 늘어난다(네트워크)
-- 초기 번들이 크면 파싱/컴파일/실행 시간이 늘어난다(CPU)
-- CPU가 바쁘면 입력 처리가 늦어져 INP가 나빠질 수 있다
-- 초기 화면에 필요한 코드가 늦게 실행되면 LCP가 뒤로 밀릴 수 있다
+원인을 보니 첫 화면에 필요 없는 코드가 섞여 있다.
 
-중요한 점은 “JS를 줄였는데 LCP가 안 좋아질 수 있다”는 사실이다.
-fallback UI 설계, 워터폴, 이미지/폰트가 더 큰 병목이면 코드 분할만으로 LCP가 바뀌지 않을 수 있다.
+- 사용자가 버튼을 눌러야 열리는 차트 라이브러리
+- 관리자만 쓰는 CSV export 모듈
+- 결제 페이지에서만 쓰는 SDK
+- markdown editor
 
-## 측정: 먼저 무엇을 보나
+이 코드는 언젠가 필요하지만 첫 화면에는 필요하지 않다. 코드 분할은 “지금 필요한 코드”와 “나중에 필요한 코드”를 나눈다.
 
-코드 분할은 다음 도구로 확인하는 편이 좋다.
+---
 
-- **DevTools Performance**: long task, scripting 비중, 메인 스레드 점유 시간을 본다
-- **DevTools Coverage**: 초기 경로에서 실제로 실행된 JS 비율을 본다
-- **Lighthouse(또는 Web Vitals)**: LCP/INP/CLS의 방향성을 본다
-- **번들 분석기**: 어떤 모듈이 초기 번들을 키우는지 본다
+## 정신 모델: 다운로드와 실행을 분리한다
 
-측정이 없으면 “쪼갰다”만 남고, 사용자 지표가 좋아졌는지 나빠졌는지 결론이 없다.
+JavaScript 비용은 다운로드 크기만이 아니다.
 
-## 분할 단위의 선택 기준
-
-분할 단위는 보통 두 가지다.
-
-1. **라우트 단위 분할**: 초기 화면에 필요 없는 페이지는 다운로드하지 않는다
-2. **컴포넌트 단위 분할**: 같은 페이지 안에서도 “가끔만 쓰는” 기능을 분리한다
-
-라우트 단위가 기본이고, 컴포넌트 단위는 “비용이 큰 기능이 드물게 사용되는가”일 때만 선택한다.
-
-## React.lazy: 동적 import로 chunk를 만든다
-
-`React.lazy`는 기본적으로 “클라이언트에서 동적 import로 코드를 가져온다”는 의미다.
-따라서 서버 렌더링/스트리밍이 있는 환경에서는 다른 선택지가 필요할 수 있다.
-
-```tsx
-import React from "react";
-
-const HeavyComponent = React.lazy(() => import("./HeavyComponent"));
-
-export function Page() {
-  return (
-    <React.Suspense fallback={<div>loading</div>}>
-      <HeavyComponent />
-    </React.Suspense>
-  );
-}
+```txt
+네트워크 다운로드
+  → 압축 해제
+  → parse/compile
+  → execute
+  → React render
 ```
 
-여기서 fallback은 “기능이 없을 때의 대체 화면”이 아니라 “코드가 아직 없을 때의 화면”이다.
-fallback이 실제 레이아웃과 너무 다르면 CLS와 UX 비용이 생긴다.
+번들이 크면 네트워크가 느려지고, 실행할 코드가 많으면 CPU가 바빠진다. 모바일 기기에서는 parse/compile/execute 비용이 특히 크게 느껴질 수 있다.
 
-## 조건부 로딩: 사용자가 눌렀을 때만 가져온다
+코드 분할은 이 비용을 없애지 않는다. 지불 시점을 옮긴다.
 
-드물게 쓰는 어드민 패널, 큰 차트 같은 컴포넌트는 조건부 로딩이 효과가 있다.
+- route split: 페이지별로 나눈다.
+- component split: 같은 페이지 안에서 드물게 쓰는 무거운 기능을 나눈다.
+- preload/prefetch: 다음에 필요할 가능성이 높은 코드를 미리 가져온다.
 
-```tsx
-import React from "react";
+나누면 첫 화면은 가벼워질 수 있지만, 나중에 기능을 여는 순간 네트워크 지연이 생길 수 있다. 그래서 loading UI와 prefetch 전략이 필요하다.
 
-const AdminPanel = React.lazy(() => import("./AdminPanel"));
+---
 
-export function App() {
-  const [showAdmin, setShowAdmin] = React.useState(false);
+## Next.js에서 route-level split
 
-  return (
-    <div>
-      <button onClick={() => setShowAdmin(true)}>open admin</button>
-      {showAdmin && (
-        <React.Suspense fallback={<div>loading admin</div>}>
-          <AdminPanel />
-        </React.Suspense>
-      )}
-    </div>
-  );
-}
-```
+Next.js App Router는 route 단위 코드 분할을 기본으로 제공한다. `/admin` 페이지 코드는 `/posts` 첫 진입에 필요하지 않다.
 
-조건부 로딩의 성공 기준은 “초기 경로가 가벼워졌는가”와 “열 때의 지연이 허용 가능한가”다.
-열 때 지연이 크면 prefetch 같은 전략을 고려해야 한다.
+이 기본 분할은 좋은 출발점이지만 충분하지 않을 수 있다. 한 route 안에 무거운 컴포넌트가 있으면 여전히 초기 경로가 무거워진다.
 
-## 라우트 기반 분할: 사용자의 이동을 기준으로 나눈다
+예를 들어 `/dashboard` 페이지 안에 차트, 지도, 에디터가 모두 import되어 있으면 route split만으로는 부족하다. 사용자가 차트 탭을 열 때까지 차트를 늦출 수 있는지 검토한다.
 
-SPA 라우팅에서는 페이지별로 lazy를 두고, 라우팅 전체를 Suspense로 감싸는 패턴이 흔하다.
+---
+
+## 최소 예제: 무거운 컴포넌트 늦게 로드
+
+Next.js에서는 `next/dynamic`으로 컴포넌트 단위 분할을 할 수 있다.
 
 ```tsx
-import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+"use client";
 
-const Home = React.lazy(() => import("./pages/Home"));
-const About = React.lazy(() => import("./pages/About"));
-const Dashboard = React.lazy(() => import("./pages/Dashboard"));
-
-export function App() {
-  return (
-    <BrowserRouter>
-      <React.Suspense fallback={<div>loading route</div>}>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-        </Routes>
-      </React.Suspense>
-    </BrowserRouter>
-  );
-}
-```
-
-여기서 병목은 라우트 전환 시 “모든 화면이 loading으로 바뀌는가”다.
-필요하면 레이아웃은 유지하고, 바뀌는 영역만 Suspense 경계로 감싼다.
-
-## Next.js 관점: 자동 분할을 먼저 이해한다
-
-Next.js는 라우트 단위로 기본 분할이 일어난다. 따라서 “React.lazy로 전부 해결한다”는 접근이 아니다.
-추가 분할은 주로 다음 상황에서 쓴다.
-
-- 특정 컴포넌트가 브라우저 전용 API를 쓰고 SSR이 필요 없다
-- 초기 경로에서 절대 필요 없는 기능이다
-
-```tsx
 import dynamic from "next/dynamic";
+import { useState } from "react";
 
-const Chart = dynamic(() => import("../components/Chart"), {
-  ssr: false,
-  loading: () => <div>loading chart</div>,
+const HeavyChart = dynamic(() => import("@/app/components/HeavyChart"), {
+  loading: () => (
+    <div style={{ minHeight: 256 }} aria-busy="true">
+      차트를 불러오는 중
+    </div>
+  ),
 });
 
-export default function Page() {
-  return <Chart />;
+export function DashboardChartPanel() {
+  const [showChart, setShowChart] = useState(false);
+
+  return (
+    <section>
+      <button type="button" onClick={() => setShowChart(true)}>
+        차트 보기
+      </button>
+      {showChart ? <HeavyChart /> : null}
+    </section>
+  );
 }
 ```
 
-`ssr: false`는 강한 선택이다. SEO, 초기 렌더, 접근성에 영향을 줄 수 있으니 “불가피한 브라우저 의존”일 때만 쓴다.
+`HeavyChart`는 사용자가 버튼을 누르기 전까지 다운로드하지 않는다. loading UI에는 안정적인 높이를 둬야 CLS를 막을 수 있다.
 
-## 번들 분석: 무엇이 초기 번들을 키우는가
+---
 
-번들 분석은 원인 목록을 만든다. 그 다음 “초기 경로에서 필요했는가”를 기준으로 분리한다.
+## `ssr: false`는 강한 선택이다
+
+브라우저 API에 강하게 의존하는 라이브러리는 서버 렌더링이 어려울 수 있다.
+
+```tsx
+"use client";
+
+import dynamic from "next/dynamic";
+
+const ClientOnlyEditor = dynamic(
+  () => import("@/app/components/MarkdownEditor"),
+  {
+    ssr: false,
+    loading: () => (
+      <div style={{ minHeight: 320 }} aria-busy="true">
+        에디터를 불러오는 중
+      </div>
+    ),
+  },
+);
+
+export function EditorPanel() {
+  return <ClientOnlyEditor />;
+}
+```
+
+`ssr: false`는 해당 컴포넌트를 서버 HTML에서 제외한다. SEO, 접근성, 첫 화면 안정성에 영향을 줄 수 있다. “브라우저에서만 실행 가능한 코드”라는 근거가 있을 때만 쓴다.
+
+---
+
+## React.lazy와 Suspense
+
+순수 React 앱에서는 `React.lazy`와 `<Suspense>`를 쓴다.
+
+```tsx
+import { lazy, Suspense, useState } from "react";
+
+const SettingsPanel = lazy(() => import("./SettingsPanel"));
+
+export function AccountPage() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <main>
+      <button type="button" onClick={() => setOpen(true)}>
+        설정 열기
+      </button>
+      {open ? (
+        <Suspense fallback={<div style={{ minHeight: 240 }}>로딩 중</div>}>
+          <SettingsPanel />
+        </Suspense>
+      ) : null}
+    </main>
+  );
+}
+```
+
+fallback은 “잠깐 보일 수 있는 실제 UI”다. 크기가 최종 UI와 크게 다르면 CLS를 만든다.
+
+---
+
+## LCP와 코드 분할의 관계
+
+코드 분할은 LCP를 개선할 수도 있고 악화시킬 수도 있다.
+
+개선되는 경우:
+
+- LCP 전에 실행해야 하는 초기 JS가 줄어든다.
+- main thread가 덜 바빠져 주요 콘텐츠 렌더가 빨라진다.
+- 첫 화면에 필요 없는 라이브러리가 뒤로 밀린다.
+
+악화되는 경우:
+
+- LCP 후보 컴포넌트를 늦게 로드한다.
+- fallback이 LCP 후보가 되어 실제 콘텐츠 표시가 늦어진다.
+- chunk waterfall이 생긴다.
+
+첫 viewport의 핵심 콘텐츠는 분할 대상이 아니다. “나중에 쓰는 무거운 기능”이 분할 대상이다.
+
+---
+
+## INP와 코드 분할의 관계
+
+초기 번들이 크면 브라우저가 parse/compile/execute에 시간을 쓰고, 이 시간 동안 입력 처리가 밀릴 수 있다. 그래서 코드 분할은 INP에도 영향을 준다.
+
+하지만 작은 컴포넌트를 너무 많이 쪼개면 페이지 전환이나 클릭 시점에 네트워크 요청이 늘어 INP와 UX가 나빠질 수 있다. 코드 분할은 요청 수와 실행 비용 사이의 균형이다.
+
+---
+
+## 번들 분석
+
+무엇을 분할할지는 추측하지 않는다. 번들 분석으로 초기 경로에 섞인 큰 모듈을 찾는다.
 
 ```bash
 npm install --save-dev @next/bundle-analyzer
 ```
 
 ```js
-// next.config.js (예시)
+// next.config.js
 const withBundleAnalyzer = require("@next/bundle-analyzer")({
   enabled: process.env.ANALYZE === "true",
 });
 
-module.exports = withBundleAnalyzer({});
+const nextConfig = {};
+
+module.exports = withBundleAnalyzer(nextConfig);
 ```
 
 ```bash
 ANALYZE=true npm run build
 ```
 
-## 흔한 함정
+분석 결과를 볼 때 질문은 하나다.
 
-### 1) 너무 많이 쪼갠다
+> 이 모듈이 초기 경로에서 반드시 필요한가?
 
-chunk가 너무 많으면 요청 수가 늘고, 전환마다 네트워크 왕복이 늘어난다. 결과적으로 INP와 전환 UX가 나빠질 수 있다.
+필요하면 분할하지 않는다. 필요하지 않으면 route split, dynamic import, 사용자 행동 이후 로딩 중 하나를 검토한다.
 
-### 2) Suspense 경계가 너무 크다
+---
 
-큰 경계는 전환 시 화면 전체가 loading으로 바뀐다. 레이아웃을 유지하고 필요한 영역만 경계로 잡는 편이 낫다.
+## prefetch와 사용자 의도
 
-### 3) fallback이 레이아웃을 흔든다
+분할한 코드는 언젠가 필요할 수 있다. 다음 행동이 예측되면 미리 가져올 수 있다.
 
-fallback 높이가 다르면 CLS로 이어질 수 있다. skeleton을 쓰더라도 최종 레이아웃과 비슷한 크기를 유지해야 한다.
+```tsx
+"use client";
+
+import { useState } from "react";
+
+let chartModulePromise: Promise<unknown> | null = null;
+
+function preloadChart() {
+  chartModulePromise ??= import("@/app/components/HeavyChart");
+}
+
+export function ChartButton() {
+  const [ready, setReady] = useState(false);
+
+  return (
+    <button
+      type="button"
+      onMouseEnter={preloadChart}
+      onFocus={preloadChart}
+      onClick={() => setReady(true)}
+    >
+      {ready ? "차트 준비됨" : "차트 보기"}
+    </button>
+  );
+}
+```
+
+hover/focus prefetch는 사용자의 의도가 드러난 뒤에 네트워크를 쓴다. 모든 코드를 미리 가져오면 코드 분할의 의미가 사라진다.
+
+---
+
+## 망하는 패턴
+
+### 작은 컴포넌트를 잘게 쪼갠다
+
+청크가 너무 많으면 요청 오버헤드가 커진다. 분할 대상은 “초기 경로에 필요 없고, 비용이 큰 코드”다.
+
+### `ssr: false`를 기본값처럼 쓴다
+
+서버 렌더링 가능한 컴포넌트까지 클라이언트 전용으로 만들면 HTML이 빈약해지고 LCP가 늦어질 수 있다.
+
+### loading UI가 레이아웃을 흔든다
+
+fallback 높이가 최종 UI와 다르면 CLS가 생긴다. skeleton은 최종 레이아웃과 비슷한 공간을 예약해야 한다.
+
+### 분할 후 재측정하지 않는다
+
+초기 JS는 줄었지만 chunk waterfall이 늘어 실제 LCP가 나빠질 수 있다. Performance 패널에서 before/after를 비교해야 한다.
+
+---
 
 ## Vue와 비교
 
-Vue도 동적 import와 Suspense를 지원한다. 차이는 “프레임워크”보다 “분할 단위와 측정”에 있다.
+Vue도 동적 import와 route-level code splitting을 지원한다. Nuxt도 페이지 단위 분할과 lazy hydration을 제공한다.
 
-- 라우트 단위 분할이 기본이다
-- 드물게 쓰는 기능만 컴포넌트 단위로 분할한다
-- 결과는 LCP/INP 같은 사용자 지표로 판단한다
+| 기준            | Vue/Nuxt                   | React/Next.js                |
+| --------------- | -------------------------- | ---------------------------- |
+| route split     | Vue Router/Nuxt pages      | Next.js route split          |
+| component split | `defineAsyncComponent`     | `React.lazy`, `next/dynamic` |
+| fallback        | Suspense/loading component | Suspense/loading option      |
+| 판단 기준       | 초기 경로 필요 여부        | 초기 경로 필요 여부          |
 
-## 체크리스트
+프레임워크 차이보다 중요한 것은 분할 단위다. 첫 화면에 필요한 코드를 늦추면 안 되고, 나중에 쓰는 무거운 코드는 초기 경로에서 빼야 한다.
 
-- [ ] 코드 분할이 LCP/INP에 영향을 주는 경로를 설명할 수 있다
-- [ ] Performance 패널에서 long task와 scripting 비중을 해석할 수 있다
-- [ ] Coverage로 초기 경로에서 “안 쓰는 코드”를 찾을 수 있다
-- [ ] 라우트 단위와 컴포넌트 단위 분할의 기준을 구분할 수 있다
-- [ ] Suspense fallback이 CLS/UX에 주는 비용을 고려할 수 있다
+---
+
+## 마스터 체크
+
+**Q1. Next.js에서 route-level split이 자동으로 되는 이유는 무엇인가?**
+
+App Router의 route segment가 빌드 단위로 나뉘기 때문이다. 각 route에 필요한 코드만 해당 경로에서 로드되도록 프레임워크가 분리한다.
+
+**Q2. dynamic import에서 loading 컴포넌트가 없으면 어떻게 되는가?**
+
+청크가 로드되는 동안 사용자가 빈 공간이나 갑작스러운 레이아웃 변화를 볼 수 있다. 특히 최종 UI가 큰 영역이면 CLS와 UX 문제가 생긴다.
+
+**Q3. LCP 후보 컴포넌트를 dynamic import로 늦추면 왜 위험한가?**
+
+주요 콘텐츠 표시 자체가 chunk 다운로드 이후로 밀린다. LCP를 줄이려던 코드 분할이 LCP를 악화시킬 수 있다.
+
+**Q4. 코드 분할 대상의 기준은 무엇인가?**
+
+초기 경로에 필요하지 않고 비용이 큰 코드다. 사용자가 명시적으로 열거나 다음 route에서만 쓰는 기능이 후보가 된다.

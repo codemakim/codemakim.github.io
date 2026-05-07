@@ -1,190 +1,370 @@
 ---
-title: "[React 성능 3/3] 고급 패턴 - 가상화, INP, Concurrent"
+title: "[React 성능 4/5] 대형 UI — 가상화와 입력 반응성"
 date: "2025-10-06"
-description: "가상화와 Concurrent 기능을 INP/LCP/CLS 지표와 연결해 측정-처방 관점으로 정리한다"
+description: "1000개 아이템 리스트, 드래그, 검색 실시간 필터에서 INP를 잡는 방법"
 tags: ["React", "성능", "고급", "프론트엔드"]
 series: "React 성능"
-seriesOrder: 3
+seriesOrder: 4
 ---
 
-# 고급 패턴은 INP를 내려야 쓸 가치가 생긴다
+# 대형 UI — 가상화와 입력 반응성
 
-고급 성능 최적화는 기법이 아니라 “특정 지표를 개선하는 처방”이다.
-가상화와 Concurrent 기능은 특히 INP(입력 반응성) 문제를 해결하는 데 자주 쓰인다.
+렌더링 비용을 줄이고 코드 분할을 해도, 화면 자체가 너무 크면 느리다. 1000개 상품 카드, 복잡한 테이블, 실시간 필터링, 드래그 가능한 보드처럼 많은 UI를 한 번에 렌더하면 DOM과 React 트리 모두 비용이 커진다.
 
-이 글은 다음 흐름을 따른다.
+이번 글은 대형 UI에서 INP를 지키는 방법을 다룬다. Concurrent React는 다음 글에서 따로 다루고, 여기서는 가상화와 long task 분해에 집중한다.
 
-- Web Vitals를 “점수”가 아니라 “원인 후보”로 해석한다
-- INP가 나쁠 때의 처방으로 가상화를 사용한다
-- 입력 지연을 줄이기 위해 업데이트 우선순위를 분리한다(useTransition, useDeferredValue)
+---
 
-## Web Vitals를 원인 후보로 해석한다
+## 오늘 풀 문제
 
-지표는 목표가 아니라 경고등이다. 경고등이 켜진 이유를 찾아야 한다.
-
-| 지표 | 무엇을 의미하는가 | 흔한 원인 후보 |
-| --- | --- | --- |
-| LCP | 주요 콘텐츠가 보이는 시간 | 큰 이미지/폰트, 느린 데이터, 큰 렌더 비용 |
-| CLS | 레이아웃 흔들림 | 이미지 크기 미지정, 동적 삽입, 폰트 로딩 |
-| INP | 입력 반응 지연 | long task, 큰 렌더, 동기 계산, 과도한 이벤트 작업 |
-
-React 성능 최적화는 주로 INP와 렌더 비용을 다룬다. LCP/CLS는 자산과 레이아웃 설계의 비중이 더 크다.
-
-## 측정: INP가 나쁜지 확인하는 방법
-
-INP가 의심될 때는 다음 신호를 본다.
-
-- Performance 패널에서 **long task**가 반복되는가
-- 입력(클릭/타이핑) 직후 **scripting**이 길게 이어지는가
-- React Profiler에서 특정 상호작용이 많은 컴포넌트를 업데이트시키는가
-
-long task가 있으면 “무엇이 메인 스레드를 점유하는가”로 질문을 바꾼다.
-
-## 가상화: 렌더 비용을 “보이는 만큼만” 지불한다
-
-가상화는 리스트를 전부 렌더링하지 않고, 화면에 보이는 구간만 렌더링한다.
-리스트가 길어서 스크롤이나 필터 입력이 느려질 때, INP를 개선하는 처방이 될 수 있다.
-
-### 언제 가상화가 유효한가
-
-- 항목 수가 많고(수천 단위)
-- 각 항목 렌더가 비싸고
-- 스크롤/필터/정렬 같은 상호작용에서 지연이 관측될 때
-
-### react-window 예시
-
-```bash
-npm install react-window
-```
+상품 관리 페이지에 5000개 상품이 있다. 사용자는 검색어를 입력하고, 정렬을 바꾸고, 스크롤한다. 처음에는 단순하게 구현했다.
 
 ```tsx
-import React from "react";
-import { FixedSizeList, ListChildComponentProps } from "react-window";
+function ProductList({ products }: { products: Product[] }) {
+  return (
+    <div>
+      {products.map((product) => (
+        <ProductCard key={product.id} product={product} />
+      ))}
+    </div>
+  );
+}
+```
 
-type Item = { id: string; name: string };
+문제는 곧 드러난다.
 
-export function VirtualList({ items }: { items: Item[] }) {
-  const Row = ({ index, style }: ListChildComponentProps) => {
-    return <div style={style}>{items[index].name}</div>;
-  };
+- 첫 렌더에서 DOM 노드가 너무 많다.
+- 검색어 입력마다 5000개 항목을 다시 필터링한다.
+- 스크롤이 끊긴다.
+- 입력 직후 long task가 생겨 INP가 나빠진다.
+
+이 경우 `memo`만 붙여서는 부족하다. 애초에 렌더할 노드 수를 줄여야 한다.
+
+---
+
+## 정신 모델: 보이는 만큼만 렌더한다
+
+가상화는 전체 리스트를 모두 DOM에 만들지 않는다. 화면에 보이는 구간과 약간의 여유분만 렌더한다.
+
+```txt
+전체 데이터: 5000개
+실제 DOM: 30개
+
+스크롤 위치가 바뀜
+  → 보이는 index 계산
+  → 해당 항목만 렌더
+  → 전체 높이는 spacer로 유지
+```
+
+가상화는 데이터 수를 줄이지 않는다. DOM과 React 렌더 노드 수를 줄인다. 따라서 초기 렌더, 스크롤, 필터 후 재렌더 비용에 효과가 있다.
+
+---
+
+## 최소 예제: `@tanstack/react-virtual`
+
+```tsx
+"use client";
+
+import { useRef } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
+
+type Product = {
+  id: string;
+  name: string;
+  price: number;
+};
+
+function ProductRow({ product }: { product: Product }) {
+  return (
+    <article>
+      <h2>{product.name}</h2>
+      <p>{product.price.toLocaleString()}원</p>
+    </article>
+  );
+}
+
+export function VirtualProductList({ products }: { products: Product[] }) {
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  const rowVirtualizer = useVirtualizer({
+    count: products.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 80,
+    overscan: 5,
+  });
 
   return (
-    <FixedSizeList height={600} itemCount={items.length} itemSize={44} width="100%">
-      {Row}
-    </FixedSizeList>
+    <div ref={parentRef} style={{ height: 600, overflow: "auto" }}>
+      <div
+        style={{
+          height: rowVirtualizer.getTotalSize(),
+          position: "relative",
+        }}
+      >
+        {rowVirtualizer.getVirtualItems().map((virtualRow) => (
+          <div
+            key={virtualRow.key}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: virtualRow.size,
+              transform: `translateY(${virtualRow.start}px)`,
+            }}
+          >
+            <ProductRow product={products[virtualRow.index]} />
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 ```
 
-### 가상화의 트레이드오프
+핵심은 두 가지다.
 
-- **동적 높이**가 필요하면 구현이 복잡해진다
-- **스크롤 점프**가 생기면 UX 비용이 발생한다
-- 항목이 단순하면 가상화 오버헤드가 이득을 상쇄할 수 있다
+- 바깥 컨테이너는 고정 높이와 `overflow: auto`를 가진다.
+- 안쪽 컨테이너는 전체 리스트 높이를 유지하고, 실제 row만 absolute 위치에 놓는다.
 
-따라서 가상화는 “측정된 병목”이 있을 때만 쓴다.
+---
 
-## Concurrent 기능: 빠르게 만드는 것이 아니라 우선순위를 분리한다
+## overscan은 안전장치이자 비용이다
 
-`useTransition`과 `useDeferredValue`는 메인 스레드에서 같은 일을 더 빨리 처리하는 도구가 아니다.
-입력에 대한 업데이트를 우선 처리하고, 나머지 업데이트를 낮은 우선순위로 미루는 도구다.
+`overscan`은 viewport 밖 항목을 미리 몇 개 더 렌더할지 정한다.
 
-### useTransition: 입력은 즉시, 결과 리스트 갱신은 뒤로 보낸다
+- 너무 작으면 빠른 스크롤에서 빈 영역이 보일 수 있다.
+- 너무 크면 가상화 이점이 줄어든다.
+
+기본값을 정하고, 실제 스크롤 기록으로 조정해야 한다. “넉넉하게 100개”는 대개 비용을 다시 키운다.
+
+---
+
+## 동적 높이 리스트
+
+항목 높이가 고정이 아니면 추정값과 실제값 차이가 생긴다. 이때 스크롤 위치가 튈 수 있다.
 
 ```tsx
-import React from "react";
+const rowVirtualizer = useVirtualizer({
+  count: products.length,
+  getScrollElement: () => parentRef.current,
+  estimateSize: () => 96,
+  measureElement:
+    typeof window !== "undefined" &&
+    navigator.userAgent.indexOf("Firefox") === -1
+      ? (element) => element?.getBoundingClientRect().height
+      : undefined,
+});
+```
 
-function filterResults(query: string) {
-  return Array.from({ length: 20000 }, (_, i) => `item-${i}`).filter((x) =>
-    x.includes(query),
+동적 높이는 구현 비용이 올라간다. 가능하다면 row 높이를 디자인 시스템에서 안정적으로 제한하는 편이 낫다.
+
+---
+
+## INP: 입력 직후 긴 작업을 줄인다
+
+INP는 사용자가 입력한 뒤 다음 화면 업데이트가 보이기까지의 반응성을 본다. 대형 UI에서 INP가 나빠지는 흔한 패턴은 input `onChange` 안에서 무거운 작업을 동기 실행하는 것이다.
+
+```tsx
+function BadSearch({ products }: { products: Product[] }) {
+  const [query, setQuery] = useState("");
+  const [filteredProducts, setFilteredProducts] = useState(products);
+
+  return (
+    <input
+      value={query}
+      onChange={(event) => {
+        const value = event.target.value;
+        setQuery(value);
+        setFilteredProducts(
+          products.filter((product) =>
+            product.name.toLowerCase().includes(value.toLowerCase()),
+          ),
+        );
+      }}
+    />
   );
 }
+```
 
-export function SearchResults() {
-  const [query, setQuery] = React.useState("");
-  const [results, setResults] = React.useState<string[]>([]);
-  const [isPending, startTransition] = React.useTransition();
+입력 값 반영과 무거운 필터링이 같은 이벤트 안에 묶여 있다. products가 크면 사용자는 키 입력 지연을 느낀다.
 
-  function onChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const nextQuery = e.target.value;
-    setQuery(nextQuery);
+---
 
-    startTransition(() => {
-      setResults(filterResults(nextQuery));
+## 작업을 쪼개는 기본 패턴
+
+React의 우선순위 분리는 5편에서 다룬다. 여기서는 브라우저에 제어권을 돌려주는 기본 패턴을 본다.
+
+```tsx
+"use client";
+
+import { useCallback, useState } from "react";
+
+type Product = {
+  id: string;
+  name: string;
+};
+
+function waitForNextTask() {
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, 0);
+  });
+}
+
+export function SearchableProductList({ products }: { products: Product[] }) {
+  const [query, setQuery] = useState("");
+  const [filteredProducts, setFilteredProducts] = useState(products);
+
+  const handleChange = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const value = event.target.value;
+      setQuery(value);
+
+      await waitForNextTask();
+
+      const normalizedValue = value.toLowerCase();
+      setFilteredProducts(
+        products.filter((product) =>
+          product.name.toLowerCase().includes(normalizedValue),
+        ),
+      );
+    },
+    [products],
+  );
+
+  return (
+    <>
+      <input value={query} onChange={handleChange} />
+      <VirtualProductList products={filteredProducts} />
+    </>
+  );
+}
+```
+
+이 코드는 입력 상태를 먼저 반영하고, 무거운 필터링을 다음 task로 미룬다. 완전한 해결책은 아니지만 long task를 끊어 입력 반응성을 확보하는 출발점이 된다.
+
+---
+
+## chunk 단위로 처리하기
+
+필터링이나 계산이 매우 크면 한 번에 처리하지 않는다.
+
+```tsx
+async function filterInChunks(products: Product[], query: string) {
+  const result: Product[] = [];
+  const normalizedQuery = query.toLowerCase();
+  const chunkSize = 500;
+
+  for (let index = 0; index < products.length; index += chunkSize) {
+    const chunk = products.slice(index, index + chunkSize);
+
+    for (const product of chunk) {
+      if (product.name.toLowerCase().includes(normalizedQuery)) {
+        result.push(product);
+      }
+    }
+
+    await new Promise<void>((resolve) => {
+      window.setTimeout(resolve, 0);
     });
   }
 
-  return (
-    <div>
-      <input value={query} onChange={onChange} />
-      {isPending ? <div>updating</div> : null}
-      <ul>
-        {results.slice(0, 50).map((r) => (
-          <li key={r}>{r}</li>
-        ))}
-      </ul>
-    </div>
-  );
+  return result;
 }
 ```
 
-이 패턴의 목적은 “타이핑이 끊기지 않는다”는 입력 반응성이다. 리스트가 완전히 최신이 아니어도 입력이 먼저다.
+chunk 처리는 총 작업 시간을 줄이지 않는다. 대신 main thread를 오래 독점하지 않게 만든다. 사용자는 중간에 입력, 스크롤, paint를 받을 수 있다.
 
-### useDeferredValue: 입력 값은 즉시, 계산에 쓰는 값은 늦춘다
+---
 
-```tsx
-import React from "react";
+## Web Worker로 옮길 작업
 
-function filterResults(query: string) {
-  return Array.from({ length: 20000 }, (_, i) => `item-${i}`).filter((x) =>
-    x.includes(query),
+계산이 크고 UI와 독립적이면 Web Worker를 검토한다.
+
+```ts
+// product-filter.worker.ts
+self.onmessage = (
+  event: MessageEvent<{ products: Product[]; query: string }>,
+) => {
+  const { products, query } = event.data;
+  const normalizedQuery = query.toLowerCase();
+
+  const filteredProducts = products.filter((product) =>
+    product.name.toLowerCase().includes(normalizedQuery),
   );
-}
 
-export function DeferredSearch() {
-  const [query, setQuery] = React.useState("");
-  const deferredQuery = React.useDeferredValue(query);
-
-  const results = React.useMemo(() => {
-    return filterResults(deferredQuery);
-  }, [deferredQuery]);
-
-  return (
-    <div>
-      <input value={query} onChange={(e) => setQuery(e.target.value)} />
-      <div>query: {query}</div>
-      <div>deferred: {deferredQuery}</div>
-      <div>results: {results.length}</div>
-    </div>
-  );
-}
+  self.postMessage(filteredProducts);
+};
 ```
 
-이 패턴은 “계산이 늦게 따라오더라도 입력은 즉시 반영한다”는 설계를 코드로 만든다.
+Worker는 main thread를 비우는 데 좋지만, 데이터 직렬화 비용과 복잡도가 있다. 작은 배열 필터링에 Worker를 쓰면 오히려 비용이 크다.
 
-## 이미지와 LCP: React 최적화만으로 해결되지 않는다
+---
 
-LCP는 React 렌더 비용도 영향을 주지만, 자산이 더 큰 병목인 경우가 많다.
+## 드래그와 스크롤
 
-- 이미지 크기 지정, 적절한 포맷
-- 폰트 로딩 전략
-- 초기 화면 데이터 워터폴 제거
+드래그, resize, scroll 이벤트는 짧고 자주 발생한다. 이벤트마다 React state를 갱신하고 큰 트리를 렌더하면 입력 반응성이 무너진다.
 
-React 성능 최적화는 보통 INP에 더 직접적으로 연결된다.
+실무 기준은 다음이다.
+
+- pointer 위치 같은 초고빈도 값은 ref에 저장한다.
+- 화면 반영은 `requestAnimationFrame`에 맞춘다.
+- 드래그 중에는 비싼 파생 계산을 멈춘다.
+- 드래그 종료 후 최종 상태만 React state로 확정한다.
+
+모든 움직임을 React state로 저장하려는 습관이 대형 UI의 병목이 된다.
+
+---
+
+## 망하는 패턴
+
+### 가상화 없이 큰 리스트를 렌더한다
+
+1000개 DOM 노드는 단순 HTML이어도 비용이다. 각 row가 이미지, 버튼, tooltip, 이벤트 핸들러를 가지면 비용은 더 커진다.
+
+### input `onChange`에서 큰 계산을 동기 실행한다
+
+입력 이벤트는 urgent하다. 사용자가 입력한 값은 즉시 반영되어야 한다. 무거운 결과 계산과 묶으면 INP가 나빠진다.
+
+### overscan을 과하게 키운다
+
+가상화의 목적은 DOM 노드 수를 제한하는 것이다. overscan이 너무 크면 다시 큰 리스트를 렌더하는 것과 비슷해진다.
+
+### row 높이가 계속 바뀐다
+
+가상화는 위치 계산에 의존한다. row 높이가 이미지 로딩이나 동적 콘텐츠로 계속 변하면 스크롤 점프가 생긴다. 이미지 크기와 row 레이아웃을 안정화해야 한다.
+
+---
 
 ## Vue와 비교
 
-Vue에서도 “리스트가 길 때 가상화”와 “입력과 무거운 업데이트를 분리”는 동일한 문제다.
-차이는 API가 아니라 원인 분해 방식이다.
+Vue에서도 대형 UI 문제의 처방은 거의 같다.
 
-- long task와 렌더 비용을 측정한다
-- 원인이 리스트 렌더라면 가상화를 적용한다
-- 입력 지연이 원인이라면 업데이트 우선순위를 분리한다
+| 문제            | Vue                       | React                                   |
+| --------------- | ------------------------- | --------------------------------------- |
+| 긴 리스트       | Vue Virtual Scroller      | `@tanstack/react-virtual`, react-window |
+| 큰 계산         | computed 최적화, Worker   | memoization, chunking, Worker           |
+| 입력 지연       | watch/debounce, task 분리 | task 분리, transition                   |
+| 초고빈도 이벤트 | ref/requestAnimationFrame | ref/requestAnimationFrame               |
 
-## 체크리스트
+프레임워크보다 중요한 것은 DOM 노드 수와 main thread 점유 시간이다. 가상화는 둘 다 줄이기 위한 공통 처방이다.
 
-- [ ] LCP/CLS/INP를 원인 후보까지 연결해 설명할 수 있다
-- [ ] Performance 패널에서 long task와 scripting 비중을 해석할 수 있다
-- [ ] 리스트 렌더 병목이 있을 때 가상화를 선택할 수 있다
-- [ ] `useTransition`이 우선순위 분리라는 점을 설명할 수 있다
-- [ ] `useDeferredValue`가 입력 반응성을 지키는 설계라는 점을 설명할 수 있다
+---
+
+## 마스터 체크
+
+**Q1. 가상화가 초기 렌더를 빠르게 하는 원리는 무엇인가?**
+
+전체 데이터를 줄이는 것이 아니라 실제 DOM과 React 노드 수를 viewport 주변으로 제한한다. 렌더할 노드 수가 작아져 초기 렌더와 스크롤 비용이 줄어든다.
+
+**Q2. INP와 FID의 차이는 무엇인가?**
+
+FID는 첫 입력의 처리 시작 지연만 봤다. INP는 페이지 전체 상호작용에서 입력부터 다음 paint까지의 반응성을 본다. React 앱에서는 긴 렌더와 long task가 INP에 더 직접적으로 드러난다.
+
+**Q3. Long Task를 쪼개는 방법 두 가지는 무엇인가?**
+
+작업을 chunk로 나누고 task 사이에 브라우저에 제어권을 돌려준다. 또는 UI와 독립적인 큰 계산을 Web Worker로 옮긴다.
+
+**Q4. 가상화를 적용해도 느릴 때 다음에 볼 것은 무엇인가?**
+
+row 렌더 비용, overscan, 이미지 크기, scroll handler, 필터링 계산, state 위치를 본다. 가상화는 DOM 수를 줄일 뿐 row 하나의 비용을 없애지는 않는다.

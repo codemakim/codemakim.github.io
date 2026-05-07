@@ -1,0 +1,389 @@
+---
+title: "[React 성능 2/5] 렌더링 비용을 줄인다 — memo, useMemo, useCallback"
+date: "2025-09-30"
+description: "memo/useMemo/useCallback은 최적화 도구가 아니라 비용 있는 캐시다. 언제 쓰고 언제 쓰지 않는가"
+tags: ["React", "성능", "중급", "프론트엔드"]
+series: "React 성능"
+seriesOrder: 2
+---
+
+# 렌더링 비용을 줄인다
+
+1편에서 성능 최적화는 측정부터 시작한다고 했다. 이번 글은 측정 결과가 “React 렌더링 비용”으로 좁혀졌을 때만 쓰는 처방을 다룬다.
+
+`memo`, `useMemo`, `useCallback`은 성능을 자동으로 올리는 주문이 아니다. 모두 캐시다. 캐시는 값을 저장하고 비교하는 비용을 낸 뒤, 다시 계산하거나 다시 렌더링하지 않는 이득을 얻는다. 이득이 비용보다 클 때만 최적화가 된다.
+
+---
+
+## 오늘 풀 문제
+
+상품 목록 페이지에서 검색어를 바꿀 때 입력이 버벅인다. React Profiler를 보니 `ProductCard` 200개가 매번 다시 렌더링된다. 그래서 모든 컴포넌트에 `memo`를 붙였다. 그런데 별 차이가 없거나 오히려 느려졌다.
+
+왜 이런 일이 생기는가?
+
+- 자식 컴포넌트가 싸면 `memo`의 props 비교 비용이 더 클 수 있다.
+- 부모가 매번 새 배열/객체/함수를 만들면 props가 매번 바뀐다.
+- `useCallback`만 붙여도 자식이 memoized되지 않으면 리렌더를 막지 못한다.
+- `useMemo`로 싼 계산을 감싸면 코드 복잡도와 캐시 비용만 늘어난다.
+
+렌더링 최적화의 핵심은 “무엇을 캐시할까”가 아니라 “캐시 hit가 실제로 나는 구조인가”다.
+
+---
+
+## 정신 모델: memo는 캐시다
+
+렌더링 비용을 줄이는 도구는 각자 캐시하는 대상이 다르다.
+
+| 도구          | 캐시 대상          | 성공 조건                        | 실패 조건                        |
+| ------------- | ------------------ | -------------------------------- | -------------------------------- |
+| `memo`        | 컴포넌트 렌더 결과 | props가 자주 같고 렌더가 비쌈    | props가 매번 새 참조             |
+| `useMemo`     | 계산 결과 값       | 계산이 비싸고 의존성이 자주 같음 | 계산이 싸거나 의존성이 매번 바뀜 |
+| `useCallback` | 함수 참조          | memoized 자식에게 함수를 넘김    | 자식이 memoized되지 않음         |
+
+공통 기준은 하나다.
+
+```txt
+이득 = 스킵한 렌더/계산 비용
+비용 = 비교 비용 + 캐시 관리 비용 + 코드 복잡도
+
+이득 > 비용일 때만 최적화다.
+```
+
+React Compiler를 사용하는 환경에서는 컴파일러가 많은 memoization을 자동으로 적용할 수 있다. 그렇다고 비용 모델이 사라지는 것은 아니다. 수동 memoization을 추가하기 전에는 여전히 Profiler로 병목을 확인해야 한다.
+
+---
+
+## 최소 예제: memo가 효과 있는 경우
+
+부모가 자주 렌더되지만 자식 props가 그대로라면 `memo`가 의미 있다.
+
+```tsx
+import { memo, useState } from "react";
+
+type ProductCardProps = {
+  id: string;
+  name: string;
+  price: number;
+};
+
+const ProductCard = memo(function ProductCard({
+  id,
+  name,
+  price,
+}: ProductCardProps) {
+  return (
+    <article data-product-id={id}>
+      <h2>{name}</h2>
+      <p>{price.toLocaleString()}원</p>
+    </article>
+  );
+});
+
+export function ProductPage({ products }: { products: ProductCardProps[] }) {
+  const [query, setQuery] = useState("");
+
+  return (
+    <main>
+      <input value={query} onChange={(event) => setQuery(event.target.value)} />
+      {products.map((product) => (
+        <ProductCard
+          key={product.id}
+          id={product.id}
+          name={product.name}
+          price={product.price}
+        />
+      ))}
+    </main>
+  );
+}
+```
+
+`query`가 바뀌면 `ProductPage`는 다시 렌더된다. 하지만 각 `ProductCard`의 props가 같다면 `memo`가 자식 렌더를 건너뛸 수 있다.
+
+이 예제가 성립하려면 `products`의 각 값이 안정적이어야 한다. 부모가 매번 가격을 새 객체로 감싸서 넘기면 얘기가 달라진다.
+
+---
+
+## 망하는 예제: props 참조가 매번 바뀐다
+
+```tsx
+import { memo, useState } from "react";
+
+const ProductCard = memo(function ProductCard({
+  product,
+  onSelect,
+}: {
+  product: { id: string; name: string };
+  onSelect: (id: string) => void;
+}) {
+  return <button onClick={() => onSelect(product.id)}>{product.name}</button>;
+});
+
+export function ProductPage({ rawProducts }: { rawProducts: string[] }) {
+  const [query, setQuery] = useState("");
+
+  return (
+    <main>
+      <input value={query} onChange={(event) => setQuery(event.target.value)} />
+      {rawProducts.map((name) => (
+        <ProductCard
+          key={name}
+          product={{ id: name, name }}
+          onSelect={(id) => console.log(id)}
+        />
+      ))}
+    </main>
+  );
+}
+```
+
+`product={{ id: name, name }}`와 `onSelect={(id) => ...}`는 렌더마다 새 참조다. `memo`는 이전 props와 다음 props를 비교하지만 둘은 매번 다르다. 이 경우 `memo`는 스킵하지 못하고 비교 비용만 추가한다.
+
+---
+
+## `useMemo`: 비싼 계산 결과를 캐시한다
+
+`useMemo`는 렌더 사이에 계산 결과를 캐시한다.
+
+```tsx
+import { useMemo, useState } from "react";
+
+type Product = {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+};
+
+function filterProducts(products: Product[], query: string) {
+  const normalizedQuery = query.trim().toLowerCase();
+
+  if (!normalizedQuery) {
+    return products;
+  }
+
+  return products.filter((product) =>
+    product.name.toLowerCase().includes(normalizedQuery),
+  );
+}
+
+export function ProductSearch({ products }: { products: Product[] }) {
+  const [query, setQuery] = useState("");
+  const [theme, setTheme] = useState<"light" | "contrast">("light");
+
+  const filteredProducts = useMemo(() => {
+    return filterProducts(products, query);
+  }, [products, query]);
+
+  return (
+    <section data-theme={theme}>
+      <input value={query} onChange={(event) => setQuery(event.target.value)} />
+      <button
+        type="button"
+        onClick={() =>
+          setTheme((value) => (value === "light" ? "contrast" : "light"))
+        }
+      >
+        테마 변경
+      </button>
+      <p>{filteredProducts.length}개</p>
+    </section>
+  );
+}
+```
+
+여기서 `theme`만 바뀌면 `products`와 `query`는 그대로다. `filterProducts`가 비싼 계산이라면 `useMemo`가 이득을 낼 수 있다.
+
+하지만 다음 코드는 좋지 않다.
+
+```tsx
+const total = useMemo(() => price * quantity, [price, quantity]);
+```
+
+곱셈은 캐시 비용보다 빠르다. 이런 코드는 최적화가 아니라 소음이다.
+
+---
+
+## `useCallback`: 함수 참조를 캐시한다
+
+`useCallback(fn, deps)`는 `useMemo(() => fn, deps)`와 같은 성격이다. 함수 실행 결과가 아니라 함수 참조를 캐시한다.
+
+```tsx
+import { memo, useCallback, useState } from "react";
+
+type Product = {
+  id: string;
+  name: string;
+};
+
+const ProductRow = memo(function ProductRow({
+  product,
+  onSelect,
+}: {
+  product: Product;
+  onSelect: (id: string) => void;
+}) {
+  return <button onClick={() => onSelect(product.id)}>{product.name}</button>;
+});
+
+export function ProductTable({ products }: { products: Product[] }) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const handleSelect = useCallback((id: string) => {
+    setSelectedId(id);
+  }, []);
+
+  return (
+    <section>
+      <p>선택: {selectedId ?? "없음"}</p>
+      {products.map((product) => (
+        <ProductRow
+          key={product.id}
+          product={product}
+          onSelect={handleSelect}
+        />
+      ))}
+    </section>
+  );
+}
+```
+
+`ProductRow`가 `memo`로 감싸져 있고, `product` 참조도 안정적이라면 `handleSelect` 참조를 안정화하는 것이 의미 있다. 자식이 `memo`가 아니면 `useCallback`만으로 리렌더를 막을 수 없다.
+
+---
+
+## 상태 위치를 낮추는 것이 먼저다
+
+많은 경우 `memo`보다 상태 위치 조정이 더 강하다.
+
+```tsx
+import { useState, type ReactNode } from "react";
+
+function SearchBox() {
+  const [query, setQuery] = useState("");
+
+  return (
+    <input value={query} onChange={(event) => setQuery(event.target.value)} />
+  );
+}
+
+export function ProductLayout({ children }: { children: ReactNode }) {
+  return (
+    <main>
+      <SearchBox />
+      {children}
+    </main>
+  );
+}
+```
+
+검색어 상태가 전체 페이지에 필요 없다면 `SearchBox` 안으로 내려야 한다. 상태 변경 영향 범위가 작아지면 memoization 없이도 렌더 비용이 줄어든다.
+
+상태가 꼭 상위에 있어야 할 때만 props 안정화와 `memo`를 검토한다.
+
+---
+
+## custom comparison은 마지막 수단이다
+
+`memo`는 기본적으로 props를 `Object.is`로 비교한다. 직접 비교 함수를 넣을 수 있지만 주의가 필요하다.
+
+```tsx
+import { memo } from "react";
+
+type ChartProps = {
+  points: Array<{ x: number; y: number }>;
+};
+
+export const Chart = memo(
+  function Chart({ points }: ChartProps) {
+    return <svg>{/* 차트 렌더링 */}</svg>;
+  },
+  (prevProps, nextProps) => {
+    if (prevProps.points.length !== nextProps.points.length) {
+      return false;
+    }
+
+    return prevProps.points.every((point, index) => {
+      const nextPoint = nextProps.points[index];
+      return point.x === nextPoint.x && point.y === nextPoint.y;
+    });
+  },
+);
+```
+
+비교 함수가 렌더보다 비싸면 최적화가 아니다. 또한 함수 props를 비교에서 빼면 stale closure 문제가 생길 수 있다. custom comparison은 Profiler로 렌더 비용이 충분히 크다는 증거가 있을 때만 쓴다.
+
+---
+
+## 실무 판단 기준
+
+| 상황                                    | 먼저 할 일                                 | 그 다음            |
+| --------------------------------------- | ------------------------------------------ | ------------------ |
+| 부모 state 때문에 큰 자식이 자주 렌더됨 | 상태 위치를 낮춘다                         | 자식 `memo` 검토   |
+| 계산 함수가 Profiler에서 비싸게 보임    | 계산 범위 축소                             | `useMemo` 검토     |
+| memoized 자식에 함수 prop을 넘김        | 함수가 상태를 안전하게 업데이트하는지 확인 | `useCallback` 적용 |
+| 리스트가 수천 개라 DOM 자체가 많음      | 가상화 검토                                | 4편으로 이동       |
+| 입력이 결과 렌더에 막힘                 | urgent/non-urgent 분리                     | 5편으로 이동       |
+
+최적화는 도구 목록이 아니라 병목별 처방이다.
+
+---
+
+## 망하는 패턴
+
+### 모든 컴포넌트에 `memo`를 붙인다
+
+작은 컴포넌트는 렌더보다 props 비교가 더 비쌀 수 있다. props가 매번 바뀌면 스킵도 못 한다.
+
+### `useCallback`을 이벤트 핸들러 기본값으로 쓴다
+
+자식에게 넘기지 않는 함수, 또는 memoized 자식에게 넘기지 않는 함수는 참조 안정성이 성능에 거의 영향을 주지 않는다.
+
+### dependency를 일부러 비운다
+
+```tsx
+const handleSave = useCallback(() => {
+  save(productId);
+}, []);
+```
+
+`productId`가 바뀌어도 이전 값을 쓰는 stale closure가 된다. linter 경고를 무시해서 얻는 성능은 버그 비용보다 작다.
+
+### `useMemo`를 의미 보존 용도로 쓴다
+
+`useMemo`는 성능 최적화 힌트다. 프로그램의 의미가 `useMemo`에 의존하면 안 된다. 계산은 순수해야 하고, 캐시가 없어도 같은 결과가 나와야 한다.
+
+---
+
+## Vue와 비교
+
+Vue의 `computed`는 React의 `useMemo`와 비슷하게 계산 결과를 캐시한다. 차이는 의존성 추적 방식이다.
+
+| 관점               | Vue                   | React           |
+| ------------------ | --------------------- | --------------- |
+| 값 캐시            | `computed`            | `useMemo`       |
+| 함수 참조 캐시     | 일반적으로 덜 필요    | `useCallback`   |
+| 컴포넌트 렌더 스킵 | 반응성 추적, `v-memo` | `memo`          |
+| 의존성 선언        | 자동 추적             | dependency 배열 |
+
+Vue는 반응형 값 접근을 추적하므로 일부 렌더 범위를 자동으로 줄인다. React는 컴포넌트 함수 재실행 모델이므로 상태 위치와 props 경계가 더 직접적으로 중요하다.
+
+---
+
+## 마스터 체크
+
+**Q1. `const doubled = useMemo(() => items.map((item) => item * 2), [items])`는 적절한가?**
+
+`items`가 작고 계산이 싸면 부적절하다. `items`가 크고 부모가 자주 리렌더되며 `items` 참조가 안정적이면 적절할 수 있다. Profiler에서 계산 비용을 확인해야 한다.
+
+**Q2. `memo` 없이 `useCallback`만 써도 리렌더를 막을 수 있는가?**
+
+일반적으로 막지 못한다. `useCallback`은 함수 참조만 안정화한다. 자식 컴포넌트가 props 비교로 렌더를 건너뛰는 구조가 있어야 효과가 있다.
+
+**Q3. Profiler 없이 `memo`/`useMemo`를 추가하는 게 왜 위험한가?**
+
+병목이 아닌 곳에 캐시 비용과 코드 복잡도를 추가할 수 있다. props가 매번 바뀌는 구조라면 캐시 hit가 나지 않는다.
+
+**Q4. 렌더 최적화 전에 상태 위치를 먼저 봐야 하는 이유는 무엇인가?**
+
+상태 위치가 높으면 영향 범위가 커진다. 상태를 필요한 컴포넌트 가까이 내리면 리렌더 범위 자체가 줄어 memoization 필요성이 낮아진다.
