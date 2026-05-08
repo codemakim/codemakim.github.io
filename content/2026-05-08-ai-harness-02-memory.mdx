@@ -1,0 +1,172 @@
+---
+title: "[AI 하네스 엔지니어링 2/8] Memory: 매 작업에 깔리는 프로젝트 계약"
+date: "2026-05-08"
+description: "CLAUDE.md와 AGENTS.md에 무엇을 넣고 무엇을 빼야 하는지, 항상 읽히는 프로젝트 규칙을 작고 강하게 설계하는 기준을 정리한다."
+tags: ["AI", "Codex", "Claude Code", "초급"]
+series: "AI 하네스 엔지니어링"
+seriesOrder: 2
+---
+
+# Memory: 매 작업에 깔리는 프로젝트 계약
+
+AI에게 매번 같은 말을 반복하는 프로젝트는 곧 흔들린다.
+
+```txt
+이 프로젝트는 Next.js다.
+수정 전에 아키텍처 문서를 읽어라.
+사용자 변경을 되돌리지 마라.
+검증 없이 완료라고 하지 마라.
+답변은 한국어로 해라.
+```
+
+한 번은 잘 따른다. 하지만 새 세션이 열리거나 컨텍스트가 길어지면 빠진다. Memory는 이 반복을 줄이는 장치다. AI가 항상 읽는 프로젝트 계약을 파일로 남긴다.
+
+---
+
+## 무엇을 해결하는가
+
+Memory는 잡지식 저장소가 아니다. 매 작업의 기본값을 정한다.
+
+- 어떤 문서를 먼저 읽는가
+- 어떤 데이터 흐름을 우회하면 안 되는가
+- 어떤 명령은 금지인가
+- 어떤 검증을 해야 완료인가
+- 어떤 언어와 문체로 답하는가
+- 어떤 파일 경계를 지켜야 하는가
+
+Claude Code에서는 보통 `CLAUDE.md`를 쓴다. Codex와 여러 AI 코딩 도구가 함께 보는 프로젝트라면 `AGENTS.md`가 적합하다.
+
+---
+
+## Memory에 넣을 것
+
+기준은 단순하다. 모든 작업에 반복해서 적용되어야 하면 Memory에 둔다.
+
+| 내용            | 예시                                                |
+| --------------- | --------------------------------------------------- |
+| 프로젝트 정체성 | Next.js 16, TypeScript strict, static export        |
+| 탐색 순서       | `docs/ARCHITECTURE.md` 먼저 확인                    |
+| 핵심 아키텍처   | 습관 데이터는 Provider 캐시에서만 조회              |
+| 금지 행동       | 사용자 변경 되돌리기 금지, destructive command 금지 |
+| 검증 기준       | code change는 typecheck 후 build                    |
+| 답변 스타일     | 한국어, 포스트는 `~한다`체                          |
+
+좋은 Memory는 행동을 바꾼다.
+
+```md
+## Before Editing
+
+1. Read `docs/ARCHITECTURE.md`.
+2. Identify target files and data flow.
+3. Present the plan before editing.
+4. Do not edit unrelated files.
+
+## Blog Posts
+
+- Published posts live under `content/*.mdx`.
+- Internal notes live under `docs/*.md`.
+- MDX frontmatter must include `title` and `date`.
+- Use Korean `~한다` tone in post bodies.
+
+## Completion
+
+- Code changes: run `npx tsc --noEmit`, then `npm run build`.
+- Docs-only changes: run `git diff --check`.
+- Report the command result before saying complete.
+```
+
+추상적인 다짐이 아니라 파일 위치, 순서, 금지 행동, 검증 조건이 들어 있다.
+
+---
+
+## Memory에서 빼야 할 것
+
+Memory는 항상 읽힌다. 그래서 길어질수록 매 작업의 비용이 커진다.
+
+다음은 빼는 편이 낫다.
+
+- 긴 API 문서 전문
+- 모든 파일의 상세 설명
+- 일회성 작업 계획
+- 오래된 회의 기록
+- 특정 기능에서만 필요한 배경
+- 코드에서 바로 알 수 있는 구현 세부사항
+
+대신 참조 경로만 남긴다.
+
+```md
+## Reference Docs
+
+- Architecture: `docs/ARCHITECTURE.md`
+- Habit design: `docs/features/habits/DESIGN.md`
+- Habit database: `docs/features/habits/DATABASE.md`
+- Game design: `docs/features/games/DESIGN.md`
+```
+
+이렇게 하면 기본 규칙은 가볍고, 필요한 작업에서만 깊게 읽을 수 있다.
+
+---
+
+## 좋은 예와 나쁜 예
+
+나쁜 예는 기준이 모호하다.
+
+```md
+좋은 코드로 작성해줘.
+테스트 잘 해줘.
+깔끔하게 정리해줘.
+공식 문서를 숙지해줘.
+```
+
+"좋은", "잘", "깔끔하게"는 실행 조건이 아니다. AI가 결과를 그럴듯하게 포장하기 쉽다.
+
+좋은 예는 관찰 가능한 행동으로 쓴다.
+
+```md
+## Date Rules
+
+- Store dates as `YYYY-MM-DD` strings.
+- Use `formatDateToYYYYMMDD` and `compareDateStrings`.
+- Do not compare date strings through `Date` objects.
+
+## Git Rules
+
+- Do not run `git reset --hard`.
+- Do not revert files changed by the user.
+- Use non-interactive git commands.
+```
+
+어긴 지점을 사람이 확인할 수 있고, AI도 작업 중 판단 기준으로 삼기 쉽다.
+
+---
+
+## 운영 방법
+
+Memory는 처음부터 완벽하게 쓰지 않는다. 작업 중 반복해서 나온 규칙만 승격한다.
+
+추천 순서는 이렇다.
+
+1. 최근 실패 5개를 적는다.
+2. 그 실패를 막는 규칙을 한 문장으로 쓴다.
+3. 모든 작업에 필요한지 확인한다.
+4. 항상 필요하면 Memory에 넣는다.
+5. 특정 작업에서만 필요하면 Skill이나 docs로 보낸다.
+
+예를 들어 "블로그 글이 안 보인다"는 실패가 있었다면 규칙은 이렇게 바뀐다.
+
+```md
+Published blog posts must be created under `content/*.mdx`.
+Files under `docs/*.md` are internal documentation and are not collected as posts.
+```
+
+이 규칙은 게시 작업마다 필요하므로 Memory나 content 전용 지침에 둘 만하다.
+
+---
+
+## 체크리스트
+
+- [ ] Memory가 항상 읽히는 프로젝트 계약이라는 점을 설명할 수 있다.
+- [ ] `CLAUDE.md`와 `AGENTS.md`의 역할을 구분할 수 있다.
+- [ ] 모든 작업 규칙과 특정 작업 절차를 분리할 수 있다.
+- [ ] 모호한 문장을 관찰 가능한 행동 규칙으로 바꿀 수 있다.
+- [ ] Memory가 길어질 때 docs나 Skill로 분리할 수 있다.

@@ -1,0 +1,146 @@
+---
+title: "[AI 하네스 엔지니어링 1/8] 프롬프트보다 작업 구조가 먼저다"
+date: "2026-05-07"
+description: "AI 코딩 도구를 믿고 맡기기 전에 Memory, Skills, Approval, Subagents, MCP, Plugins, Workflow로 작업 환경을 설계하는 이유를 정리한다."
+tags: ["AI", "Codex", "Claude Code", "초급"]
+series: "AI 하네스 엔지니어링"
+seriesOrder: 1
+---
+
+# 프롬프트보다 작업 구조가 먼저다
+
+AI 코딩 도구를 처음 쓰면 프롬프트를 더 잘 쓰는 일이 핵심처럼 보인다.
+
+```txt
+너는 시니어 개발자다.
+이 기능을 깔끔하게 구현해줘.
+테스트도 잘 챙겨줘.
+```
+
+이 요청은 한 번의 답변에는 도움이 된다. 하지만 실제 프로젝트에서는 금방 흔들린다. 어떤 문서를 먼저 읽어야 하는지, 어떤 파일은 건드리면 안 되는지, 실패한 테스트를 어떻게 재현해야 하는지, 외부 시스템 쓰기 권한을 어디까지 허용할지 프롬프트 하나로 매번 안정적으로 통제하기 어렵다.
+
+AI 하네스는 이 문제를 작업 구조로 푼다. AI를 더 똑똑하게 만드는 비법이 아니라, AI가 실수할 수 있다는 전제에서 실수를 작게 만들고 검증에서 드러나게 만드는 운영 장치다.
+
+---
+
+## 왜 필요한가
+
+AI 코딩 도구는 빠르다. 파일을 읽고, 코드를 바꾸고, 테스트를 실행하고, GitHub나 브라우저 같은 외부 도구를 다룬다. 빠르다는 것은 피해도 빠르게 커질 수 있다는 뜻이다.
+
+자주 생기는 실패는 비슷하다.
+
+- 관련 없는 파일을 수정한다.
+- 사용자가 작업 중인 변경을 되돌린다.
+- 버그를 재현하지 않고 추측으로 고친다.
+- 검증 명령을 실행하지 않고 완료라고 말한다.
+- 프로젝트 규칙을 세션이 길어지며 잊는다.
+- 외부 도구의 읽기와 쓰기 권한을 구분하지 않는다.
+
+이 실패는 "프롬프트를 조금 더 길게 쓰면 해결된다"에 가깝지 않다. 반복되는 작업 방식이 없어서 생기는 문제다.
+
+---
+
+## 하네스의 계층
+
+하네스는 다음 계층으로 나눠 보면 다루기 쉽다.
+
+| 계층             | 목적                        | 예시                             |
+| ---------------- | --------------------------- | -------------------------------- |
+| Memory           | 항상 적용되는 프로젝트 계약 | `AGENTS.md`, `CLAUDE.md`         |
+| Skills           | 필요할 때 불러오는 절차     | bugfix, docs rewrite, release    |
+| Approval / Hooks | 위험 행동 차단과 자동 검증  | sandbox, 승인 정책, 완료 전 체크 |
+| Subagents        | 역할과 컨텍스트 격리        | explorer, reviewer, worker       |
+| MCP              | 외부 시스템 연결            | GitHub, DB, browser, docs        |
+| Plugins          | 팀 단위 배포                | shared skills, agents, hooks     |
+| Workflows        | 실제 작업 순서              | feature, bugfix, review, release |
+
+도구마다 이름은 다르다. Claude Code에서는 `CLAUDE.md`, skills, hooks, subagents, MCP, plugins라는 표현을 많이 쓴다. Codex에서는 `AGENTS.md`, skills, sandbox approval, subagents, MCP tools, app connectors, plugins에 가깝게 대응된다.
+
+중요한 것은 명칭이 아니라 역할이다. 항상 필요한 규칙은 Memory에 둔다. 반복 절차는 Skill로 분리한다. 위험한 행동은 말로만 금지하지 않고 승인 경로에서 막는다. 큰 작업은 역할과 파일 소유권을 나눈다.
+
+---
+
+## 작업 흐름으로 묶는다
+
+계층만 나열하면 실무에서 쓰기 어렵다. 실제 작업은 네 단계로 묶는다.
+
+```txt
+Intake
+  사용자의 요청을 작업 단위로 바꾼다.
+
+Planning
+  읽을 문서, 수정 파일, 검증 방법을 정한다.
+
+Execution
+  작은 범위로 수정하고 도구를 실행한다.
+
+Verification
+  타입 체크, 테스트, 빌드, diff로 완료를 판단한다.
+```
+
+AI가 자주 실패하는 지점은 Planning과 Verification이다. 바로 수정하면 대상 파일을 잘못 잡고, 검증 없이 끝내면 깨진 상태가 남는다.
+
+좋은 하네스는 매번 다음 질문에 답하게 만든다.
+
+```txt
+이 작업에서 항상 읽어야 할 규칙은 무엇인가?
+이번에만 필요한 절차는 무엇인가?
+위험한 명령은 어디서 승인받는가?
+검증 증거는 무엇인가?
+사람이 판단해야 하는 gate는 어디인가?
+```
+
+---
+
+## 최소 예시
+
+작은 프로젝트라면 처음부터 복잡한 plugin까지 만들 필요는 없다. 다음 정도로 시작한다.
+
+```md
+# Project Instructions
+
+## Before Editing
+
+1. Read `docs/ARCHITECTURE.md`.
+2. Identify target files.
+3. Explain the plan before changing files.
+4. Do not edit unrelated files.
+
+## Safety
+
+- Never run `git reset --hard`.
+- Never overwrite user changes.
+- Ask before external write operations.
+
+## Verification
+
+- Code changes: run `npx tsc --noEmit` and `npm run build`.
+- Docs-only changes: run `git diff --check`.
+- Report the exact verification result.
+```
+
+이 문서는 AI에게 태도를 요구하지 않는다. 읽을 파일, 금지 행동, 검증 조건을 정한다. 그래서 다음 세션에서도 같은 기본값으로 시작할 수 있다.
+
+---
+
+## 실무에서 보는 기준
+
+하네스가 잘 작동하면 AI 답변이 무조건 길어지는 것이 아니다. 더 예측 가능해진다.
+
+- 수정 전 읽을 파일을 말한다.
+- 변경 범위를 좁힌다.
+- 위험한 명령은 승인 없이 실행하지 않는다.
+- 검증 명령의 실제 결과를 보고한다.
+- 실패하면 추측으로 넘어가지 않고 실패 지점을 분리한다.
+
+반대로 하네스가 약하면 AI는 "알아서 잘" 움직인다. 이 말은 편해 보이지만, 작업이 커질수록 사람이 추적할 수 없는 변경이 늘어난다는 뜻이다.
+
+---
+
+## 체크리스트
+
+- [ ] AI 하네스가 프롬프트 기법이 아니라 작업 구조라는 점을 설명할 수 있다.
+- [ ] Memory, Skills, Approval, Subagents, MCP, Plugins, Workflows의 역할을 구분할 수 있다.
+- [ ] 항상 적용할 규칙과 작업별 절차를 분리할 수 있다.
+- [ ] 위험 행동을 말이 아니라 도구 실행 경로에서 막아야 하는 이유를 설명할 수 있다.
+- [ ] 완료 판단을 AI의 선언이 아니라 검증 증거로 해야 한다는 점을 설명할 수 있다.

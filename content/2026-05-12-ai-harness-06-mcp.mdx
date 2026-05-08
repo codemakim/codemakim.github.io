@@ -1,0 +1,163 @@
+---
+title: "[AI 하네스 엔지니어링 6/8] MCP: 외부 도구 연결은 read-only부터 시작한다"
+date: "2026-05-12"
+description: "GitHub, DB, 브라우저, 문서 검색 같은 외부 시스템을 AI에 연결할 때 MCP 권한을 읽기 중심으로 설계하고 write 작업을 승인 gate 뒤에 두는 기준을 정리한다."
+tags: ["AI", "Codex", "Claude Code", "중급"]
+series: "AI 하네스 엔지니어링"
+seriesOrder: 6
+---
+
+# MCP: 외부 도구 연결은 read-only부터 시작한다
+
+AI가 로컬 파일만 볼 수 있으면 답답하다. GitHub 이슈, PR 코멘트, DB schema, 브라우저 화면, 사내 문서를 함께 읽으면 훨씬 유용하다.
+
+하지만 외부 도구 연결은 권한 문제다. AI에게 손과 발을 달아주는 순간, 잘못된 행동도 실제 시스템에 반영될 수 있다.
+
+MCP는 외부 시스템을 AI 도구에 연결하는 표준 인터페이스다. 이 글의 핵심은 "무엇을 연결할 수 있는가"가 아니라 "어떤 권한으로 연결할 것인가"다.
+
+---
+
+## 무엇을 해결하는가
+
+MCP가 없으면 AI는 사용자가 복사해 준 정보에 의존한다.
+
+```txt
+PR 코멘트 일부 복사
+DB schema 일부 복사
+브라우저 에러 일부 복사
+문서 링크 일부 복사
+```
+
+이 방식은 빠르지만 누락이 많다. MCP나 app connector를 쓰면 AI가 직접 필요한 정보를 읽을 수 있다.
+
+예를 들어 다음 작업이 가능해진다.
+
+- GitHub PR diff와 review comment 읽기
+- 이슈 목록과 CI 실패 로그 확인
+- Supabase schema 조회
+- 브라우저에서 localhost 화면 확인
+- 공식 문서 검색
+- 내부 문서 리소스 조회
+
+문제는 읽기 다음에 쓰기가 온다는 점이다. PR 수정, issue comment 작성, DB update, 배포 트리거는 모두 외부 상태를 바꾼다.
+
+---
+
+## 권한 설계 기준
+
+MCP 권한은 처음부터 최소로 시작한다.
+
+| 단계 | 허용              | 예시                              |
+| ---- | ----------------- | --------------------------------- |
+| 1    | read-only         | PR 읽기, schema 조회, docs search |
+| 2    | 승인된 write      | PR comment, issue update          |
+| 3    | 제한된 운영 write | staging DB seed, preview deploy   |
+| 4    | 운영 write        | production DB, release, billing   |
+
+처음 연결할 때는 1단계로 충분한 경우가 많다. AI가 외부 상태를 읽고 로컬 변경을 제안하는 것만으로도 생산성이 올라간다.
+
+write는 별도 gate를 둔다.
+
+```txt
+AI가 제안한다.
+사람이 대상과 영향을 확인한다.
+승인 후 write 도구를 실행한다.
+실행 결과를 다시 읽고 보고한다.
+```
+
+---
+
+## MCP 정책 예시
+
+프로젝트에 MCP 정책을 문서화하면 좋다.
+
+```md
+# MCP Policy
+
+## Default
+
+- Prefer read-only tools.
+- Use official docs or primary source tools for changing APIs.
+- Summarize source and timestamp when current information matters.
+
+## Allowed
+
+- Read GitHub PR metadata.
+- Read CI logs.
+- Read database schema.
+- Open local browser targets for visual verification.
+
+## Requires Approval
+
+- Create or update GitHub comments.
+- Push branches or update PRs.
+- Write database rows.
+- Trigger deployments.
+
+## Forbidden
+
+- Production DB writes without explicit user instruction.
+- Secret extraction or printing.
+- Broad destructive mutations.
+```
+
+정책은 도구별이 아니라 행동별로 써야 오래 간다. 도구 이름이 바뀌어도 읽기와 쓰기의 위험도는 크게 바뀌지 않는다.
+
+---
+
+## 공식 문서 검색도 MCP다
+
+외부 도구 연결은 GitHub나 DB만 의미하지 않는다. 공식 문서 검색도 중요한 MCP 사용처다.
+
+AI 도구와 라이브러리는 빠르게 바뀐다. 특히 OpenAI, Claude Code, Next.js, Supabase, Stripe 같은 제품은 최신 스펙이 중요하다.
+
+이때 좋은 흐름은 다음이다.
+
+```txt
+1. 로컬 코드와 package version 확인
+2. 공식 문서 또는 MCP docs search 확인
+3. 현재 프로젝트 제약과 비교
+4. 변경안 작성
+5. 검증 명령 실행
+```
+
+블로그나 오래된 답변을 바로 믿으면 deprecated API를 끌고 올 수 있다.
+
+---
+
+## 브라우저 연결의 기준
+
+브라우저 MCP나 browser plugin은 UI 작업에서 강하다. 하지만 모든 프론트엔드 작업에 필요한 것은 아니다.
+
+사용할 때:
+
+- localhost 화면을 실제로 확인해야 한다.
+- responsive layout이 의심된다.
+- console error가 있다.
+- canvas, animation, interaction을 눈으로 봐야 한다.
+
+안 써도 될 때:
+
+- 순수 문서 수정이다.
+- 타입 수준 변경이다.
+- UI 영향이 없는 로직 변경이다.
+
+브라우저 확인도 검증 증거다. "잘 보인다"가 아니라 어떤 viewport에서 무엇을 확인했는지 남겨야 한다.
+
+---
+
+## 함정
+
+MCP에서 가장 위험한 착각은 "연결되었으니 써도 된다"다. 연결은 권한 부여가 아니다.
+
+또 다른 함정은 외부 도구 결과를 검증 없이 믿는 것이다. PR 코멘트, DB schema, 문서 검색 결과도 시간과 권한에 따라 달라질 수 있다. 현재성이 중요한 정보는 출처와 확인 시점을 함께 봐야 한다.
+
+---
+
+## 체크리스트
+
+- [ ] MCP가 외부 시스템 연결 표준이라는 점을 설명할 수 있다.
+- [ ] read-only와 write 도구의 위험 차이를 구분할 수 있다.
+- [ ] 외부 write 작업을 승인 gate 뒤에 둘 수 있다.
+- [ ] 공식 문서 검색을 현재성 검증 도구로 사용할 수 있다.
+- [ ] 브라우저 연결이 필요한 UI 검증 상황을 구분할 수 있다.

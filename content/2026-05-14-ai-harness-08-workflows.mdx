@@ -1,0 +1,221 @@
+---
+title: "[AI 하네스 엔지니어링 8/8] Workflows: 하네스를 실제 작업 순서로 묶는다"
+date: "2026-05-14"
+description: "Memory, Skills, Approval, Subagents, MCP, Plugins를 feature, bugfix, review, release workflow로 연결하고 작은 프로젝트에 적용하는 최종 실습을 정리한다."
+tags: ["AI", "Codex", "Claude Code", "중급"]
+series: "AI 하네스 엔지니어링"
+seriesOrder: 8
+---
+
+# Workflows: 하네스를 실제 작업 순서로 묶는다
+
+Memory, Skills, Approval, Subagents, MCP, Plugins를 각각 알아도 실제 작업은 여전히 흔들릴 수 있다. 이유는 간단하다. 실무 작업은 한 계층으로 끝나지 않기 때문이다.
+
+기능 개발은 Memory를 읽고, Skill 절차를 따르고, 필요하면 MCP로 이슈를 읽고, worker가 파일을 수정하고, reviewer가 검토하고, build로 검증한다. 이 전체 순서를 workflow로 묶어야 한다.
+
+---
+
+## 기본 구조
+
+모든 workflow는 네 단계로 시작한다.
+
+```txt
+Intake
+  요청을 작업 단위로 바꾼다.
+
+Planning
+  읽을 문서, 수정 범위, 검증 방법을 정한다.
+
+Execution
+  작게 수정하고 중간 결과를 확인한다.
+
+Verification
+  명령 출력과 diff로 완료 여부를 판단한다.
+```
+
+이 구조는 단순하지만 강하다. AI가 바로 수정으로 뛰어드는 것을 막고, 검증 없이 완료하는 것을 줄인다.
+
+---
+
+## Feature Workflow
+
+기능 개발 workflow는 설계와 검증이 중요하다.
+
+```md
+# Feature Development Workflow
+
+## Intake
+
+- Restate the requested behavior.
+- Identify user-facing and internal effects.
+- Ask only if a risky assumption remains.
+
+## Planning
+
+- Read project Memory.
+- Read architecture and feature docs.
+- Identify target files and data flow.
+- Define verification commands.
+
+## Execution
+
+- Keep edits within target scope.
+- Preserve user changes.
+- Follow existing patterns.
+- Add tests proportional to risk.
+
+## Verification
+
+- Run typecheck.
+- Run build or focused tests.
+- Report command results and remaining risk.
+```
+
+기능 개발에서 가장 위험한 말은 "겸사겸사"다. workflow는 관련 없는 리팩터링을 밀어내야 한다.
+
+---
+
+## Bugfix Workflow
+
+버그 수정은 재현이 먼저다.
+
+```md
+# Bugfix Workflow
+
+## Rule
+
+Do not fix before reproduction or a clear missing reproduction is documented.
+
+## Steps
+
+1. Capture the symptom.
+2. Find or create the failing command.
+3. Locate the smallest responsible path.
+4. Make one focused change.
+5. Re-run the original failing command.
+6. Run nearby regression checks.
+7. Report root cause and verification.
+```
+
+재현이 불가능한 경우에도 그냥 넘어가지 않는다.
+
+```txt
+재현 명령을 찾지 못했다.
+대신 확인한 로그, 입력 조건, 의심 경로를 기록한다.
+수정 전 사용자에게 위험을 알린다.
+```
+
+---
+
+## Code Review Workflow
+
+리뷰는 칭찬이나 요약이 먼저가 아니다. 위험이 먼저다.
+
+```md
+# Code Review Workflow
+
+## Priority
+
+1. Bugs
+2. Regressions
+3. Missing tests
+4. Security or permission risks
+5. Maintainability issues that affect the change
+
+## Output
+
+- Findings first, severity order.
+- File and line references.
+- Explain impact.
+- List open questions.
+- Keep summary short.
+```
+
+reviewer subagent를 쓰기 좋은 workflow다. 단, reviewer는 읽기 전용으로 둔다. 수정은 main이나 worker가 별도로 맡는다.
+
+---
+
+## Release Workflow
+
+릴리스는 마지막에 몰아서 확인하면 늦다. 그래도 최소 gate는 필요하다.
+
+```md
+# Release Workflow
+
+## Checklist
+
+- Working tree diff reviewed.
+- Required tests passed.
+- Build passed.
+- Environment variables checked.
+- Migration or data changes documented.
+- Rollback path known.
+- User-facing changes summarized.
+```
+
+외부 write가 포함되면 approval gate가 필요하다. push, PR 생성, 배포 트리거, production DB write는 자동으로 처리하지 않는다.
+
+---
+
+## 작은 프로젝트 실습
+
+하네스를 실제로 적용하려면 새 도구부터 만들지 말고 작은 프로젝트 하나에 다음만 해본다.
+
+```txt
+1. `AGENTS.md` 또는 `CLAUDE.md`를 만든다.
+2. bugfix Skill 하나를 만든다.
+3. 위험 명령 정책을 문서화한다.
+4. read-only reviewer 역할을 만든다.
+5. GitHub나 docs search 같은 read-only MCP만 연결한다.
+6. feature, bugfix, review workflow를 적는다.
+7. 일부러 작은 버그를 만들고 workflow대로 고친다.
+```
+
+목표는 디렉토리를 예쁘게 만드는 것이 아니다. AI가 실제로 하네스 안에서 움직이는지 확인하는 것이다.
+
+---
+
+## 성공 신호
+
+하네스가 작동하면 다음 신호가 보인다.
+
+- AI가 수정 전 읽을 파일을 먼저 말한다.
+- 요구사항이 크면 작업을 나눈다.
+- 위험한 명령은 승인 없이 실행하지 않는다.
+- subagent에게 읽기/쓰기 권한이 구분된다.
+- 검증 명령의 실제 결과가 보고된다.
+- 실패하면 원인 후보를 분리하고 다시 확인한다.
+
+실패 신호도 분명하다.
+
+- "알아서 하겠다"는 말만 있고 계획이 없다.
+- unrelated diff가 섞인다.
+- 테스트 실패를 설명 없이 넘어간다.
+- reviewer가 직접 파일을 고친다.
+- 외부 write 작업이 승인 없이 실행된다.
+
+---
+
+## 이 시리즈를 적용하는 순서
+
+처음부터 모든 계층을 완성하려고 하지 않는다. 순서는 다음이 현실적이다.
+
+1. Memory를 정리한다.
+2. 가장 자주 실패하는 작업 하나를 Skill로 만든다.
+3. 위험 명령과 외부 write 승인 기준을 정한다.
+4. read-only reviewer subagent를 둔다.
+5. MCP는 read-only부터 연결한다.
+6. 반복되는 하네스만 plugin 후보로 올린다.
+7. feature, bugfix, review workflow를 문서화한다.
+
+좋은 하네스는 AI를 완전히 통제하지 않는다. 대신 실수를 작게 만들고, 검증에서 걸리게 만들고, 사람이 결과를 이해할 수 있게 만든다.
+
+---
+
+## 체크리스트
+
+- [ ] workflow가 하네스 계층을 실제 작업 순서로 묶는다는 점을 설명할 수 있다.
+- [ ] feature, bugfix, review, release workflow의 차이를 구분할 수 있다.
+- [ ] bugfix에서 재현이 먼저인 이유를 설명할 수 있다.
+- [ ] release에서 외부 write approval gate를 둘 수 있다.
+- [ ] 작은 프로젝트에 Memory, Skill, permission, reviewer, MCP를 순서대로 적용할 수 있다.

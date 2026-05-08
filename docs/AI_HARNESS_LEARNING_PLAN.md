@@ -6,6 +6,23 @@ Claude Code를 기준으로 설명하지만, 원리는 Codex, Cursor, Gemini CLI
 
 ---
 
+## 게시용 재작성 대상 포스트
+
+이 학습서는 아래 8개 게시용 MDX 포스트의 기준 원고로 사용한다.
+
+| 장 | 파일 | 주제 |
+| --- | --- | --- |
+| 1 | `content/2026-05-07-ai-harness-01-overview.mdx` | 하네스 전체 지도 |
+| 2 | `content/2026-05-08-ai-harness-02-memory.mdx` | Memory와 프로젝트 규칙 |
+| 3 | `content/2026-05-09-ai-harness-03-skills.mdx` | Skills와 반복 절차 |
+| 4 | `content/2026-05-10-ai-harness-04-permissions.mdx` | Sandbox, Approval, Hooks |
+| 5 | `content/2026-05-11-ai-harness-05-subagents.mdx` | Subagents와 역할 격리 |
+| 6 | `content/2026-05-12-ai-harness-06-mcp.mdx` | MCP와 외부 도구 권한 |
+| 7 | `content/2026-05-13-ai-harness-07-plugins.mdx` | Plugins와 팀 배포 |
+| 8 | `content/2026-05-14-ai-harness-08-workflows.mdx` | Workflow와 최종 실습 |
+
+---
+
 ## 이 문서를 읽는 방법
 
 이 글은 기능 목록 요약이 아니다. AI 코딩 도구를 처음 업무에 붙일 때 생기는 문제를 하나씩 보고, 그 문제를 줄이기 위한 하네스 계층을 직접 설계하는 방식으로 읽는다.
