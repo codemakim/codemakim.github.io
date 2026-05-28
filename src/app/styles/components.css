@@ -131,7 +131,7 @@ textarea.input {
   box-shadow: var(--nb-shadow-sm);
 }
 
-.prose pre {
+.post-content.prose pre {
   background: var(--bg-code) !important;
   border: var(--nb-border) !important;
   border-radius: 0 !important;
@@ -140,7 +140,7 @@ textarea.input {
   box-shadow: var(--nb-shadow-sm);
 }
 
-.prose code {
+.post-content.prose :not(pre) > code {
   color: var(--text-primary) !important;
   background: var(--bg-secondary) !important;
   padding: 0.15em 0.35em !important;
@@ -154,7 +154,7 @@ textarea.input {
   content: none !important;
 }
 
-.prose pre code {
+.post-content.prose pre code {
   display: block !important;
   padding: 1.25em !important;
   background: transparent !important;
