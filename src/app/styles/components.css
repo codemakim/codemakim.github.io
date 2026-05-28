@@ -127,14 +127,14 @@ textarea.input {
   background: var(--bg-code) !important;
   color: var(--text-primary) !important;
   border: var(--nb-border) !important;
-  border-radius: 0.75rem !important;
+  border-radius: 0 !important;
   box-shadow: var(--nb-shadow-sm);
 }
 
 .post-content.prose pre {
   background: var(--bg-code) !important;
   border: var(--nb-border) !important;
-  border-radius: 0.75rem !important;
+  border-radius: 0 !important;
   padding: 0 !important;
   overflow: hidden !important;
   box-shadow: var(--nb-shadow-sm);
@@ -144,7 +144,7 @@ textarea.input {
   color: var(--text-primary) !important;
   background: var(--bg-secondary) !important;
   padding: 0.15em 0.35em !important;
-  border-radius: 999px !important;
+  border-radius: 0 !important;
   font-size: 0.875em !important;
   border: var(--nb-border-thin) !important;
 }
@@ -161,7 +161,7 @@ textarea.input {
   border: none !important;
   color: var(--text-primary) !important;
   overflow-x: auto !important;
-  border-radius: 0.6rem !important;
+  border-radius: 0 !important;
   box-shadow: none !important;
 }
 
