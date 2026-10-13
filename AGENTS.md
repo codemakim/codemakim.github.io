@@ -144,8 +144,8 @@ phase: 'charSelect'
 
 ### 작업 중
 
-- TypeScript 오류 확인 → `npm run build` 순서로 진행
-- 같은 작업 흐름 안에서 이미 `npx tsc --noEmit`과 `npm run build`가 통과했고, 이후 변경이 핸드오프 문서/검증 이력/메타 문서처럼 런타임에 영향을 주지 않는 문서 수정뿐이라면 커밋 직전 동일 검증을 반복하지 않는다.
+- TypeScript 오류 확인 → `pnpm build` 순서로 진행
+- 같은 작업 흐름 안에서 이미 `pnpm exec tsc --noEmit`과 `pnpm build`가 통과했고, 이후 변경이 핸드오프 문서/검증 이력/메타 문서처럼 런타임에 영향을 주지 않는 문서 수정뿐이라면 커밋 직전 동일 검증을 반복하지 않는다.
 - MDX 본문 또는 코드가 추가로 바뀐 경우에만 전체 검증을 다시 실행한다.
 - 문서만 추가로 수정한 경우에는 `git diff --check`, 대상 파일 포맷 확인처럼 가벼운 검증을 우선한다.
 - 스타일 수정 시 체크리스트:
@@ -156,11 +156,11 @@ phase: 'charSelect'
 ### 빌드 & 배포
 
 ```bash
-npm run dev       # 개발 서버 (Turbopack)
-npm run build     # contentlayer2 build → next build --turbopack (정적 빌드)
-npm run lint      # ESLint
-npm run format    # content/**/*.mdx prettier 포맷
-npx tsc --noEmit  # 타입 체크 (build 전 권장)
+pnpm dev                    # 개발 서버 (Turbopack)
+pnpm build                  # contentlayer2 build → next build --turbopack (정적 빌드)
+pnpm lint                   # ESLint
+pnpm format                 # content/**/*.mdx prettier 포맷
+pnpm exec tsc --noEmit       # 타입 체크 (build 전 권장)
 ```
 
 ---

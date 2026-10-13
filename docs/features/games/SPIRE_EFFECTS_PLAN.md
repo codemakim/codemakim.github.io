@@ -142,7 +142,7 @@ BattleScene은 이펙트 종류를 판단하지 않고, 데이터에 명시된 v
 
 ## 기술 선택: Motion (구 Framer Motion)
 
-`npm install motion` 으로 설치한다.
+`pnpm add motion` 으로 설치한다.
 
 사용 이유:
 
@@ -175,7 +175,7 @@ src/app/components/games/spire/
 ### 1-1. Motion 설치
 
 ```bash
-npm install motion
+pnpm add motion
 ```
 
 ### 1-2. 타입 확장 (types.ts)
@@ -425,12 +425,12 @@ BattleScene은 이펙트 종류를 직접 판단하지 않는다.
 4. **Phase 4**: ShieldEffect + HealEffect + 피격 반응 강화 + ScreenFlash
 5. **Phase 5**: CardComponent/HandArea 카드 연출
 
-각 Phase 완료 후 `npx tsc --noEmit`으로 타입 검증한다.
+각 Phase 완료 후 `pnpm exec tsc --noEmit`으로 타입 검증한다.
 
 ## 주의사항
 
 - `'use client'` 필수: Motion 컴포넌트는 클라이언트 전용
 - `AnimatePresence`의 `mode="popLayout"` 사용 권장
 - 이펙트 컴포넌트는 `position: absolute` + `pointer-events: none`
-- 정적 빌드 호환성 확인: `npm run build` 통과 필수
+- 정적 빌드 호환성 확인: `pnpm build` 통과 필수
 - 기존 `useEffects` 훅의 인터페이스는 유지하되 내부 구현만 교체

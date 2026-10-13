@@ -12,10 +12,16 @@ Next.js 16과 Contentlayer를 사용한 블로그다.
 
 ## 🏃‍♂️ 시작하기
 
+### 의존성 설치
+
+```bash
+pnpm install
+```
+
 ### 개발 서버 실행
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 브라우저에서 [http://localhost:3000](http://localhost:3000)을 열어 확인한다.
@@ -42,7 +48,7 @@ tags: ["태그1", "태그2"]
 ### 빌드
 
 ```bash
-npm run build
+pnpm build
 ```
 
 정적 파일이 `out/` 디렉토리에 생성된다.
@@ -50,7 +56,7 @@ npm run build
 ### 로컬 프로덕션 서버
 
 ```bash
-npm start
+pnpm start
 ```
 
 ### 배포

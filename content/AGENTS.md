@@ -75,7 +75,7 @@ seriesOrder: 1             # 시리즈인 경우
 
 ## 수정 작업 후 확인사항
 
-- `npm run format` 으로 MDX 포맷 정리
-- `npm run build` 통과 여부
+- `pnpm format` 으로 MDX 포맷 정리
+- `pnpm build` 통과 여부
 - `series/seriesOrder`가 같은 시리즈 내에서 일관되는지
 - 앞 글과 중복 설명이 과도하지 않은지

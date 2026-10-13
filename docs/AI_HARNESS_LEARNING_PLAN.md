@@ -182,7 +182,7 @@ React와 Next.js 공식 문서를 모두 숙지해.
 
 ## Completion
 
-- Run `npx tsc --noEmit` before `npm run build` for code changes.
+- Run `pnpm exec tsc --noEmit` before `pnpm build` for code changes.
 - For docs-only changes, run `git diff --check`.
 - Report verification output before claiming completion.
 ```
@@ -211,7 +211,7 @@ touch AGENTS.md
 ## Project Overview
 
 - Stack: Next.js + TypeScript
-- Package manager: npm
+- Package manager: pnpm
 - Deployment: static export
 
 ## Before Editing
@@ -223,8 +223,8 @@ touch AGENTS.md
 
 ## Commands
 
-- Type check: `npx tsc --noEmit`
-- Build: `npm run build`
+- Type check: `pnpm exec tsc --noEmit`
+- Build: `pnpm build`
 - Docs check: `git diff --check`
 
 ## Rules
