@@ -83,4 +83,3 @@ pnpm start
 - `docs/features/habits/DESIGN.md` - 습관 관리 기능 설계
 - `docs/features/habits/DATABASE.md` - 데이터베이스 스키마
 - `docs/features/habits/AUTH.md` - 인증 시스템 설계
-- `docs/features/games/DESIGN.md` - 게임 코너 설계

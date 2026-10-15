@@ -33,19 +33,7 @@ src/app/
 │       ├── GameCard.tsx           # 게임 선택 카드
 │       ├── GameLayout.tsx         # 게임 공통 레이아웃
 │       ├── useGameAudio.ts        # Web Audio API 효과음 훅
-│       ├── thumbnails/            # 게임 썸네일 (SVG 기반)
-│       └── spire/                 # 미니 스파이어 UI 컴포넌트
-│           ├── BattleScene.tsx    # 전투 화면
-│           ├── MapScene.tsx       # 맵 화면
-│           ├── RewardScene.tsx    # 보상 화면
-│           ├── RestScene.tsx      # 휴식 화면
-│           ├── CardComponent.tsx  # 카드 UI
-│           ├── EnemyComponent.tsx # 적 렌더링
-│           ├── PlayerComponent.tsx# 플레이어 렌더링
-│           ├── HandArea.tsx       # 손패 영역
-│           ├── BuffIcon.tsx       # 버프/디버프 아이콘
-│           ├── RelicBar.tsx       # 유물 표시
-│           └── svg/               # 캐릭터 SVG (추후 이미지 교체 가능)
+│       └── thumbnails/            # 블록 드롭·지뢰찾기 썸네일 (SVG)
 │
 ├── habits/                 # 습관 관리 페이지
 │   ├── page.tsx            # 메인 목록 (오늘 습관)
@@ -56,12 +44,8 @@ src/app/
 │
 ├── games/                  # 게임 코너 페이지
 │   ├── page.tsx            # 게임 목록
-│   ├── 2048/page.tsx       # 2048 게임
-│   ├── snake/page.tsx      # 스네이크 게임
 │   ├── minesweeper/page.tsx # 지뢰찾기 게임
-│   ├── memory/page.tsx     # 메모리 카드 게임
-│   ├── block-drop/page.tsx # 블록 드롭 게임
-│   └── spire/page.tsx      # 미니 스파이어 게임
+│   └── block-drop/page.tsx # 블록 드롭 게임
 │
 ├── lib/
 │   ├── supabase.ts         # Supabase 클라이언트
@@ -72,19 +56,7 @@ src/app/
 │   │   └── habitStats.ts   # 통계 계산 유틸리티
 │   └── games/
 │       ├── types.ts        # 게임 공통 타입
-│       ├── constants.ts    # 게임 메타 정보 상수
-│       └── spire/              # 미니 스파이어 게임 로직
-│           ├── types.ts        # 모든 타입 정의
-│           ├── cards.ts        # 카드 데이터 (확장 지점)
-│           ├── enemies.ts      # 적 데이터 (확장 지점)
-│           ├── relics.ts       # 유물 데이터 (확장 지점)
-│           ├── combat.ts       # 전투 계산 유틸 + 공통 랜덤 유틸
-│           ├── ai.ts           # 적 AI (패턴 선택)
-│           ├── mapGen.ts       # 맵 생성 알고리즘
-│           ├── battleLogic.ts  # 전투 초기화·카드 효과·적 턴 처리
-│           ├── rewardLogic.ts  # 보상 생성·수집 완료 처리
-│           ├── saveUtils.ts    # 베스트 기록·런 직렬화/저장
-│           └── gameState.ts    # 얇은 조율자: reducer + useSpireGame hook
+│       └── constants.ts    # 게임 메타 정보와 최고 점수 저장
 │
 └── styles/                 # CSS 모듈
     ├── base.css            # 기본 스타일 + 배경
