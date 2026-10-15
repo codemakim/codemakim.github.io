@@ -217,12 +217,19 @@ export default function EnglishJourney() {
                 {exercise.options?.map((option) => (
                   <button
                     key={option}
-                    className={`card p-4 text-left font-bold ${answer === option ? 'bg-[var(--bg-secondary)]' : ''}`}
-                    style={{ color: 'var(--text-primary)' }}
+                    className="card flex items-center justify-between gap-3 p-4 text-left font-bold"
+                    style={{
+                      color: answer === option ? 'var(--accent-text)' : 'var(--text-primary)',
+                      background: answer === option ? 'var(--accent)' : undefined,
+                      boxShadow: answer === option ? 'var(--nb-shadow)' : undefined,
+                    }}
                     onClick={() => checked === null && setAnswer(option)}
                     aria-pressed={answer === option}
                     disabled={checked !== null}
-                  >{option}</button>
+                  >
+                    <span>{option}</span>
+                    {answer === option && <span aria-hidden="true">✓ 선택됨</span>}
+                  </button>
                 ))}
               </div>
             )}
