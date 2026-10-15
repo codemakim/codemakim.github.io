@@ -8,7 +8,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signInWithGoogle: () => Promise<void>;
+  signInWithGoogle: (redirectPath?: string) => Promise<void>;
   signInWithGithub: () => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -86,12 +86,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return createClient(supabaseUrl, supabaseAnonKey);
   };
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (redirectPath = '/') => {
     const supabase = getSupabaseClient();
+    const requestedUrl = new URL(redirectPath, window.location.origin);
+    const redirectUrl = requestedUrl.origin === window.location.origin
+      ? requestedUrl
+      : new URL('/', window.location.origin);
+    redirectUrl.search = '';
+    redirectUrl.hash = '';
+    if (!redirectUrl.pathname.endsWith('/')) redirectUrl.pathname += '/';
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/`,
+        redirectTo: redirectUrl.toString(),
       },
     });
     if (error) {

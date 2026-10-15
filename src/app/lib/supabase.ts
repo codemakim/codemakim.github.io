@@ -84,6 +84,31 @@ export type Database = {
           completed?: boolean;
         };
       };
+      english_sessions: {
+        Row: {
+          id: string;
+          user_id: string;
+          activity_type: 'lesson' | 'review';
+          lesson_id: string | null;
+          correct_count: number;
+          question_count: number;
+          xp_earned: number;
+          wrong_question_ids: string[];
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          activity_type: 'lesson' | 'review';
+          lesson_id?: string | null;
+          correct_count: number;
+          question_count: number;
+          xp_earned: number;
+          wrong_question_ids?: string[];
+          created_at?: string;
+        };
+        Update: never;
+      };
     };
   };
 };

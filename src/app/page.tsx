@@ -51,6 +51,12 @@ export default function LandingPage() {
             description="간단한 웹 게임 모음"
             actionText="게임 하러 가기"
           />
+          <FeatureTile
+            href="/english"
+            title="영어 퀘스트"
+            description="짧은 미션을 깨며 영어 읽고 쓰기"
+            actionText="오늘의 퀘스트 시작"
+          />
         </FeatureTiles>
         <LatestPosts posts={latestPosts} />
       </main>

@@ -17,7 +17,8 @@ export default function LoginPage() {
     setError(null);
     setLoadingGoogle(true);
     try {
-      await signInWithGoogle();
+      const redirectPath = new URLSearchParams(window.location.search).get('redirect') ?? '/';
+      await signInWithGoogle(redirectPath);
       // OAuth는 리다이렉트되므로 여기까지 오지 않음
     } catch (err: any) {
       setError(err.message || '로그인에 실패했습니다.');
