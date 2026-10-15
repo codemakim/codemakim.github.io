@@ -1,5 +1,9 @@
 # 인증 시스템 설계
 
+## 변경 기록
+
+- 2026-10-15: 실제 Google 로그인 리다이렉트 주소를 반영하고 복구 런북을 연결함.
+
 > **상태**: ✅ 구현 완료  
 > **참고**: 프로젝트 아키텍처는 `docs/ARCHITECTURE.md` 참조
 
@@ -114,12 +118,14 @@ interface AuthState {
 
 ### 5.1 Supabase 대시보드 설정
 
-**Authentication → Settings:**
+**Authentication → URL Configuration:**
 
-- Site URL: `http://localhost:3000` (개발)
+- Site URL: `https://codemakim.github.io/` (프로덕션)
 - Redirect URLs:
-  - `http://localhost:3000/auth/callback`
-  - `https://your-domain.com/auth/callback` (프로덕션)
+  - `https://codemakim.github.io/` (프로덕션)
+  - `http://localhost:3000/` (개발)
+
+Google 로그인 코드는 현재 사이트 출처의 루트 URL로 리다이렉트한다. Google Cloud Console의 Authorized redirect URI에는 앱 주소가 아니라 Supabase Google Provider 화면에 표시된 callback URL을 등록한다. Client ID와 Secret 값은 문서에 기록하지 않는다.
 
 **Authentication → Providers:**
 
@@ -193,3 +199,4 @@ interface AuthState {
 - **프로젝트 아키텍처**: `docs/ARCHITECTURE.md` - 코드 구조, 데이터 흐름
 - **데이터베이스 설계**: `docs/features/habits/DATABASE.md` - user_stats 테이블 구조
 - **프로젝트 로드맵**: `docs/ROADMAP.md` - Phase 1.2 인증 시스템 구현
+- **인증 복구 런북**: `docs/runbooks/supabase-auth.md` - Supabase 중지 및 Google 로그인 점검
