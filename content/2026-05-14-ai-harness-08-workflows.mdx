@@ -9,6 +9,8 @@ seriesOrder: 8
 
 # Workflows: 하네스를 실제 작업 순서로 묶는다
 
+> **업데이트 (2026-10-15)**: 모든 작업에 같은 문서와 gate를 적용하지 않도록 작업에 필요한 문서만 읽고, 외부 변경은 영향과 승인 정책에 맞춰 확인하도록 다듬었다. [Codex approvals and security](https://developers.openai.com/codex/agent-approvals-security) · [Contextual instructions](https://developers.openai.com/blog/rethinking-skills-and-prompts-for-gpt-6-astra)
+
 Memory, Skills, Approval, Subagents, MCP, Plugins를 각각 알아도 실제 작업은 여전히 흔들릴 수 있다. 이유는 간단하다. 실무 작업은 한 계층으로 끝나지 않기 때문이다.
 
 기능 개발은 Memory를 읽고, Skill 절차를 따르고, 필요하면 MCP로 이슈를 읽고, worker가 파일을 수정하고, reviewer가 검토하고, build로 검증한다. 이 전체 순서를 workflow로 묶어야 한다.
@@ -53,7 +55,7 @@ Verification
 ## Planning
 
 - Read project Memory.
-- Read architecture and feature docs.
+- Read architecture and feature docs relevant to this task.
 - Identify target files and data flow.
 - Define verification commands.
 
@@ -153,7 +155,7 @@ reviewer subagent를 쓰기 좋은 workflow다. 단, reviewer는 읽기 전용�
 - User-facing changes summarized.
 ```
 
-외부 write가 포함되면 approval gate가 필요하다. push, PR 생성, 배포 트리거, production DB write는 자동으로 처리하지 않는다.
+외부 write는 사용자 요청과 approval 정책, 대상에 미치는 영향을 기준으로 gate를 정한다. Production DB 변경이나 배포처럼 영향이 큰 작업은 실행 전에 대상과 결과를 확인한다.
 
 ---
 
@@ -218,7 +220,7 @@ reviewer subagent를 쓰기 좋은 workflow다. 단, reviewer는 읽기 전용�
 
 - AI가 수정 전 읽을 파일을 먼저 말한다.
 - 요구사항이 크면 작업을 나눈다.
-- 위험한 명령은 승인 없이 실행하지 않는다.
+- 위험한 명령은 설정된 권한과 approval 정책에 따라 처리한다.
 - subagent에게 읽기/쓰기 권한이 구분된다.
 - 검증 명령의 실제 결과가 보고된다.
 - 실패하면 원인 후보를 분리하고 다시 확인한다.
@@ -239,7 +241,7 @@ reviewer subagent를 쓰기 좋은 workflow다. 단, reviewer는 읽기 전용�
 
 1. Memory를 정리한다.
 2. 가장 자주 실패하는 작업 하나를 Skill로 만든다.
-3. 위험 명령과 외부 write 승인 기준을 정한다.
+3. 위험 명령과 외부 write의 권한·승인 기준을 정한다.
 4. read-only reviewer subagent를 둔다.
 5. MCP는 read-only부터 연결한다.
 6. 반복되는 하네스만 plugin 후보로 올린다.

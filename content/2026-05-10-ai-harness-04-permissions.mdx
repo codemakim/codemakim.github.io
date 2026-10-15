@@ -9,6 +9,8 @@ seriesOrder: 4
 
 # Sandbox와 Approval: 위험 행동은 실행 경로에서 막는다
 
+> **업데이트 (2026-10-15)**: 승인은 모든 외부 쓰기에 일괄 적용하는 규칙이 아니라 영향, 사용자 요청, sandbox와 approval 정책을 기준으로 판단하도록 정리했다. Hooks는 자동화 계층이며 권한 경계를 대체하지 않는다. [Codex approvals and security](https://developers.openai.com/codex/agent-approvals-security) · [Codex hooks](https://developers.openai.com/codex/hooks)
+
 AI에게 "위험한 명령은 실행하지 마"라고 말하는 것만으로는 부족하다. AI는 규칙을 읽어도 실수할 수 있고, 도구 실행은 실제 효과를 만든다.
 
 파일 삭제, Git 리셋, 외부 DB 쓰기, GitHub push는 답변이 아니라 상태 변경이다. 안전장치는 말이 아니라 실행 경로에 있어야 한다.
@@ -31,14 +33,14 @@ AI에게 "위험한 명령은 실행하지 마"라고 말하는 것만으로는 
 
 따라서 권한은 행동의 성격에 따라 나눈다.
 
-| 등급        | 예시                            | 처리                  |
-| ----------- | ------------------------------- | --------------------- |
-| 안전한 읽기 | `rg`, `sed`, `git diff`         | 기본 허용             |
-| 로컬 쓰기   | 작업트리 파일 수정              | 작업 범위 안에서 허용 |
-| 검증 실행   | typecheck, test, build          | 보통 허용             |
-| 외부 읽기   | GitHub, docs, browser           | 목적 확인 후 허용     |
-| 외부 쓰기   | push, PR, DB write              | 승인 필요             |
-| 파괴적 작업 | `git reset --hard`, 광범위 삭제 | 기본 금지             |
+| 등급        | 예시                            | 처리                    |
+| ----------- | ------------------------------- | ----------------------- |
+| 안전한 읽기 | `rg`, `sed`, `git diff`         | 기본 허용               |
+| 로컬 쓰기   | 작업트리 파일 수정              | 작업 범위 안에서 허용   |
+| 검증 실행   | typecheck, test, build          | 보통 허용               |
+| 외부 읽기   | GitHub, docs, browser           | 목적 확인 후 허용       |
+| 외부 쓰기   | push, PR, DB write              | 영향과 정책에 따라 확인 |
+| 파괴적 작업 | `git reset --hard`, 광범위 삭제 | 기본 금지               |
 
 ---
 
@@ -56,13 +58,13 @@ Codex에서는 sandbox와 approval이 1차 안전장치다. 파일 시스템 쓰
 승인을 받아야 하는가?
 ```
 
-예를 들어 `npm run build`는 로컬 검증 명령이다. 일반적으로 허용할 수 있다. 반면 `git push`는 외부 저장소 상태를 바꾼다. 사용자의 명시적 요청이나 승인 없이는 실행하지 않는 편이 맞다.
+예를 들어 `npm run build`는 로컬 검증 명령이다. 일반적으로 허용할 수 있다. 반면 `git push`는 외부 저장소 상태를 바꾸므로 사용자 요청과 설정된 승인 정책을 확인해야 한다. 영향이 큰 작업은 실행 전에 대상과 결과를 확인하도록 정책을 둔다.
 
 ---
 
 ## Hooks의 위치
 
-Hooks는 특정 시점에 자동으로 실행되는 검사나 차단이다. Claude Code에서는 hooks를 위험 명령 차단이나 완료 전 검증에 직접 연결할 수 있다. Codex에서도 hooks가 있지만, 처음 설계할 때는 sandbox와 approval을 먼저 보고 hooks는 그 위의 자동화 계층으로 둔다.
+Hooks는 특정 시점에 자동으로 실행되는 검사나 차단이다. Claude Code에서는 위험 명령 차단이나 완료 전 검증에 연결할 수 있다. Codex에서도 hooks를 지원하지만 사용 가능한 기능과 배포 범위는 제품별로 다르다. Hooks는 자동화 계층으로 두고 sandbox와 approval 정책이 권한 경계를 맡도록 한다. 일부 hook 오류나 지원되지 않는 동작은 작업을 차단하지 못할 수 있으므로 hooks만으로 강제 정책을 구현하지 않는다.
 
 좋은 hooks 후보는 다음이다.
 
@@ -98,11 +100,10 @@ Hooks는 특정 시점에 자동으로 실행되는 검사나 차단이다. Clau
 
 ## Requires Approval
 
-- Install new packages.
-- Push to remote branches.
-- Create or modify GitHub PRs.
-- Write to external databases.
-- Run commands outside the workspace.
+- Install packages when the configured policy requires confirmation.
+- Push to remote branches or create and modify GitHub PRs when the user has not authorized the action or policy requires confirmation.
+- Write to shared or production databases and trigger deployments when their impact requires confirmation.
+- Run commands that exceed configured workspace or network boundaries.
 
 ## Forbidden
 

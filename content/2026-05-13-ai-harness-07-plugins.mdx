@@ -9,6 +9,8 @@ seriesOrder: 7
 
 # Plugins: 반복되는 하네스를 팀에 배포한다
 
+> **업데이트 (2026-10-15)**: Plugin의 manifest와 자동 로드 구성은 제품별 패키지 규칙을 따른다. Portable Agent Plugins package의 lifecycle hooks는 수동 설치한 Codex desktop plugin에서만 지원되며, Codex plugin hooks는 실행 전 검토와 신뢰 설정이 필요하다. [Codex plugin packaging](https://developers.openai.com/plugins/build/plugins) · [Codex hooks](https://developers.openai.com/codex/hooks) · [Claude Code plugins](https://code.claude.com/docs/en/plugins)
+
 한 프로젝트에서 좋은 Skill과 agent를 만들면 다른 프로젝트에도 쓰고 싶어진다. 처음에는 복사하면 된다. 하지만 팀 단위로 커지면 문제가 생긴다.
 
 - 프로젝트마다 Skill 버전이 달라진다.
@@ -17,7 +19,7 @@ seriesOrder: 7
 - MCP 권한 기준이 사람마다 다르다.
 - 새 팀원이 같은 하네스를 다시 만든다.
 
-Plugin은 반복되는 하네스 구성요소를 배포 단위로 묶는 방법이다.
+Plugin은 skills와 MCP 연결 같은 재사용 구성요소를 제품별 manifest에 묶어 배포하는 방법이다. Codex와 ChatGPT는 public plugin catalog를 공유하지만, 모든 실행 환경에서 같은 기능을 지원하지는 않는다.
 
 ---
 
@@ -46,7 +48,7 @@ Plugin 후보는 보통 네 가지다.
 | Hooks    | 완료 전 diff check, 금지 명령 차단     |
 | MCP 정책 | GitHub read, docs search, DB read-only |
 
-좋은 plugin은 도구 모음이 아니라 작업 방식 모음이다.
+좋은 plugin은 도구 모음이 아니라 작업 방식 모음이다. 다만 아래 디렉터리 트리는 개념 예시다. 실제로 로드되는 구성은 제품별 manifest와 패키지 명세를 따라야 한다. Codex의 portable Agent Plugins format에서는 `agents/`나 `policy/`라는 디렉터리 이름만으로 해당 내용이 로드된다고 보장할 수 없다.
 
 ```txt
 team-ai-harness-plugin
@@ -63,7 +65,7 @@ team-ai-harness-plugin
     mcp.md
 ```
 
-구성요소마다 목적과 권한이 분명해야 한다.
+구성요소마다 목적과 권한이 분명해야 한다. Portable Agent Plugins package의 lifecycle hooks는 수동 설치한 Codex desktop plugin에서만 지원된다. Codex plugin hooks도 설치만으로 자동 신뢰되지 않으므로 실행 전 정의를 검토하고 신뢰해야 한다. 배포 전에 대상 제품과 실행 환경을 확인한다.
 
 ---
 

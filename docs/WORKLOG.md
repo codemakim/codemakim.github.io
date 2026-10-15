@@ -11,5 +11,6 @@
 
 ## 2026-10
 
+- 2026-10-15 | 게시글 | AI 하네스 엔지니어링 8편을 현행 공식 문서에 맞춰 수정하고, 글별 수정 요약과 프로젝트 문서 기록 규칙을 반영함. [개요](../content/2026-05-07-ai-harness-01-overview.mdx) · [권한](../content/2026-05-10-ai-harness-04-permissions.mdx) · [Plugin](../content/2026-05-13-ai-harness-07-plugins.mdx) · [Workflow](../content/2026-05-14-ai-harness-08-workflows.mdx)
 - 2026-10-15 | 운영 | 사용자 확인: Supabase 프로젝트 재개 후 Google 로그인이 성공함. [인증 복구 런북](runbooks/supabase-auth.md)
 - 2026-10-15 | 문서 | 프로젝트 작업 기록과 반복 장애 확인 절차를 정리함. [문서 인덱스](README.md)

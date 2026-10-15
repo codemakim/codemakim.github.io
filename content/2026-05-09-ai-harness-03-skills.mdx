@@ -1,13 +1,15 @@
 ---
 title: "[AI 하네스 엔지니어링 3/8] Skills: 반복 작업을 절차로 만든다"
 date: "2026-05-09"
-description: "버그 수정, 코드 리뷰, 문서 재작성처럼 반복되는 작업을 SKILL.md 절차로 분리해 AI가 같은 순서로 일하게 만드는 방법을 정리한다."
+description: "반복 작업의 핵심 절차를 SKILL.md에 담고, 호출 설명은 간결하게 유지하며 상세 자료는 필요할 때 참조하도록 구성하는 기준을 정리한다."
 tags: ["AI", "Codex", "Claude Code", "중급"]
 series: "AI 하네스 엔지니어링"
 seriesOrder: 3
 ---
 
 # Skills: 반복 작업을 절차로 만든다
+
+> **업데이트 (2026-10-15)**: Skill 설명은 호출 조건을 간결하게 쓰고, 상세 절차와 참고 자료는 필요할 때 읽도록 분리하는 기준을 추가했다. [OpenAI Skills guide](https://developers.openai.com/api/docs/guides/tools-skills) · [Skill authoring guidance](https://developers.openai.com/plugins/build/skills)
 
 Memory는 항상 적용되는 규칙이다. 하지만 모든 절차를 Memory에 넣으면 금방 무거워진다.
 
@@ -43,13 +45,13 @@ Memory는 항상 적용되는 규칙이다. 하지만 모든 절차를 Memory에
   → 회귀 확인
 ```
 
-이 순서는 매번 필요하지만 모든 작업에 필요한 것은 아니다. 그래서 Skill이 맞다.
+이 순서는 버그 수정에서 유용하지만 모든 작업에 필요한 것은 아니다. 반복되는 작업에만 Skill로 분리한다.
 
 ---
 
 ## Skill에 들어갈 것
 
-좋은 Skill은 짧고 강하다. 배경 설명보다 실행 순서가 중요하다.
+Skill의 핵심 지시는 간결하고 작업 유형에 맞아야 한다. 긴 배경 자료는 필요할 때 읽도록 참조 파일로 분리한다. 절차만으로 일관된 실행이 보장되지는 않으므로 검증 기준도 적는다.
 
 ```md
 # Bug Fix Skill

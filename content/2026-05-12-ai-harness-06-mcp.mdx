@@ -9,6 +9,8 @@ seriesOrder: 6
 
 # MCP: 외부 도구 연결은 read-only부터 시작한다
 
+> **업데이트 (2026-10-15)**: read-only는 권한 설계의 출발점이다. MCP 서버가 요청마다 인증·인가해야 하며 tool annotation은 접근 제어를 대신하지 않는다는 점을 보강했다. [MCP server authorization guidance](https://developers.openai.com/plugins/build/mcp-server)
+
 AI가 로컬 파일만 볼 수 있으면 답답하다. GitHub 이슈, PR 코멘트, DB schema, 브라우저 화면, 사내 문서를 함께 읽으면 훨씬 유용하다.
 
 하지만 외부 도구 연결은 권한 문제다. AI에게 손과 발을 달아주는 순간, 잘못된 행동도 실제 시스템에 반영될 수 있다.
@@ -47,16 +49,16 @@ DB schema 일부 복사
 
 MCP 권한은 처음부터 최소로 시작한다.
 
-| 단계 | 허용              | 예시                              |
-| ---- | ----------------- | --------------------------------- |
-| 1    | read-only         | PR 읽기, schema 조회, docs search |
-| 2    | 승인된 write      | PR comment, issue update          |
-| 3    | 제한된 운영 write | staging DB seed, preview deploy   |
-| 4    | 운영 write        | production DB, release, billing   |
+| 단계 | 허용                | 예시                              |
+| ---- | ------------------- | --------------------------------- |
+| 1    | read-only           | PR 읽기, schema 조회, docs search |
+| 2    | 범위가 제한된 write | PR comment, issue update          |
+| 3    | 제한된 운영 write   | staging DB seed, preview deploy   |
+| 4    | 운영 write          | production DB, release, billing   |
 
 처음 연결할 때는 1단계로 충분한 경우가 많다. AI가 외부 상태를 읽고 로컬 변경을 제안하는 것만으로도 생산성이 올라간다.
 
-write는 별도 gate를 둔다.
+write는 별도 gate를 둔다. MCP 서버는 각 요청에서 사용자를 인증하고 해당 작업의 권한을 검사해야 한다. Tool annotation은 동작에 관한 힌트이며 인증·인가를 강제하지 않는다.
 
 ```txt
 AI가 제안한다.

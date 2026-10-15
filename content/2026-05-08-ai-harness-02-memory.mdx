@@ -9,6 +9,8 @@ seriesOrder: 2
 
 # Memory: 매 작업에 깔리는 프로젝트 계약
 
+> **업데이트 (2026-10-15)**: 프로젝트 Memory에는 매 작업에 적용할 짧은 규칙을 두고, 긴 배경 자료는 관련 작업에서 읽도록 분리하는 기준을 보강했다. [Rethinking skills and prompts](https://developers.openai.com/blog/rethinking-skills-and-prompts-for-gpt-6-astra)
+
 AI에게 매번 같은 말을 반복하는 프로젝트는 곧 흔들린다.
 
 ```txt
@@ -19,7 +21,7 @@ AI에게 매번 같은 말을 반복하는 프로젝트는 곧 흔들린다.
 답변은 한국어로 해라.
 ```
 
-한 번은 잘 따른다. 하지만 새 세션이 열리거나 컨텍스트가 길어지면 빠진다. Memory는 이 반복을 줄이는 장치다. AI가 항상 읽는 프로젝트 계약을 파일로 남긴다.
+한 번은 잘 따른다. 하지만 새 세션이 열리거나 컨텍스트가 길어지면 빠진다. Memory는 이 반복을 줄이는 장치다. 작업마다 적용할 프로젝트 규칙은 계약 파일에 두고, 긴 배경 자료는 필요할 때 참조 문서에서 읽게 한다.
 
 ---
 
@@ -51,7 +53,7 @@ Claude Code에서는 보통 `CLAUDE.md`를 쓴다. Codex와 여러 AI 코딩 도
 | 검증 기준       | code change는 typecheck 후 build                    |
 | 답변 스타일     | 한국어, 포스트는 `~한다`체                          |
 
-좋은 Memory는 행동을 바꾼다.
+좋은 Memory는 행동을 바꾼다. 항상 읽히는 규칙은 짧게 유지하고, 상세 설계와 예시는 reference docs로 연결한다.
 
 ```md
 ## Before Editing
