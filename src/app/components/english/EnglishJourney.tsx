@@ -112,7 +112,7 @@ export default function EnglishJourney() {
   };
 
   const response = exercise?.type === 'order'
-    ? (exercise.tiles ?? []).filter((_, index) => chosenTiles.includes(index)).join(' ')
+    ? chosenTiles.map((index) => exercise.tiles?.[index] ?? '').join(' ')
     : answer;
 
   const submitAnswer = () => {
